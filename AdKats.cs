@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.51
+ * Version 6.7.0.52
  * 4-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.51</version_code>
+ * <version_code>6.7.0.52</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.51";
+        private const String PluginVersion = "6.7.0.52";
 
         public enum GameVersion
         {
@@ -855,7 +855,7 @@ namespace PRoConEvents
                 if (!_fetchedPluginInformation)
                 {
                     //Wait up to 10 seconds for the description to fetch
-                    Log.Debug("Waiting for plugin information...", 1);
+                    Log.Debug(() => "Waiting for plugin information...", 1);
                     _PluginDescriptionWaitHandle.WaitOne(10000);
                 }
 
@@ -892,7 +892,7 @@ namespace PRoConEvents
         public List<CPluginVariable> GetDisplayPluginVariables()
         {
             try {
-                Log.Debug("Updating Setting Page [" + ((String.IsNullOrEmpty(Thread.CurrentThread.Name)) ? ("Main") : (Thread.CurrentThread.Name)) + "]: " + (UtcDbTime() - _lastSettingPageUpdate).TotalSeconds + " seconds since last update.", 4);
+                Log.Debug(() => "Updating Setting Page [" + ((String.IsNullOrEmpty(Thread.CurrentThread.Name)) ? ("Main") : (Thread.CurrentThread.Name)) + "]: " + (UtcDbTime() - _lastSettingPageUpdate).TotalSeconds + " seconds since last update.", 4);
                 _lastSettingPageUpdate = UtcDbTime();
                 Stopwatch timer = new Stopwatch();
                 timer.Start();
@@ -4262,10 +4262,10 @@ namespace PRoConEvents
                                 Thread addSoldierThread = new Thread(new ThreadStart(delegate
                                 {
                                     Thread.CurrentThread.Name = "AddSoldier";
-                                    Log.Debug("Starting a user change thread.", 2);
+                                    Log.Debug(() => "Starting a user change thread.", 2);
                                     TryAddUserSoldier(aUser, strValue);
                                     QueueUserForUpload(aUser);
-                                    Log.Debug("Exiting a user change thread.", 2);
+                                    Log.Debug(() => "Exiting a user change thread.", 2);
                                     LogThreadExit();
                                 }));
                                 StartAndLogThread(addSoldierThread);
@@ -5535,11 +5535,11 @@ namespace PRoConEvents
                         Thread addUserThread = new Thread(new ThreadStart(delegate
                         {
                             Thread.CurrentThread.Name = "UserChange";
-                            Log.Debug("Starting a user change thread.", 2);
+                            Log.Debug(() => "Starting a user change thread.", 2);
                             //Attempt to add soldiers matching the user's name
                             TryAddUserSoldier(aUser, aUser.user_name);
                             QueueUserForUpload(aUser);
-                            Log.Debug("Exiting a user change thread.", 2);
+                            Log.Debug(() => "Exiting a user change thread.", 2);
                             LogThreadExit();
                         }));
                         StartAndLogThread(addUserThread);
@@ -5588,7 +5588,7 @@ namespace PRoConEvents
 
         public void OnPluginLoaded(String strHostName, String strPort, String strPRoConVersion)
         {
-            Log.Debug("Entering OnPluginLoaded", 7);
+            Log.Debug(() => "Entering OnPluginLoaded", 7);
             try
             {
                 //Set the server IP
@@ -5642,7 +5642,7 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("FATAL ERROR on plugin load.", e));
             }
-            Log.Debug("Exiting OnPluginLoaded", 7);
+            Log.Debug(() => "Exiting OnPluginLoaded", 7);
         }
 
         public void OnPluginEnable()
@@ -5877,7 +5877,7 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    Log.Debug("Threads still exiting: " + aliveThreads, 2);
+                                    Log.Debug(() => "Threads still exiting: " + aliveThreads, 2);
                                 }
                             }
                         } while (alive);
@@ -6095,18 +6095,18 @@ namespace PRoConEvents
                     //Create web client
                     WebClient client = new WebClient();
                     //Download the readme and changelog
-                    Log.Debug("Fetching plugin links...", 2);
+                    Log.Debug(() => "Fetching plugin links...", 2);
                     try
                     {
                         _pluginLinks = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/LINKS.md?nocacherandom=" + Environment.TickCount);
-                        Log.Debug("Plugin links fetched.", 1);
+                        Log.Debug(() => "Plugin links fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
                             _pluginLinks = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/links?nocacherandom=" + Environment.TickCount);
-                            Log.Debug("Plugin links fetched from backup location.", 1);
+                            Log.Debug(() => "Plugin links fetched from backup location.", 1);
                         }
                         catch (Exception)
                         {
@@ -6114,18 +6114,18 @@ namespace PRoConEvents
                         }
                     }
                     _pluginDescFetchProgress = "LinksFetched";
-                    Log.Debug("Fetching plugin readme...", 2);
+                    Log.Debug(() => "Fetching plugin readme...", 2);
                     try
                     {
                         _pluginDescription = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/README.md?nocacherandom=" + Environment.TickCount);
-                        Log.Debug("Plugin readme fetched.", 1);
+                        Log.Debug(() => "Plugin readme fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
                             _pluginDescription = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/readme?nocacherandom=" + Environment.TickCount);
-                            Log.Debug("Plugin readme fetched from backup location.", 1);
+                            Log.Debug(() => "Plugin readme fetched from backup location.", 1);
                         }
                         catch (Exception)
                         {
@@ -6133,18 +6133,18 @@ namespace PRoConEvents
                         }
                     }
                     _pluginDescFetchProgress = "DescFetched";
-                    Log.Debug("Fetching plugin changelog...", 2);
+                    Log.Debug(() => "Fetching plugin changelog...", 2);
                     try
                     {
                         _pluginChangelog = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/CHANGELOG.md?nocacherandom=" + Environment.TickCount);
-                        Log.Debug("Plugin changelog fetched.", 1);
+                        Log.Debug(() => "Plugin changelog fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
                             _pluginChangelog = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/changelog?nocacherandom=" + Environment.TickCount);
-                            Log.Debug("Plugin changelog fetched from backup location.", 1);
+                            Log.Debug(() => "Plugin changelog fetched from backup location.", 1);
                         }
                         catch (Exception)
                         {
@@ -6222,7 +6222,7 @@ namespace PRoConEvents
                         LogThreadExit();
                         return;
                     }
-                    Log.Debug("Setting desc fetch handle.", 1);
+                    Log.Debug(() => "Setting desc fetch handle.", 1);
                     _fetchedPluginInformation = true;
                     _LastPluginDescFetch = UtcDbTime();
                     _PluginDescriptionWaitHandle.Set();
@@ -6284,7 +6284,7 @@ namespace PRoConEvents
                             //Check for unswitcher disable every 20 seconds
                             if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (UtcDbTime() - _LastPlayerMoveIssued).TotalSeconds > 20)
                             {
-                                Log.Debug("MULTIBalancer Unswitcher Re-Enabled", 3);
+                                Log.Debug(() => "MULTIBalancer Unswitcher Re-Enabled", 3);
                                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
                                 _MULTIBalancerUnswitcherDisabled = false;
                             }
@@ -6559,7 +6559,7 @@ namespace PRoConEvents
                                     foreach (AdKatsPlayer aPlayer in afkPlayers)
                                     {
                                         String afkTime = FormatTimeString(UtcDbTime() - aPlayer.lastAction, 2);
-                                        Log.Debug("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
+                                        Log.Debug(() => "Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
                                         AdKatsRecord record = new AdKatsRecord
                                         {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -6722,7 +6722,7 @@ namespace PRoConEvents
 
         public void StartThreads()
         {
-            Log.Debug("Entering StartThreads", 7);
+            Log.Debug(() => "Entering StartThreads", 7);
             try
             {
                 //Start the main thread
@@ -6740,7 +6740,7 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while starting processing threads.", e));
             }
-            Log.Debug("Exiting StartThreads", 7);
+            Log.Debug(() => "Exiting StartThreads", 7);
         }
 
         private void Disable()
@@ -6758,7 +6758,7 @@ namespace PRoConEvents
             {
                 Thread pluginRebootThread = new Thread(new ThreadStart(delegate
                 {
-                    Log.Debug("Starting a reboot thread.", 5);
+                    Log.Debug(() => "Starting a reboot thread.", 5);
                     try
                     {
                         Thread.CurrentThread.Name = "Reboot";
@@ -6770,7 +6770,7 @@ namespace PRoConEvents
                     {
                         HandleException(new AdKatsException("Error while running reboot."));
                     }
-                    Log.Debug("Exiting a reboot thread.", 5);
+                    Log.Debug(() => "Exiting a reboot thread.", 5);
                     LogThreadExit();
                 }));
                 StartAndLogThread(pluginRebootThread);
@@ -6786,7 +6786,7 @@ namespace PRoConEvents
         {
             foreach (String env in lstPluginEnv)
             {
-                Log.Debug("^9OnPluginLoadingEnv: " + env, 7);
+                Log.Debug(() => "^9OnPluginLoadingEnv: " + env, 7);
             }
             switch (lstPluginEnv[1])
             {
@@ -6800,7 +6800,7 @@ namespace PRoConEvents
                     _gameVersion = GameVersion.BFHL;
                     break;
             }
-            Log.Debug("^1Game Version: " + _gameVersion, 1);
+            Log.Debug(() => "^1Game Version: " + _gameVersion, 1);
             //Initialize the email handler
             _EmailHandler = new EmailHandler(this);
         }
@@ -6824,11 +6824,11 @@ namespace PRoConEvents
                         //Check for already existing Neutral team
                         if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "Neutral")
                         {
-                            Log.Debug("Neutral Team already set for team " + targetTeamID + ", cancelling override.", 4);
+                            Log.Debug(() => "Neutral Team already set for team " + targetTeamID + ", cancelling override.", 4);
                             break;
                         }
                         _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "Neutral", "Neutral Team", "Neutral Team");
-                        Log.Debug("Assigning team ID " + targetTeamID + " to Neutral ", 4);
+                        Log.Debug(() => "Assigning team ID " + targetTeamID + " to Neutral ", 4);
                         break;
                     case 0:
                         switch (_gameVersion)
@@ -6838,21 +6838,21 @@ namespace PRoConEvents
                                 //Check for already existing US team
                                 if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "US")
                                 {
-                                    Log.Debug("Team US already set for team " + targetTeamID + ", cancelling override.", 4);
+                                    Log.Debug(() => "Team US already set for team " + targetTeamID + ", cancelling override.", 4);
                                     break;
                                 }
                                 _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "US", "US Army", "United States Army");
-                                Log.Debug("Assigning team ID " + targetTeamID + " to US ", 4);
+                                Log.Debug(() => "Assigning team ID " + targetTeamID + " to US ", 4);
                                 break;
                             case GameVersion.BFHL:
                                 //Check for already existing US team
                                 if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "Cops")
                                 {
-                                    Log.Debug("Team Cops already set for team " + targetTeamID + ", cancelling override.", 4);
+                                    Log.Debug(() => "Team Cops already set for team " + targetTeamID + ", cancelling override.", 4);
                                     break;
                                 }
                                 _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "LE", "Cops", "Law Enforcement");
-                                Log.Debug("Assigning team ID " + targetTeamID + " to Cops ", 4);
+                                Log.Debug(() => "Assigning team ID " + targetTeamID + " to Cops ", 4);
                                 break;
                         }
                         break;
@@ -6864,21 +6864,21 @@ namespace PRoConEvents
                                 //Check for already existing RU team
                                 if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "RU")
                                 {
-                                    Log.Debug("Team RU already set for team " + targetTeamID + ", cancelling override.", 4);
+                                    Log.Debug(() => "Team RU already set for team " + targetTeamID + ", cancelling override.", 4);
                                     break;
                                 }
                                 _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "RU", "Russian Army", "Russian Federation Army");
-                                Log.Debug("Assigning team ID " + targetTeamID + " to RU", 4);
+                                Log.Debug(() => "Assigning team ID " + targetTeamID + " to RU", 4);
                                 break;
                             case GameVersion.BFHL:
                                 //Check for already existing RU team
                                 if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "Crims")
                                 {
-                                    Log.Debug("Team Crims already set for team " + targetTeamID + ", cancelling override.", 4);
+                                    Log.Debug(() => "Team Crims already set for team " + targetTeamID + ", cancelling override.", 4);
                                     break;
                                 }
                                 _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "CR", "Crims", "Criminals");
-                                Log.Debug("Assigning team ID " + targetTeamID + " to Crims", 4);
+                                Log.Debug(() => "Assigning team ID " + targetTeamID + " to Crims", 4);
                                 break;
                         }
                         break;
@@ -6890,11 +6890,11 @@ namespace PRoConEvents
                                 //Check for already existing CN team
                                 if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "CN")
                                 {
-                                    Log.Debug("Team CN already set for team " + targetTeamID + ", cancelling override.", 4);
+                                    Log.Debug(() => "Team CN already set for team " + targetTeamID + ", cancelling override.", 4);
                                     break;
                                 }
                                 _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "CN", "Chinese Army", "Chinese People's Liberation Army");
-                                Log.Debug("Assigning team ID " + targetTeamID + " to CN", 4);
+                                Log.Debug(() => "Assigning team ID " + targetTeamID + " to CN", 4);
                                 break;
                             default:
                                 Log.Error("Attempted to use team key 2 on non-BF3/BF4 server.");
@@ -6990,7 +6990,7 @@ namespace PRoConEvents
                 }
                 else if (_gameVersion == GameVersion.BF4)
                 {
-                    Log.Debug("Assigning team ID " + 0 + " to Spectator", 4);
+                    Log.Debug(() => "Assigning team ID " + 0 + " to Spectator", 4);
                     Thread.Sleep(500);
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride");
                     //Wait for proper team overrides to complete
@@ -7062,7 +7062,7 @@ namespace PRoConEvents
                 }
                 else if (_gameVersion == GameVersion.BFHL)
                 {
-                    Log.Debug("Assigning team ID " + 0 + " to Spectator", 4);
+                    Log.Debug(() => "Assigning team ID " + 0 + " to Spectator", 4);
                     OnTeamFactionOverride(1, 0);
                     OnTeamFactionOverride(2, 1);
                     _acceptingTeamUpdates = false;
@@ -7077,7 +7077,7 @@ namespace PRoConEvents
 
         public override void OnPlayerTeamChange(String soldierName, Int32 teamId, Int32 squadId)
         {
-            Log.Debug("Entering OnPlayerTeamChange", 7);
+            Log.Debug(() => "Entering OnPlayerTeamChange", 7);
             try
             {
                 if (!_firstPlayerListComplete)
@@ -7128,12 +7128,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while handling player team change.", e));
             }
-            Log.Debug("Exiting OnPlayerTeamChange", 7);
+            Log.Debug(() => "Exiting OnPlayerTeamChange", 7);
         }
 
         public override void OnPlayerSquadChange(string soldierName, int teamId, int squadId)
         {
-            Log.Debug("Entering OnPlayerSquadChange", 7);
+            Log.Debug(() => "Entering OnPlayerSquadChange", 7);
             try
             {
                 if (!_firstPlayerListComplete)
@@ -7151,12 +7151,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while handling player squad change.", e));
             }
-            Log.Debug("Exiting OnPlayerSquadChange", 7);
+            Log.Debug(() => "Exiting OnPlayerSquadChange", 7);
         }
 
         public override void OnListPlayers(List<CPlayerInfo> players, CPlayerSubset cpsSubset)
         {
-            Log.Debug("Entering OnListPlayers", 7);
+            Log.Debug(() => "Entering OnListPlayers", 7);
             try
             {
                 //Only handle the list if it is an "All players" list
@@ -7178,21 +7178,21 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error occured while listing players.", e));
             }
-            Log.Debug("Exiting OnListPlayers", 7);
+            Log.Debug(() => "Exiting OnListPlayers", 7);
         }
 
         private void QueuePlayerListForProcessing(List<CPlayerInfo> players)
         {
-            Log.Debug("Entering QueuePlayerListForProcessing", 7);
+            Log.Debug(() => "Entering QueuePlayerListForProcessing", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue player list for processing", 6);
+                    Log.Debug(() => "Preparing to queue player list for processing", 6);
                     lock (_PlayerListProcessingQueue)
                     {
                         _PlayerListProcessingQueue.Enqueue(players);
-                        Log.Debug("Player list queued for processing", 6);
+                        Log.Debug(() => "Player list queued for processing", 6);
                         _PlayerProcessingWaitHandle.Set();
                     }
                 }
@@ -7201,21 +7201,21 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing player list for processing.", e));
             }
-            Log.Debug("Exiting QueuePlayerListForProcessing", 7);
+            Log.Debug(() => "Exiting QueuePlayerListForProcessing", 7);
         }
 
         private void QueuePlayerForRemoval(CPlayerInfo player)
         {
-            Log.Debug("Entering QueuePlayerForRemoval", 7);
+            Log.Debug(() => "Entering QueuePlayerForRemoval", 7);
             try
             {
                 if (_pluginEnabled && _firstPlayerListComplete)
                 {
-                    Log.Debug("Preparing to queue player list for processing", 6);
+                    Log.Debug(() => "Preparing to queue player list for processing", 6);
                     lock (_PlayerRemovalProcessingQueue)
                     {
                         _PlayerRemovalProcessingQueue.Enqueue(player);
-                        Log.Debug("Player removal queued for processing", 6);
+                        Log.Debug(() => "Player removal queued for processing", 6);
                         _PlayerProcessingWaitHandle.Set();
                     }
                 }
@@ -7224,24 +7224,24 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing player for removal.", e));
             }
-            Log.Debug("Exiting QueuePlayerForRemoval", 7);
+            Log.Debug(() => "Exiting QueuePlayerForRemoval", 7);
         }
 
         public void PlayerListingThreadLoop()
         {
             try
             {
-                Log.Debug("Starting Player Listing Thread", 1);
+                Log.Debug(() => "Starting Player Listing Thread", 1);
                 Thread.CurrentThread.Name = "PlayerListing";
                 DateTime loopStart = UtcDbTime();
                 while (true)
                 {
                     try
                     {
-                        Log.Debug("Entering Player Listing Thread Loop", 7);
+                        Log.Debug(() => "Entering Player Listing Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
 
@@ -7253,10 +7253,10 @@ namespace PRoConEvents
                         List<CPlayerInfo> inboundPlayerList = null;
                         if (_PlayerListProcessingQueue.Count > 0 && _firstUserListComplete)
                         {
-                            Log.Debug("Preparing to lock player list queues to retrive new player lists", 7);
+                            Log.Debug(() => "Preparing to lock player list queues to retrive new player lists", 7);
                             lock (_PlayerListProcessingQueue)
                             {
-                                Log.Debug("Inbound player lists found. Grabbing.", 6);
+                                Log.Debug(() => "Inbound player lists found. Grabbing.", 6);
                                 while (_PlayerListProcessingQueue.Any())
                                 {
                                     inboundPlayerList = _PlayerListProcessingQueue.Dequeue();
@@ -7276,10 +7276,10 @@ namespace PRoConEvents
                         Queue<CPlayerInfo> inboundPlayerRemoval = null;
                         if (_PlayerRemovalProcessingQueue.Count > 0)
                         {
-                            Log.Debug("Preparing to lock player removal queue to retrive new player removals", 7);
+                            Log.Debug(() => "Preparing to lock player removal queue to retrive new player removals", 7);
                             lock (_PlayerRemovalProcessingQueue)
                             {
-                                Log.Debug("Inbound player removals found. Grabbing.", 6);
+                                Log.Debug(() => "Inbound player removals found. Grabbing.", 6);
                                 if (_PlayerRemovalProcessingQueue.Any())
                                 {
                                     inboundPlayerRemoval = new Queue<CPlayerInfo>(_PlayerRemovalProcessingQueue.ToArray());
@@ -7298,7 +7298,7 @@ namespace PRoConEvents
                             !_PlayerRoleRefetch && 
                             !playerListFetched)
                         {
-                            Log.Debug("No inbound player listing actions. Waiting for Input.", 5);
+                            Log.Debug(() => "No inbound player listing actions. Waiting for Input.", 5);
                             //Wait for input
                             if (!_firstPlayerListStarted)
                             {
@@ -7307,7 +7307,7 @@ namespace PRoConEvents
                             }
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug("Warning. PlayerListing thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. PlayerListing thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _PlayerProcessingWaitHandle.Reset();
                             _PlayerProcessingWaitHandle.WaitOne(TimeSpan.FromSeconds(60));
@@ -7421,7 +7421,7 @@ namespace PRoConEvents
                             List<string> validPlayers = new List<String>();
                             if (inboundPlayerList.Count > 0)
                             {
-                                Log.Debug("Listing Players", 5);
+                                Log.Debug(() => "Listing Players", 5);
                                 //Reset the player counts of all teams and recount everything
                                 //Loop over all players in the list
                                 Int32 team1PC = 0;
@@ -7501,7 +7501,7 @@ namespace PRoConEvents
                                             }
                                             else
                                             {
-                                                Log.Debug("Ping status for " + aPlayer.GetVerboseName() + ": " + reply.Status, 5);
+                                                Log.Debug(() => "Ping status for " + aPlayer.GetVerboseName() + ": " + reply.Status, 5);
                                                 ping = -1;
                                             }
                                         }
@@ -7566,7 +7566,7 @@ namespace PRoConEvents
                                         aPlayer = _PlayerLeftDictionary.Values.FirstOrDefault(oPlayer => oPlayer.player_guid == playerInfo.GUID);
                                         if (aPlayer != null)
                                         {
-                                            Log.Debug("Player " + playerInfo.SoldierName + " rejoined the server.", 3);
+                                            Log.Debug(() => "Player " + playerInfo.SoldierName + " rejoined the server.", 3);
                                             //Remove them from the left dictionary
                                             _PlayerLeftDictionary.Remove(playerInfo.SoldierName);
                                             //check for name changes
@@ -7587,7 +7587,7 @@ namespace PRoConEvents
                                                     record_time = UtcDbTime()
                                                 };
                                                 QueueRecordForProcessing(record);
-                                                Log.Debug(aPlayer.player_name_previous + " changed their name to " + playerInfo.SoldierName + ". Updating the database.", 2);
+                                                Log.Debug(() => aPlayer.player_name_previous + " changed their name to " + playerInfo.SoldierName + ". Updating the database.", 2);
                                                 if (_ShowPlayerNameChangeAnnouncement)
                                                 {
                                                     OnlineAdminSayMessage(aPlayer.player_name_previous + " changed their name to " + playerInfo.SoldierName);
@@ -7858,7 +7858,7 @@ namespace PRoConEvents
                                 foreach (string playerName in _PlayerDictionary.Keys.Where(playerName => !validPlayers.Contains(playerName)).ToList())
                                 {
                                     straglerCount++;
-                                    Log.Debug("Removing " + playerName + " from current player list (VIA CLEANUP).", 4);
+                                    Log.Debug(() => "Removing " + playerName + " from current player list (VIA CLEANUP).", 4);
                                     AdKatsPlayer aPlayer;
                                     if (_PlayerDictionary.TryGetValue(playerName, out aPlayer))
                                     {
@@ -8127,7 +8127,7 @@ namespace PRoConEvents
                         HandleException(new AdKatsException("Error occured in player listing thread. Skipping loop.", e));
                     }
                 }
-                Log.Debug("Ending Player Listing Thread", 1);
+                Log.Debug(() => "Ending Player Listing Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -8140,7 +8140,7 @@ namespace PRoConEvents
         {
             try
             {
-                Log.Debug("OnPunkbusterPlayerInfo fired!", 7);
+                Log.Debug(() => "OnPunkbusterPlayerInfo fired!", 7);
                 AdKatsPlayer aPlayer;
                 if (_PlayerDictionary.TryGetValue(cpbiPlayer.SoldierName, out aPlayer))
                 {
@@ -8155,7 +8155,7 @@ namespace PRoConEvents
                         updatePlayer = true;
                         if (!String.IsNullOrEmpty(aPlayer.player_ip))
                         {
-                            Log.Debug(aPlayer.GetVerboseName() + " changed their IP from " + aPlayer.player_ip + " to " + player_ip + ". Updating the database.", 2);
+                            Log.Debug(() => aPlayer.GetVerboseName() + " changed their IP from " + aPlayer.player_ip + " to " + player_ip + ". Updating the database.", 2);
                             AdKatsRecord record = new AdKatsRecord
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -8181,7 +8181,7 @@ namespace PRoConEvents
 
                     if (updatePlayer)
                     {
-                        Log.Debug("Queueing existing player " + aPlayer.GetVerboseName() + " for update.", 4);
+                        Log.Debug(() => "Queueing existing player " + aPlayer.GetVerboseName() + " for update.", 4);
                         UpdatePlayer(aPlayer);
                         //If using ban enforcer, queue player for update
                         if (_UseBanEnforcer)
@@ -8190,8 +8190,8 @@ namespace PRoConEvents
                         }
                     }
                 }
-                Log.Debug("Player slot: " + cpbiPlayer.SlotID, 7);
-                Log.Debug("OnPunkbusterPlayerInfo finished!", 7);
+                Log.Debug(() => "Player slot: " + cpbiPlayer.SlotID, 7);
+                Log.Debug(() => "OnPunkbusterPlayerInfo finished!", 7);
             }
             catch (Exception e)
             {
@@ -8211,13 +8211,13 @@ namespace PRoConEvents
                 {
                     DateTime start = UtcDbTime();
                     FetchCommands();
-                    Log.Debug("Command fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+                    Log.Debug(() => "Command fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
                     start = UtcDbTime();
                     FetchRoles();
-                    Log.Debug("Role fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+                    Log.Debug(() => "Role fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
                     start = UtcDbTime();
                     FetchUserList();
-                    Log.Debug("User fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+                    Log.Debug(() => "User fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
                     start = UtcDbTime();
                 }
             }
@@ -8227,26 +8227,26 @@ namespace PRoConEvents
         {
             try
             {
-                Log.Debug("Starting Access Fetching Thread", 1);
+                Log.Debug(() => "Starting Access Fetching Thread", 1);
                 Thread.CurrentThread.Name = "AccessFetching";
                 DateTime loopStart = UtcDbTime();
                 while (true)
                 {
                     try
                     {
-                        Log.Debug("Entering Access Fetching Thread Loop", 7);
+                        Log.Debug(() => "Entering Access Fetching Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
 
                         FetchAllAccess(false);
 
-                        Log.Debug("Access fetch waiting for Input.", 5);
+                        Log.Debug(() => "Access fetch waiting for Input.", 5);
                         if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                         {
-                            Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                            Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                         }
                         _AccessFetchWaitHandle.Reset();
                         _AccessFetchWaitHandle.WaitOne(TimeSpan.FromSeconds(300));
@@ -8262,7 +8262,7 @@ namespace PRoConEvents
                         HandleException(new AdKatsException("Error occured in Access Fetching thread. Skipping loop.", e));
                     }
                 }
-                Log.Debug("Ending Access Fetching Thread", 1);
+                Log.Debug(() => "Ending Access Fetching Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -8288,11 +8288,11 @@ namespace PRoConEvents
                                 Int32 oldRoundID = reader.GetInt32("max_round_id");
                                 if (increment) {
                                     _roundID = oldRoundID + 1;
-                                    Log.Debug("New round. Round ID is " + _roundID, 2);
+                                    Log.Debug(() => "New round. Round ID is " + _roundID, 2);
                                 }
                                 else {
                                     _roundID = oldRoundID;
-                                    Log.Debug("Current round. Round ID is " + _roundID, 2);
+                                    Log.Debug(() => "Current round. Round ID is " + _roundID, 2);
                                 }
                             } else {
                                 _roundID = 1;
@@ -8406,7 +8406,7 @@ namespace PRoConEvents
                                             //Attempt to execute the query
                                             if (SafeExecuteNonQuery(command) > 0)
                                             {
-                                                Log.Debug("round stat pushed to database", 5);
+                                                Log.Debug(() => "round stat pushed to database", 5);
                                             }
                                         }
                                         catch (Exception e)
@@ -8446,7 +8446,7 @@ namespace PRoConEvents
 
         public override void OnServerInfo(CServerInfo serverInfo)
         {
-            Log.Debug("Entering OnServerInfo", 7);
+            Log.Debug(() => "Entering OnServerInfo", 7);
             try
             {
                 if (_pluginEnabled)
@@ -8480,7 +8480,7 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    Log.Debug("Server info fired while changing rounds, no teams to parse.", 5);
+                                    Log.Debug(() => "Server info fired while changing rounds, no teams to parse.", 5);
                                 }
                             }
                             AdKatsTeam team1, team2;
@@ -9324,7 +9324,7 @@ namespace PRoConEvents
                                         _surrenderAutoSucceeded = true;
                                         Thread roundEndDelayThread = new Thread(new ThreadStart(delegate
                                         {
-                                            Log.Debug("Starting a round end delay thread.", 5);
+                                            Log.Debug(() => "Starting a round end delay thread.", 5);
                                             try
                                             {
                                                 Thread.CurrentThread.Name = "RoundEndDelay";
@@ -9352,7 +9352,7 @@ namespace PRoConEvents
                                             {
                                                 HandleException(new AdKatsException("Error while running round end delay."));
                                             }
-                                            Log.Debug("Exiting a round end delay thread.", 5);
+                                            Log.Debug(() => "Exiting a round end delay thread.", 5);
                                             LogThreadExit();
                                         }));
                                         StartAndLogThread(roundEndDelayThread);
@@ -9423,12 +9423,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while processing server info.", e));
             }
-            Log.Debug("Exiting OnServerInfo", 7);
+            Log.Debug(() => "Exiting OnServerInfo", 7);
         }
 
         public void PostAndResetMapBenefitStatistics()
         {
-            Log.Debug("Entering PostAndResetMapBenefitStatistics", 7);
+            Log.Debug(() => "Entering PostAndResetMapBenefitStatistics", 7);
             try
             {
                 if (_PostMapBenefitStatistics && _serverInfo != null && _serverInfo.InfoObject != null)
@@ -9466,12 +9466,12 @@ namespace PRoConEvents
             }
             _mapDetrimentIndex = 0;
             _mapBenefitIndex = 0;
-            Log.Debug("Exiting PostAndResetMapBenefitStatistics", 7);
+            Log.Debug(() => "Exiting PostAndResetMapBenefitStatistics", 7);
         }
 
         public void PostRoundStatistics(AdKatsTeam winningTeam, AdKatsTeam losingTeam)
         {
-            Log.Debug("Entering PostPlayerWinLossStatistics", 7);
+            Log.Debug(() => "Entering PostPlayerWinLossStatistics", 7);
             try
             {
                 List<AdKatsPlayer> OrderedPlayers = _PlayerDictionary.Values.Where(aPlayer => aPlayer.player_type == PlayerType.Player).OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
@@ -9540,12 +9540,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while preparing map stats for upload", e));
             }
-            Log.Debug("Exiting PostPlayerWinLossStatistics", 7);
+            Log.Debug(() => "Exiting PostPlayerWinLossStatistics", 7);
         }
 
         public override void OnLevelLoaded(String strMapFileName, String strMapMode, Int32 roundsPlayed, Int32 roundsTotal)
         {
-            Log.Debug("Entering OnLevelLoaded", 7);
+            Log.Debug(() => "Entering OnLevelLoaded", 7);
             try
             {
                 if (_pluginEnabled)
@@ -9588,7 +9588,7 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while handling level load.", e));
             }
-            Log.Debug("Exiting OnLevelLoaded", 7);
+            Log.Debug(() => "Exiting OnLevelLoaded", 7);
         }
 
         //Round ended stuff
@@ -9744,7 +9744,7 @@ namespace PRoConEvents
         //Move delayed players when they are killed
         public override void OnPlayerKilled(Kill kKillerVictimDetails)
         {
-            Log.Debug("Entering OnPlayerKilled", 7);
+            Log.Debug(() => "Entering OnPlayerKilled", 7);
             try
             {
                 //If the plugin is not enabled just return
@@ -9768,12 +9768,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while handling onPlayerKilled.", e));
             }
-            Log.Debug("Exiting OnPlayerKilled", 7);
+            Log.Debug(() => "Exiting OnPlayerKilled", 7);
         }
 
         public override void OnPlayerIsAlive(string soldierName, bool isAlive)
         {
-            Log.Debug("Entering OnPlayerIsAlive", 7);
+            Log.Debug(() => "Entering OnPlayerIsAlive", 7);
             try
             {
                 if (!_pluginEnabled)
@@ -9803,7 +9803,7 @@ namespace PRoConEvents
                                 {
                                     if (!_ActOnSpawnDictionary.ContainsKey(aRecord.target_player.player_name))
                                     {
-                                        Log.Debug(aRecord.GetTargetNames() + " is dead. Queueing them for kill on-spawn.", 3);
+                                        Log.Debug(() => aRecord.GetTargetNames() + " is dead. Queueing them for kill on-spawn.", 3);
                                         SendMessageToSource(aRecord, aRecord.GetTargetNames() + " is dead. Queueing them for kill on-spawn.");
                                         ExecuteCommand("procon.protected.send", "admin.killPlayer", aRecord.target_player.player_name);
                                         lock (_ActOnSpawnDictionary)
@@ -9838,21 +9838,21 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while handling OnPlayerIsAlive.", e));
             }
-            Log.Debug("Exiting OnPlayerIsAlive", 7);
+            Log.Debug(() => "Exiting OnPlayerIsAlive", 7);
         }
 
         private void QueueKillForProcessing(Kill kKillerVictimDetails)
         {
-            Log.Debug("Entering queueKillForProcessing", 7);
+            Log.Debug(() => "Entering queueKillForProcessing", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue kill for processing", 6);
+                    Log.Debug(() => "Preparing to queue kill for processing", 6);
                     lock (_KillProcessingQueue)
                     {
                         _KillProcessingQueue.Enqueue(kKillerVictimDetails);
-                        Log.Debug("Kill queued for processing", 6);
+                        Log.Debug(() => "Kill queued for processing", 6);
                         _KillProcessingWaitHandle.Set();
                     }
                 }
@@ -9861,14 +9861,14 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing kill for processing.", e));
             }
-            Log.Debug("Exiting queueKillForProcessing", 7);
+            Log.Debug(() => "Exiting queueKillForProcessing", 7);
         }
 
         public void KillProcessingThreadLoop()
         {
             try
             {
-                Log.Debug("Starting Kill Processing Thread", 1);
+                Log.Debug(() => "Starting Kill Processing Thread", 1);
                 Thread.CurrentThread.Name = "KillProcessing";
                 DateTime loopStart = UtcDbTime();
                 while (true)
@@ -9876,10 +9876,10 @@ namespace PRoConEvents
                     loopStart = UtcDbTime();
                     try
                     {
-                        Log.Debug("Entering Kill Processing Thread Loop", 7);
+                        Log.Debug(() => "Entering Kill Processing Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
 
@@ -9887,10 +9887,10 @@ namespace PRoConEvents
                         Queue<Kill> inboundPlayerKills;
                         if (_KillProcessingQueue.Count > 0)
                         {
-                            Log.Debug("Preparing to lock inbound kill queue to retrive new player kills", 7);
+                            Log.Debug(() => "Preparing to lock inbound kill queue to retrive new player kills", 7);
                             lock (_KillProcessingQueue)
                             {
-                                Log.Debug("Inbound kills found. Grabbing.", 6);
+                                Log.Debug(() => "Inbound kills found. Grabbing.", 6);
                                 //Grab all kills in the queue
                                 inboundPlayerKills = new Queue<Kill>(_KillProcessingQueue.ToArray());
                                 //Clear the queue for next run
@@ -9899,11 +9899,11 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            Log.Debug("No inbound player kills. Waiting for Input.", 6);
+                            Log.Debug(() => "No inbound player kills. Waiting for Input.", 6);
                             //Wait for input
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _KillProcessingWaitHandle.Reset();
                             _KillProcessingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
@@ -9918,7 +9918,7 @@ namespace PRoConEvents
                             {
                                 break;
                             }
-                            Log.Debug("begin reading player kills", 6);
+                            Log.Debug(() => "begin reading player kills", 6);
                             //Dequeue the first/next kill
                             Kill playerKill = inboundPlayerKills.Dequeue();
 
@@ -9973,7 +9973,7 @@ namespace PRoConEvents
                         HandleException(new AdKatsException("Error occured in kill processing thread.", e));
                     }
                 }
-                Log.Debug("Ending Kill Processing Thread", 1);
+                Log.Debug(() => "Ending Kill Processing Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -10026,7 +10026,7 @@ namespace PRoConEvents
 
                 Boolean gKillHandled = false;
                 //Update player death information
-                Log.Debug("Setting " + aKill.victim.GetVerboseName() + " time of death to " + aKill.timestamp, 7);
+                Log.Debug(() => "Setting " + aKill.victim.GetVerboseName() + " time of death to " + aKill.timestamp, 7);
                 aKill.victim.lastDeath = UtcDbTime();
 
                 //Add the kill
@@ -10249,7 +10249,7 @@ namespace PRoConEvents
                                         if (Math.Abs(milli - fuseTime) < possibleRange)
                                         {
                                             probability = (1 - Math.Abs((milli - fuseTime) / possibleRange)) * 100;
-                                            Log.Debug(cookerKill.victim.GetVerboseName() + " cooking probability: " + probability + "%", 2);
+                                            Log.Debug(() => cookerKill.victim.GetVerboseName() + " cooking probability: " + probability + "%", 2);
                                         }
                                         else
                                         {
@@ -10259,7 +10259,7 @@ namespace PRoConEvents
                                         //If probability > 60% report the player and add them to the round cookers list
                                         if (probability > 60.00)
                                         {
-                                            Log.Debug(cookerKill.victim.GetVerboseName() + " in " + aKill.killer.GetVerboseName() + "'s recent kills has a " + probability + "% cooking probability.", 2);
+                                            Log.Debug(() => cookerKill.victim.GetVerboseName() + " in " + aKill.killer.GetVerboseName() + "'s recent kills has a " + probability + "% cooking probability.", 2);
                                             gKillHandled = true;
                                             //Code to avoid spam
                                             if (aKill.killer.lastKill.AddSeconds(2) < UtcDbTime())
@@ -10268,7 +10268,7 @@ namespace PRoConEvents
                                             }
                                             else
                                             {
-                                                Log.Debug("Skipping additional auto-actions for multi-kill event.", 2);
+                                                Log.Debug(() => "Skipping additional auto-actions for multi-kill event.", 2);
                                                 continue;
                                             }
 
@@ -10302,14 +10302,14 @@ namespace PRoConEvents
                                                 //Process the record
                                                 QueueRecordForProcessing(record);
                                                 //adminSay("Punishing " + killer.player_name + " for " + record.record_message);
-                                                Log.Debug(record.GetTargetNames() + " punished for " + record.record_message, 2);
+                                                Log.Debug(() => record.GetTargetNames() + " punished for " + record.record_message, 2);
                                                 return;
                                             }
                                             //else if probability > 92.5% add them to the SURE list, and round cooker list
                                             if (probability > 92.5)
                                             {
                                                 _RoundCookers.Add(cookerKill.victim.player_name, cookerKill.victim);
-                                                Log.Debug(cookerKill.victim.GetVerboseName() + " added to round cooker list.", 2);
+                                                Log.Debug(() => cookerKill.victim.GetVerboseName() + " added to round cooker list.", 2);
                                                 //Add to SURE
                                                 sure.Add(new KeyValuePair<AdKatsPlayer, String>(cookerKill.victim, probString));
                                             }
@@ -10317,7 +10317,7 @@ namespace PRoConEvents
                                             else
                                             {
                                                 _RoundCookers.Add(cookerKill.victim.player_name, cookerKill.victim);
-                                                Log.Debug(cookerKill.victim.GetVerboseName() + " added to round cooker list.", 2);
+                                                Log.Debug(() => cookerKill.victim.GetVerboseName() + " added to round cooker list.", 2);
                                                 //Add to POSSIBLE
                                                 possible.Add(new KeyValuePair<AdKatsPlayer, String>(cookerKill.victim, probString));
                                             }
@@ -10344,7 +10344,7 @@ namespace PRoConEvents
                                         //Process the record
                                         QueueRecordForProcessing(record);
                                         //adminSay("Punishing " + killer.player_name + " for " + record.record_message);
-                                        Log.Debug(record.GetTargetNames() + " punished for " + record.record_message, 2);
+                                        Log.Debug(() => record.GetTargetNames() + " punished for " + record.record_message, 2);
                                     }
                                     else
                                     {
@@ -10369,7 +10369,7 @@ namespace PRoConEvents
                                             };
                                             //Process the record
                                             QueueRecordForProcessing(record);
-                                            Log.Debug(record.GetTargetNames() + " reported for " + record.record_message, 2);
+                                            Log.Debug(() => record.GetTargetNames() + " reported for " + record.record_message, 2);
                                         }
                                         foreach (KeyValuePair<AdKatsPlayer, string> playerPair in possible)
                                         {
@@ -10390,7 +10390,7 @@ namespace PRoConEvents
                                             };
                                             //Process the record
                                             QueueRecordForProcessing(record);
-                                            Log.Debug(record.GetTargetNames() + " reported for " + record.record_message, 2);
+                                            Log.Debug(() => record.GetTargetNames() + " reported for " + record.record_message, 2);
                                         }
                                     }
                                 }
@@ -10624,7 +10624,7 @@ namespace PRoConEvents
                                         }
                                         else
                                         {
-                                            Log.Debug("Skipping additional auto-actions for multi-kill event.", 2);
+                                            Log.Debug(() => "Skipping additional auto-actions for multi-kill event.", 2);
                                         }
                                     }
                                     else
@@ -10645,12 +10645,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while processing player kill.", e));
             }
-            Log.Debug("Exiting OnPlayerKilled", 7);
+            Log.Debug(() => "Exiting OnPlayerKilled", 7);
         }
 
         public override void OnPlayerSpawned(String soldierName, Inventory spawnedInventory)
         {
-            Log.Debug("Entering OnPlayerSpawned", 7);
+            Log.Debug(() => "Entering OnPlayerSpawned", 7);
             try
             {
                 AdKatsPlayer aPlayer = null;
@@ -10764,7 +10764,7 @@ namespace PRoConEvents
                         {
                             Thread spawnPrinter = new Thread(new ThreadStart(delegate
                             {
-                                Log.Debug("Starting a spawn printer thread.", 5);
+                                Log.Debug(() => "Starting a spawn printer thread.", 5);
                                 try
                                 {
                                     Thread.CurrentThread.Name = "SpawnPrinter";
@@ -10815,7 +10815,7 @@ namespace PRoConEvents
                                 {
                                     HandleException(new AdKatsException("Error while printing spawn messages"));
                                 }
-                                Log.Debug("Exiting a spawn printer.", 5);
+                                Log.Debug(() => "Exiting a spawn printer.", 5);
                                 LogThreadExit();
                             }));
 
@@ -10867,13 +10867,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while handling player spawn.", e));
             }
-            Log.Debug("Exiting OnPlayerSpawned", 7);
+            Log.Debug(() => "Exiting OnPlayerSpawned", 7);
         }
 
 
         public override void OnPlayerLeft(CPlayerInfo playerInfo)
         {
-            Log.Debug("Entering OnPlayerLeft", 7);
+            Log.Debug(() => "Entering OnPlayerLeft", 7);
             try
             {
                 QueuePlayerForRemoval(playerInfo);
@@ -10882,17 +10882,17 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while handling player left.", e));
             }
-            Log.Debug("Exiting OnPlayerLeft", 7);
+            Log.Debug(() => "Exiting OnPlayerLeft", 7);
         }
 
         private void QueueSettingImport(Int32 serverID)
         {
-            Log.Debug("Entering queueSettingImport", 7);
+            Log.Debug(() => "Entering queueSettingImport", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue server ID for setting import", 6);
+                    Log.Debug(() => "Preparing to queue server ID for setting import", 6);
                     _settingImportID = serverID;
                     _DbCommunicationWaitHandle.Set();
                 }
@@ -10901,12 +10901,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while preparing to import settings.", e));
             }
-            Log.Debug("Exiting queueSettingImport", 7);
+            Log.Debug(() => "Exiting queueSettingImport", 7);
         }
 
         private void QueueSettingForUpload(CPluginVariable setting)
         {
-            Log.Debug("Entering queueSettingForUpload", 7);
+            Log.Debug(() => "Entering queueSettingForUpload", 7);
             if (!_settingsFetched)
             {
                 return;
@@ -10915,7 +10915,7 @@ namespace PRoConEvents
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue setting " + setting.Name + " for upload", 6);
+                    Log.Debug(() => "Preparing to queue setting " + setting.Name + " for upload", 6);
                     lock (_SettingUploadQueue)
                     {
                         _SettingUploadQueue.Enqueue(setting);
@@ -10927,17 +10927,17 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing setting for upload.", e));
             }
-            Log.Debug("Exiting queueSettingForUpload", 7);
+            Log.Debug(() => "Exiting queueSettingForUpload", 7);
         }
 
         private void QueueCommandForUpload(AdKatsCommand command)
         {
-            Log.Debug("Entering queueCommandForUpload", 7);
+            Log.Debug(() => "Entering queueCommandForUpload", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue command " + command.command_key + " for upload", 6);
+                    Log.Debug(() => "Preparing to queue command " + command.command_key + " for upload", 6);
                     lock (_CommandUploadQueue)
                     {
                         _CommandUploadQueue.Enqueue(command);
@@ -10949,17 +10949,17 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing command for upload.", e));
             }
-            Log.Debug("Exiting queueCommandForUpload", 7);
+            Log.Debug(() => "Exiting queueCommandForUpload", 7);
         }
 
         private void QueueRoleForUpload(AdKatsRole aRole)
         {
-            Log.Debug("Entering queueRoleForUpload", 7);
+            Log.Debug(() => "Entering queueRoleForUpload", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue role " + aRole.role_key + " for upload", 6);
+                    Log.Debug(() => "Preparing to queue role " + aRole.role_key + " for upload", 6);
                     lock (_RoleUploadQueue)
                     {
                         _RoleUploadQueue.Enqueue(aRole);
@@ -10971,17 +10971,17 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing role for upload.", e));
             }
-            Log.Debug("Exiting queueRoleForUpload", 7);
+            Log.Debug(() => "Exiting queueRoleForUpload", 7);
         }
 
         private void QueueRoleForRemoval(AdKatsRole aRole)
         {
-            Log.Debug("Entering queueRoleForRemoval", 7);
+            Log.Debug(() => "Entering queueRoleForRemoval", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue role " + aRole.role_key + " for removal", 6);
+                    Log.Debug(() => "Preparing to queue role " + aRole.role_key + " for removal", 6);
                     lock (_RoleRemovalQueue)
                     {
                         _RoleRemovalQueue.Enqueue(aRole);
@@ -10993,21 +10993,21 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing role for removal.", e));
             }
-            Log.Debug("Exiting queueRoleForRemoval", 7);
+            Log.Debug(() => "Exiting queueRoleForRemoval", 7);
         }
 
         private void QueuePlayerForBanCheck(AdKatsPlayer player)
         {
-            Log.Debug("Entering queuePlayerForBanCheck", 7);
+            Log.Debug(() => "Entering queuePlayerForBanCheck", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue player for ban check", 6);
+                    Log.Debug(() => "Preparing to queue player for ban check", 6);
                     lock (_BanEnforcerCheckingQueue)
                     {
                         _BanEnforcerCheckingQueue.Enqueue(player);
-                        Log.Debug("Player queued for checking", 6);
+                        Log.Debug(() => "Player queued for checking", 6);
                         _BanEnforcerWaitHandle.Set();
                     }
                 }
@@ -11016,21 +11016,21 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing player for ban check.", e));
             }
-            Log.Debug("Exiting queuePlayerForBanCheck", 7);
+            Log.Debug(() => "Exiting queuePlayerForBanCheck", 7);
         }
 
         private void QueueBanForProcessing(AdKatsBan aBan)
         {
-            Log.Debug("Entering queueBanForProcessing", 7);
+            Log.Debug(() => "Entering queueBanForProcessing", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue ban for processing", 6);
+                    Log.Debug(() => "Preparing to queue ban for processing", 6);
                     lock (_BanEnforcerProcessingQueue)
                     {
                         _BanEnforcerProcessingQueue.Enqueue(aBan);
-                        Log.Debug("Ban queued for processing", 6);
+                        Log.Debug(() => "Ban queued for processing", 6);
                         _DbCommunicationWaitHandle.Set();
                     }
                 }
@@ -11039,24 +11039,24 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing ban for processing.", e));
             }
-            Log.Debug("Exiting queueBanForProcessing", 7);
+            Log.Debug(() => "Exiting queueBanForProcessing", 7);
         }
 
         private void BanEnforcerThreadLoop()
         {
             try
             {
-                Log.Debug("Starting Ban Enforcer Thread", 1);
+                Log.Debug(() => "Starting Ban Enforcer Thread", 1);
                 Thread.CurrentThread.Name = "BanEnforcer";
                 DateTime loopStart = UtcDbTime();
                 while (true)
                 {
                     try
                     {
-                        Log.Debug("Entering Ban Enforcer Thread Loop", 7);
+                        Log.Debug(() => "Entering Ban Enforcer Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
 
@@ -11066,10 +11066,10 @@ namespace PRoConEvents
                         Queue<AdKatsPlayer> playerCheckingQueue;
                         if (_BanEnforcerCheckingQueue.Count > 0 && _UseBanEnforcer)
                         {
-                            Log.Debug("Preparing to lock banEnforcerMutex to retrive new players", 6);
+                            Log.Debug(() => "Preparing to lock banEnforcerMutex to retrive new players", 6);
                             lock (_BanEnforcerCheckingQueue)
                             {
-                                Log.Debug("Inbound ban enforcer players found. Grabbing.", 5);
+                                Log.Debug(() => "Inbound ban enforcer players found. Grabbing.", 5);
                                 //Grab all players in the queue
                                 playerCheckingQueue = new Queue<AdKatsPlayer>(_BanEnforcerCheckingQueue.ToArray());
                                 //Clear the queue for next run
@@ -11082,11 +11082,11 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            Log.Debug("No inbound ban checks. Waiting for Input.", 6);
+                            Log.Debug(() => "No inbound ban checks. Waiting for Input.", 6);
                             //Wait for input
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _BanEnforcerWaitHandle.Reset();
                             _BanEnforcerWaitHandle.WaitOne(TimeSpan.FromSeconds(60));
@@ -11103,7 +11103,7 @@ namespace PRoConEvents
                             }
                             //Grab first/next player
                             AdKatsPlayer aPlayer = playerCheckingQueue.Dequeue();
-                            Log.Debug("begin ban enforcer reading player " + aPlayer.GetVerboseName(), 5);
+                            Log.Debug(() => "begin ban enforcer reading player " + aPlayer.GetVerboseName(), 5);
                             if (_PlayerDictionary.ContainsKey(aPlayer.player_name))
                             {
                                 List<AdKatsBan> aBanList = FetchPlayerBans(aPlayer);
@@ -11162,13 +11162,13 @@ namespace PRoConEvents
                                             continue;
                                         }
                                     }
-                                    Log.Debug("BAN ENFORCED on " + aPlayer.GetVerboseName(), 3);
+                                    Log.Debug(() => "BAN ENFORCED on " + aPlayer.GetVerboseName(), 3);
                                     //Enforce the ban
                                     EnforceBan(playerBan, true);
                                 }
                                 else
                                 {
-                                    Log.Debug("No ban found for player", 5);
+                                    Log.Debug(() => "No ban found for player", 5);
                                     if (_serverInfo.ServerType != "OFFICIAL")
                                     {
                                         if (_isTestingAuthorized && 
@@ -11208,7 +11208,7 @@ namespace PRoConEvents
                         HandleException(new AdKatsException("Error occured in ban enforcer thread. Skipping current loop.", e));
                     }
                 }
-                Log.Debug("Ending Ban Enforcer Thread", 1);
+                Log.Debug(() => "Ending Ban Enforcer Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -11223,7 +11223,7 @@ namespace PRoConEvents
             {
                 return;
             }
-            //Log.Debug("OnBanAdded fired", 6);
+            //Log.Debug(() => "OnBanAdded fired", 6);
             ExecuteCommand("procon.protected.send", "banList.list");
         }
 
@@ -11239,7 +11239,7 @@ namespace PRoConEvents
                 //Return if small duration (0.5 seconds) since last ban list, or if there is already a ban list going on
                 if ((UtcDbTime() - _lastSuccessfulBanList) < TimeSpan.FromSeconds(0.5))
                 {
-                    Log.Debug("Banlist being called quickly.", 4);
+                    Log.Debug(() => "Banlist being called quickly.", 4);
                     return;
                 }
                 if (_BansQueuing)
@@ -11253,12 +11253,12 @@ namespace PRoConEvents
                 {
                     return;
                 }
-                Log.Debug("OnBanList fired", 5);
+                Log.Debug(() => "OnBanList fired", 5);
                 if (_UseBanEnforcer)
                 {
                     if (banList.Count > 0)
                     {
-                        Log.Debug("Bans found", 3);
+                        Log.Debug(() => "Bans found", 3);
                         lock (_CBanProcessingQueue)
                         {
                             //Only allow queueing of new bans if the processing queue is currently empty
@@ -11266,7 +11266,7 @@ namespace PRoConEvents
                             {
                                 foreach (CBanInfo cBan in banList)
                                 {
-                                    Log.Debug("Queuing Ban.", 7);
+                                    Log.Debug(() => "Queuing Ban.", 7);
                                     _CBanProcessingQueue.Enqueue(cBan);
                                     _BansQueuing = true;
                                     if (UtcDbTime() - startTime > TimeSpan.FromSeconds(50))
@@ -11292,39 +11292,39 @@ namespace PRoConEvents
 
         public override void OnBanListClear()
         {
-            Log.Debug("Ban list cleared", 5);
+            Log.Debug(() => "Ban list cleared", 5);
         }
 
         public override void OnBanListSave()
         {
-            Log.Debug("Ban list saved", 5);
+            Log.Debug(() => "Ban list saved", 5);
         }
 
         public override void OnBanListLoad()
         {
-            Log.Debug("Ban list loaded", 5);
+            Log.Debug(() => "Ban list loaded", 5);
         }
 
         private void QueuePlayerForHackerCheck(AdKatsPlayer aPlayer)
         {
-            Log.Debug("Entering queuePlayerForHackerCheck", 7);
+            Log.Debug(() => "Entering queuePlayerForHackerCheck", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue " + aPlayer.player_name + " for hacker check", 6);
+                    Log.Debug(() => "Preparing to queue " + aPlayer.player_name + " for hacker check", 6);
                     _hackerCheckedPlayersStats.Remove(aPlayer.player_guid);
                     lock (_HackerCheckerQueue)
                     {
                         if (_HackerCheckerQueue.All(qPlayer => qPlayer.player_guid != aPlayer.player_guid))
                         {
                             _HackerCheckerQueue.Enqueue(aPlayer);
-                            Log.Debug(aPlayer.player_name + " queued for hacker check", 6);
+                            Log.Debug(() => aPlayer.player_name + " queued for hacker check", 6);
                             _HackerCheckerWaitHandle.Set();
                         }
                         else
                         {
-                            Log.Debug(aPlayer.player_name + " hacker check cancelled; player already in queue.", 6);
+                            Log.Debug(() => aPlayer.player_name + " hacker check cancelled; player already in queue.", 6);
                         }
                     }
                 }
@@ -11333,12 +11333,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing player for hacker check.", e));
             }
-            Log.Debug("Exiting queuePlayerForHackerCheck", 7);
+            Log.Debug(() => "Exiting queuePlayerForHackerCheck", 7);
         }
 
         public List<AdKatsSpecialPlayer> GetASPlayersOfGroup(String specialPlayerGroup)
         {
-            Log.Debug("Entering GetAsPlayersOfGroup", 8);
+            Log.Debug(() => "Entering GetAsPlayersOfGroup", 8);
             try
             {
                 lock (_baseSpecialPlayerCache)
@@ -11352,13 +11352,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching special players of group.", e));
             }
-            Log.Debug("Exiting GetAsPlayersOfGroup", 8);
+            Log.Debug(() => "Exiting GetAsPlayersOfGroup", 8);
             return null;
         }
 
         public List<AdKatsSpecialPlayer> GetVerboseASPlayersOfGroup(String specialPlayerGroup)
         {
-            Log.Debug("Entering GetVerboseASPlayersOfGroup", 8);
+            Log.Debug(() => "Entering GetVerboseASPlayersOfGroup", 8);
             try
             {
                 lock (_baseSpecialPlayerCache)
@@ -11372,13 +11372,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching verbose special players of group.", e));
             }
-            Log.Debug("Exiting GetVerboseASPlayersOfGroup", 8);
+            Log.Debug(() => "Exiting GetVerboseASPlayersOfGroup", 8);
             return null;
         }
 
         public List<AdKatsSpecialPlayer> GetMatchingASPlayersOfGroup(String specialPlayerGroup, AdKatsPlayer aPlayer)
         {
-            Log.Debug("Entering GetMatchingASPlayersOfGroup", 8);
+            Log.Debug(() => "Entering GetMatchingASPlayersOfGroup", 8);
             try
             {
                 lock (_baseSpecialPlayerCache)
@@ -11392,13 +11392,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching matching special players.", e));
             }
-            Log.Debug("Exiting GetMatchingASPlayersOfGroup", 8);
+            Log.Debug(() => "Exiting GetMatchingASPlayersOfGroup", 8);
             return null;
         }
 
         public List<AdKatsSpecialPlayer> GetMatchingVerboseASPlayersOfGroup(String specialPlayerGroup, AdKatsPlayer aPlayer)
         {
-            Log.Debug("Entering GetMatchingVerboseASPlayersOfGroup", 8);
+            Log.Debug(() => "Entering GetMatchingVerboseASPlayersOfGroup", 8);
             try
             {
                 lock (_baseSpecialPlayerCache)
@@ -11412,14 +11412,14 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching matching verbose special players.", e));
             }
-            Log.Debug("Exiting GetMatchingVerboseASPlayersOfGroup", 8);
+            Log.Debug(() => "Exiting GetMatchingVerboseASPlayersOfGroup", 8);
             return null;
         }
 
         public Dictionary<String, AdKatsPlayer> GetOnlinePlayerDictionaryOfGroup(String specialPlayerGroup)
         {
             Dictionary<String, AdKatsPlayer> onlinePlayersOfGroup = new Dictionary<String, AdKatsPlayer>();
-            Log.Debug("Entering GetOnlinePlayerDictionaryOfGroup", 6);
+            Log.Debug(() => "Entering GetOnlinePlayerDictionaryOfGroup", 6);
             try
             {
                 List<AdKatsPlayer> onlinePlayerObjects = _PlayerDictionary.Values.ToList();
@@ -11443,13 +11443,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching matching special players.", e));
             }
-            Log.Debug("Exiting GetOnlinePlayerDictionaryOfGroup", 6);
+            Log.Debug(() => "Exiting GetOnlinePlayerDictionaryOfGroup", 6);
             return onlinePlayersOfGroup;
         }
 
         public List<AdKatsPlayer> GetOnlinePlayersOfGroup(String specialPlayerGroup)
         {
-            Log.Debug("Entering GetOnlinePlayersOfGroup", 6);
+            Log.Debug(() => "Entering GetOnlinePlayersOfGroup", 6);
             try
             {
                 return GetOnlinePlayerDictionaryOfGroup(specialPlayerGroup).Values.ToList();
@@ -11458,7 +11458,7 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching matching special players.", e));
             }
-            Log.Debug("Exiting GetOnlinePlayersOfGroup", 6);
+            Log.Debug(() => "Exiting GetOnlinePlayersOfGroup", 6);
             return null;
         }
 
@@ -11476,24 +11476,24 @@ namespace PRoConEvents
                 {
                     if (asPlayer.player_object != null && asPlayer.player_object.player_id == aPlayer.player_id)
                     {
-                        Log.Debug(aPlayer.GetVerboseName() + " protected from hacker checker by database ID.", 2);
+                        Log.Debug(() => aPlayer.GetVerboseName() + " protected from hacker checker by database ID.", 2);
                         return true;
                     }
                     if (!String.IsNullOrEmpty(asPlayer.player_identifier))
                     {
                         if (aPlayer.player_name == asPlayer.player_identifier)
                         {
-                            Log.Debug(aPlayer.GetVerboseName() + " protected from hacker checker by NAME.", 2);
+                            Log.Debug(() => aPlayer.GetVerboseName() + " protected from hacker checker by NAME.", 2);
                             return true;
                         }
                         if (aPlayer.player_guid == asPlayer.player_identifier)
                         {
-                            Log.Debug(aPlayer.GetVerboseName() + " protected from hacker checker by GUID.", 2);
+                            Log.Debug(() => aPlayer.GetVerboseName() + " protected from hacker checker by GUID.", 2);
                             return true;
                         }
                         if (aPlayer.player_ip == asPlayer.player_identifier)
                         {
-                            Log.Debug(aPlayer.GetVerboseName() + " protected from hacker checker by IP.", 2);
+                            Log.Debug(() => aPlayer.GetVerboseName() + " protected from hacker checker by IP.", 2);
                             return true;
                         }
                     }
@@ -11506,7 +11506,7 @@ namespace PRoConEvents
         {
             try
             {
-                Log.Debug("Starting Hacker Checker Thread", 1);
+                Log.Debug(() => "Starting Hacker Checker Thread", 1);
                 Thread.CurrentThread.Name = "HackerChecker";
 
                 Queue<AdKatsPlayer> playerCheckingQueue = new Queue<AdKatsPlayer>();
@@ -11515,11 +11515,11 @@ namespace PRoConEvents
                 {
                     try
                     {
-                        Log.Debug("Entering Hacker Checker Thread Loop", 7);
+                        Log.Debug(() => "Entering Hacker Checker Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
                             playerCheckingQueue.Clear();
-                            Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
 
@@ -11528,10 +11528,10 @@ namespace PRoConEvents
                             //Get all unchecked players
                             if (_HackerCheckerQueue.Count > 0)
                             {
-                                Log.Debug("Preparing to lock HackerCheckerQueue to retrive new players", 6);
+                                Log.Debug(() => "Preparing to lock HackerCheckerQueue to retrive new players", 6);
                                 lock (_HackerCheckerQueue)
                                 {
-                                    Log.Debug("Inbound players found. Grabbing.", 5);
+                                    Log.Debug(() => "Inbound players found. Grabbing.", 5);
                                     //Grab all players in the queue
                                     playerCheckingQueue = new Queue<AdKatsPlayer>(_HackerCheckerQueue.ToArray());
                                     //Clear the queue for next run  
@@ -11540,11 +11540,11 @@ namespace PRoConEvents
                             }
                             else
                             {
-                                Log.Debug("No inbound hacker checks. Waiting 10 seconds or for input.", 4);
+                                Log.Debug(() => "No inbound hacker checks. Waiting 10 seconds or for input.", 4);
                                 //Wait for input
                                 if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 {
-                                    Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                    Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                                 }
                                 _HackerCheckerWaitHandle.Reset();
                                 //Either loop when handle is set, or after 3 minutes
@@ -11572,7 +11572,7 @@ namespace PRoConEvents
                             aPlayer = playerCheckingQueue.Dequeue();
                             if (aPlayer != null)
                             {
-                                Log.Debug("begin reading player", 4);
+                                Log.Debug(() => "begin reading player", 4);
                                 if (!PlayerProtected(aPlayer)) {
                                     _hackerCheckedPlayers.Add(aPlayer.player_guid);
                                     if (!String.IsNullOrEmpty(aPlayer.player_name) && 
@@ -11581,9 +11581,9 @@ namespace PRoConEvents
                                         if (_UseHackerChecker) {
                                             RunStatSiteHackCheck(aPlayer, false);
                                             _hackerCheckedPlayersStats.Add(aPlayer.player_guid);
-                                            Log.Debug(aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double) _hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players checked)", 4);
+                                            Log.Debug(() => aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double) _hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players checked)", 4);
                                         } else {
-                                            Log.Debug("Player skipped after disabling hacker checker.", 2);
+                                            Log.Debug(() => "Player skipped after disabling hacker checker.", 2);
                                         }
                                     } else {
                                         //No stats found, requeue them for checking
@@ -11604,7 +11604,7 @@ namespace PRoConEvents
                         HandleException(new AdKatsException("Error occured in Hacker Checker thread. Skipping current loop.", e));
                     }
                 }
-                Log.Debug("Ending Hacker Checker Thread", 1);
+                Log.Debug(() => "Ending Hacker Checker Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -11616,18 +11616,18 @@ namespace PRoConEvents
         private void RunStatSiteHackCheck(AdKatsPlayer aPlayer, Boolean verbose)
         {
             try {
-                Log.Debug("HackerChecker running on " + aPlayer.GetVerboseName(), 5);
+                Log.Debug(() => "HackerChecker running on " + aPlayer.GetVerboseName(), 5);
                 Boolean acted = false;
                 if (_UseHskChecker) {
-                    Log.Debug("Preparing to HSK check " + aPlayer.GetVerboseName(), 5);
+                    Log.Debug(() => "Preparing to HSK check " + aPlayer.GetVerboseName(), 5);
                     acted = AimbotHackCheck(aPlayer, verbose);
                 }
                 if (!acted) {
-                    Log.Debug("Preparing to DPS check " + aPlayer.GetVerboseName(), 5);
+                    Log.Debug(() => "Preparing to DPS check " + aPlayer.GetVerboseName(), 5);
                     acted = DamageHackCheck(aPlayer, verbose);
                 }
                 if (_UseKpmChecker && !acted) {
-                    Log.Debug("Preparing to KPM check " + aPlayer.GetVerboseName(), 5);
+                    Log.Debug(() => "Preparing to KPM check " + aPlayer.GetVerboseName(), 5);
                     acted = KPMHackCheck(aPlayer, verbose);
                 }
                 if (_isTestingAuthorized && 
@@ -11841,7 +11841,7 @@ namespace PRoConEvents
                             //Special case. Let server live with the hacker for 1 minute then watch them be banned
                             Thread banDelayThread = new Thread(new ThreadStart(delegate
                             {
-                                Log.Debug("Starting a ban delay thread.", 5);
+                                Log.Debug(() => "Starting a ban delay thread.", 5);
                                 try
                                 {
                                     Thread.CurrentThread.Name = "BanDelay";
@@ -11889,7 +11889,7 @@ namespace PRoConEvents
                                 {
                                     HandleException(new AdKatsException("Error while runnin ban delay."));
                                 }
-                                Log.Debug("Exiting a ban delay thread.", 5);
+                                Log.Debug(() => "Exiting a ban delay thread.", 5);
                                 LogThreadExit();
                             }));
 
@@ -11994,7 +11994,7 @@ namespace PRoConEvents
                             if (weaponStat.Kills > 100 && weapon.DamageMax < 50)
                             {
                                 //Check for aimbot hack
-                                Log.Debug("Checking " + weaponStat.ID + " HSKR (" + weaponStat.HSKR + " >? " + (_HskTriggerLevel / 100) + ")", 6);
+                                Log.Debug(() => "Checking " + weaponStat.ID + " HSKR (" + weaponStat.HSKR + " >? " + (_HskTriggerLevel / 100) + ")", 6);
                                 if (weaponStat.HSKR > (_HskTriggerLevel / 100))
                                 {
                                     if (weaponStat.HSKR > actedHskr)
@@ -12024,7 +12024,7 @@ namespace PRoConEvents
                             //Special case. Let server live with the hacker for 1 minute then watch them be banned
                             Thread banDelayThread = new Thread(new ThreadStart(delegate
                             {
-                                Log.Debug("Starting a ban delay thread.", 5);
+                                Log.Debug(() => "Starting a ban delay thread.", 5);
                                 try
                                 {
                                     Thread.CurrentThread.Name = "BanDelay";
@@ -12075,7 +12075,7 @@ namespace PRoConEvents
                                 {
                                     HandleException(new AdKatsException("Error while runnin ban delay."));
                                 }
-                                Log.Debug("Exiting a ban delay thread.", 5);
+                                Log.Debug(() => "Exiting a ban delay thread.", 5);
                                 LogThreadExit();
                             }));
 
@@ -12186,7 +12186,7 @@ namespace PRoConEvents
                         if (weaponStat.Kills > 200)
                         {
                             //Check for KPM limit
-                            Log.Debug("Checking " + weaponStat.ID + " KPM (" + String.Format("{0:0.00}", weaponStat.KPM) + " >? " + (_KpmTriggerLevel) + ")", 6);
+                            Log.Debug(() => "Checking " + weaponStat.ID + " KPM (" + String.Format("{0:0.00}", weaponStat.KPM) + " >? " + (_KpmTriggerLevel) + ")", 6);
                             if (weaponStat.KPM > (_KpmTriggerLevel))
                             {
                                 if (weaponStat.KPM > actedKpm)
@@ -12316,7 +12316,7 @@ namespace PRoConEvents
 
         private void HandleChat(AdKatsChatMessage messageObject)
         {
-            Log.Debug("Entering handleChat", 7);
+            Log.Debug(() => "Entering handleChat", 7);
             try
             {
                 if (_pluginEnabled)
@@ -12338,12 +12338,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while processing inbound chat messages.", e));
             }
-            Log.Debug("Exiting handleChat", 7);
+            Log.Debug(() => "Exiting handleChat", 7);
         }
 
         public void SendMessageToSource(AdKatsRecord record, String message)
         {
-            Log.Debug("Entering sendMessageToSource", 7);
+            Log.Debug(() => "Entering sendMessageToSource", 7);
             try
             {
                 if (String.IsNullOrEmpty(message))
@@ -12384,7 +12384,7 @@ namespace PRoConEvents
                 record.record_exception = new AdKatsException("Error while sending message to record source.", e);
                 HandleException(record.record_exception);
             }
-            Log.Debug("Exiting sendMessageToSource", 7);
+            Log.Debug(() => "Exiting sendMessageToSource", 7);
         }
 
         public Boolean OnlineNonWhitelistSayMessage(String message)
@@ -12420,7 +12420,7 @@ namespace PRoConEvents
             {
                 Thread nonAdminSayThread = new Thread(new ThreadStart(delegate
                 {
-                    Log.Debug("Starting an online non-admin say thread.", 8);
+                    Log.Debug(() => "Starting an online non-admin say thread.", 8);
                     try
                     {
                         Thread.CurrentThread.Name = "OnlineNonAdminSay";
@@ -12448,7 +12448,7 @@ namespace PRoConEvents
                     {
                         HandleException(new AdKatsException("Error while running online non-admin say."));
                     }
-                    Log.Debug("Exiting an online non-admin say thread.", 8);
+                    Log.Debug(() => "Exiting an online non-admin say thread.", 8);
                     LogThreadExit();
                 }));
                 StartAndLogThread(nonAdminSayThread);
@@ -12493,7 +12493,7 @@ namespace PRoConEvents
             {
                 Thread nonAdminSayThread = new Thread(new ThreadStart(delegate
                 {
-                    Log.Debug("Starting an online non-admin yell thread.", 8);
+                    Log.Debug(() => "Starting an online non-admin yell thread.", 8);
                     try
                     {
                         Thread.CurrentThread.Name = "OnlineNonAdminYell";
@@ -12521,7 +12521,7 @@ namespace PRoConEvents
                     {
                         HandleException(new AdKatsException("Error while running online non-admin yell."));
                     }
-                    Log.Debug("Exiting an online non-admin yell thread.", 8);
+                    Log.Debug(() => "Exiting an online non-admin yell thread.", 8);
                     LogThreadExit();
                 }));
                 StartAndLogThread(nonAdminSayThread);
@@ -12566,7 +12566,7 @@ namespace PRoConEvents
             {
                 Thread nonAdminSayThread = new Thread(new ThreadStart(delegate
                 {
-                    Log.Debug("Starting an online non-admin tell thread.", 8);
+                    Log.Debug(() => "Starting an online non-admin tell thread.", 8);
                     try
                     {
                         Thread.CurrentThread.Name = "OnlineNonAdminTell";
@@ -12594,7 +12594,7 @@ namespace PRoConEvents
                     {
                         HandleException(new AdKatsException("Error while running online non-admin tell."));
                     }
-                    Log.Debug("Exiting an online non-admin tell thread.", 8);
+                    Log.Debug(() => "Exiting an online non-admin tell thread.", 8);
                     LogThreadExit();
                 }));
                 StartAndLogThread(nonAdminSayThread);
@@ -12649,7 +12649,7 @@ namespace PRoConEvents
 
         public void AdminSayMessage(String message, Boolean displayProconChat)
         {
-            Log.Debug("Entering adminSay", 7);
+            Log.Debug(() => "Entering adminSay", 7);
             try
             {
                 if (String.IsNullOrEmpty(message))
@@ -12682,7 +12682,7 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while sending admin say.", e));
             }
-            Log.Debug("Exiting adminSay", 7);
+            Log.Debug(() => "Exiting adminSay", 7);
         }
 
         public void PlayerSayMessage(String target, String message)
@@ -12692,7 +12692,7 @@ namespace PRoConEvents
 
         public void PlayerSayMessage(String target, String message, Boolean displayProconChat, Int32 spamCount)
         {
-            Log.Debug("Entering playerSayMessage", 7);
+            Log.Debug(() => "Entering playerSayMessage", 7);
             try
             {
                 if (String.IsNullOrEmpty(target) || String.IsNullOrEmpty(message))
@@ -12725,7 +12725,7 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while sending message to player.", e));
             }
-            Log.Debug("Exiting playerSayMessage", 7);
+            Log.Debug(() => "Exiting playerSayMessage", 7);
         }
 
         public void AdminYellMessage(String message)
@@ -12735,7 +12735,7 @@ namespace PRoConEvents
 
         public void AdminYellMessage(String message, Boolean displayProconChat)
         {
-            Log.Debug("Entering adminYell", 7);
+            Log.Debug(() => "Entering adminYell", 7);
             try
             {
                 if (String.IsNullOrEmpty(message))
@@ -12757,7 +12757,7 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while sending admin yell.", e));
             }
-            Log.Debug("Exiting adminYell", 7);
+            Log.Debug(() => "Exiting adminYell", 7);
         }
 
         public void PlayerYellMessage(String target, String message)
@@ -12767,7 +12767,7 @@ namespace PRoConEvents
 
         public void PlayerYellMessage(String target, String message, Boolean displayProconChat, Int32 spamCount)
         {
-            Log.Debug("Entering adminYell", 7);
+            Log.Debug(() => "Entering adminYell", 7);
             try
             {
                 if (String.IsNullOrEmpty(message))
@@ -12793,7 +12793,7 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while sending admin yell.", e));
             }
-            Log.Debug("Exiting adminYell", 7);
+            Log.Debug(() => "Exiting adminYell", 7);
         }
 
         public void AdminTellMessage(String message)
@@ -12834,16 +12834,16 @@ namespace PRoConEvents
 
         private void QueueMessageForParsing(AdKatsChatMessage messageObject)
         {
-            Log.Debug("Entering queueMessageForParsing", 7);
+            Log.Debug(() => "Entering queueMessageForParsing", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue message for parsing", 6);
+                    Log.Debug(() => "Preparing to queue message for parsing", 6);
                     lock (_UnparsedMessageQueue)
                     {
                         _UnparsedMessageQueue.Enqueue(messageObject);
-                        Log.Debug("Message queued for parsing.", 6);
+                        Log.Debug(() => "Message queued for parsing.", 6);
                         _MessageParsingWaitHandle.Set();
                     }
                 }
@@ -12852,21 +12852,21 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing chat message for parsing.", e));
             }
-            Log.Debug("Exiting queueMessageForParsing", 7);
+            Log.Debug(() => "Exiting queueMessageForParsing", 7);
         }
 
         private void QueueCommandForParsing(AdKatsChatMessage chatMessage)
         {
-            Log.Debug("Entering queueCommandForParsing", 7);
+            Log.Debug(() => "Entering queueCommandForParsing", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue command for parsing", 6);
+                    Log.Debug(() => "Preparing to queue command for parsing", 6);
                     lock (_UnparsedCommandQueue)
                     {
                         _UnparsedCommandQueue.Enqueue(chatMessage);
-                        Log.Debug("Command sent to unparsed commands.", 6);
+                        Log.Debug(() => "Command sent to unparsed commands.", 6);
                         _CommandParsingWaitHandle.Set();
                     }
                 }
@@ -12875,24 +12875,24 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing command for parsing.", e));
             }
-            Log.Debug("Exiting queueCommandForParsing", 7);
+            Log.Debug(() => "Exiting queueCommandForParsing", 7);
         }
 
         private void MessagingThreadLoop()
         {
             try
             {
-                Log.Debug("Starting Messaging Thread", 1);
+                Log.Debug(() => "Starting Messaging Thread", 1);
                 Thread.CurrentThread.Name = "Messaging";
                 DateTime loopStart = UtcDbTime();
                 while (true)
                 {
                     try
                     {
-                        Log.Debug("Entering Messaging Thread Loop", 7);
+                        Log.Debug(() => "Entering Messaging Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
 
@@ -12900,10 +12900,10 @@ namespace PRoConEvents
                         Queue<AdKatsChatMessage> inboundMessages;
                         if (_UnparsedMessageQueue.Count > 0)
                         {
-                            Log.Debug("Preparing to lock messaging to retrive new messages", 7);
+                            Log.Debug(() => "Preparing to lock messaging to retrive new messages", 7);
                             lock (_UnparsedMessageQueue)
                             {
-                                Log.Debug("Inbound messages found. Grabbing.", 6);
+                                Log.Debug(() => "Inbound messages found. Grabbing.", 6);
                                 //Grab all messages in the queue
                                 inboundMessages = new Queue<AdKatsChatMessage>(_UnparsedMessageQueue.ToArray());
                                 //Clear the queue for next run
@@ -12912,11 +12912,11 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            Log.Debug("No inbound messages. Waiting for Input.", 6);
+                            Log.Debug(() => "No inbound messages. Waiting for Input.", 6);
                             //Wait for input
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _MessageParsingWaitHandle.Reset();
                             _MessageParsingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
@@ -12931,7 +12931,7 @@ namespace PRoConEvents
                             {
                                 break;
                             }
-                            Log.Debug("begin reading message", 6);
+                            Log.Debug(() => "begin reading message", 6);
                             //Dequeue the first/next message
                             AdKatsChatMessage messageObject = inboundMessages.Dequeue();
 
@@ -12975,7 +12975,7 @@ namespace PRoConEvents
                                     //Message is an instance check, confirm it is from this instance
                                     if (splitMessage[1] == _instanceKey)
                                     {
-                                        Log.Debug("Instance confirmed. " + splitMessage[2], 7);
+                                        Log.Debug(() => "Instance confirmed. " + splitMessage[2], 7);
                                     }
                                     else
                                     {
@@ -13018,16 +13018,16 @@ namespace PRoConEvents
                                 lock (_RoundMutedPlayers)
                                 {
                                     //Check if the player is muted
-                                    Log.Debug("Checking for mute case.", 7);
+                                    Log.Debug(() => "Checking for mute case.", 7);
                                     if (_RoundMutedPlayers.ContainsKey(messageObject.Speaker))
                                     {
                                         if (_MutedPlayerIgnoreCommands && isCommand)
                                         {
-                                            Log.Debug("Player muted, but ignoring since message is command.", 3);
+                                            Log.Debug(() => "Player muted, but ignoring since message is command.", 3);
                                         }
                                         else
                                         {
-                                            Log.Debug("Player is muted and valid. Acting.", 7);
+                                            Log.Debug(() => "Player is muted and valid. Acting.", 7);
                                             //Increment the muted chat count
                                             _RoundMutedPlayers[messageObject.Speaker] = _RoundMutedPlayers[messageObject.Speaker] + 1;
                                             //Create record
@@ -13098,7 +13098,7 @@ namespace PRoConEvents
                             }
                             else
                             {
-                                Log.Debug("Message is regular chat. Ignoring.", 7);
+                                Log.Debug(() => "Message is regular chat. Ignoring.", 7);
                             }
                         }
                     }
@@ -13112,7 +13112,7 @@ namespace PRoConEvents
                         HandleException(new AdKatsException("Error occured in Messaging thread. Skipping current loop.", e));
                     }
                 }
-                Log.Debug("Ending Messaging Thread", 1);
+                Log.Debug(() => "Ending Messaging Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -13123,17 +13123,17 @@ namespace PRoConEvents
 
         private void QueuePlayerForForceMove(CPlayerInfo player)
         {
-            Log.Debug("Entering queuePlayerForForceMove", 7);
+            Log.Debug(() => "Entering queuePlayerForForceMove", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue player for TeamSwap ", 6);
+                    Log.Debug(() => "Preparing to queue player for TeamSwap ", 6);
                     lock (_TeamswapForceMoveQueue)
                     {
                         _TeamswapForceMoveQueue.Enqueue(player);
                         _TeamswapWaitHandle.Set();
-                        Log.Debug("Player queued for TeamSwap", 6);
+                        Log.Debug(() => "Player queued for TeamSwap", 6);
                     }
                 }
             }
@@ -13141,28 +13141,28 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing player for force-move.", e));
             }
-            Log.Debug("Exiting queuePlayerForForceMove", 7);
+            Log.Debug(() => "Exiting queuePlayerForForceMove", 7);
         }
 
         private void QueuePlayerForMove(CPlayerInfo player)
         {
-            Log.Debug("Entering queuePlayerForMove", 7);
+            Log.Debug(() => "Entering queuePlayerForMove", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to add player to 'on-death' move dictionary.", 6);
+                    Log.Debug(() => "Preparing to add player to 'on-death' move dictionary.", 6);
                     lock (_TeamswapOnDeathCheckingQueue)
                     {
                         if (!_TeamswapOnDeathMoveDic.ContainsKey(player.SoldierName))
                         {
                             _TeamswapOnDeathMoveDic.Add(player.SoldierName, player);
                             _TeamswapWaitHandle.Set();
-                            Log.Debug("Player added to 'on-death' move dictionary.", 6);
+                            Log.Debug(() => "Player added to 'on-death' move dictionary.", 6);
                         }
                         else
                         {
-                            Log.Debug("Player already in 'on-death' move dictionary.", 6);
+                            Log.Debug(() => "Player already in 'on-death' move dictionary.", 6);
                         }
                     }
                 }
@@ -13171,7 +13171,7 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing player for move.", e));
             }
-            Log.Debug("Exiting queuePlayerForMove", 7);
+            Log.Debug(() => "Exiting queuePlayerForMove", 7);
         }
 
         //runs through both team swap queues and performs the swapping
@@ -13181,17 +13181,17 @@ namespace PRoConEvents
             Int32 maxTeamPlayerCount = 32;
             try
             {
-                Log.Debug("Starting TeamSwap Thread", 1);
+                Log.Debug(() => "Starting TeamSwap Thread", 1);
                 Thread.CurrentThread.Name = "TeamSwap";
                 DateTime loopStart = UtcDbTime();
                 while (true)
                 {
                     try
                     {
-                        Log.Debug("Entering TeamSwap Thread Loop", 7);
+                        Log.Debug(() => "Entering TeamSwap Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
                         AdKatsTeam team1;
@@ -13200,7 +13200,7 @@ namespace PRoConEvents
                         {
                             if (_roundState == RoundState.Playing)
                             {
-                                Log.Debug("Team 1 was not found. Unable to continue.", 1);
+                                Log.Debug(() => "Team 1 was not found. Unable to continue.", 1);
                             }
                             _threadMasterWaitHandle.WaitOne(5000);
                             continue;
@@ -13209,7 +13209,7 @@ namespace PRoConEvents
                         {
                             if (_roundState == RoundState.Playing)
                             {
-                                Log.Debug("Team 2 was not found. Unable to continue.", 1);
+                                Log.Debug(() => "Team 2 was not found. Unable to continue.", 1);
                             }
                             _threadMasterWaitHandle.WaitOne(5000);
                             continue;
@@ -13224,13 +13224,13 @@ namespace PRoConEvents
                         //Get players who died that need moving
                         if ((_TeamswapOnDeathMoveDic.Count > 0 && _TeamswapOnDeathCheckingQueue.Count > 0) || _TeamswapForceMoveQueue.Count > 0)
                         {
-                            Log.Debug("Preparing to lock TeamSwap queues", 4);
+                            Log.Debug(() => "Preparing to lock TeamSwap queues", 4);
 
                             _PlayerListUpdateWaitHandle.Reset();
                             //Wait for listPlayers to finish, max 10 seconds
                             if (!_PlayerListUpdateWaitHandle.WaitOne(TimeSpan.FromSeconds(10)))
                             {
-                                Log.Debug("ListPlayers ran out of time for TeamSwap. 10 sec.", 4);
+                                Log.Debug(() => "ListPlayers ran out of time for TeamSwap. 10 sec.", 4);
                             }
 
                             Queue<CPlayerInfo> movingQueue;
@@ -13300,7 +13300,7 @@ namespace PRoConEvents
                                 }
                             }
                         }
-                        Log.Debug("Team Info: " + team1.TeamKey + ": " + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + " " + team2.TeamKey + ": " + team2.TeamPlayerCount + "/" + maxTeamPlayerCount, 5);
+                        Log.Debug(() => "Team Info: " + team1.TeamKey + ": " + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + " " + team2.TeamKey + ": " + team2.TeamPlayerCount + "/" + maxTeamPlayerCount, 5);
                         if (_Team2MoveQueue.Count > 0 || _Team1MoveQueue.Count > 0)
                         {
                             //Perform player moving
@@ -13330,7 +13330,7 @@ namespace PRoConEvents
                                         }
                                         else
                                         {
-                                            Log.Debug("MULTIBalancer Unswitcher Disabled", 3);
+                                            Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                                             ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                             _MULTIBalancerUnswitcherDisabled = true;
                                             PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2.TeamName + " to team " + team1.TeamName);
@@ -13376,7 +13376,7 @@ namespace PRoConEvents
                                         }
                                         else
                                         {
-                                            Log.Debug("MULTIBalancer Unswitcher Disabled", 3);
+                                            Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                                             ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                             _MULTIBalancerUnswitcherDisabled = true;
                                             PlayerSayMessage(player.SoldierName, "Swapping you from team " + team1.TeamName + " to team " + team2.TeamName);
@@ -13405,11 +13405,11 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            Log.Debug("No players to swap. Waiting for Input.", 6);
+                            Log.Debug(() => "No players to swap. Waiting for Input.", 6);
                             //There are no players to swap, wait.
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _TeamswapWaitHandle.Reset();
                             _TeamswapWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
@@ -13429,7 +13429,7 @@ namespace PRoConEvents
                     _TeamswapWaitHandle.Reset();
                     _TeamswapWaitHandle.WaitOne(TimeSpan.FromSeconds(10));
                 }
-                Log.Debug("Ending TeamSwap Thread", 1);
+                Log.Debug(() => "Ending TeamSwap Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -13441,7 +13441,7 @@ namespace PRoConEvents
         //Whether a move queue contains a given player
         private bool ContainsCPlayerInfo(Queue<CPlayerInfo> queueList, String player)
         {
-            Log.Debug("Entering containsCPlayerInfo", 7);
+            Log.Debug(() => "Entering containsCPlayerInfo", 7);
             try
             {
                 CPlayerInfo[] playerArray = queueList.ToArray();
@@ -13458,14 +13458,14 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while checking for player in teamswap queue.", e));
             }
-            Log.Debug("Exiting containsCPlayerInfo", 7);
+            Log.Debug(() => "Exiting containsCPlayerInfo", 7);
             return false;
         }
 
         //The index of a player in the move queue
         private Int32 IndexOfCPlayerInfo(Queue<CPlayerInfo> queueList, String player)
         {
-            Log.Debug("Entering getCPlayerInfo", 7);
+            Log.Debug(() => "Entering getCPlayerInfo", 7);
             try
             {
                 CPlayerInfo[] playerArray = queueList.ToArray();
@@ -13481,13 +13481,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while getting index of player in teamswap queue.", e));
             }
-            Log.Debug("Exiting getCPlayerInfo", 7);
+            Log.Debug(() => "Exiting getCPlayerInfo", 7);
             return -1;
         }
 
         private void QueueRecordForProcessing(AdKatsRecord record)
         {
-            Log.Debug("Entering queueRecordForProcessing", 7);
+            Log.Debug(() => "Entering queueRecordForProcessing", 7);
             try
             {
                 if (record.command_action == null)
@@ -13557,7 +13557,7 @@ namespace PRoConEvents
                         return;
                     }
                     //Special command case
-                    Log.Debug("Preparing to check " + record.command_type.command_key + " record for pre-upload processing.", 5);
+                    Log.Debug(() => "Preparing to check " + record.command_type.command_key + " record for pre-upload processing.", 5);
                     switch (record.command_type.command_key)
                     {
                         case "self_rules":
@@ -13855,7 +13855,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistspambot":
                             if (GetMatchingASPlayersOfGroup("whitelist_spambot", record.target_player).Any())
@@ -13864,7 +13864,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistaa":
                             if (GetMatchingASPlayersOfGroup("whitelist_adminassistant", record.target_player).Any())
@@ -13873,7 +13873,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistping":
                             if (GetMatchingASPlayersOfGroup("whitelist_ping", record.target_player).Any())
@@ -13882,7 +13882,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelisthackerchecker":
                             if (GetMatchingASPlayersOfGroup("whitelist_hackerchecker", record.target_player).Any())
@@ -13891,7 +13891,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_slotspectator":
                             if (GetMatchingASPlayersOfGroup("slot_spectator", record.target_player).Any())
@@ -13900,7 +13900,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_slotreserved":
                             if (GetMatchingASPlayersOfGroup("slot_reserved", record.target_player).Any())
@@ -13909,7 +13909,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistbalance":
                             if (GetMatchingASPlayersOfGroup("whitelist_multibalancer", record.target_player).Any())
@@ -13918,7 +13918,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_blacklistdisperse":
                             if (GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player).Any())
@@ -13927,7 +13927,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistpopulator":
                             if (GetMatchingASPlayersOfGroup("whitelist_populator", record.target_player).Any())
@@ -13936,7 +13936,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistteamkill":
                             if (GetMatchingASPlayersOfGroup("whitelist_teamkill", record.target_player).Any())
@@ -13945,7 +13945,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistreport_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_report", record.target_player).Any())
@@ -13954,7 +13954,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistspambot_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_spambot", record.target_player).Any())
@@ -13963,7 +13963,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistaa_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_adminassistant", record.target_player).Any())
@@ -13972,7 +13972,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistping_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_ping", record.target_player).Any())
@@ -13981,7 +13981,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelisthackerchecker_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_hackerchecker", record.target_player).Any())
@@ -13990,7 +13990,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_slotspectator_remove":
                             if (!GetMatchingASPlayersOfGroup("slot_spectator", record.target_player).Any())
@@ -13999,7 +13999,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_slotreserved_remove":
                             if (!GetMatchingASPlayersOfGroup("slot_reserved", record.target_player).Any())
@@ -14008,7 +14008,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistbalance_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_multibalancer", record.target_player).Any())
@@ -14017,7 +14017,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_blacklistdisperse_remove":
                             if (!GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player).Any())
@@ -14026,7 +14026,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistpopulator_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_populator", record.target_player).Any())
@@ -14035,7 +14035,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistteamkill_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_teamkill", record.target_player).Any())
@@ -14044,7 +14044,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_blacklistspectator":
                             if (GetMatchingASPlayersOfGroup("blacklist_spectator", record.target_player).Any())
@@ -14053,7 +14053,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_blacklistspectator_remove":
                             if (!GetMatchingASPlayersOfGroup("blacklist_spectator", record.target_player).Any())
@@ -14062,7 +14062,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_blacklistreport":
                             if (GetMatchingASPlayersOfGroup("blacklist_report", record.target_player).Any())
@@ -14071,7 +14071,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_blacklistreport_remove":
                             if (!GetMatchingASPlayersOfGroup("blacklist_report", record.target_player).Any())
@@ -14080,7 +14080,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistcommand":
                             if (GetMatchingASPlayersOfGroup("whitelist_commandtarget", record.target_player).Any())
@@ -14089,7 +14089,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_whitelistcommand_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_commandtarget", record.target_player).Any())
@@ -14098,7 +14098,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_blacklistautoassist":
                             if (GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player).Any())
@@ -14107,7 +14107,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_blacklistautoassist_remove":
                             if (!GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player).Any())
@@ -14116,7 +14116,7 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                     }
                     //Conditional command replacement (single target only)
@@ -14160,12 +14160,12 @@ namespace PRoConEvents
                         SendMessageToSource(record, "You are running an outdated version of AdKats. Update " + _latestPluginVersion + " is released.");
                     }
                 }
-                Log.Debug("Preparing to queue " + record.command_type.command_key + " record for processing", 6);
+                Log.Debug(() => "Preparing to queue " + record.command_type.command_key + " record for processing", 6);
                 lock (_UnprocessedRecordQueue)
                 {
                     //Queue the record for processing
                     _UnprocessedRecordQueue.Enqueue(record);
-                    Log.Debug("Record queued for processing", 6);
+                    Log.Debug(() => "Record queued for processing", 6);
                     _DbCommunicationWaitHandle.Set();
                 }
             }
@@ -14174,20 +14174,20 @@ namespace PRoConEvents
                 record.record_exception = new AdKatsException("Error while queueing record for processing.", e);
                 HandleException(record.record_exception);
             }
-            Log.Debug("Exiting queueRecordForProcessing", 7);
+            Log.Debug(() => "Exiting queueRecordForProcessing", 7);
         }
 
         private void QueueStatisticForProcessing(AdKatsStatistic aStat)
         {
-            Log.Debug("Entering QueueStatisticForProcessing", 6);
+            Log.Debug(() => "Entering QueueStatisticForProcessing", 6);
             try
             {
-                Log.Debug("Preparing to queue statistic for processing", 6);
+                Log.Debug(() => "Preparing to queue statistic for processing", 6);
                 lock (_UnprocessedStatisticQueue)
                 {
                     //Queue the statistic for processing
                     _UnprocessedStatisticQueue.Enqueue(aStat);
-                    Log.Debug("Statistic queued for processing", 6);
+                    Log.Debug(() => "Statistic queued for processing", 6);
                     _DbCommunicationWaitHandle.Set();
                 }
             }
@@ -14195,24 +14195,24 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queuing statistic for processing.", e));
             }
-            Log.Debug("Exiting QueueStatisticForProcessing", 6);
+            Log.Debug(() => "Exiting QueueStatisticForProcessing", 6);
         }
 
         private void CommandParsingThreadLoop()
         {
             try
             {
-                Log.Debug("Starting Command Parsing Thread", 1);
+                Log.Debug(() => "Starting Command Parsing Thread", 1);
                 Thread.CurrentThread.Name = "Command";
                 DateTime loopStart = UtcDbTime();
                 while (true)
                 {
                     try
                     {
-                        Log.Debug("Entering Command Parsing Thread Loop", 7);
+                        Log.Debug(() => "Entering Command Parsing Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
 
@@ -14222,11 +14222,11 @@ namespace PRoConEvents
                         //Get all unparsed inbound messages
                         if (_UnparsedCommandQueue.Count > 0)
                         {
-                            Log.Debug("Preparing to lock command queue to retrive new commands", 7);
+                            Log.Debug(() => "Preparing to lock command queue to retrive new commands", 7);
                             Queue<AdKatsChatMessage> unparsedCommands;
                             lock (_UnparsedCommandQueue)
                             {
-                                Log.Debug("Inbound commands found. Grabbing.", 6);
+                                Log.Debug(() => "Inbound commands found. Grabbing.", 6);
                                 //Grab all messages in the queue
                                 unparsedCommands = new Queue<AdKatsChatMessage>(_UnparsedCommandQueue.ToArray());
                                 //Clear the queue for next run
@@ -14240,7 +14240,7 @@ namespace PRoConEvents
                                 {
                                     break;
                                 }
-                                Log.Debug("begin reading command", 6);
+                                Log.Debug(() => "begin reading command", 6);
                                 //Dequeue the first/next command
                                 AdKatsChatMessage commandMessage = unparsedCommands.Dequeue();
 
@@ -14302,11 +14302,11 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            Log.Debug("No inbound commands, ready.", 7);
+                            Log.Debug(() => "No inbound commands, ready.", 7);
                             //No commands to parse, ready.
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _CommandParsingWaitHandle.Reset();
                             _CommandParsingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
@@ -14323,7 +14323,7 @@ namespace PRoConEvents
                         HandleException(new AdKatsException("Error occured in Command thread. Skipping current loop.", e));
                     }
                 }
-                Log.Debug("Ending Command Thread", 1);
+                Log.Debug(() => "Ending Command Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -14341,13 +14341,13 @@ namespace PRoConEvents
                 String[] splitMessage = message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 if (splitMessage.Length < 1)
                 {
-                    Log.Debug("Completely blank command entered", 5);
+                    Log.Debug(() => "Completely blank command entered", 5);
                     SendMessageToSource(record, "You entered a completely blank command.");
                     FinalizeRecord(record);
                     return;
                 }
                 String commandString = splitMessage[0].ToLower();
-                Log.Debug("Raw " + commandString, 6);
+                Log.Debug(() => "Raw " + commandString, 6);
                 String remainingMessage = message.TrimStart(splitMessage[0].ToCharArray()).Trim();
 
                 record.server_id = _serverInfo.ServerID;
@@ -14359,12 +14359,12 @@ namespace PRoConEvents
                 {
                     record.command_type = commandType;
                     record.command_action = commandType;
-                    Log.Debug("Command parsed. Command is " + commandType.command_key + ".", 5);
+                    Log.Debug(() => "Command parsed. Command is " + commandType.command_key + ".", 5);
                 }
                 else
                 {
                     //If command not parsable, return without creating
-                    Log.Debug("Command not parsable", 6);
+                    Log.Debug(() => "Command not parsable", 6);
                     if (record.record_source == AdKatsRecord.Sources.ExternalPlugin)
                     {
                         SendMessageToSource(record, "Command not parsable.");
@@ -14410,7 +14410,7 @@ namespace PRoConEvents
                     }
                     if (!HasAccess(record.source_player, record.command_type))
                     {
-                        Log.Debug("No rights to call command", 6);
+                        Log.Debug(() => "No rights to call command", 6);
                         //Only tell the user they dont have access if the command is active
                         if (record.command_type.command_active == AdKatsCommand.CommandActive.Active)
                         {
@@ -14473,7 +14473,7 @@ namespace PRoConEvents
                             break;
                     }
                 }
-                Log.Debug("Access type " + record.record_access + " is allowed for " + record.command_type.command_key + ".", 4);
+                Log.Debug(() => "Access type " + record.record_access + " is allowed for " + record.command_type.command_key + ".", 4);
 
                 //GATE 4: Specific data based on command type.
                 switch (record.command_type.command_key)
@@ -15067,7 +15067,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration.EndsWith("s"))
                                 {
                                     stringDuration = stringDuration.TrimEnd('s');
@@ -15138,7 +15138,7 @@ namespace PRoConEvents
                                     break;
                                 case 2:
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
 
                                     //Handle based on report ID as only option
                                     if (!HandleRoundReport(record))
@@ -15149,7 +15149,7 @@ namespace PRoConEvents
                                     break;
                                 case 3:
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
 
                                     //attempt to handle via pre-message ID
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
@@ -15160,7 +15160,7 @@ namespace PRoConEvents
                                         return;
                                     }
 
-                                    Log.Debug("reason: " + record.record_message, 6);
+                                    Log.Debug(() => "reason: " + record.record_message, 6);
 
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
@@ -15279,7 +15279,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration.EndsWith("s"))
                                 {
                                     stringDuration = stringDuration.TrimEnd('s');
@@ -15341,7 +15341,7 @@ namespace PRoConEvents
                                     record.command_numeric = (int)(recordDuration * durationMultiplier);
 
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
 
                                     //Handle based on report ID as only option
                                     if (!HandleRoundReport(record))
@@ -15354,7 +15354,7 @@ namespace PRoConEvents
                                     record.command_numeric = (int)(recordDuration * durationMultiplier);
 
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
 
                                     //attempt to handle via pre-message ID
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
@@ -15365,7 +15365,7 @@ namespace PRoConEvents
                                         return;
                                     }
 
-                                    Log.Debug("reason: " + record.record_message, 6);
+                                    Log.Debug(() => "reason: " + record.record_message, 6);
 
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
@@ -15500,7 +15500,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -15590,7 +15590,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -15598,7 +15598,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -15635,7 +15635,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -15725,7 +15725,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -15733,7 +15733,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -15763,7 +15763,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -15853,7 +15853,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -15861,7 +15861,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -15884,7 +15884,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -15974,7 +15974,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -15982,7 +15982,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -16012,7 +16012,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -16102,7 +16102,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -16110,7 +16110,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -16140,7 +16140,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -16230,7 +16230,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -16238,7 +16238,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -16261,7 +16261,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -16351,7 +16351,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -16359,7 +16359,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -16382,7 +16382,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -16472,7 +16472,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -16480,7 +16480,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -16503,7 +16503,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -16593,7 +16593,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -16601,7 +16601,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -16631,7 +16631,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -16721,7 +16721,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -16729,7 +16729,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -16766,7 +16766,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -16856,7 +16856,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -16864,7 +16864,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -17185,12 +17185,12 @@ namespace PRoConEvents
                                     return;
                                 case 2:
                                     record.target_name = parameters[0];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
 
                                     //attempt to handle via pre-message ID
                                     record.record_message = GetPreMessage(parameters[1], false);
 
-                                    Log.Debug("reason: " + record.record_message, 6);
+                                    Log.Debug(() => "reason: " + record.record_message, 6);
 
                                     //Only 1 character reasons are required for reports and admin calls
                                     if (record.record_message.Length >= 1)
@@ -17199,7 +17199,7 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        Log.Debug("reason too short", 6);
+                                        Log.Debug(() => "reason too short", 6);
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
                                         FinalizeRecord(record);
                                     }
@@ -17233,12 +17233,12 @@ namespace PRoConEvents
                                     return;
                                 case 2:
                                     record.target_name = parameters[0];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
 
                                     //attempt to handle via pre-message ID
                                     record.record_message = GetPreMessage(parameters[1], false);
 
-                                    Log.Debug("reason: " + record.record_message, 6);
+                                    Log.Debug(() => "reason: " + record.record_message, 6);
                                     //Only 1 character reasons are required for reports and admin calls
                                     if (record.record_message.Length >= 1)
                                     {
@@ -17246,7 +17246,7 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        Log.Debug("reason too short", 6);
+                                        Log.Debug(() => "reason too short", 6);
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
                                         FinalizeRecord(record);
                                     }
@@ -17660,7 +17660,7 @@ namespace PRoConEvents
                                 case 1:
                                     String targetTeam = parameters[0];
                                     record.record_message = "Nuke Server";
-                                    Log.Debug("target: " + targetTeam, 6);
+                                    Log.Debug(() => "target: " + targetTeam, 6);
                                     List<AdKatsTeam> validTeams = _teamDictionary.Values.Where(aTeam => aTeam.TeamID == 1 || aTeam.TeamID == 2).ToList();
                                     AdKatsTeam matchingTeam = validTeams.FirstOrDefault(aTeam => aTeam.TeamKey.ToLower() == targetTeam.ToLower());
                                     if (matchingTeam != null)
@@ -17711,7 +17711,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("target: " + targetSubset, 6);
+                                    Log.Debug(() => "target: " + targetSubset, 6);
                                     List<AdKatsTeam> validTeams = _teamDictionary.Values.Where(aTeam => aTeam.TeamID == 1 || aTeam.TeamID == 2).ToList();
                                     AdKatsTeam matchingTeam = validTeams.FirstOrDefault(aTeam => aTeam.TeamKey.ToLower() == targetSubset.ToLower());
                                     if (matchingTeam != null) {
@@ -17829,7 +17829,7 @@ namespace PRoConEvents
                                     return;
                                 case 1:
                                     String targetTeam = parameters[0];
-                                    Log.Debug("target team: " + targetTeam, 6);
+                                    Log.Debug(() => "target team: " + targetTeam, 6);
                                     record.record_message = "End Round";
                                     List<AdKatsTeam> validTeams = _teamDictionary.Values.Where(aTeam => aTeam.TeamID == 1 || aTeam.TeamID == 2).ToList();
                                     AdKatsTeam matchingTeam = validTeams.FirstOrDefault(aTeam => aTeam.TeamKey.ToLower() == targetTeam.ToLower());
@@ -18504,7 +18504,7 @@ namespace PRoConEvents
                                     return;
                                 case 1:
                                     record.record_message = GetPreMessage(parameters[0], false);
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     record.target_name = "Server";
                                     QueueRecordForProcessing(record);
                                     break;
@@ -18534,10 +18534,10 @@ namespace PRoConEvents
                                     return;
                                 case 2:
                                     record.target_name = parameters[0];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
 
                                     record.record_message = GetPreMessage(parameters[1], false);
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
 
                                     CompleteTargetInformation(record, false, false, true);
                                     break;
@@ -18563,7 +18563,7 @@ namespace PRoConEvents
                                     return;
                                 case 1:
                                     record.record_message = GetPreMessage(parameters[0], false);
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     record.target_name = "Server";
                                     QueueRecordForProcessing(record);
                                     break;
@@ -18593,10 +18593,10 @@ namespace PRoConEvents
                                     return;
                                 case 2:
                                     record.target_name = parameters[0];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
 
                                     record.record_message = GetPreMessage(parameters[1], false);
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
 
                                     CompleteTargetInformation(record, false, false, true);
                                     break;
@@ -18622,7 +18622,7 @@ namespace PRoConEvents
                                     return;
                                 case 1:
                                     record.record_message = GetPreMessage(parameters[0], false);
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     record.target_name = "Server";
                                     QueueRecordForProcessing(record);
                                     break;
@@ -18652,10 +18652,10 @@ namespace PRoConEvents
                                     return;
                                 case 2:
                                     record.target_name = parameters[0];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
 
                                     record.record_message = GetPreMessage(parameters[1], false);
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
 
                                     CompleteTargetInformation(record, false, false, true);
                                     break;
@@ -18691,10 +18691,10 @@ namespace PRoConEvents
                                     return;
                                 case 2:
                                     record.target_name = parameters[0];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
 
                                     record.record_message = GetPreMessage(parameters[1], false);
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
 
                                     CompleteTargetInformation(record, false, false, false, true);
                                     break;
@@ -18791,7 +18791,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Dequeueing Player";
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     CompleteTargetInformation(record, false, false, false);
                                     break;
                                 default:
@@ -18828,7 +18828,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -18918,7 +18918,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -18926,7 +18926,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -18956,7 +18956,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -19046,7 +19046,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -19054,7 +19054,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -19084,7 +19084,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -19174,7 +19174,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -19182,7 +19182,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -19212,7 +19212,7 @@ namespace PRoConEvents
                             if (parameters.Length > 0)
                             {
                                 String stringDuration = parameters[0].ToLower();
-                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
                                     //20 years in minutes
@@ -19302,7 +19302,7 @@ namespace PRoConEvents
                                     //player
                                     //reason
                                     record.target_name = parameters[1];
-                                    Log.Debug("target: " + record.target_name, 6);
+                                    Log.Debug(() => "target: " + record.target_name, 6);
                                     record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
@@ -19310,7 +19310,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Log.Debug("" + record.record_message, 6);
+                                    Log.Debug(() => "" + record.record_message, 6);
                                     CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
@@ -19983,12 +19983,12 @@ namespace PRoConEvents
                         }
                         break;
                     case "command_confirm":
-                        Log.Debug("attempting to confirm command", 6);
+                        Log.Debug(() => "attempting to confirm command", 6);
                         AdKatsRecord recordAttempt = null;
                         _ActionConfirmDic.TryGetValue(record.source_name, out recordAttempt);
                         if (recordAttempt != null)
                         {
-                            Log.Debug("command found, calling processing", 6);
+                            Log.Debug(() => "command found, calling processing", 6);
                             _ActionConfirmDic.Remove(record.source_name);
                             QueueRecordForProcessing(recordAttempt);
                             FinalizeRecord(record);
@@ -19997,7 +19997,7 @@ namespace PRoConEvents
                         FinalizeRecord(record);
                         break;
                     case "command_cancel":
-                        Log.Debug("attempting to cancel command", 6);
+                        Log.Debug(() => "attempting to cancel command", 6);
                         if (_ActionConfirmDic.Remove(record.source_name))
                         {
                             SendMessageToSource(record, "Previous command cancelled.");
@@ -20036,7 +20036,7 @@ namespace PRoConEvents
 
         public void FinalizeRecord(AdKatsRecord record)
         {
-            Log.Debug("Entering FinalizeRecord", 7);
+            Log.Debug(() => "Entering FinalizeRecord", 7);
             try
             {
                 //Make sure commands are assigned properly
@@ -20069,7 +20069,7 @@ namespace PRoConEvents
                 }
                 if (record.record_source == AdKatsRecord.Sources.InGame || record.record_source == AdKatsRecord.Sources.InternalAutomated)
                 {
-                    Log.Debug("In-Game/Automated " + record.command_action.command_key + " record took " + Math.Round((DateTime.UtcNow - record.record_creationTime).TotalMilliseconds) + "ms to complete actions.", 3);
+                    Log.Debug(() => "In-Game/Automated " + record.command_action.command_key + " record took " + Math.Round((DateTime.UtcNow - record.record_creationTime).TotalMilliseconds) + "ms to complete actions.", 3);
                 }
                 //Add event log
                 if (String.IsNullOrEmpty(record.target_name))
@@ -20109,7 +20109,7 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while finalizing record.", e));
             }
-            Log.Debug("Exiting FinalizeRecord", 7);
+            Log.Debug(() => "Exiting FinalizeRecord", 7);
         }
 
         public void CompleteTargetInformation(AdKatsRecord record, Boolean requireConfirm, Boolean externalFetch, Boolean externalOnlineFetch)
@@ -20475,7 +20475,7 @@ namespace PRoConEvents
 
         public void ConfirmActionWithSource(AdKatsRecord record)
         {
-            Log.Debug("Entering confirmActionWithSource", 7);
+            Log.Debug(() => "Entering confirmActionWithSource", 7);
             try
             {
                 if (_bypassCommandConfirmation)
@@ -20497,15 +20497,15 @@ namespace PRoConEvents
             {
                 record.record_exception = HandleException(new AdKatsException("Error while confirming action with record source.", e));
             }
-            Log.Debug("Exiting confirmActionWithSource", 7);
+            Log.Debug(() => "Exiting confirmActionWithSource", 7);
         }
 
         public void CancelSourcePendingAction(AdKatsRecord record)
         {
-            Log.Debug("Entering cancelSourcePendingAction", 7);
+            Log.Debug(() => "Entering cancelSourcePendingAction", 7);
             try
             {
-                Log.Debug("attempting to cancel command", 6);
+                Log.Debug(() => "attempting to cancel command", 6);
                 lock (_ActionConfirmDic)
                 {
                     if (_ActionConfirmDic.Remove(record.source_name))
@@ -20518,7 +20518,7 @@ namespace PRoConEvents
             {
                 record.record_exception = HandleException(new AdKatsException("Error while canceling source pending action.", e));
             }
-            Log.Debug("Exiting cancelSourcePendingAction", 7);
+            Log.Debug(() => "Exiting cancelSourcePendingAction", 7);
         }
 
         public AdKatsRecord FetchRoundReport(String reportID, Boolean remove)
@@ -20532,7 +20532,7 @@ namespace PRoConEvents
                     {
                         if (_RoundReports.Remove(reportID))
                         {
-                            Log.Debug("Round report [" + reportID + "] removed.", 3);
+                            Log.Debug(() => "Round report [" + reportID + "] removed.", 3);
                             _RoundReportHistory.Add(reportID);
                         }
                     }
@@ -20549,11 +20549,11 @@ namespace PRoConEvents
         {
             try
             {
-                Log.Debug("Attempting to handle based on round report.", 6);
+                Log.Debug(() => "Attempting to handle based on round report.", 6);
                 AdKatsRecord reportedRecord = FetchRoundReport(record.target_name, true);
                 if (reportedRecord != null)
                 {
-                    Log.Debug("Denying round report.", 5);
+                    Log.Debug(() => "Denying round report.", 5);
                     reportedRecord.command_action = GetCommandByKey("player_report_deny");
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been denied.");
@@ -20576,11 +20576,11 @@ namespace PRoConEvents
         {
             try
             {
-                Log.Debug("Attempting to handle based on round report.", 6);
+                Log.Debug(() => "Attempting to handle based on round report.", 6);
                 AdKatsRecord reportedRecord = FetchRoundReport(record.target_name, true);
                 if (reportedRecord != null)
                 {
-                    Log.Debug("Ignoring round report.", 5);
+                    Log.Debug(() => "Ignoring round report.", 5);
                     reportedRecord.command_action = GetCommandByKey("player_report_ignore");
                     UpdateRecord(reportedRecord);
                     //Do not inform the player their report was ignored
@@ -20604,11 +20604,11 @@ namespace PRoConEvents
         {
             try
             {
-                Log.Debug("Attempting to handle based on round report.", 6);
+                Log.Debug(() => "Attempting to handle based on round report.", 6);
                 AdKatsRecord reportedRecord = FetchRoundReport(record.target_name, true);
                 if (reportedRecord != null)
                 {
-                    Log.Debug("Accepting round report.", 5);
+                    Log.Debug(() => "Accepting round report.", 5);
                     reportedRecord.command_action = GetCommandByKey("player_report_confirm");
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been accepted. Thank you.");
@@ -20633,7 +20633,7 @@ namespace PRoConEvents
         {
             try
             {
-                Log.Debug("Attempting to handle based on round report.", 6);
+                Log.Debug(() => "Attempting to handle based on round report.", 6);
                 AdKatsRecord reportedRecord = FetchRoundReport(record.target_name, false);
                 if (reportedRecord != null)
                 {
@@ -20648,7 +20648,7 @@ namespace PRoConEvents
                     }
                     if (_RoundReports.Remove(record.target_name))
                     {
-                        Log.Debug("Round report [" + record.target_name + "] removed.", 3);
+                        Log.Debug(() => "Round report [" + record.target_name + "] removed.", 3);
                         _RoundReportHistory.Add(record.target_name);
                     }
                     if (reportedRecord.isContested)
@@ -20660,7 +20660,7 @@ namespace PRoConEvents
                         }
                         return true;
                     }
-                    Log.Debug("Handling round report.", 5);
+                    Log.Debug(() => "Handling round report.", 5);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been acted on. Thank you.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been acted on by " + record.GetSourceName() + ".");
                     reportedRecord.command_action = GetCommandByKey("player_report_confirm");
@@ -20692,14 +20692,14 @@ namespace PRoConEvents
         //replaces the message with a pre-message
         public String GetPreMessage(String message, Boolean required)
         {
-            Log.Debug("Entering getPreMessage", 7);
+            Log.Debug(() => "Entering getPreMessage", 7);
             try
             {
                 if (!string.IsNullOrEmpty(message))
                 {
                     //Attempt to fill the message via pre-message ID
                     Int32 preMessageID = 0;
-                    Log.Debug("Raw preMessageID: " + message, 6);
+                    Log.Debug(() => "Raw preMessageID: " + message, 6);
                     Boolean valid = Int32.TryParse(message, out preMessageID);
                     if (valid && (preMessageID > 0) && (preMessageID <= _PreMessageList.Count))
                     {
@@ -20715,20 +20715,20 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while getting pre-message.", e));
             }
-            Log.Debug("Exiting getPreMessage", 7);
+            Log.Debug(() => "Exiting getPreMessage", 7);
             return message;
         }
 
         private void QueuePlayerForIPInfoFetch(AdKatsPlayer aPlayer)
         {
-            Log.Debug("Entering QueuePlayerForIPInfoFetch", 6);
+            Log.Debug(() => "Entering QueuePlayerForIPInfoFetch", 6);
             try
             {
-                Log.Debug("Preparing to queue player for IP info fetch.", 6);
+                Log.Debug(() => "Preparing to queue player for IP info fetch.", 6);
                 lock (_IPInfoFetchQueue)
                 {
                     _IPInfoFetchQueue.Enqueue(aPlayer);
-                    Log.Debug("Player queued for IP info fetch.", 6);
+                    Log.Debug(() => "Player queued for IP info fetch.", 6);
                     _IPInfoWaitHandle.Set();
                 }
             }
@@ -20736,24 +20736,24 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queuing player for IP info fetch.", e));
             }
-            Log.Debug("Exiting QueuePlayerForIPInfoFetch", 6);
+            Log.Debug(() => "Exiting QueuePlayerForIPInfoFetch", 6);
         }
 
         public void IPAPICommThreadLoop()
         {
             try
             {
-                Log.Debug("Starting IP API Comm Thread", 1);
+                Log.Debug(() => "Starting IP API Comm Thread", 1);
                 Thread.CurrentThread.Name = "IPAPIComm";
                 DateTime loopStart = UtcDbTime();
                 while (true)
                 {
                     try
                     {
-                        Log.Debug("Entering IP API Comm Thread Loop", 7);
+                        Log.Debug(() => "Entering IP API Comm Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
                         //Sleep for 10ms
@@ -20765,7 +20765,7 @@ namespace PRoConEvents
                             Queue<AdKatsPlayer> unprocessedPlayers;
                             lock (_IPInfoFetchQueue)
                             {
-                                Log.Debug("Inbound players found. Grabbing.", 6);
+                                Log.Debug(() => "Inbound players found. Grabbing.", 6);
                                 //Grab all items in the queue
                                 unprocessedPlayers = new Queue<AdKatsPlayer>(_IPInfoFetchQueue.ToArray());
                                 //Clear the queue for next run
@@ -20778,7 +20778,7 @@ namespace PRoConEvents
                                 {
                                     break;
                                 }
-                                Log.Debug("Preparing to fetch IP API info for player", 6);
+                                Log.Debug(() => "Preparing to fetch IP API info for player", 6);
                                 //Dequeue the record
                                 AdKatsPlayer aPlayer = unprocessedPlayers.Dequeue();
                                 //Run the appropriate action
@@ -20787,11 +20787,11 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            Log.Debug("No inbound players. Waiting.", 6);
+                            Log.Debug(() => "No inbound players. Waiting.", 6);
                             //Wait for new actions
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _IPInfoWaitHandle.Reset();
                             _IPInfoWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
@@ -20808,7 +20808,7 @@ namespace PRoConEvents
                         HandleException(new AdKatsException("Error occured in IP API comm thread. Skipping current loop.", e));
                     }
                 }
-                Log.Debug("Ending IP API Comm Thread", 1);
+                Log.Debug(() => "Ending IP API Comm Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -20819,14 +20819,14 @@ namespace PRoConEvents
 
         private void QueuePlayerForBattlelogInfoFetch(AdKatsPlayer aPlayer)
         {
-            Log.Debug("Entering QueuePlayerForBattlelogInfoFetch", 6);
+            Log.Debug(() => "Entering QueuePlayerForBattlelogInfoFetch", 6);
             try
             {
-                Log.Debug("Preparing to queue player for battlelog info fetch.", 6);
+                Log.Debug(() => "Preparing to queue player for battlelog info fetch.", 6);
                 lock (_BattlelogFetchQueue)
                 {
                     _BattlelogFetchQueue.Enqueue(aPlayer);
-                    Log.Debug("Player queued for battlelog info fetch.", 6);
+                    Log.Debug(() => "Player queued for battlelog info fetch.", 6);
                     _BattlelogCommWaitHandle.Set();
                 }
             }
@@ -20834,24 +20834,24 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queuing player for battlelog info fetch.", e));
             }
-            Log.Debug("Exiting QueuePlayerForBattlelogInfoFetch", 6);
+            Log.Debug(() => "Exiting QueuePlayerForBattlelogInfoFetch", 6);
         }
 
         public void BattlelogCommThreadLoop()
         {
             try
             {
-                Log.Debug("Starting Battlelog Comm Thread", 1);
+                Log.Debug(() => "Starting Battlelog Comm Thread", 1);
                 Thread.CurrentThread.Name = "BattlelogComm";
                 DateTime loopStart = UtcDbTime();
                 while (true)
                 {
                     try
                     {
-                        Log.Debug("Entering Battlelog Comm Thread Loop", 7);
+                        Log.Debug(() => "Entering Battlelog Comm Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
                         //Sleep for 10ms
@@ -20863,7 +20863,7 @@ namespace PRoConEvents
                             Queue<AdKatsPlayer> unprocessedBattlelogFetchPlayers;
                             lock (_BattlelogFetchQueue)
                             {
-                                Log.Debug("Inbound players found. Grabbing.", 6);
+                                Log.Debug(() => "Inbound players found. Grabbing.", 6);
                                 //Grab all items in the queue
                                 unprocessedBattlelogFetchPlayers = new Queue<AdKatsPlayer>(_BattlelogFetchQueue.ToArray());
                                 //Clear the queue for next run
@@ -20876,7 +20876,7 @@ namespace PRoConEvents
                                 {
                                     break;
                                 }
-                                Log.Debug("Preparing to fetch battlelog info for player", 6);
+                                Log.Debug(() => "Preparing to fetch battlelog info for player", 6);
                                 //Dequeue the record
                                 AdKatsPlayer aPlayer = unprocessedBattlelogFetchPlayers.Dequeue();
                                 if (aPlayer.blInfoFetched) {
@@ -20887,11 +20887,11 @@ namespace PRoConEvents
                                 //Run the appropriate action
                                 if (!FetchPlayerBattlelogInformation(aPlayer)) {
                                     //No info found/error, requeue them for fetching
-                                    Log.Debug("Battlelog info fetch for " + aPlayer.GetVerboseName() + " failed. Requeueing.", 6);
+                                    Log.Debug(() => "Battlelog info fetch for " + aPlayer.GetVerboseName() + " failed. Requeueing.", 6);
                                     Thread.Sleep(TimeSpan.FromSeconds(0.50));
                                     QueuePlayerForBattlelogInfoFetch(aPlayer);
                                 }
-                                Log.Debug("Battlelog info fetched for " + aPlayer.GetVerboseName() + ".", 6);
+                                Log.Debug(() => "Battlelog info fetched for " + aPlayer.GetVerboseName() + ".", 6);
                                 //Update database with clan tag
                                 if (!String.IsNullOrEmpty(aPlayer.player_clanTag) && (String.IsNullOrEmpty(oldTag) || aPlayer.player_clanTag != oldTag))
                                 {
@@ -20901,11 +20901,11 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            Log.Debug("No inbound players. Waiting.", 6);
+                            Log.Debug(() => "No inbound players. Waiting.", 6);
                             //Wait for new actions
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _BattlelogCommWaitHandle.Reset();
                             _BattlelogCommWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
@@ -20922,7 +20922,7 @@ namespace PRoConEvents
                         HandleException(new AdKatsException("Error occured in Battlelog comm thread. Skipping current loop.", e));
                     }
                 }
-                Log.Debug("Ending Battlelog Comm Thread", 1);
+                Log.Debug(() => "Ending Battlelog Comm Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -20933,14 +20933,14 @@ namespace PRoConEvents
 
         private void QueueRecordForActionHandling(AdKatsRecord record)
         {
-            Log.Debug("Entering queueRecordForActionHandling", 6);
+            Log.Debug(() => "Entering queueRecordForActionHandling", 6);
             try
             {
-                Log.Debug("Preparing to queue record for action handling", 6);
+                Log.Debug(() => "Preparing to queue record for action handling", 6);
                 lock (_UnprocessedActionQueue)
                 {
                     _UnprocessedActionQueue.Enqueue(record);
-                    Log.Debug("Record queued for action handling", 6);
+                    Log.Debug(() => "Record queued for action handling", 6);
                     _ActionHandlingWaitHandle.Set();
                 }
             }
@@ -20949,24 +20949,24 @@ namespace PRoConEvents
                 record.record_exception = new AdKatsException("Error while queuing record for action handling.", e);
                 HandleException(record.record_exception);
             }
-            Log.Debug("Exiting queueRecordForActionHandling", 6);
+            Log.Debug(() => "Exiting queueRecordForActionHandling", 6);
         }
 
         private void ActionHandlingThreadLoop()
         {
             try
             {
-                Log.Debug("Starting Action Thread", 1);
+                Log.Debug(() => "Starting Action Thread", 1);
                 Thread.CurrentThread.Name = "ActionHandling";
                 DateTime loopStart = UtcDbTime();
                 while (true)
                 {
                     try
                     {
-                        Log.Debug("Entering Action Thread Loop", 7);
+                        Log.Debug(() => "Entering Action Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
                         //Sleep for 10ms
@@ -20978,7 +20978,7 @@ namespace PRoConEvents
                             Queue<AdKatsRecord> unprocessedActions;
                             lock (_UnprocessedActionQueue)
                             {
-                                Log.Debug("Inbound actions found. Grabbing.", 6);
+                                Log.Debug(() => "Inbound actions found. Grabbing.", 6);
                                 //Grab all messages in the queue
                                 unprocessedActions = new Queue<AdKatsRecord>(_UnprocessedActionQueue.ToArray());
                                 //Clear the queue for next run
@@ -20991,7 +20991,7 @@ namespace PRoConEvents
                                 {
                                     break;
                                 }
-                                Log.Debug("Preparing to Run Actions for record", 6);
+                                Log.Debug(() => "Preparing to Run Actions for record", 6);
                                 //Dequeue the record
                                 AdKatsRecord record = unprocessedActions.Dequeue();
                                 //Run the appropriate action
@@ -21004,17 +21004,17 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    Log.Debug("Record has errors, not re-queueing after action.", 3);
+                                    Log.Debug(() => "Record has errors, not re-queueing after action.", 3);
                                 }
                             }
                         }
                         else
                         {
-                            Log.Debug("No inbound actions. Waiting.", 6);
+                            Log.Debug(() => "No inbound actions. Waiting.", 6);
                             //Wait for new actions
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _ActionHandlingWaitHandle.Reset();
                             _ActionHandlingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
@@ -21031,7 +21031,7 @@ namespace PRoConEvents
                         HandleException(new AdKatsException("Error occured in Action Handling thread. Skipping current loop.", e));
                     }
                 }
-                Log.Debug("Ending Action Handling Thread", 1);
+                Log.Debug(() => "Ending Action Handling Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -21042,7 +21042,7 @@ namespace PRoConEvents
 
         private void RunAction(AdKatsRecord record)
         {
-            Log.Debug("Entering runAction", 6);
+            Log.Debug(() => "Entering runAction", 6);
             try
             {
                 //Make sure record has an action
@@ -21370,19 +21370,19 @@ namespace PRoConEvents
                         FinalizeRecord(record);
                         break;
                 }
-                Log.Debug(record.command_type.command_key + " last used " + FormatTimeString(UtcDbTime() - _commandUsageTimes[record.command_type.command_key], 10) + " ago.", 3);
+                Log.Debug(() => record.command_type.command_key + " last used " + FormatTimeString(UtcDbTime() - _commandUsageTimes[record.command_type.command_key], 10) + " ago.", 3);
                 _commandUsageTimes[record.command_type.command_key] = UtcDbTime();
             }
             catch (Exception e)
             {
                 record.record_exception = HandleException(new AdKatsException("Error while choosing action for record.", e));
             }
-            Log.Debug("Exiting runAction", 6);
+            Log.Debug(() => "Exiting runAction", 6);
         }
 
         public void MoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering moveTarget", 6);
+            Log.Debug(() => "Entering moveTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -21409,12 +21409,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting moveTarget", 6);
+            Log.Debug(() => "Exiting moveTarget", 6);
         }
 
         public void ForceMoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering forceMoveTarget", 6);
+            Log.Debug(() => "Entering forceMoveTarget", 6);
             String message = null;
             try
             {
@@ -21424,20 +21424,20 @@ namespace PRoConEvents
                     if ((record.source_player != null && HasAccess(record.source_player, GetCommandByKey("self_teamswap"))) || ((_TeamSwapTicketWindowHigh >= _highestTicketCount) && (_TeamSwapTicketWindowLow <= _lowestTicketCount)))
                     {
                         message = "Calling Teamswap on self";
-                        Log.Debug(message, 6);
+                        Log.Debug(() => message, 6);
                         QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
                     }
                     else
                     {
                         message = "Player unable to TeamSwap";
-                        Log.Debug(message, 6);
+                        Log.Debug(() => message, 6);
                         SendMessageToSource(record, "You cannot TeamSwap at this time. Game outside ticket window [" + _TeamSwapTicketWindowLow + ", " + _TeamSwapTicketWindowHigh + "].");
                     }
                 }
                 else
                 {
                     message = "TeamSwap called on " + record.GetTargetNames();
-                    Log.Debug("Calling Teamswap on target", 6);
+                    Log.Debug(() => "Calling Teamswap on target", 6);
                     SendMessageToSource(record, "" + record.GetTargetNames() + " sent to TeamSwap.");
                     QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
                 }
@@ -21448,12 +21448,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting forceMoveTarget", 6);
+            Log.Debug(() => "Exiting forceMoveTarget", 6);
         }
 
         public void AssistWeakTeam(AdKatsRecord record)
         {
-            Log.Debug("Entering AssistLosingTeam", 6);
+            Log.Debug(() => "Entering AssistLosingTeam", 6);
             try
             {
                 record.record_action_executed = true;
@@ -21521,12 +21521,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting AssistLosingTeam", 6);
+            Log.Debug(() => "Exiting AssistLosingTeam", 6);
         }
 
         public void KillTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering killTarget", 6);
+            Log.Debug(() => "Entering killTarget", 6);
             String message = null;
             try
             {
@@ -21548,10 +21548,10 @@ namespace PRoConEvents
                                 }
                             }
                             int seconds = (int)UtcDbTime().Subtract(record.target_player.lastDeath).TotalSeconds;
-                            Log.Debug("Killing player. Player last died " + seconds + " seconds ago.", 3);
+                            Log.Debug(() => "Killing player. Player last died " + seconds + " seconds ago.", 3);
                             if (seconds < 6 && record.command_action.command_key != "player_kill_repeat")
                             {
-                                Log.Debug("Queueing player for kill on spawn. (" + seconds + ")&(" + record.command_action + ")", 3);
+                                Log.Debug(() => "Queueing player for kill on spawn. (" + seconds + ")&(" + record.command_action + ")", 3);
                                 if (!_ActOnSpawnDictionary.ContainsKey(record.target_player.player_name))
                                 {
                                     lock (_ActOnSpawnDictionary)
@@ -21619,12 +21619,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting killTarget", 6);
+            Log.Debug(() => "Exiting killTarget", 6);
         }
 
         public void ForceKillTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering ForceKillTarget", 6);
+            Log.Debug(() => "Entering ForceKillTarget", 6);
             String message = null;
             try
             {
@@ -21654,12 +21654,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting ForceKillTarget", 6);
+            Log.Debug(() => "Exiting ForceKillTarget", 6);
         }
 
         public void WarnTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering WarnTarget", 6);
+            Log.Debug(() => "Entering WarnTarget", 6);
             String message = null;
             try
             {
@@ -21682,12 +21682,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting WarnTarget", 6);
+            Log.Debug(() => "Exiting WarnTarget", 6);
         }
 
         public void DequeueTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering DequeueTarget", 6);
+            Log.Debug(() => "Entering DequeueTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -21704,12 +21704,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting DequeueTarget", 6);
+            Log.Debug(() => "Exiting DequeueTarget", 6);
         }
 
         public void DequeuePlayer(AdKatsPlayer aPlayer)
         {
-            Log.Debug("Entering DequeuePlayer", 6);
+            Log.Debug(() => "Entering DequeuePlayer", 6);
             try
             {
                 //Handle spawn action
@@ -21759,18 +21759,18 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while dequeuing player.", e));
             }
-            Log.Debug("Exiting DequeuePlayer", 6);
+            Log.Debug(() => "Exiting DequeuePlayer", 6);
         }
 
         public void KickTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering kickTarget", 6);
+            Log.Debug(() => "Entering kickTarget", 6);
             try
             {
                 record.record_action_executed = true;
                 String kickReason = GenerateKickReason(record);
                 //Perform Actions
-                Log.Debug("Kick '" + kickReason + "'", 3);
+                Log.Debug(() => "Kick '" + kickReason + "'", 3);
                 if (String.IsNullOrEmpty(record.target_player.player_name) || String.IsNullOrEmpty(kickReason))
                 {
                     Log.Error("Item null in 5464");
@@ -21798,12 +21798,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting kickTarget", 6);
+            Log.Debug(() => "Exiting kickTarget", 6);
         }
 
         public void TempBanTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering tempBanTarget", 6);
+            Log.Debug(() => "Entering tempBanTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -21844,7 +21844,7 @@ namespace PRoConEvents
                     {
                         banMessage = banMessage.Substring(0, banMessage.Length - cutLength);
                     }
-                    Log.Debug("Ban '" + banMessage + "'", 3);
+                    Log.Debug(() => "Ban '" + banMessage + "'", 3);
                     if (!String.IsNullOrEmpty(record.target_player.player_guid))
                     {
                         ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_player.player_guid, "seconds", seconds + "", banMessage);
@@ -21881,12 +21881,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting tempBanTarget", 6);
+            Log.Debug(() => "Exiting tempBanTarget", 6);
         }
 
         public void PermaBanTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering permaBanTarget", 6);
+            Log.Debug(() => "Entering permaBanTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -21924,7 +21924,7 @@ namespace PRoConEvents
                     {
                         banMessage = banMessage.Substring(0, banMessage.Length - cutLength);
                     }
-                    Log.Debug("Ban '" + banMessage + "'", 3);
+                    Log.Debug(() => "Ban '" + banMessage + "'", 3);
                     if (!String.IsNullOrEmpty(record.target_player.player_guid))
                     {
                         ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_player.player_guid, "perm", banMessage);
@@ -21961,12 +21961,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting permaBanTarget", 6);
+            Log.Debug(() => "Exiting permaBanTarget", 6);
         }
 
         public void FuturePermaBanTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering permaBanTarget", 6);
+            Log.Debug(() => "Entering permaBanTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -21999,12 +21999,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting permaBanTarget", 6);
+            Log.Debug(() => "Exiting permaBanTarget", 6);
         }
 
         public void UnBanTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering UnBanTarget", 6);
+            Log.Debug(() => "Entering UnBanTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -22054,17 +22054,17 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting UnBanTarget", 6);
+            Log.Debug(() => "Exiting UnBanTarget", 6);
         }
 
         public void EnforceBan(AdKatsBan aBan, Boolean verbose)
         {
-            Log.Debug("Entering enforceBan", 6);
+            Log.Debug(() => "Entering enforceBan", 6);
             try
             {
                 //Create the total kick message
                 String generatedBanReason = GenerateBanReason(aBan);
-                Log.Debug("Ban Enforce '" + generatedBanReason + "'", 3);
+                Log.Debug(() => "Ban Enforce '" + generatedBanReason + "'", 3);
 
                 //Perform Actions
                 if (_PlayerDictionary.ContainsKey(aBan.ban_record.target_player.player_name) && aBan.ban_startTime < UtcDbTime())
@@ -22094,12 +22094,12 @@ namespace PRoConEvents
                 aBan.ban_exception = new AdKatsException("Error while enforcing ban.", e);
                 HandleException(aBan.ban_exception);
             }
-            Log.Debug("Exiting enforceBan", 6);
+            Log.Debug(() => "Exiting enforceBan", 6);
         }
 
         public void PunishTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering PunishTarget", 6);
+            Log.Debug(() => "Entering PunishTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -22108,7 +22108,7 @@ namespace PRoConEvents
                 {
                     //Get number of points the player from server
                     Int32 points = FetchPoints(record.target_player, false, true);
-                    Log.Debug(record.GetTargetNames() + " has " + points + " points.", 5);
+                    Log.Debug(() => record.GetTargetNames() + " has " + points + " points.", 5);
                     //Get the proper action to take for player punishment
                     String action = "noaction";
                     String skippedAction = null;
@@ -22149,7 +22149,7 @@ namespace PRoConEvents
                     Boolean isLowPop = _OnlyKillOnLowPop && (_PlayerDictionary.Count < _highPopulationPlayerCount);
                     Boolean iroOverride = record.isIRO && _IROOverridesLowPop;
 
-                    Log.Debug("Server low population: " + isLowPop + " (" + _PlayerDictionary.Count + " <? " + _highPopulationPlayerCount + ") | Override: " + iroOverride, 5);
+                    Log.Debug(() => "Server low population: " + isLowPop + " (" + _PlayerDictionary.Count + " <? " + _highPopulationPlayerCount + ") | Override: " + iroOverride, 5);
 
                     //Call correct action
                     if (action == "repwarn")
@@ -22270,12 +22270,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting PunishTarget", 6);
+            Log.Debug(() => "Exiting PunishTarget", 6);
         }
 
         public void ForgiveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering forgiveTarget", 6);
+            Log.Debug(() => "Entering forgiveTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -22294,12 +22294,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting forgiveTarget", 6);
+            Log.Debug(() => "Exiting forgiveTarget", 6);
         }
 
         public void BalanceDisperseTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering DisperseTarget", 6);
+            Log.Debug(() => "Entering DisperseTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -22348,7 +22348,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " autobalance dispersion on this server.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -22364,12 +22364,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting DisperseTarget", 6);
+            Log.Debug(() => "Exiting DisperseTarget", 6);
         }
 
         public void BalanceWhitelistTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering BalanceWhitelistTarget", 6);
+            Log.Debug(() => "Entering BalanceWhitelistTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -22424,7 +22424,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " autobalance whitelist on this server.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -22440,12 +22440,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting BalanceWhitelistTarget", 6);
+            Log.Debug(() => "Exiting BalanceWhitelistTarget", 6);
         }
 
         public void ReservedSlotTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering ReservedSlotTarget", 6);
+            Log.Debug(() => "Entering ReservedSlotTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -22500,7 +22500,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " reserved slot on this server.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -22516,12 +22516,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting ReservedSlotTarget", 6);
+            Log.Debug(() => "Exiting ReservedSlotTarget", 6);
         }
 
         public void SpectatorSlotTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering SpectatorSlotTarget", 6);
+            Log.Debug(() => "Entering SpectatorSlotTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -22576,7 +22576,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " spectator slot on this server.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -22592,12 +22592,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SpectatorSlotTarget", 6);
+            Log.Debug(() => "Exiting SpectatorSlotTarget", 6);
         }
 
         public void HackerCheckerWhitelistTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering HackerCheckerWhitelistTarget", 6);
+            Log.Debug(() => "Entering HackerCheckerWhitelistTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -22657,7 +22657,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " hacker-checker whitelist for all servers.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -22677,12 +22677,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting HackerCheckerWhitelistTarget", 6);
+            Log.Debug(() => "Exiting HackerCheckerWhitelistTarget", 6);
         }
 
         public void PingWhitelistTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering PingWhitelistTarget", 6);
+            Log.Debug(() => "Entering PingWhitelistTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -22742,7 +22742,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " ping whitelist for all servers.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -22760,12 +22760,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting PingWhitelistTarget", 6);
+            Log.Debug(() => "Exiting PingWhitelistTarget", 6);
         }
 
         public void AAWhitelistTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering AAWhitelistTarget", 6);
+            Log.Debug(() => "Entering AAWhitelistTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -22825,7 +22825,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " admin assistant whitelist for all servers.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -22843,12 +22843,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting AAWhitelistTarget", 6);
+            Log.Debug(() => "Exiting AAWhitelistTarget", 6);
         }
 
         public void ReportWhitelistTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering ReportWhitelistTarget", 6);
+            Log.Debug(() => "Entering ReportWhitelistTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -22908,7 +22908,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " report whitelist for all servers.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -22926,12 +22926,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting ReportWhitelistTarget", 6);
+            Log.Debug(() => "Exiting ReportWhitelistTarget", 6);
         }
 
         public void SpamBotWhitelistTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering SpamBotWhitelistTarget", 6);
+            Log.Debug(() => "Entering SpamBotWhitelistTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -22991,7 +22991,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " spambot whitelist for all servers.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -23009,12 +23009,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SpamBotWhitelistTarget", 6);
+            Log.Debug(() => "Exiting SpamBotWhitelistTarget", 6);
         }
 
         public void SpamBotWhitelistRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering SpamBotWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Entering SpamBotWhitelistRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23046,7 +23046,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from SpamBot whitelist.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -23069,12 +23069,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SpamBotWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Exiting SpamBotWhitelistRemoveTarget", 6);
         }
 
         public void SpectatorBlacklistTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering SpectatorBlacklistTarget", 6);
+            Log.Debug(() => "Entering SpectatorBlacklistTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23134,7 +23134,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " spectator blacklist for all servers.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -23168,12 +23168,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SpectatorBlacklistTarget", 6);
+            Log.Debug(() => "Exiting SpectatorBlacklistTarget", 6);
         }
 
         public void SpectatorBlacklistRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering SpectatorBlacklistRemoveTarget", 6);
+            Log.Debug(() => "Entering SpectatorBlacklistRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23205,7 +23205,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from spectator blacklist.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -23228,12 +23228,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SpectatorBlacklistRemoveTarget", 6);
+            Log.Debug(() => "Exiting SpectatorBlacklistRemoveTarget", 6);
         }
 
         public void ReportSourceBlacklistTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering ReportSourceBlacklistTarget", 6);
+            Log.Debug(() => "Entering ReportSourceBlacklistTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23293,7 +23293,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " report source blacklist for all servers.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -23311,12 +23311,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting ReportSourceBlacklistTarget", 6);
+            Log.Debug(() => "Exiting ReportSourceBlacklistTarget", 6);
         }
 
         public void ReportSourceBlacklistRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering ReportSourceBlacklistRemoveTarget", 6);
+            Log.Debug(() => "Entering ReportSourceBlacklistRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23348,7 +23348,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from report source blacklist.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -23371,12 +23371,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting ReportSourceBlacklistRemoveTarget", 6);
+            Log.Debug(() => "Exiting ReportSourceBlacklistRemoveTarget", 6);
         }
 
         public void CommandTargetWhitelistTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering CommandTargetWhitelistTarget", 6);
+            Log.Debug(() => "Entering CommandTargetWhitelistTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23436,7 +23436,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " command target whitelist for all servers.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -23454,12 +23454,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting CommandTargetWhitelistTarget", 6);
+            Log.Debug(() => "Exiting CommandTargetWhitelistTarget", 6);
         }
 
         public void CommandTargetWhitelistRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering CommandTargetWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Entering CommandTargetWhitelistRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23491,7 +23491,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from command target whitelist.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -23514,12 +23514,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting CommandTargetWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Exiting CommandTargetWhitelistRemoveTarget", 6);
         }
 
         public void AutoAssistBlacklistTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering AutoAssistBlacklistTarget", 6);
+            Log.Debug(() => "Entering AutoAssistBlacklistTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23579,7 +23579,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " auto-assist blacklist for all servers.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -23597,12 +23597,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting AutoAssistBlacklistTarget", 6);
+            Log.Debug(() => "Exiting AutoAssistBlacklistTarget", 6);
         }
 
         public void AutoAssistBlacklistRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering AutoAssistBlacklistRemoveTarget", 6);
+            Log.Debug(() => "Entering AutoAssistBlacklistRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23634,7 +23634,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from auto-assist blacklist.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -23657,12 +23657,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting AutoAssistBlacklistRemoveTarget", 6);
+            Log.Debug(() => "Exiting AutoAssistBlacklistRemoveTarget", 6);
         }
 
         public void ReportWhitelistRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering ReportWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Entering ReportWhitelistRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23694,7 +23694,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from Report whitelist.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -23717,12 +23717,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting ReportWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Exiting ReportWhitelistRemoveTarget", 6);
         }
 
         public void AAWhitelistRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering AAWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Entering AAWhitelistRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23754,7 +23754,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from Admin Assistant whitelist.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -23777,12 +23777,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting AAWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Exiting AAWhitelistRemoveTarget", 6);
         }
 
         public void PingWhitelistRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering PingWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Entering PingWhitelistRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23814,7 +23814,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from Ping whitelist.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -23837,12 +23837,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting PingWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Exiting PingWhitelistRemoveTarget", 6);
         }
 
         public void HackerCheckerWhitelistRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering HackerCheckerWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Entering HackerCheckerWhitelistRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23874,7 +23874,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from Hacker-Checker whitelist.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -23897,12 +23897,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting HackerCheckerWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Exiting HackerCheckerWhitelistRemoveTarget", 6);
         }
 
         public void SpectatorSlotRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering SpectatorSlotRemoveTarget", 6);
+            Log.Debug(() => "Entering SpectatorSlotRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23934,7 +23934,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from spectator slot list.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -23957,12 +23957,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SpectatorSlotRemoveTarget", 6);
+            Log.Debug(() => "Exiting SpectatorSlotRemoveTarget", 6);
         }
 
         public void ReservedSlotRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering ReservedSlotRemoveTarget", 6);
+            Log.Debug(() => "Entering ReservedSlotRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -23994,7 +23994,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from reserved slot list.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -24017,12 +24017,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting ReservedSlotRemoveTarget", 6);
+            Log.Debug(() => "Exiting ReservedSlotRemoveTarget", 6);
         }
 
         public void BalanceWhitelistRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering BalanceWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Entering BalanceWhitelistRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -24054,7 +24054,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from autobalance whitelist.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -24077,12 +24077,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting BalanceWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Exiting BalanceWhitelistRemoveTarget", 6);
         }
 
         public void BalanceDisperseRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering BalanceDisperseRemoveTarget", 6);
+            Log.Debug(() => "Entering BalanceDisperseRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -24114,7 +24114,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from autobalance dispersion.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -24137,12 +24137,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting BalanceDisperseRemoveTarget", 6);
+            Log.Debug(() => "Exiting BalanceDisperseRemoveTarget", 6);
         }
 
         public void PopulatorWhitelistTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering PopulatorWhitelistTarget", 6);
+            Log.Debug(() => "Entering PopulatorWhitelistTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -24201,7 +24201,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " populator whitelist for all servers.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                         }
                         else
                         {
@@ -24218,12 +24218,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting PopulatorWhitelistTarget", 6);
+            Log.Debug(() => "Exiting PopulatorWhitelistTarget", 6);
         }
 
         public void PopulatorWhitelistRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering PopulatorWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Entering PopulatorWhitelistRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -24255,7 +24255,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from populator whitelist.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -24278,12 +24278,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting PopulatorWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Exiting PopulatorWhitelistRemoveTarget", 6);
         }
 
         public void TeamKillTrackerWhitelistTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering TeamKillTrackerWhitelistTarget", 6);
+            Log.Debug(() => "Entering TeamKillTrackerWhitelistTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -24343,7 +24343,7 @@ namespace PRoConEvents
                         {
                             String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " TeamKillTracker whitelist for all servers.";
                             SendMessageToSource(record, message);
-                            Log.Debug(message, 3);
+                            Log.Debug(() => message, 3);
                         }
                         else
                         {
@@ -24360,12 +24360,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting TeamKillTrackerWhitelistTarget", 6);
+            Log.Debug(() => "Exiting TeamKillTrackerWhitelistTarget", 6);
         }
 
         public void TeamKillTrackerWhitelistRemoveTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering TeamKillTrackerWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Entering TeamKillTrackerWhitelistRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -24397,7 +24397,7 @@ namespace PRoConEvents
                             if (rowsAffected > 0)
                             {
                                 String message = "Player " + record.GetTargetNames() + " removed from TeamKillTracker whitelist.";
-                                Log.Debug(message, 3);
+                                Log.Debug(() => message, 3);
                                 updated = true;
                             }
                             else
@@ -24420,12 +24420,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting TeamKillTrackerWhitelistRemoveTarget", 6);
+            Log.Debug(() => "Exiting TeamKillTrackerWhitelistRemoveTarget", 6);
         }
 
         public void MuteTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering muteTarget", 6);
+            Log.Debug(() => "Entering muteTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -24453,12 +24453,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting muteTarget", 6);
+            Log.Debug(() => "Exiting muteTarget", 6);
         }
 
         public void JoinTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering joinTarget", 6);
+            Log.Debug(() => "Entering joinTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -24484,7 +24484,7 @@ namespace PRoConEvents
                     else
                     {
                         //Move to specific squad
-                        Log.Debug("MULTIBalancer Unswitcher Disabled", 3);
+                        Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                         ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                         _MULTIBalancerUnswitcherDisabled = true;
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_name, record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "true");
@@ -24503,12 +24503,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting joinTarget", 6);
+            Log.Debug(() => "Exiting joinTarget", 6);
         }
 
         public void PullTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering PullTarget", 6);
+            Log.Debug(() => "Entering PullTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -24517,7 +24517,7 @@ namespace PRoConEvents
                 ExecuteCommand("procon.protected.send", "squad.private", record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "false");
                 _threadMasterWaitHandle.WaitOne(500);
                 //Move to specific squad
-                Log.Debug("MULTIBalancer Unswitcher Disabled", 3);
+                Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                 _MULTIBalancerUnswitcherDisabled = true;
                 ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_name, record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "true");
@@ -24530,12 +24530,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting PullTarget", 6);
+            Log.Debug(() => "Exiting PullTarget", 6);
         }
 
         public void ReportTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering reportTarget", 6);
+            Log.Debug(() => "Entering reportTarget", 6);
             try
             {
                 Random random = new Random();
@@ -24650,11 +24650,11 @@ namespace PRoConEvents
                 {
                     if (_emailReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any())
                     {
-                        Log.Debug("Email cancelled, admins online.", 3);
+                        Log.Debug(() => "Email cancelled, admins online.", 3);
                     }
                     else
                     {
-                        Log.Debug("Preparing to send report email.", 3);
+                        Log.Debug(() => "Preparing to send report email.", 3);
                         _EmailHandler.SendReport(record);
                     }
                 }
@@ -24682,12 +24682,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting reportTarget", 6);
+            Log.Debug(() => "Exiting reportTarget", 6);
         }
 
         public void CallAdminOnTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering callAdminOnTarget", 6);
+            Log.Debug(() => "Entering callAdminOnTarget", 6);
             try
             {
                 Random random = new Random();
@@ -24793,11 +24793,11 @@ namespace PRoConEvents
                 {
                     if (_emailReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any())
                     {
-                        Log.Debug("Email cancelled, admins online.", 3);
+                        Log.Debug(() => "Email cancelled, admins online.", 3);
                     }
                     else
                     {
-                        Log.Debug("Preparing to send report email.", 3);
+                        Log.Debug(() => "Preparing to send report email.", 3);
                         _EmailHandler.SendReport(record);
                     }
                 }
@@ -24808,7 +24808,7 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting callAdminOnTarget", 6);
+            Log.Debug(() => "Exiting callAdminOnTarget", 6);
         }
 
         public void AttemptReportAutoAction(AdKatsRecord record, String reportID)
@@ -24880,7 +24880,7 @@ namespace PRoConEvents
                 {
                     HandleException(new AdKatsException("Error while auto-handling report."));
                 }
-                Log.Debug("Exiting a report auto-handler.", 5);
+                Log.Debug(() => "Exiting a report auto-handler.", 5);
             }));
 
             //Start the thread
@@ -24889,7 +24889,7 @@ namespace PRoConEvents
 
         public void RestartLevel(AdKatsRecord record)
         {
-            Log.Debug("Entering restartLevel", 6);
+            Log.Debug(() => "Entering restartLevel", 6);
             try
             {
                 record.record_action_executed = true;
@@ -24902,12 +24902,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting restartLevel", 6);
+            Log.Debug(() => "Exiting restartLevel", 6);
         }
 
         public void NextLevel(AdKatsRecord record)
         {
-            Log.Debug("Entering nextLevel", 6);
+            Log.Debug(() => "Entering nextLevel", 6);
             try
             {
                 record.record_action_executed = true;
@@ -24920,12 +24920,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting nextLevel", 6);
+            Log.Debug(() => "Exiting nextLevel", 6);
         }
 
         public void EndLevel(AdKatsRecord record)
         {
-            Log.Debug("Entering EndLevel", 6);
+            Log.Debug(() => "Entering EndLevel", 6);
             try
             {
                 record.record_action_executed = true;
@@ -24938,12 +24938,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting EndLevel", 6);
+            Log.Debug(() => "Exiting EndLevel", 6);
         }
 
         public void NukeTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering NukeTarget", 6);
+            Log.Debug(() => "Entering NukeTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -24964,12 +24964,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting NukeTarget", 6);
+            Log.Debug(() => "Exiting NukeTarget", 6);
         }
 
         public void CountdownTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering CountdownTarget", 6);
+            Log.Debug(() => "Entering CountdownTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25022,7 +25022,7 @@ namespace PRoConEvents
                 //Start the thread
                 StartAndLogThread(new Thread(new ThreadStart(delegate
                 {
-                    Log.Debug("Starting a countdown printer thread.", 5);
+                    Log.Debug(() => "Starting a countdown printer thread.", 5);
                     try
                     {
                         Thread.CurrentThread.Name = "CountdownPrinter";
@@ -25070,7 +25070,7 @@ namespace PRoConEvents
                     {
                         HandleException(new AdKatsException("Error while printing server countdown"));
                     }
-                    Log.Debug("Exiting a countdown printer.", 5);
+                    Log.Debug(() => "Exiting a countdown printer.", 5);
                     LogThreadExit();
                 })));
             }
@@ -25080,12 +25080,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting CountdownTarget", 6);
+            Log.Debug(() => "Exiting CountdownTarget", 6);
         }
 
         public void SwapNukeServer(AdKatsRecord record)
         {
-            Log.Debug("Entering SwapNukeServer", 6);
+            Log.Debug(() => "Entering SwapNukeServer", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25100,12 +25100,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SwapNukeServer", 6);
+            Log.Debug(() => "Exiting SwapNukeServer", 6);
         }
 
         public void KickAllPlayers(AdKatsRecord record)
         {
-            Log.Debug("Entering kickAllPlayers", 6);
+            Log.Debug(() => "Entering kickAllPlayers", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25122,12 +25122,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting kickAllPlayers", 6);
+            Log.Debug(() => "Exiting kickAllPlayers", 6);
         }
 
         public void AdminSay(AdKatsRecord record)
         {
-            Log.Debug("Entering adminSay", 6);
+            Log.Debug(() => "Entering adminSay", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25143,12 +25143,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting adminSay", 6);
+            Log.Debug(() => "Exiting adminSay", 6);
         }
 
         public void PlayerSay(AdKatsRecord record)
         {
-            Log.Debug("Entering playerSay", 6);
+            Log.Debug(() => "Entering playerSay", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25161,12 +25161,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting playerSay", 6);
+            Log.Debug(() => "Exiting playerSay", 6);
         }
 
         public void PMSendTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering PMSendTarget", 6);
+            Log.Debug(() => "Entering PMSendTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25331,12 +25331,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting PMSendTarget", 6);
+            Log.Debug(() => "Exiting PMSendTarget", 6);
         }
 
         public void PMReplyTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering PMReplyTarget", 6);
+            Log.Debug(() => "Entering PMReplyTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25371,12 +25371,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting PMReplyTarget", 6);
+            Log.Debug(() => "Exiting PMReplyTarget", 6);
         }
 
         public void PMStartTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering PMStartTarget", 6);
+            Log.Debug(() => "Entering PMStartTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25458,12 +25458,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting PMStartTarget", 6);
+            Log.Debug(() => "Exiting PMStartTarget", 6);
         }
 
         public void PMCancelTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering PMCancelTarget", 6);
+            Log.Debug(() => "Entering PMCancelTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25483,12 +25483,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting PMCancelTarget", 6);
+            Log.Debug(() => "Exiting PMCancelTarget", 6);
         }
 
         public void PMTransmitTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering PMTransmitTarget", 6);
+            Log.Debug(() => "Entering PMTransmitTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25542,12 +25542,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting PMTransmitTarget", 6);
+            Log.Debug(() => "Exiting PMTransmitTarget", 6);
         }
 
         public void PMOnlineAdmins(AdKatsRecord record)
         {
-            Log.Debug("Entering PMAdmin", 6);
+            Log.Debug(() => "Entering PMAdmin", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25563,12 +25563,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting PMAdmin", 6);
+            Log.Debug(() => "Exiting PMAdmin", 6);
         }
 
         public void AdminYell(AdKatsRecord record)
         {
-            Log.Debug("Entering adminYell", 6);
+            Log.Debug(() => "Entering adminYell", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25584,12 +25584,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting adminYell", 6);
+            Log.Debug(() => "Exiting adminYell", 6);
         }
 
         public void PlayerYell(AdKatsRecord record)
         {
-            Log.Debug("Entering playerYell", 6);
+            Log.Debug(() => "Entering playerYell", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25602,12 +25602,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting playerYell", 6);
+            Log.Debug(() => "Exiting playerYell", 6);
         }
 
         public void AdminTell(AdKatsRecord record)
         {
-            Log.Debug("Entering adminTell", 6);
+            Log.Debug(() => "Entering adminTell", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25623,12 +25623,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting adminTell", 6);
+            Log.Debug(() => "Exiting adminTell", 6);
         }
 
         public void PlayerTell(AdKatsRecord record)
         {
-            Log.Debug("Entering playerTell", 6);
+            Log.Debug(() => "Entering playerTell", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25641,12 +25641,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting playerTell", 6);
+            Log.Debug(() => "Exiting playerTell", 6);
         }
 
         public void SendPopulationSuccess(AdKatsRecord record)
         {
-            Log.Debug("Entering SendPopulationSuccess", 6);
+            Log.Debug(() => "Entering SendPopulationSuccess", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25665,12 +25665,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SendPopulationSuccess", 6);
+            Log.Debug(() => "Exiting SendPopulationSuccess", 6);
         }
 
         public void SendServerRules(AdKatsRecord record)
         {
-            Log.Debug("Entering sendServerRules", 6);
+            Log.Debug(() => "Entering sendServerRules", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25695,7 +25695,7 @@ namespace PRoConEvents
 
                     Thread rulePrinter = new Thread(new ThreadStart(delegate
                     {
-                        Log.Debug("Starting a rule printer thread.", 5);
+                        Log.Debug(() => "Starting a rule printer thread.", 5);
                         try
                         {
                             Thread.CurrentThread.Name = "RulePrinter";
@@ -25735,7 +25735,7 @@ namespace PRoConEvents
                         {
                             HandleException(new AdKatsException("Error while printing server rules"));
                         }
-                        Log.Debug("Exiting a rule printer.", 5);
+                        Log.Debug(() => "Exiting a rule printer.", 5);
                         LogThreadExit();
                     }));
 
@@ -25749,12 +25749,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting sendServerRules", 6);
+            Log.Debug(() => "Exiting sendServerRules", 6);
         }
 
         public void SourceVoteSurrender(AdKatsRecord record)
         {
-            Log.Debug("Entering SourceVoteSurrender", 6);
+            Log.Debug(() => "Entering SourceVoteSurrender", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25844,7 +25844,7 @@ namespace PRoConEvents
                     {
                         Thread surrenderTimingThread = new Thread(new ThreadStart(delegate
                         {
-                            Log.Debug("Starting a surrender timing thread.", 5);
+                            Log.Debug(() => "Starting a surrender timing thread.", 5);
                             try
                             {
                                 while (_pluginEnabled && (UtcDbTime() - _surrenderVoteStartTime).TotalMinutes < _surrenderVoteTimeoutMinutes && !_surrenderVoteSucceeded && _surrenderVoteActive)
@@ -25862,7 +25862,7 @@ namespace PRoConEvents
                             {
                                 HandleException(new AdKatsException("Error while running surrender timing."));
                             }
-                            Log.Debug("Exiting a surrender timing thread.", 5);
+                            Log.Debug(() => "Exiting a surrender timing thread.", 5);
                             LogThreadExit();
                         }));
                         StartAndLogThread(surrenderTimingThread);
@@ -25884,7 +25884,7 @@ namespace PRoConEvents
                         _endingRound = true;
                         Thread roundEndDelayThread = new Thread(new ThreadStart(delegate
                         {
-                            Log.Debug("Starting a round end delay thread.", 5);
+                            Log.Debug(() => "Starting a round end delay thread.", 5);
                             try
                             {
                                 Thread.CurrentThread.Name = "RoundEndDelay";
@@ -25911,7 +25911,7 @@ namespace PRoConEvents
                             {
                                 HandleException(new AdKatsException("Error while running round end delay."));
                             }
-                            Log.Debug("Exiting a round end delay thread.", 5);
+                            Log.Debug(() => "Exiting a round end delay thread.", 5);
                             LogThreadExit();
                         }));
                         StartAndLogThread(roundEndDelayThread);
@@ -25938,12 +25938,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SourceVoteSurrender", 6);
+            Log.Debug(() => "Exiting SourceVoteSurrender", 6);
         }
 
         public void SourceVoteNoSurrender(AdKatsRecord record)
         {
-            Log.Debug("Entering SourceVoteNoSurrender", 6);
+            Log.Debug(() => "Entering SourceVoteNoSurrender", 6);
             try
             {
                 record.record_action_executed = true;
@@ -25997,18 +25997,18 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SourceVoteNoSurrender", 6);
+            Log.Debug(() => "Exiting SourceVoteNoSurrender", 6);
         }
 
         public void SendServerCommands(AdKatsRecord record)
         {
-            Log.Debug("Entering SendServerCommands", 6);
+            Log.Debug(() => "Entering SendServerCommands", 6);
             try
             {
                 record.record_action_executed = true;
                 Thread commandPrinter = new Thread(new ThreadStart(delegate
                 {
-                    Log.Debug("Starting a command printer thread.", 5);
+                    Log.Debug(() => "Starting a command printer thread.", 5);
                     try
                     {
                         Thread.CurrentThread.Name = "CommandPrinter";
@@ -26050,7 +26050,7 @@ namespace PRoConEvents
                     {
                         HandleException(new AdKatsException("Error while printing server commands"));
                     }
-                    Log.Debug("Exiting a command printer.", 5);
+                    Log.Debug(() => "Exiting a command printer.", 5);
                     LogThreadExit();
                 }));
 
@@ -26068,12 +26068,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SendServerCommands", 6);
+            Log.Debug(() => "Exiting SendServerCommands", 6);
         }
 
         public void SendTargetRep(AdKatsRecord record)
         {
-            Log.Debug("Entering SendTargetRep", 6);
+            Log.Debug(() => "Entering SendTargetRep", 6);
             try
             {
                 record.record_action_executed = true;
@@ -26101,12 +26101,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SendTargetRep", 6);
+            Log.Debug(() => "Exiting SendTargetRep", 6);
         }
 
         public void SendTargetIsAdmin(AdKatsRecord record)
         {
-            Log.Debug("Entering SendTargetIsAdmin", 6);
+            Log.Debug(() => "Entering SendTargetIsAdmin", 6);
             try
             {
                 record.record_action_executed = true;
@@ -26131,18 +26131,18 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SendTargetIsAdmin", 6);
+            Log.Debug(() => "Exiting SendTargetIsAdmin", 6);
         }
         
         public void SendUptime(AdKatsRecord record)
         {
-            Log.Debug("Entering SendUptime", 6);
+            Log.Debug(() => "Entering SendUptime", 6);
             try
             {
                 record.record_action_executed = true;
                 Thread uptimePrinter = new Thread(new ThreadStart(delegate
                 {
-                    Log.Debug("Starting a uptime printer thread.", 5);
+                    Log.Debug(() => "Starting a uptime printer thread.", 5);
                     try
                     {
                         Thread.CurrentThread.Name = "UptimePrinter";
@@ -26169,7 +26169,7 @@ namespace PRoConEvents
                     {
                         HandleException(new AdKatsException("Error while printing uptime"));
                     }
-                    Log.Debug("Exiting a uptime printer.", 5);
+                    Log.Debug(() => "Exiting a uptime printer.", 5);
                     LogThreadExit();
                 }));
 
@@ -26182,12 +26182,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SendUptime", 6);
+            Log.Debug(() => "Exiting SendUptime", 6);
         }
 
         public void SendRoundReports(AdKatsRecord record)
         {
-            Log.Debug("Entering SendRoundReports", 6);
+            Log.Debug(() => "Entering SendRoundReports", 6);
             try
             {
                 record.record_action_executed = true;
@@ -26219,12 +26219,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SendRoundReports", 6);
+            Log.Debug(() => "Exiting SendRoundReports", 6);
         }
 
         public void RebootPlugin(AdKatsRecord record)
         {
-            Log.Debug("Entering RebootPlugin", 6);
+            Log.Debug(() => "Entering RebootPlugin", 6);
             try
             {
                 record.record_action_executed = true;
@@ -26249,12 +26249,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting RebootPlugin", 6);
+            Log.Debug(() => "Exiting RebootPlugin", 6);
         }
 
         public void UpdatePlugin(AdKatsRecord record)
         {
-            Log.Debug("Entering UpdatePlugin", 6);
+            Log.Debug(() => "Entering UpdatePlugin", 6);
             try
             {
                 record.record_action_executed = true;
@@ -26267,12 +26267,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting UpdatePlugin", 6);
+            Log.Debug(() => "Exiting UpdatePlugin", 6);
         }
 
         public void ShutdownServer(AdKatsRecord record)
         {
-            Log.Debug("Entering ShutdownServer", 6);
+            Log.Debug(() => "Entering ShutdownServer", 6);
             try
             {
                 record.record_action_executed = true;
@@ -26284,18 +26284,18 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting ShutdownServer", 6);
+            Log.Debug(() => "Exiting ShutdownServer", 6);
         }
 
         public void SendTargetInfo(AdKatsRecord record)
         {
-            Log.Debug("Entering SendTargetInfo", 6);
+            Log.Debug(() => "Entering SendTargetInfo", 6);
             try
             {
                 record.record_action_executed = true;
                 Thread infoPrinter = new Thread(new ThreadStart(delegate
                 {
-                    Log.Debug("Starting a player info printer thread.", 5);
+                    Log.Debug(() => "Starting a player info printer thread.", 5);
                     try
                     {
                         Thread.CurrentThread.Name = "PlayerInfoPrinter";
@@ -26437,7 +26437,7 @@ namespace PRoConEvents
                     {
                         HandleException(new AdKatsException("Error while printing player info"));
                     }
-                    Log.Debug("Exiting a player info printer.", 5);
+                    Log.Debug(() => "Exiting a player info printer.", 5);
                     LogThreadExit();
                 }));
 
@@ -26450,18 +26450,18 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SendTargetInfo", 6);
+            Log.Debug(() => "Exiting SendTargetInfo", 6);
         }
 
         public void SendTargetChat(AdKatsRecord record)
         {
-            Log.Debug("Entering SendTargetChat", 6);
+            Log.Debug(() => "Entering SendTargetChat", 6);
             try
             {
                 record.record_action_executed = true;
                 Thread chatPrinter = new Thread(new ThreadStart(delegate
                 {
-                    Log.Debug("Starting a player chat printer thread.", 5);
+                    Log.Debug(() => "Starting a player chat printer thread.", 5);
                     try
                     {
                         Thread.CurrentThread.Name = "PlayerChatPrinter";
@@ -26511,7 +26511,7 @@ namespace PRoConEvents
                     {
                         HandleException(new AdKatsException("Error while printing player chat"));
                     }
-                    Log.Debug("Exiting a player chat printer.", 5);
+                    Log.Debug(() => "Exiting a player chat printer.", 5);
                     LogThreadExit();
                 }));
 
@@ -26524,12 +26524,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SendTargetChat", 6);
+            Log.Debug(() => "Exiting SendTargetChat", 6);
         }
 
         public void FindTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering FindTarget", 6);
+            Log.Debug(() => "Entering FindTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -26555,12 +26555,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting FindTarget", 6);
+            Log.Debug(() => "Exiting FindTarget", 6);
         }
 
         public void LockTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering LockTarget", 6);
+            Log.Debug(() => "Entering LockTarget", 6);
             try
             {
                 if (record.target_player == null)
@@ -26595,12 +26595,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting LockTarget", 6);
+            Log.Debug(() => "Exiting LockTarget", 6);
         }
 
         public void UnlockTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering UnlockTarget", 6);
+            Log.Debug(() => "Entering UnlockTarget", 6);
             try
             {
                 if (record.target_player == null)
@@ -26626,12 +26626,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting UnlockTarget", 6);
+            Log.Debug(() => "Exiting UnlockTarget", 6);
         }
 
         public void MarkTarget(AdKatsRecord record)
         {
-            Log.Debug("Entering FindTarget", 6);
+            Log.Debug(() => "Entering FindTarget", 6);
             try
             {
                 if (record.target_player == null)
@@ -26661,12 +26661,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting MarkTarget", 6);
+            Log.Debug(() => "Exiting MarkTarget", 6);
         }
 
         public void ManageAFKPlayers(AdKatsRecord record)
         {
-            Log.Debug("Entering ManageAFKPlayers", 6);
+            Log.Debug(() => "Entering ManageAFKPlayers", 6);
             try
             {
                 record.record_action_executed = true;
@@ -26689,7 +26689,7 @@ namespace PRoConEvents
                     foreach (AdKatsPlayer aPlayer in afkPlayers)
                     {
                         string afkTime = FormatTimeString(UtcDbTime() - aPlayer.lastAction, 2);
-                        Log.Debug("Kicking " + aPlayer.GetVerboseName() + " for being AFK " + afkTime + ".", 3);
+                        Log.Debug(() => "Kicking " + aPlayer.GetVerboseName() + " for being AFK " + afkTime + ".", 3);
                         AdKatsRecord kickRecord = new AdKatsRecord
                         {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -26717,12 +26717,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting ManageAFKPlayers", 6);
+            Log.Debug(() => "Exiting ManageAFKPlayers", 6);
         }
 
         public void SendOnlineAdmins(AdKatsRecord record)
         {
-            Log.Debug("Entering SendOnlineAdmins", 6);
+            Log.Debug(() => "Entering SendOnlineAdmins", 6);
             try
             {
                 record.record_action_executed = true;
@@ -26738,12 +26738,12 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting SendOnlineAdmins", 6);
+            Log.Debug(() => "Exiting SendOnlineAdmins", 6);
         }
 
         public void LeadCurrentSquad(AdKatsRecord record)
         {
-            Log.Debug("Entering LeadCurrentSquad", 6);
+            Log.Debug(() => "Entering LeadCurrentSquad", 6);
             try
             {
                 record.record_action_executed = true;
@@ -26760,18 +26760,18 @@ namespace PRoConEvents
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug("Exiting LeadCurrentSquad", 6);
+            Log.Debug(() => "Exiting LeadCurrentSquad", 6);
         }
 
         private void QueueUserForUpload(AdKatsUser user)
         {
             try
             {
-                Log.Debug("Preparing to queue user for access upload.", 6);
+                Log.Debug(() => "Preparing to queue user for access upload.", 6);
                 lock (_UserUploadQueue)
                 {
                     _UserUploadQueue.Enqueue(user);
-                    Log.Debug("User queued for access upload", 6);
+                    Log.Debug(() => "User queued for access upload", 6);
                     _DbCommunicationWaitHandle.Set();
                 }
             }
@@ -26785,11 +26785,11 @@ namespace PRoConEvents
         {
             try
             {
-                Log.Debug("Preparing to queue user for access removal", 6);
+                Log.Debug(() => "Preparing to queue user for access removal", 6);
                 lock (_UserRemovalQueue)
                 {
                     _UserRemovalQueue.Enqueue(user);
-                    Log.Debug("User queued for access removal", 6);
+                    Log.Debug(() => "User queued for access removal", 6);
                     _DbCommunicationWaitHandle.Set();
                 }
             }
@@ -26848,7 +26848,7 @@ namespace PRoConEvents
         {
             try
             {
-                Log.Debug("Starting Database Comm Thread", 1);
+                Log.Debug(() => "Starting Database Comm Thread", 1);
                 Thread.CurrentThread.Name = "DatabaseComm";
                 Boolean firstRun = true;
                 DateTime loopStart;
@@ -26858,19 +26858,19 @@ namespace PRoConEvents
                     loopStart = UtcDbTime();
                     try
                     {
-                        Log.Debug("Entering Database Comm Thread Loop", 7);
+                        Log.Debug(() => "Entering Database Comm Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
                         //Check if database connection settings have changed
                         if (_dbSettingsChanged)
                         {
-                            Log.Debug("DB Settings have changed, calling test.", 6);
+                            Log.Debug(() => "DB Settings have changed, calling test.", 6);
                             if (TestDatabaseConnection())
                             {
-                                Log.Debug("Database Connection Good. Continuing Thread.", 6);
+                                Log.Debug(() => "Database Connection Good. Continuing Thread.", 6);
                             }
                             else
                             {
@@ -26932,13 +26932,13 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            Log.Debug("Skipping server ID fetch. Server ID: " + _serverInfo.ServerID, 7);
+                            Log.Debug(() => "Skipping server ID fetch. Server ID: " + _serverInfo.ServerID, 7);
                         }
 
                         //Check if settings need sync
                         if (firstRun || _settingImportID != _serverInfo.ServerID || _lastDbSettingFetch.AddSeconds(DbSettingFetchFrequency) < UtcDbTime())
                         {
-                            Log.Debug("Preparing to fetch settings from server " + _serverInfo.ServerID, 6);
+                            Log.Debug(() => "Preparing to fetch settings from server " + _serverInfo.ServerID, 6);
                             //Fetch new settings from the database
                             FetchSettings(_settingImportID, _settingImportID != _serverInfo.ServerID);
 
@@ -27009,7 +27009,7 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            Log.Debug("Skipping DB action fetch", 7);
+                            Log.Debug(() => "Skipping DB action fetch", 7);
                         }
                         counter.Stop();
                         //Log.Write("RunActionsFromDB took " + counter.ElapsedMilliseconds + "ms");
@@ -27061,12 +27061,12 @@ namespace PRoConEvents
                         {
                             counter.Reset();
                             counter.Start();
-                            Log.Debug("Unprocessed Record: " + _UnprocessedRecordQueue.Count + " Current: 0", 4);
-                            Log.Debug("Preparing to lock inbound record queue to retrive new records", 7);
+                            Log.Debug(() => "Unprocessed Record: " + _UnprocessedRecordQueue.Count + " Current: 0", 4);
+                            Log.Debug(() => "Preparing to lock inbound record queue to retrive new records", 7);
                             Queue<AdKatsRecord> inboundRecords;
                             lock (_UnprocessedRecordQueue)
                             {
-                                Log.Debug("Inbound records found. Grabbing.", 6);
+                                Log.Debug(() => "Inbound records found. Grabbing.", 6);
                                 //Grab all records in the queue
                                 inboundRecords = new Queue<AdKatsRecord>(_UnprocessedRecordQueue.ToArray());
                                 //Clear the queue for next run
@@ -27079,7 +27079,7 @@ namespace PRoConEvents
                                 {
                                     break;
                                 }
-                                Log.Debug("Unprocessed Record: " + _UnprocessedRecordQueue.Count + " Current: " + inboundRecords.Count, 4);
+                                Log.Debug(() => "Unprocessed Record: " + _UnprocessedRecordQueue.Count + " Current: " + inboundRecords.Count, 4);
                                 //Pull the next record
                                 AdKatsRecord record = inboundRecords.Dequeue();
                                 //Process the record message
@@ -27090,7 +27090,7 @@ namespace PRoConEvents
                                 if (success && !record.record_action_executed && !record.record_orchestrate)
                                 {
                                     //Action is only called after initial upload, not after update
-                                    Log.Debug("Upload success. Attempting to add to action queue.", 6);
+                                    Log.Debug(() => "Upload success. Attempting to add to action queue.", 6);
 
                                     //Only queue the record for action handling if it's not an enforced ban
                                     if (record.command_type.command_key != "banenforcer_enforce")
@@ -27100,7 +27100,7 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    Log.Debug("Record does not need action handling by this server.", 6);
+                                    Log.Debug(() => "Record does not need action handling by this server.", 6);
                                     //finalize the record
                                     FinalizeRecord(record);
                                 }
@@ -27109,18 +27109,18 @@ namespace PRoConEvents
                             //Log.Write("UnprocessedRecords took " + counter.ElapsedMilliseconds + "ms");
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                         }
                         else
                         {
                             counter.Reset();
                             counter.Start();
-                            Log.Debug("No unprocessed records. Waiting for input", 7);
+                            Log.Debug(() => "No unprocessed records. Waiting for input", 7);
                             _DbCommunicationWaitHandle.Reset();
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _DbCommunicationWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             counter.Stop();
@@ -27137,7 +27137,7 @@ namespace PRoConEvents
                         HandleException(new AdKatsException("Error occured in Database Comm thread. Skipping current loop.", e));
                     }
                 }
-                Log.Debug("Ending Database Comm Thread", 1);
+                Log.Debug(() => "Ending Database Comm Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -27148,7 +27148,7 @@ namespace PRoConEvents
 
         private void FeedStatLoggerSettings()
         {
-            Log.Debug("FeedStatLoggerSettings starting!", 6);
+            Log.Debug(() => "FeedStatLoggerSettings starting!", 6);
             //Every 60 minutes feed stat logger settings
             if (_lastStatLoggerStatusUpdateTime.AddMinutes(60) < UtcDbTime())
             {
@@ -27166,7 +27166,7 @@ namespace PRoConEvents
                     {
                         Thread.CurrentThread.Name = "StatLoggerSettingsFeeder";
                         Thread.Sleep(250);
-                        Log.Debug("Starting a stat logger setting feeder thread.", 5);
+                        Log.Debug(() => "Starting a stat logger setting feeder thread.", 5);
                         _lastStatLoggerStatusUpdateTime = UtcDbTime();
                         if (_isTestingAuthorized)
                         {
@@ -27231,7 +27231,7 @@ namespace PRoConEvents
                         }
                         //TODO put back in the future
                         //confirmStatLoggerSetup();
-                        Log.Debug("Exiting a stat logger setting feeder thread.", 5);
+                        Log.Debug(() => "Exiting a stat logger setting feeder thread.", 5);
                     }
                     catch (Exception e)
                     {
@@ -27241,7 +27241,7 @@ namespace PRoConEvents
                 }));
                 StartAndLogThread(statLoggerFeedingThread);
             }
-            Log.Debug("FeedStatLoggerSettings finished!", 6);
+            Log.Debug(() => "FeedStatLoggerSettings finished!", 6);
         }
 
         private void HandleSettingUploads()
@@ -27260,11 +27260,11 @@ namespace PRoConEvents
                         Thread.Sleep(250);
                         try
                         {
-                            Log.Debug("Preparing to lock inbound setting queue to get new settings", 7);
+                            Log.Debug(() => "Preparing to lock inbound setting queue to get new settings", 7);
                             Queue<CPluginVariable> inboundSettingUpload;
                             lock (_SettingUploadQueue)
                             {
-                                Log.Debug("Inbound settings found. Grabbing.", 6);
+                                Log.Debug(() => "Inbound settings found. Grabbing.", 6);
                                 //Grab all settings in the queue
                                 inboundSettingUpload = new Queue<CPluginVariable>(_SettingUploadQueue.ToArray());
                                 //Clear the queue for next run
@@ -27303,11 +27303,11 @@ namespace PRoConEvents
                 //Handle Inbound Command Uploads
                 if (_CommandUploadQueue.Count > 0)
                 {
-                    Log.Debug("Preparing to lock inbound command queue to get new commands", 7);
+                    Log.Debug(() => "Preparing to lock inbound command queue to get new commands", 7);
                     Queue<AdKatsCommand> inboundCommandUpload;
                     lock (_CommandUploadQueue)
                     {
-                        Log.Debug("Inbound commands found. Grabbing.", 6);
+                        Log.Debug(() => "Inbound commands found. Grabbing.", 6);
                         //Grab all commands in the queue
                         inboundCommandUpload = new Queue<AdKatsCommand>(_CommandUploadQueue.ToArray());
                         //Clear the queue for next run
@@ -27335,12 +27335,12 @@ namespace PRoConEvents
             {
                 if (_UnprocessedStatisticQueue.Count > 0)
                 {
-                    Log.Debug("Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: 0", 4);
-                    Log.Debug("Preparing to lock inbound statistic queue to retrive new records", 7);
+                    Log.Debug(() => "Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: 0", 4);
+                    Log.Debug(() => "Preparing to lock inbound statistic queue to retrive new records", 7);
                     Queue<AdKatsStatistic> inboundStats;
                     lock (_UnprocessedStatisticQueue)
                     {
-                        Log.Debug("Inbound statistics found. Grabbing.", 6);
+                        Log.Debug(() => "Inbound statistics found. Grabbing.", 6);
                         //Grab all statistics in the queue
                         inboundStats = new Queue<AdKatsStatistic>(_UnprocessedStatisticQueue.ToArray());
                         //Clear the queue for next run
@@ -27353,7 +27353,7 @@ namespace PRoConEvents
                         {
                             break;
                         }
-                        Log.Debug("Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: " + inboundStats.Count, 4);
+                        Log.Debug(() => "Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: " + inboundStats.Count, 4);
                         //Pull the next statistic
                         AdKatsStatistic aStat = inboundStats.Dequeue();
                         //Upload the statistic
@@ -27373,11 +27373,11 @@ namespace PRoConEvents
             {
                 if (_RoleUploadQueue.Count > 0)
                 {
-                    Log.Debug("Preparing to lock inbound role queue to get new roles", 7);
+                    Log.Debug(() => "Preparing to lock inbound role queue to get new roles", 7);
                     Queue<AdKatsRole> inboundRoleUpload;
                     lock (_RoleUploadQueue)
                     {
-                        Log.Debug("Inbound roles found. Grabbing.", 6);
+                        Log.Debug(() => "Inbound roles found. Grabbing.", 6);
                         //Grab all roles in the queue
                         inboundRoleUpload = new Queue<AdKatsRole>(_RoleUploadQueue.ToArray());
                         //Clear the queue for next run
@@ -27432,11 +27432,11 @@ namespace PRoConEvents
             {
                 if (_RoleRemovalQueue.Count > 0)
                 {
-                    Log.Debug("Preparing to lock removal role queue to get new roles", 7);
+                    Log.Debug(() => "Preparing to lock removal role queue to get new roles", 7);
                     Queue<AdKatsRole> inboundRoleRemoval;
                     lock (_RoleRemovalQueue)
                     {
-                        Log.Debug("Inbound roles found. Grabbing.", 6);
+                        Log.Debug(() => "Inbound roles found. Grabbing.", 6);
                         //Grab all roles in the queue
                         inboundRoleRemoval = new Queue<AdKatsRole>(_RoleRemovalQueue.ToArray());
                         //Clear the queue for next run
@@ -27479,7 +27479,7 @@ namespace PRoConEvents
             {
                 if (_UserUploadQueue.Count > 0 || _UserRemovalQueue.Count > 0)
                 {
-                    Log.Debug("Inbound access changes found. Grabbing.", 6);
+                    Log.Debug(() => "Inbound access changes found. Grabbing.", 6);
                     Queue<AdKatsUser> inboundUserUploads;
                     lock (_UserUploadQueue)
                     {
@@ -27513,7 +27513,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    Log.Debug("No inbound user changes.", 7);
+                    Log.Debug(() => "No inbound user changes.", 7);
                 }
             }
             catch (Exception e)
@@ -27530,7 +27530,7 @@ namespace PRoConEvents
                 if (_UseBanEnforcerPreviousState && (UtcDbTime() > _lastBanListCall.AddSeconds(20)))
                 {
                     _lastBanListCall = UtcDbTime();
-                    Log.Debug("banlist.list called at interval.", 6);
+                    Log.Debug(() => "banlist.list called at interval.", 6);
                     ExecuteCommand("procon.protected.send", "banList.list");
 
                     FetchNameBanCount();
@@ -27559,17 +27559,17 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    Log.Debug("Skipping DB ban fetch", 7);
+                    Log.Debug(() => "Skipping DB ban fetch", 7);
                 }
 
                 //Handle Inbound Ban Comms
                 if (_BanEnforcerProcessingQueue.Count > 0)
                 {
-                    Log.Debug("Preparing to lock inbound ban enforcer queue to retrive new bans", 7);
+                    Log.Debug(() => "Preparing to lock inbound ban enforcer queue to retrive new bans", 7);
                     Queue<AdKatsBan> inboundBans;
                     lock (_BanEnforcerProcessingQueue)
                     {
-                        Log.Debug("Inbound bans found. Grabbing.", 6);
+                        Log.Debug(() => "Inbound bans found. Grabbing.", 6);
                         //Grab all messages in the queue
                         inboundBans = new Queue<AdKatsBan>(_BanEnforcerProcessingQueue.ToArray());
                         //Clear the queue for next run
@@ -27587,7 +27587,7 @@ namespace PRoConEvents
                         //Grab the ban
                         AdKatsBan aBan = inboundBans.Dequeue();
 
-                        Log.Debug("Processing Frostbite Ban: " + index++, 6);
+                        Log.Debug(() => "Processing Frostbite Ban: " + index++, 6);
 
                         //Upload the ban
                         UploadBan(aBan);
@@ -27616,7 +27616,7 @@ namespace PRoConEvents
                     {
                         Log.Warn("Do not disable AdKats or change any settings until upload is complete!");
                     }
-                    Log.Debug("Preparing to lock inbound cBan queue to retrive new cBans", 7);
+                    Log.Debug(() => "Preparing to lock inbound cBan queue to retrive new cBans", 7);
                     Double totalCBans = 0;
                     Double bansImported = 0;
                     Boolean earlyExit = false;
@@ -27624,7 +27624,7 @@ namespace PRoConEvents
                     Queue<CBanInfo> inboundCBans;
                     lock (_CBanProcessingQueue)
                     {
-                        Log.Debug("Inbound cBans found. Grabbing.", 6);
+                        Log.Debug(() => "Inbound cBans found. Grabbing.", 6);
                         //Grab all cBans in the queue
                         inboundCBans = new Queue<CBanInfo>(_CBanProcessingQueue.ToArray());
                         totalCBans = inboundCBans.Count;
@@ -27729,7 +27729,7 @@ namespace PRoConEvents
                         }
 
                         //Upload the ban
-                        Log.Debug("Uploading ban from procon.", 5);
+                        Log.Debug(() => "Uploading ban from procon.", 5);
                         UploadBan(aBan);
 
                         if (!_UseBanEnforcerPreviousState && (++bansImported % 25 == 0))
@@ -27759,7 +27759,7 @@ namespace PRoConEvents
 
         private void SubmitToMetabans(AdKatsBan aBan, AssessmentTypes type)
         {
-            Log.Debug("^4Metabans (SubmitAssessment): Submitting assessment of GUID " + aBan.ban_record.target_player.player_guid, 3);
+            Log.Debug(() => "^4Metabans (SubmitAssessment): Submitting assessment of GUID " + aBan.ban_record.target_player.player_guid, 3);
 
             MetabansAPI api = new MetabansAPI(_metabansUsername, _metabansAPIKey, enumBoolOnOff.On);
             api.ExecuteCommand += new MetabansAPI.ExecuteCommandHandler(api_ExecuteCommand);
@@ -27806,7 +27806,7 @@ namespace PRoConEvents
         {
             if (!string.IsNullOrEmpty(_mySqlSchemaName) && !string.IsNullOrEmpty(_mySqlHostname) && !string.IsNullOrEmpty(_mySqlPassword) && !string.IsNullOrEmpty(_mySqlPort) && !string.IsNullOrEmpty(_mySqlUsername))
             {
-                Log.Debug("MySql Connection capable. All variables in place.", 8);
+                Log.Debug(() => "MySql Connection capable. All variables in place.", 8);
                 return true;
             }
             return false;
@@ -27866,7 +27866,7 @@ namespace PRoConEvents
         private Boolean TestDatabaseConnection()
         {
             Boolean databaseValid = false;
-            Log.Debug("testDatabaseConnection starting!", 6);
+            Log.Debug(() => "testDatabaseConnection starting!", 6);
             if (ConnectionCapable())
             {
                 Boolean success = false;
@@ -27951,14 +27951,14 @@ namespace PRoConEvents
                 Disable();
                 _threadMasterWaitHandle.WaitOne(500);
             }
-            Log.Debug("testDatabaseConnection finished!", 6);
+            Log.Debug(() => "testDatabaseConnection finished!", 6);
 
             return databaseValid;
         }
 
         private Boolean ConfirmDatabaseSetup()
         {
-            Log.Debug("Confirming Database Structure.", 3);
+            Log.Debug(() => "Confirming Database Structure.", 3);
             try
             {
                 if (!ConfirmStatLoggerTables())
@@ -27991,18 +27991,18 @@ namespace PRoConEvents
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         WebClient client = new WebClient();
-                        Log.Debug("Fetching plugin changelog...", 2);
+                        Log.Debug(() => "Fetching plugin changelog...", 2);
                         try
                         {
                             command.CommandText = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkats.sql?nocacherandom=" + Environment.TickCount);
-                            Log.Debug("SQL setup script fetched.", 1);
+                            Log.Debug(() => "SQL setup script fetched.", 1);
                         }
                         catch (Exception)
                         {
                             try
                             {
                                 command.CommandText = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/sqlsetup?nocacherandom=" + Environment.TickCount);
-                                Log.Debug("SQL setup script fetched from backup location.", 1);
+                                Log.Debug(() => "SQL setup script fetched from backup location.", 1);
                             }
                             catch (Exception)
                             {
@@ -28240,7 +28240,7 @@ namespace PRoConEvents
                 //Check if old database table exists
                 if (!ConfirmTable("adkats_records"))
                 {
-                    Log.Debug("Not updating database, no old tables to pull from.", 1);
+                    Log.Debug(() => "Not updating database, no old tables to pull from.", 1);
                     return;
                 }
                 //If the new main record table contains records return without handling
@@ -28637,7 +28637,7 @@ namespace PRoConEvents
             }
             try
             {
-                Log.Debug("uploadAllSettings starting!", 6);
+                Log.Debug(() => "uploadAllSettings starting!", 6);
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
                 QueueSettingForUpload(new CPluginVariable(@"Override Timing Confirmation", typeof(Boolean), _timingValidOverride));
                 QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof(int), Log.DebugLevel));
@@ -28831,7 +28831,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Players", typeof(Int32), _surrenderAutoMinimumPlayers));
-                Log.Debug("uploadAllSettings finished!", 6);
+                Log.Debug(() => "uploadAllSettings finished!", 6);
             }
             catch (Exception e)
             {
@@ -28841,7 +28841,7 @@ namespace PRoConEvents
 
         private void UploadSetting(CPluginVariable var)
         {
-            Log.Debug("uploadSetting starting!", 7);
+            Log.Debug(() => "uploadSetting starting!", 7);
             //Make sure database connection active
             if (_databaseConnectionCriticalState || !_settingsFetched)
             {
@@ -28859,7 +28859,7 @@ namespace PRoConEvents
                             Log.Error("Unable to upload setting, length of setting too great. Really dude? It's 3000+ chars. This is battlefield, not a book club.");
                             return;
                         }
-                        Log.Debug(var.Value, 7);
+                        Log.Debug(() => var.Value, 7);
                         //Set the insert command structure
                         command.CommandText = @"
                         INSERT INTO `" + _mySqlSchemaName + @"`.`adkats_settings` 
@@ -28886,7 +28886,7 @@ namespace PRoConEvents
                         //Attempt to execute the query
                         if (SafeExecuteNonQuery(command) > 0)
                         {
-                            Log.Debug("Setting " + var.Name + " pushed to database", 7);
+                            Log.Debug(() => "Setting " + var.Name + " pushed to database", 7);
                         }
                     }
                 }
@@ -28896,12 +28896,12 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while uploading setting to database.", e));
             }
 
-            Log.Debug("uploadSetting finished!", 7);
+            Log.Debug(() => "uploadSetting finished!", 7);
         }
 
         private void FetchSettings(long serverID, Boolean verbose)
         {
-            Log.Debug("fetchSettings starting!", 6);
+            Log.Debug(() => "fetchSettings starting!", 6);
             Boolean success = false;
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
@@ -28958,12 +28958,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching settings from database.", e));
             }
-            Log.Debug("fetchSettings finished!", 6);
+            Log.Debug(() => "fetchSettings finished!", 6);
         }
 
         private void UploadCommand(AdKatsCommand aCommand)
         {
-            Log.Debug("uploadCommand starting!", 6);
+            Log.Debug(() => "uploadCommand starting!", 6);
 
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
@@ -29026,7 +29026,7 @@ namespace PRoConEvents
                     }
                 }
 
-                Log.Debug("uploadCommand finished!", 6);
+                Log.Debug(() => "uploadCommand finished!", 6);
             }
             catch (Exception e)
             {
@@ -29123,7 +29123,7 @@ namespace PRoConEvents
             }
             try
             {
-                Log.Debug("Entering handle record upload", 5);
+                Log.Debug(() => "Entering handle record upload", 5);
                 if (record.record_id != -1 || record.record_action_executed)
                 {
                     //Record already has a record ID, or action has already been taken, it can only be updated
@@ -29132,21 +29132,21 @@ namespace PRoConEvents
                         if (record.record_exception == null)
                         {
                             //Only call update if the record contained no errors
-                            Log.Debug("UPDATING record for " + record.command_type, 5);
+                            Log.Debug(() => "UPDATING record for " + record.command_type, 5);
                             //Update Record
                             UpdateRecord(record);
                             return false;
                         }
-                        Log.Debug("" + record.command_type + " record contained errors, skipping UPDATE", 4);
+                        Log.Debug(() => "" + record.command_type + " record contained errors, skipping UPDATE", 4);
                     }
                     else
                     {
-                        Log.Debug("Skipping record UPDATE for " + record.command_type, 5);
+                        Log.Debug(() => "Skipping record UPDATE for " + record.command_type, 5);
                     }
                 }
                 else
                 {
-                    Log.Debug("Record needs full upload, checking.", 5);
+                    Log.Debug(() => "Record needs full upload, checking.", 5);
                     //No record ID. Perform full upload
                     switch (record.command_type.command_key)
                     {
@@ -29161,14 +29161,14 @@ namespace PRoConEvents
                                 {
                                     record.isIRO = true;
                                     //Upload record twice
-                                    Log.Debug("UPLOADING IRO Punish", 5); //IRO - Immediate Repeat Offence
+                                    Log.Debug(() => "UPLOADING IRO Punish", 5); //IRO - Immediate Repeat Offence
                                     UploadRecord(record);
                                     UploadRecord(record);
                                 }
                                 else
                                 {
                                     //Upload record once
-                                    Log.Debug("UPLOADING Punish", 5);
+                                    Log.Debug(() => "UPLOADING Punish", 5);
                                     UploadRecord(record);
                                 }
                             }
@@ -29183,7 +29183,7 @@ namespace PRoConEvents
                         case "player_forgive":
                             //Upload for forgive is required
                             //No restriction on forgives/minute
-                            Log.Debug("UPLOADING Forgive", 5);
+                            Log.Debug(() => "UPLOADING Forgive", 5);
                             UploadRecord(record);
                             break;
                         default:
@@ -29191,13 +29191,13 @@ namespace PRoConEvents
                             //Check logging setting for record command type
                             if (record.command_type.command_logging != AdKatsCommand.CommandLogging.Ignore && record.command_type.command_logging != AdKatsCommand.CommandLogging.Unable)
                             {
-                                Log.Debug("UPLOADING record for " + record.command_type, 5);
+                                Log.Debug(() => "UPLOADING record for " + record.command_type, 5);
                                 //Upload Record
                                 UploadRecord(record);
                             }
                             else
                             {
-                                Log.Debug("Skipping record UPLOAD for " + record.command_type, 6);
+                                Log.Debug(() => "Skipping record UPLOAD for " + record.command_type, 6);
                             }
                             break;
                     }
@@ -29256,7 +29256,7 @@ namespace PRoConEvents
 
         private Boolean UploadInnerRecord(AdKatsRecord record)
         {
-            Log.Debug("uploadRecord starting!", 6);
+            Log.Debug(() => "uploadRecord starting!", 6);
 
             Boolean success = false;
             //Make sure database connection active
@@ -29439,7 +29439,7 @@ namespace PRoConEvents
 
                 if (success)
                 {
-                    Log.Debug(record.command_action.command_key + " upload for " + record.GetTargetNames() + " by " + record.GetSourceName() + " SUCCESSFUL!", 3);
+                    Log.Debug(() => record.command_action.command_key + " upload for " + record.GetTargetNames() + " by " + record.GetSourceName() + " SUCCESSFUL!", 3);
                 }
                 else
                 {
@@ -29447,7 +29447,7 @@ namespace PRoConEvents
                     HandleException(record.record_exception);
                 }
 
-                Log.Debug("uploadRecord finished!", 6);
+                Log.Debug(() => "uploadRecord finished!", 6);
                 return success;
             }
             catch (Exception e)
@@ -29460,7 +29460,7 @@ namespace PRoConEvents
 
         private Boolean UploadStatistic(AdKatsStatistic aStat)
         {
-            Log.Debug("UploadStatistic starting!", 6);
+            Log.Debug(() => "UploadStatistic starting!", 6);
 
             Boolean success = false;
             //Make sure database connection active
@@ -29559,14 +29559,14 @@ namespace PRoConEvents
 
                 if (success)
                 {
-                    Log.Debug(aStat.stat_type + " stat upload for " + aStat.target_name + " SUCCESSFUL!", 3);
+                    Log.Debug(() => aStat.stat_type + " stat upload for " + aStat.target_name + " SUCCESSFUL!", 3);
                 }
                 else
                 {
                     HandleException(new AdKatsException("Unknown error uploading statistic."));
                 }
 
-                Log.Debug("UploadStatistic finished!", 6);
+                Log.Debug(() => "UploadStatistic finished!", 6);
                 return success;
             }
             catch (Exception e)
@@ -29578,7 +29578,7 @@ namespace PRoConEvents
 
         private Boolean UploadChatLog(AdKatsChatMessage messageObject)
         {
-            Log.Debug("UploadChatLog starting!", 6);
+            Log.Debug(() => "UploadChatLog starting!", 6);
             Boolean success = false;
             if (!_threadsReady)
             {
@@ -29641,7 +29641,7 @@ namespace PRoConEvents
                         if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer))
                         {
                             aPlayer.LastUsage = UtcDbTime();
-                            Log.Debug("Player found for chat log upload.", 5);
+                            Log.Debug(() => "Player found for chat log upload.", 5);
                         }
 
                         //Fill the log
@@ -29671,14 +29671,14 @@ namespace PRoConEvents
                 }
                 if (success)
                 {
-                    Log.Debug("Chat upload for " + messageObject.Speaker + " SUCCESSFUL!", 5);
+                    Log.Debug(() => "Chat upload for " + messageObject.Speaker + " SUCCESSFUL!", 5);
                 }
                 else
                 {
                     HandleException(new AdKatsException("Error uploading chat log. Success not reached."));
                     return success;
                 }
-                Log.Debug("UploadChatLog finished!", 6);
+                Log.Debug(() => "UploadChatLog finished!", 6);
                 return success;
             }
             catch (Exception e)
@@ -29718,7 +29718,7 @@ namespace PRoConEvents
                 }
                 if (_commandSourceReputationDictionary == null || !_commandSourceReputationDictionary.Any() || _commandTargetReputationDictionary == null || !_commandTargetReputationDictionary.Any())
                 {
-                    Log.Debug("Reputation dictionaries not populated. Can't update reputation for " + aPlayer.GetVerboseName() + ".", 4);
+                    Log.Debug(() => "Reputation dictionaries not populated. Can't update reputation for " + aPlayer.GetVerboseName() + ".", 4);
                 }
                 double sourceReputation = 0.0;
                 double targetReputation = 0.0;
@@ -29907,7 +29907,7 @@ namespace PRoConEvents
                         {
                             if (aPlayer.player_spawnedOnce || (aPlayer.frostbitePlayerInfo != null && aPlayer.frostbitePlayerInfo.TeamID == 0))
                             {
-                                Log.Debug(aPlayer.GetVerboseName() + "'s reputation updated from " + Math.Round(aPlayer.player_reputation, 2) + " to " + Math.Round(totalReputationConstrained, 2), 3);
+                                Log.Debug(() => aPlayer.GetVerboseName() + "'s reputation updated from " + Math.Round(aPlayer.player_reputation, 2) + " to " + Math.Round(totalReputationConstrained, 2), 3);
                                 if (!PlayerIsAdmin(aPlayer))
                                 {
                                     String message = "Your reputation ";
@@ -30062,7 +30062,7 @@ namespace PRoConEvents
 
         private void UpdateInnerRecord(AdKatsRecord record)
         {
-            Log.Debug("UpdateInnerRecord starting!", 6);
+            Log.Debug(() => "UpdateInnerRecord starting!", 6);
 
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
@@ -30118,14 +30118,14 @@ namespace PRoConEvents
                 UpdateRecordEndPointReputations(record);
                 if (success)
                 {
-                    Log.Debug(record.command_action.command_key + " update for " + record.GetTargetNames() + " by " + record.GetSourceName() + " SUCCESSFUL!", 3);
+                    Log.Debug(() => record.command_action.command_key + " update for " + record.GetTargetNames() + " by " + record.GetSourceName() + " SUCCESSFUL!", 3);
                 }
                 else
                 {
                     Log.Error(record.command_action.command_key + " update for " + record.GetTargetNames() + " by " + record.GetSourceName() + " FAILED!");
                 }
 
-                Log.Debug("UpdateInnerRecord finished!", 6);
+                Log.Debug(() => "UpdateInnerRecord finished!", 6);
             }
             catch (Exception e)
             {
@@ -30136,7 +30136,7 @@ namespace PRoConEvents
 
         private AdKatsRecord FetchRecordByID(Int64 recordID, Boolean debug)
         {
-            Log.Debug("fetchRecordByID starting!", 6);
+            Log.Debug(() => "fetchRecordByID starting!", 6);
             AdKatsRecord record = null;
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
@@ -30214,11 +30214,11 @@ namespace PRoConEvents
                             }
                             if (success)
                             {
-                                Log.Debug("Record found for ID " + recordID, 5);
+                                Log.Debug(() => "Record found for ID " + recordID, 5);
                             }
                             else
                             {
-                                Log.Debug("No record found for ID " + recordID, 5);
+                                Log.Debug(() => "No record found for ID " + recordID, 5);
                             }
                         }
                         if (success && record.target_player != null)
@@ -30247,14 +30247,14 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching record by ID", e));
             }
 
-            Log.Debug("fetchRecordByID finished!", 6);
+            Log.Debug(() => "fetchRecordByID finished!", 6);
             return record;
         }
 
 
         private List<AdKatsRecord> FetchRecentRecords(Int64? player_id, Int64? command_id, Int64 limit_days, Int64 limit_records, Boolean target_only, Boolean debug)
         {
-            Log.Debug("FetchRecentRecords starting!", 6);
+            Log.Debug(() => "FetchRecentRecords starting!", 6);
             List<AdKatsRecord> records = new List<AdKatsRecord>();
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
@@ -30351,7 +30351,7 @@ namespace PRoConEvents
                                     if ((_PlayerDictionary.TryGetValue(record.target_name, out tPlayer) || _PlayerLeftDictionary.TryGetValue(record.target_name, out tPlayer)) && tPlayer.player_id == targetID)
                                     {
                                         tPlayer.LastUsage = UtcDbTime();
-                                        Log.Debug("Target player fetched from memory.", 7);
+                                        Log.Debug(() => "Target player fetched from memory.", 7);
                                     }
                                     else
                                     {
@@ -30367,7 +30367,7 @@ namespace PRoConEvents
                                     if ((_PlayerDictionary.TryGetValue(record.target_name, out sPlayer) || _PlayerLeftDictionary.TryGetValue(record.target_name, out sPlayer)) && sPlayer.player_id == targetID)
                                     {
                                         sPlayer.LastUsage = UtcDbTime();
-                                        Log.Debug("Target player fetched from memory.", 7);
+                                        Log.Debug(() => "Target player fetched from memory.", 7);
                                     }
                                     else
                                     {
@@ -30388,14 +30388,14 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching recent records", e));
             }
 
-            Log.Debug("FetchRecentRecords finished!", 6);
+            Log.Debug(() => "FetchRecentRecords finished!", 6);
             return records;
         }
 
 
         private List<AdKatsRecord> FetchUnreadRecords()
         {
-            Log.Debug("fetchUnreadRecords starting!", 6);
+            Log.Debug(() => "fetchUnreadRecords starting!", 6);
             //Create return list
             List<AdKatsRecord> records = new List<AdKatsRecord>();
             //Make sure database connection active
@@ -30453,10 +30453,10 @@ namespace PRoConEvents
                                 record.target_name = reader.GetString("target_name");
                                 object value = reader.GetValue(6);
                                 Int64 targetIDParse = -1;
-                                Log.Debug("id fetched!", 6);
+                                Log.Debug(() => "id fetched!", 6);
                                 if (Int64.TryParse(value.ToString(), out targetIDParse))
                                 {
-                                    Log.Debug("id parsed! " + targetIDParse, 6);
+                                    Log.Debug(() => "id parsed! " + targetIDParse, 6);
                                     //Check if the player needs to be imported, or if they are already in the server
                                     AdKatsPlayer importedPlayer = FetchPlayer(false, true, false, null, targetIDParse, null, null, null);
                                     if (importedPlayer == null)
@@ -30467,26 +30467,26 @@ namespace PRoConEvents
                                     if (!String.IsNullOrEmpty(importedPlayer.player_name) && _PlayerDictionary.TryGetValue(importedPlayer.player_name, out currentPlayer))
                                     {
                                         currentPlayer.LastUsage = UtcDbTime();
-                                        Log.Debug("External player is currently in the server, using existing data.", 5);
+                                        Log.Debug(() => "External player is currently in the server, using existing data.", 5);
                                         record.target_player = currentPlayer;
                                     }
                                     else
                                     {
-                                        Log.Debug("External player is not in the server, fetching from database.", 5);
+                                        Log.Debug(() => "External player is not in the server, fetching from database.", 5);
                                         record.target_player = importedPlayer;
                                     }
                                     record.target_name = record.target_player.player_name;
                                 }
                                 else
                                 {
-                                    Log.Debug("id parse failed!", 6);
+                                    Log.Debug(() => "id parse failed!", 6);
                                 }
                                 record.source_name = reader.GetString("source_name");
                                 object sourceIDObj = reader.GetValue(8);
                                 Int64 sourceIDParse = -1;
                                 if (Int64.TryParse(sourceIDObj.ToString(), out sourceIDParse))
                                 {
-                                    Log.Debug("source id parsed! " + sourceIDParse, 6);
+                                    Log.Debug(() => "source id parsed! " + sourceIDParse, 6);
                                     //Check if the player needs to be imported, or if they are already in the server
                                     AdKatsPlayer importedPlayer = FetchPlayer(false, true, false, null, sourceIDParse, null, null, null);
                                     if (importedPlayer == null)
@@ -30496,12 +30496,12 @@ namespace PRoConEvents
                                     AdKatsPlayer currentPlayer = null;
                                     if (!String.IsNullOrEmpty(importedPlayer.player_name) && _PlayerDictionary.TryGetValue(importedPlayer.player_name, out currentPlayer))
                                     {
-                                        Log.Debug("External player is currently in the server, using existing data.", 5);
+                                        Log.Debug(() => "External player is currently in the server, using existing data.", 5);
                                         record.source_player = currentPlayer;
                                     }
                                     else
                                     {
-                                        Log.Debug("External player is not in the server, fetching from database.", 5);
+                                        Log.Debug(() => "External player is not in the server, fetching from database.", 5);
                                         record.source_player = importedPlayer;
                                     }
                                     record.target_name = record.target_player.player_name;
@@ -30520,14 +30520,14 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching unread records from database.", e));
             }
 
-            Log.Debug("fetchUnreadRecords finished!", 6);
+            Log.Debug(() => "fetchUnreadRecords finished!", 6);
             return records;
         }
 
 
         private List<AdKatsPlayer> FetchExternalOnlinePlayers()
         {
-            Log.Debug("FetchExternalOnlinePlayers starting!", 6);
+            Log.Debug(() => "FetchExternalOnlinePlayers starting!", 6);
             //Create return list
             List<AdKatsPlayer> onlinePlayers = new List<AdKatsPlayer>();
             //Make sure database connection active
@@ -30590,13 +30590,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching external online players.", e));
             }
-            Log.Debug("FetchExternalOnlinePlayers finished!", 6);
+            Log.Debug(() => "FetchExternalOnlinePlayers finished!", 6);
             return onlinePlayers;
         }
 
         private AdKatsPlayer FetchMatchingExternalOnlinePlayer(String searchName)
         {
-            Log.Debug("FetchMatchingExternalOnlinePlayer starting!", 6);
+            Log.Debug(() => "FetchMatchingExternalOnlinePlayer starting!", 6);
             AdKatsPlayer aPlayer = null;
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
@@ -30662,13 +30662,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching matching external online from database.", e));
             }
-            Log.Debug("FetchMatchingExternalOnlinePlayer finished!", 6);
+            Log.Debug(() => "FetchMatchingExternalOnlinePlayer finished!", 6);
             return aPlayer;
         }
 
         private void RunPluginOrchestration()
         {
-            Log.Debug("RunPluginOrchestration starting!", 6);
+            Log.Debug(() => "RunPluginOrchestration starting!", 6);
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
             {
@@ -30676,7 +30676,7 @@ namespace PRoConEvents
             }
             try
             {
-                Log.Debug("Running plugin orchestration", 5);
+                Log.Debug(() => "Running plugin orchestration", 5);
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
@@ -30707,13 +30707,13 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while running plugin orchestration.", e));
             }
 
-            Log.Debug("RunPluginOrchestration finished!", 6);
+            Log.Debug(() => "RunPluginOrchestration finished!", 6);
         }
 
 
         private Int64 FetchNameBanCount()
         {
-            Log.Debug("fetchNameBanCount starting!", 7);
+            Log.Debug(() => "fetchNameBanCount starting!", 7);
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
             {
@@ -30756,14 +30756,14 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching number of id bans.", e));
             }
 
-            Log.Debug("fetchNameBanCount finished!", 7);
+            Log.Debug(() => "fetchNameBanCount finished!", 7);
             return -1;
         }
 
 
         private Int64 FetchGUIDBanCount()
         {
-            Log.Debug("fetchGUIDBanCount starting!", 7);
+            Log.Debug(() => "fetchGUIDBanCount starting!", 7);
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
             {
@@ -30806,14 +30806,14 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching number of GUID bans.", e));
             }
 
-            Log.Debug("fetchGUIDBanCount finished!", 7);
+            Log.Debug(() => "fetchGUIDBanCount finished!", 7);
             return -1;
         }
 
 
         private Int64 FetchIPBanCount()
         {
-            Log.Debug("fetchIPBanCount starting!", 7);
+            Log.Debug(() => "fetchIPBanCount starting!", 7);
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
             {
@@ -30856,13 +30856,13 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching number of IP bans.", e));
             }
 
-            Log.Debug("fetchIPBanCount finished!", 7);
+            Log.Debug(() => "fetchIPBanCount finished!", 7);
             return -1;
         }
 
         private void RemoveUser(AdKatsUser user)
         {
-            Log.Debug("removeUser starting!", 6);
+            Log.Debug(() => "removeUser starting!", 6);
             if (_databaseConnectionCriticalState)
             {
                 return;
@@ -30883,12 +30883,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while removing user.", e));
             }
-            Log.Debug("removeUser finished!", 6);
+            Log.Debug(() => "removeUser finished!", 6);
         }
 
         private void RemoveRole(AdKatsRole aRole)
         {
-            Log.Debug("removeRole starting!", 6);
+            Log.Debug(() => "removeRole starting!", 6);
             if (_databaseConnectionCriticalState)
             {
                 return;
@@ -30933,19 +30933,19 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while removing user.", e));
             }
-            Log.Debug("removeRole finished!", 6);
+            Log.Debug(() => "removeRole finished!", 6);
         }
 
         private void UploadUser(AdKatsUser aUser)
         {
-            Log.Debug("uploadUser starting!", 6);
+            Log.Debug(() => "uploadUser starting!", 6);
             if (_databaseConnectionCriticalState)
             {
                 return;
             }
             try
             {
-                Log.Debug("Uploading user: " + aUser.user_name, 5);
+                Log.Debug(() => "Uploading user: " + aUser.user_name, 5);
 
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
@@ -31013,7 +31013,7 @@ namespace PRoConEvents
                             {
                                 aUser.user_id = command.LastInsertedId;
                             }
-                            Log.Debug("User uploaded to database SUCCESSFULY.", 5);
+                            Log.Debug(() => "User uploaded to database SUCCESSFULY.", 5);
                         }
                         else
                         {
@@ -31059,7 +31059,7 @@ namespace PRoConEvents
                                 Int32 rowsAffected = SafeExecuteNonQuery(command);
                                 if (rowsAffected > 0)
                                 {
-                                    Log.Debug("Soldier link " + aUser.user_id + "->" + aPlayer.player_id + " uploaded to database SUCCESSFULY.", 5);
+                                    Log.Debug(() => "Soldier link " + aUser.user_id + "->" + aPlayer.player_id + " uploaded to database SUCCESSFULY.", 5);
                                 }
                                 else
                                 {
@@ -31076,7 +31076,7 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while updating player access.", e));
             }
 
-            Log.Debug("uploadUser finished!", 6);
+            Log.Debug(() => "uploadUser finished!", 6);
         }
 
         private void TryAddUserSoldier(AdKatsUser aUser, String soldierName)
@@ -31140,14 +31140,14 @@ namespace PRoConEvents
 
         private void UploadRole(AdKatsRole aRole)
         {
-            Log.Debug("uploadRole starting!", 6);
+            Log.Debug(() => "uploadRole starting!", 6);
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
             {
                 return;
             }
             try {
-                Log.Debug("Uploading role: " + aRole.role_name, 5);
+                Log.Debug(() => "Uploading role: " + aRole.role_name, 5);
 
                 //Open db connection
                 using (MySqlConnection connection = GetDatabaseConnection()) {
@@ -31180,7 +31180,7 @@ namespace PRoConEvents
                             if (aRole.role_id < 0) {
                                 aRole.role_id = command.LastInsertedId;
                             }
-                            Log.Debug("Role uploaded to database SUCCESSFULY.", 5);
+                            Log.Debug(() => "Role uploaded to database SUCCESSFULY.", 5);
                         } else {
                             Log.Error("Unable to upload role " + aRole.role_name + " to database.");
                             return;
@@ -31218,7 +31218,7 @@ namespace PRoConEvents
                             //Attempt to execute the query
                             Int32 rowsAffected = SafeExecuteNonQuery(command);
                             if (rowsAffected > 0) {
-                                Log.Debug("Role-command uploaded to database SUCCESSFULY.", 5);
+                                Log.Debug(() => "Role-command uploaded to database SUCCESSFULY.", 5);
                             } else {
                                 Log.Error("Unable to upload role-command for " + aRole.role_name + ".");
                                 return;
@@ -31256,7 +31256,7 @@ namespace PRoConEvents
                             //Attempt to execute the query
                             Int32 rowsAffected = SafeExecuteNonQuery(command);
                             if (rowsAffected > 0) {
-                                Log.Debug("Role-groups uploaded to database SUCCESSFULY.", 5);
+                                Log.Debug(() => "Role-groups uploaded to database SUCCESSFULY.", 5);
                             } else {
                                 Log.Error("Unable to upload role-group " + aGroup.group_key + " for " + aRole.role_name + ".");
                                 return;
@@ -31269,13 +31269,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while uploading role.", e));
             }
-            Log.Debug("uploadRole finished!", 6);
+            Log.Debug(() => "uploadRole finished!", 6);
         }
 
 
         private void UploadBan(AdKatsBan aBan)
         {
-            Log.Debug("uploadBan starting!", 6);
+            Log.Debug(() => "uploadBan starting!", 6);
 
             Boolean success = false;
             //Make sure database connection active
@@ -31389,7 +31389,7 @@ namespace PRoConEvents
                             if (SafeExecuteNonQuery(command) >= 0)
                             {
                                 //Rows affected should be > 0
-                                Log.Debug("Success Uploading Ban on player " + aBan.ban_record.target_player.player_id, 5);
+                                Log.Debug(() => "Success Uploading Ban on player " + aBan.ban_record.target_player.player_id, 5);
                                 success = true;
                             }
                         }
@@ -31425,7 +31425,7 @@ namespace PRoConEvents
                                             HandleException(aBan.ban_exception);
                                             return;
                                         }
-                                        Log.Debug("Ban ID: " + aBan.ban_id, 5);
+                                        Log.Debug(() => "Ban ID: " + aBan.ban_id, 5);
                                     }
                                     else
                                     {
@@ -31447,12 +31447,12 @@ namespace PRoConEvents
                     HandleException(new AdKatsException("Error while uploading new ban.", e));
                 }
             }
-            Log.Debug("uploadBan finished!", 6);
+            Log.Debug(() => "uploadBan finished!", 6);
         }
 
         private Boolean FetchMatchingPlayers(String playerName, out List<AdKatsPlayer> resultPlayers, Boolean verbose)
         {
-            Log.Debug("FetchMatchingPlayers starting!", 6);
+            Log.Debug(() => "FetchMatchingPlayers starting!", 6);
             resultPlayers = new List<AdKatsPlayer>();
             if (String.IsNullOrEmpty(playerName))
             {
@@ -31496,14 +31496,14 @@ namespace PRoConEvents
                     }
                 }
             }
-            Log.Debug("FetchMatchingPlayers finished!", 6);
+            Log.Debug(() => "FetchMatchingPlayers finished!", 6);
             return true;
         }
 
 
         private AdKatsPlayer FetchPlayer(Boolean allowUpdate, Boolean allowOtherGames, Boolean allowNameSubstringSearch, Int32? gameID, Int64 playerID, String playerName, String playerGUID, String playerIP)
         {
-            Log.Debug("fetchPlayer starting!", 6);
+            Log.Debug(() => "fetchPlayer starting!", 6);
             //Create return list
             AdKatsPlayer aPlayer = null;
             //Make sure database connection active
@@ -31533,10 +31533,10 @@ namespace PRoConEvents
                     {
                         if (_FetchedPlayers.ContainsKey(playerID))
                         {
-                            Log.Debug("Attempting to fetch player " + playerID + " from pre-fetch list.", 6);
+                            Log.Debug(() => "Attempting to fetch player " + playerID + " from pre-fetch list.", 6);
                             if (_FetchedPlayers.TryGetValue(playerID, out aPlayer))
                             {
-                                Log.Debug("Player " + playerID + " successfully fetched from pre-fetch list.", 6);
+                                Log.Debug(() => "Player " + playerID + " successfully fetched from pre-fetch list.", 6);
                                 aPlayer.LastUsage = UtcDbTime();
                                 return aPlayer;
                             }
@@ -31652,7 +31652,7 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    Log.Debug("No player matching search information. " + allowUpdate + ", " + allowOtherGames + ", " + ((gameID != null) ? (gameID + "") : ("No game ID")) + ", " + playerID + ", " + ((!String.IsNullOrEmpty(playerName)) ? (playerName) : ("No name search")) + ", " + ((!String.IsNullOrEmpty(playerGUID)) ? (playerGUID) : ("No GUID search")) + ", " + ((!String.IsNullOrEmpty(playerIP)) ? (playerIP) : ("No IP search")), 4);
+                                    Log.Debug(() => "No player matching search information. " + allowUpdate + ", " + allowOtherGames + ", " + ((gameID != null) ? (gameID + "") : ("No game ID")) + ", " + playerID + ", " + ((!String.IsNullOrEmpty(playerName)) ? (playerName) : ("No name search")) + ", " + ((!String.IsNullOrEmpty(playerGUID)) ? (playerGUID) : ("No GUID search")) + ", " + ((!String.IsNullOrEmpty(playerIP)) ? (playerIP) : ("No IP search")), 4);
                                 }
                             }
                         }
@@ -31660,7 +31660,7 @@ namespace PRoConEvents
                         {
                             if (aPlayer == null)
                             {
-                                Log.Debug("Adding player to database.", 5);
+                                Log.Debug(() => "Adding player to database.", 5);
                                 using (MySqlCommand command = connection.CreateCommand())
                                 {
                                     Int32? useableGameID = null;
@@ -31742,7 +31742,7 @@ namespace PRoConEvents
                                     record_time = UtcDbTime()
                                 };
                                 QueueRecordForProcessing(record);
-                                Log.Debug(aPlayer.player_name_previous + " changed their name to " + playerName + ". Updating the database.", 2);
+                                Log.Debug(() => aPlayer.player_name_previous + " changed their name to " + playerName + ". Updating the database.", 2);
                                 if (_ShowPlayerNameChangeAnnouncement)
                                 {
                                     OnlineAdminSayMessage(aPlayer.player_name_previous + " changed their name to " + playerName);
@@ -31786,7 +31786,7 @@ namespace PRoConEvents
                                     else
                                     {
                                         aPlayer.player_firstseen = UtcDbTime();
-                                        Log.Debug("No stats found to fetch first seen time.", 5);
+                                        Log.Debug(() => "No stats found to fetch first seen time.", 5);
                                     }
                                 }
                             }
@@ -31816,7 +31816,7 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        Log.Debug("No stats found to fetch time on server.", 5);
+                                        Log.Debug(() => "No stats found to fetch time on server.", 5);
                                     }
                                 }
                             }
@@ -31840,7 +31840,7 @@ namespace PRoConEvents
                     HandleException(new AdKatsException("Error while fetching player.", e));
                 }
             }
-            Log.Debug("fetchPlayer finished!", 6);
+            Log.Debug(() => "fetchPlayer finished!", 6);
             if (aPlayer != null)
             {
                 aPlayer.LastUsage = UtcDbTime();
@@ -31850,7 +31850,7 @@ namespace PRoConEvents
 
         private AdKatsPlayer UpdatePlayer(AdKatsPlayer aPlayer)
         {
-            Log.Debug("updatePlayer starting!", 6);
+            Log.Debug(() => "updatePlayer starting!", 6);
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
             {
@@ -31887,7 +31887,7 @@ namespace PRoConEvents
                             //Attempt to execute the query
                             if (SafeExecuteNonQuery(command) > 0)
                             {
-                                Log.Debug("Update player info success.", 5);
+                                Log.Debug(() => "Update player info success.", 5);
                             }
                         }
                     }
@@ -31897,13 +31897,13 @@ namespace PRoConEvents
                     HandleException(new AdKatsException("Error while updating player.", e));
                 }
             }
-            Log.Debug("updatePlayer finished!", 6);
+            Log.Debug(() => "updatePlayer finished!", 6);
             return aPlayer;
         }
 
         private void UpdateBaserapeCausingPlayers()
         {
-            Log.Debug("UpdateBaserapeCausingPlayers starting!", 6);
+            Log.Debug(() => "UpdateBaserapeCausingPlayers starting!", 6);
             try
             {
                 List<Int64> validIDs = new List<Int64>();
@@ -31950,11 +31950,11 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching baserape causing players", e));
             }
-            Log.Debug("UpdateBaserapeCausingPlayers finished!", 6);
+            Log.Debug(() => "UpdateBaserapeCausingPlayers finished!", 6);
         }
 
         private List<AdKatsPlayer> GetBaserapeCausingPlayers(TimeSpan duration, Int32 minBaserapes) {
-            Log.Debug("GetBaserapeCausingPlayers starting!", 6);
+            Log.Debug(() => "GetBaserapeCausingPlayers starting!", 6);
             List<AdKatsPlayer> resultPlayers = new List<AdKatsPlayer>();
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
@@ -32074,12 +32074,12 @@ namespace PRoConEvents
             } catch (Exception e) {
                 HandleException(new AdKatsException("Error while fetching baserape causing players", e));
             }
-            Log.Debug("GetBaserapeCausingPlayers finished!", 6);
+            Log.Debug(() => "GetBaserapeCausingPlayers finished!", 6);
             return resultPlayers;
         }
 
         private void UpdateTopPlayers() {
-            Log.Debug("UpdateTopPlayers starting!", 6);
+            Log.Debug(() => "UpdateTopPlayers starting!", 6);
             try {
                 List<Int64> validIDs = new List<Int64>();
                 lock (_topPlayers) {
@@ -32108,11 +32108,11 @@ namespace PRoConEvents
             } catch (Exception e) {
                 HandleException(new AdKatsException("Error while fetching top players", e));
             }
-            Log.Debug("UpdateTopPlayers finished!", 6);
+            Log.Debug(() => "UpdateTopPlayers finished!", 6);
         }
 
         private List<AdKatsPlayer> GetTopPlayers(TimeSpan duration, Int32 minTops) {
-            Log.Debug("GetTopPlayers starting!", 6);
+            Log.Debug(() => "GetTopPlayers starting!", 6);
             List<AdKatsPlayer> resultPlayers = new List<AdKatsPlayer>();
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
@@ -32213,13 +32213,13 @@ namespace PRoConEvents
             } catch (Exception e) {
                 HandleException(new AdKatsException("Error while fetching top players", e));
             }
-            Log.Debug("GetTopPlayers finished!", 6);
+            Log.Debug(() => "GetTopPlayers finished!", 6);
             return resultPlayers;
         }
 
         private void UpdatePopulatorPlayers()
         {
-            Log.Debug("UpdatePopulatingPlayers starting!", 6);
+            Log.Debug(() => "UpdatePopulatingPlayers starting!", 6);
             try
             {
                 //List for current valid populator player IDs
@@ -32301,12 +32301,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching baserape causing players", e));
             }
-            Log.Debug("UpdatePopulatingPlayers finished!", 6);
+            Log.Debug(() => "UpdatePopulatingPlayers finished!", 6);
         }
 
         private List<AdKatsPlayer> GetPopulatingPlayers(TimeSpan duration, Int32 minPopulations, Boolean thisServerOnly)
         {
-            Log.Debug("GetPopulatingPlayers starting!", 6);
+            Log.Debug(() => "GetPopulatingPlayers starting!", 6);
             List<AdKatsPlayer> resultPlayers = new List<AdKatsPlayer>();
             try
             {
@@ -32387,13 +32387,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching populating players", e));
             }
-            Log.Debug("GetPopulatingPlayers finished!", 6);
+            Log.Debug(() => "GetPopulatingPlayers finished!", 6);
             return resultPlayers;
         }
 
         private AdKatsBan FetchBanByID(Int64 ban_id)
         {
-            Log.Debug("FetchBanByID starting!", 6);
+            Log.Debug(() => "FetchBanByID starting!", 6);
             AdKatsBan aBan = null;
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
@@ -32457,7 +32457,7 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching ban.", e));
             }
-            Log.Debug("FetchBanByID finished!", 6);
+            Log.Debug(() => "FetchBanByID finished!", 6);
             return aBan;
         }
 
@@ -32512,7 +32512,7 @@ namespace PRoConEvents
         
         private List<AdKatsBan> FetchPlayerBans(AdKatsPlayer player)
         {
-            Log.Debug("FetchPlayerBans starting!", 6);
+            Log.Debug(() => "FetchPlayerBans starting!", 6);
             List<AdKatsBan> aBanList = new List<AdKatsBan>();
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
@@ -32650,14 +32650,14 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching player ban.", e));
             }
-            Log.Debug("FetchPlayerBans finished!", 6);
+            Log.Debug(() => "FetchPlayerBans finished!", 6);
             return aBanList;
         }
 
 
         private List<AdKatsBan> FetchMatchingBans(String playerSubstring, Int64 searchLimit)
         {
-            Log.Debug("FetchMatchingBans starting!", 6);
+            Log.Debug(() => "FetchMatchingBans starting!", 6);
             List<AdKatsBan> aBanList = new List<AdKatsBan>();
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
@@ -32719,7 +32719,7 @@ namespace PRoConEvents
 
         private void RepopulateProconBanList()
         {
-            Log.Debug("repopulateProconBanList starting!", 6);
+            Log.Debug(() => "repopulateProconBanList starting!", 6);
             Log.Info("Downloading bans from database, please wait. This might take several minutes depending on your ban count!");
 
             //Make sure database connection active
@@ -32841,7 +32841,7 @@ namespace PRoConEvents
                             long totalBanSeconds = (long)aBan.ban_endTime.Subtract(UtcDbTime()).TotalSeconds;
                             if (totalBanSeconds > 0)
                             {
-                                Log.Debug("Re-ProconBanning: " + aBan.ban_record.GetTargetNames() + " for " + totalBanSeconds + "sec for " + aBan.ban_record.record_message, 4);
+                                Log.Debug(() => "Re-ProconBanning: " + aBan.ban_record.GetTargetNames() + " for " + totalBanSeconds + "sec for " + aBan.ban_record.record_message, 4);
 
                                 //Push the id ban
                                 if (aBan.ban_enforceName)
@@ -32915,7 +32915,7 @@ namespace PRoConEvents
 
         private Boolean UpdateBanStatus(AdKatsBan aBan)
         {
-            Log.Debug("updateBanStatus starting!", 6);
+            Log.Debug(() => "updateBanStatus starting!", 6);
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
             {
@@ -32964,7 +32964,7 @@ namespace PRoConEvents
                 }
             }
 
-            Log.Debug("updateBanStatus finished!", 6);
+            Log.Debug(() => "updateBanStatus finished!", 6);
             return success;
         }
 
@@ -33023,7 +33023,7 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
-                        Log.Debug("Creating query to import BBM5108", 3);
+                        Log.Debug(() => "Creating query to import BBM5108", 3);
                         command.CommandText = @"
                         SELECT 
                             soldiername, eaguid, ban_length, ban_duration, ban_reason 
@@ -33041,7 +33041,7 @@ namespace PRoConEvents
                             {
                                 if (!told)
                                 {
-                                    Log.Debug("BBM5108 bans found, grabbing.", 3);
+                                    Log.Debug(() => "BBM5108 bans found, grabbing.", 3);
                                     told = true;
                                 }
                                 BBM5108Ban bbmBan = new BBM5108Ban
@@ -33089,14 +33089,14 @@ namespace PRoConEvents
                     record.record_source = AdKatsRecord.Sources.InternalAutomated;
                     if (bbmBan.ban_length == "permanent")
                     {
-                        Log.Debug("Ban is permanent", 4);
+                        Log.Debug(() => "Ban is permanent", 4);
                         record.command_type = GetCommandByKey("player_ban_perm");
                         record.command_action = GetCommandByKey("player_ban_perm");
                         record.command_numeric = 0;
                     }
                     else if (bbmBan.ban_length == "seconds")
                     {
-                        Log.Debug("Ban is temporary", 4);
+                        Log.Debug(() => "Ban is temporary", 4);
                         record.command_type = GetCommandByKey("player_ban_temp");
                         record.command_action = GetCommandByKey("player_ban_temp");
                         record.command_numeric = (Int32)(bbmBan.ban_duration - UtcDbTime()).TotalMinutes;
@@ -33104,7 +33104,7 @@ namespace PRoConEvents
                     else
                     {
                         //Ignore all other cases e.g. round bans
-                        Log.Debug("Ban type '" + bbmBan.ban_length + "' not usable", 3);
+                        Log.Debug(() => "Ban type '" + bbmBan.ban_length + "' not usable", 3);
                         continue;
                     }
 
@@ -33138,7 +33138,7 @@ namespace PRoConEvents
                     }
 
                     //Upload the ban
-                    Log.Debug("Uploading Ban Manager ban.", 5);
+                    Log.Debug(() => "Uploading Ban Manager ban.", 5);
                     UploadBan(aBan);
 
                     if (++bansImported % 25 == 0)
@@ -33161,7 +33161,7 @@ namespace PRoConEvents
 
         private Boolean CanPunish(AdKatsRecord record, Int32 duration)
         {
-            Log.Debug("canPunish starting!", 6);
+            Log.Debug(() => "canPunish starting!", 6);
             if (duration < 1)
             {
                 Log.Error("CanPunish duration must be positive.");
@@ -33203,7 +33203,7 @@ namespace PRoConEvents
                         {
                             if (reader.Read())
                             {
-                                Log.Debug("can't upload punish", 6);
+                                Log.Debug(() => "can't upload punish", 6);
                                 return false;
                             }
                             return true;
@@ -33222,7 +33222,7 @@ namespace PRoConEvents
 
         private Boolean FetchIROStatus(AdKatsRecord record)
         {
-            Log.Debug("FetchIROStatus starting!", 6);
+            Log.Debug(() => "FetchIROStatus starting!", 6);
             try
             {
                 //TODO: Add check for multiple targets
@@ -33262,7 +33262,7 @@ namespace PRoConEvents
                         {
                             if (reader.Read())
                             {
-                                Log.Debug("Punish is Double counted", 6);
+                                Log.Debug(() => "Punish is Double counted", 6);
                                 return true;
                             }
                             return false;
@@ -33281,7 +33281,7 @@ namespace PRoConEvents
 
         private void RunActionsFromDB()
         {
-            Log.Debug("runActionsFromDB starting!", 7);
+            Log.Debug(() => "runActionsFromDB starting!", 7);
             //Make sure database connection active
             if (_databaseConnectionCriticalState || !_firstPlayerListComplete)
             {
@@ -33310,7 +33310,7 @@ namespace PRoConEvents
             {
                 return (returnVal > 0) ? (returnVal) : (0);
             }
-            Log.Debug("FetchPoints starting!", 6);
+            Log.Debug(() => "FetchPoints starting!", 6);
             try
             {
                 using (MySqlConnection connection = GetDatabaseConnection())
@@ -33340,13 +33340,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while getting infraction points for player.", e));
             }
-            Log.Debug("FetchPoints finished!", 6);
+            Log.Debug(() => "FetchPoints finished!", 6);
             return (returnVal > 0) ? (returnVal) : (0);
         }
 
         private List<KeyValuePair<DateTime, KeyValuePair<String, String>>> FetchConversation(Int64 player1_id, Int64 player2_id, Int64 limit_lines, Int64 limit_days)
         {
-            Log.Debug("FetchConversation starting!", 6);
+            Log.Debug(() => "FetchConversation starting!", 6);
 
             List<KeyValuePair<DateTime, KeyValuePair<string, string>>> pchat = new List<KeyValuePair<DateTime, KeyValuePair<String, String>>>();
             //Make sure database connection active
@@ -33402,13 +33402,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while getting conversation for player.", e));
             }
-            Log.Debug("FetchConversation finished!", 6);
+            Log.Debug(() => "FetchConversation finished!", 6);
             return pchat;
         }
 
         private List<KeyValuePair<DateTime, String>> FetchChat(Int64 player_id, Int64 limit_lines, Int64 limit_days)
         {
-            Log.Debug("FetchChat starting!", 6);
+            Log.Debug(() => "FetchChat starting!", 6);
 
             List<KeyValuePair<DateTime, string>> pchat = new List<KeyValuePair<DateTime, String>>();
             //Make sure database connection active
@@ -33458,13 +33458,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while getting conversation for player.", e));
             }
-            Log.Debug("FetchChat finished!", 6);
+            Log.Debug(() => "FetchChat finished!", 6);
             return pchat;
         }
 
         private void FetchCommands()
         {
-            Log.Debug("fetchCommands starting!", 6);
+            Log.Debug(() => "fetchCommands starting!", 6);
             Boolean displayUpdate = false;
             if (_databaseConnectionCriticalState)
             {
@@ -34435,7 +34435,7 @@ namespace PRoConEvents
                 }
                 UpdateSettingPage();
             }
-            Log.Debug("fetchCommands finished!", 6);
+            Log.Debug(() => "fetchCommands finished!", 6);
         }
 
         private void FillCommandDescDictionary()
@@ -34567,7 +34567,7 @@ namespace PRoConEvents
 
         private void FetchRoles()
         {
-            Log.Debug("fetchRoles starting!", 6);
+            Log.Debug(() => "fetchRoles starting!", 6);
             Boolean displayUpdate = false;
             if (_databaseConnectionCriticalState)
             {
@@ -34870,7 +34870,7 @@ namespace PRoConEvents
                 }
                 UpdateSettingPage();
             }
-            Log.Debug("fetchRoles finished!", 6);
+            Log.Debug(() => "fetchRoles finished!", 6);
         }
 
         private void FillConditionalAllowedCommands(AdKatsRole aRole)
@@ -34905,7 +34905,7 @@ namespace PRoConEvents
 
         private void FetchUserList()
         {
-            Log.Debug("fetchUserList starting!", 6);
+            Log.Debug(() => "fetchUserList starting!", 6);
             if (_databaseConnectionCriticalState)
             {
                 return;
@@ -35025,7 +35025,7 @@ namespace PRoConEvents
                             }
                         }
                     }
-                    Log.Debug("User fetch (Users) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+                    Log.Debug(() => "User fetch (Users) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
                     start = UtcDbTime();
                     using (MySqlCommand command = connection.CreateCommand())
                     {
@@ -35166,7 +35166,7 @@ namespace PRoConEvents
                             }
                         }
                     }
-                    Log.Debug("User fetch (User Soldiers) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+                    Log.Debug(() => "User fetch (User Soldiers) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
                     start = UtcDbTime();
                     lock (_baseSpecialPlayerCache)
                     {
@@ -35625,7 +35625,7 @@ namespace PRoConEvents
                             }
                             _verboseSpecialPlayerCache.Remove(removeKey);
                         }
-                        Log.Debug("User fetch (Special Player Fetch) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+                        Log.Debug(() => "User fetch (Special Player Fetch) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
                     }
                 }
             }
@@ -35658,7 +35658,7 @@ namespace PRoConEvents
             ExecuteCommand("procon.protected.send", "spectatorList.list");
             Thread.Sleep(50);
             UpdateSpectatorList();
-            Log.Debug("User fetch (Orchestration) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+            Log.Debug(() => "User fetch (Orchestration) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
             start = UtcDbTime();
             _lastUserFetch = UtcDbTime();
             if (!_firstUserListComplete)
@@ -35678,7 +35678,7 @@ namespace PRoConEvents
             {
                 if (_userCache.Count > 0)
                 {
-                    Log.Debug("User List Fetched from Database. [" + _userCache.Count + " users, " + _baseSpecialPlayerCache.Count + " Special Players]", 1);
+                    Log.Debug(() => "User List Fetched from Database. [" + _userCache.Count + " users, " + _baseSpecialPlayerCache.Count + " Special Players]", 1);
                 }
                 else
                 {
@@ -35689,7 +35689,7 @@ namespace PRoConEvents
                 Log.Info("35528");
             }
             UpdateSettingPage();
-            Log.Debug("fetchUserList finished!", 6);
+            Log.Debug(() => "fetchUserList finished!", 6);
         }
 
         private Boolean AssignPlayerRole(AdKatsPlayer aPlayer)
@@ -35711,11 +35711,11 @@ namespace PRoConEvents
             {
                 if (authorized)
                 {
-                    Log.Debug("Player " + aPlayer.player_name + " has been assigned authorized role " + aRole.role_name + ".", 4);
+                    Log.Debug(() => "Player " + aPlayer.player_name + " has been assigned authorized role " + aRole.role_name + ".", 4);
                 }
                 else
                 {
-                    Log.Debug("Player " + aPlayer.player_name + " has been assigned the guest role.", 4);
+                    Log.Debug(() => "Player " + aPlayer.player_name + " has been assigned the guest role.", 4);
                 }
             }
             else
@@ -35724,12 +35724,12 @@ namespace PRoConEvents
                 {
                     if (authorized)
                     {
-                        Log.Debug("Role for authorized player " + aPlayer.player_name + " has been CHANGED to " + aRole.role_name + ".", 4);
+                        Log.Debug(() => "Role for authorized player " + aPlayer.player_name + " has been CHANGED to " + aRole.role_name + ".", 4);
                         PlayerSayMessage(aPlayer.player_name, "You have been assigned the authorized role " + aRole.role_name + ".");
                     }
                     else
                     {
-                        Log.Debug("Player " + aPlayer.player_name + " has been assigned the guest role.", 4);
+                        Log.Debug(() => "Player " + aPlayer.player_name + " has been assigned the guest role.", 4);
                         PlayerSayMessage(aPlayer.player_name, "You have been assigned the guest role.");
                     }
                 }
@@ -35738,14 +35738,14 @@ namespace PRoConEvents
             AssignPlayerAdminAssistant(aPlayer);
             if (aPlayer.player_aa)
             {
-                Log.Debug(aPlayer.player_name + " IS an Admin Assistant.", 3);
+                Log.Debug(() => aPlayer.player_name + " IS an Admin Assistant.", 3);
             }
             return authorized;
         }
 
         private void AssignPlayerAdminAssistant(AdKatsPlayer aPlayer)
         {
-            Log.Debug("PlayerIsAdminAssistant starting!", 7);
+            Log.Debug(() => "PlayerIsAdminAssistant starting!", 7);
             if (!_EnableAdminAssistants)
             {
                 aPlayer.player_aa = false;
@@ -35818,13 +35818,13 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while checking if player is an admin assistant.", e));
             }
-            Log.Debug("PlayerIsAdminAssistant finished!", 7);
+            Log.Debug(() => "PlayerIsAdminAssistant finished!", 7);
         }
 
 
         private Boolean FetchDBServerInfo()
         {
-            Log.Debug("FetchDBServerInfo starting!", 6);
+            Log.Debug(() => "FetchDBServerInfo starting!", 6);
 
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
@@ -35856,7 +35856,7 @@ namespace PRoConEvents
                                 _serverInfo.ServerGroup = reader.GetInt64("server_group");
                                 _serverInfo.ServerName = reader.GetString("server_name");
                                 _settingImportID = _serverInfo.ServerID;
-                                Log.Debug("Server ID fetched: " + _serverInfo.ServerID, 1);
+                                Log.Debug(() => "Server ID fetched: " + _serverInfo.ServerID, 1);
                                 return true;
                             }
                         }
@@ -35868,13 +35868,13 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching server ID from database.", e));
             }
 
-            Log.Debug("FetchDBServerInfo finished!", 6);
+            Log.Debug(() => "FetchDBServerInfo finished!", 6);
             return false;
         }
 
         private Int64 FetchServerGroup(Int64 serverID)
         {
-            Log.Debug("fetchServerGroup starting!", 6);
+            Log.Debug(() => "fetchServerGroup starting!", 6);
 
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
@@ -35911,13 +35911,13 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching server group from database for server " + serverID + ".", e));
             }
 
-            Log.Debug("fetchServerGroup finished!", 6);
+            Log.Debug(() => "fetchServerGroup finished!", 6);
             return -1;
         }
 
         private Boolean DebugDatabaseConnectionActive()
         {
-            Log.Debug("DebugDatabaseConnectionActive starting!", 8);
+            Log.Debug(() => "DebugDatabaseConnectionActive starting!", 8);
 
             Boolean active = true;
 
@@ -35955,7 +35955,7 @@ namespace PRoConEvents
                 //If the connection took longer than 10 seconds also say the database is disconnected
                 active = false;
             }
-            Log.Debug("DebugDatabaseConnectionActive finished!", 8);
+            Log.Debug(() => "DebugDatabaseConnectionActive finished!", 8);
             return active;
         }
 
@@ -36218,7 +36218,7 @@ namespace PRoConEvents
                 {
                     return;
                 }
-                Log.Debug("Checking validity of reserved slotted players.", 6);
+                Log.Debug(() => "Checking validity of reserved slotted players.", 6);
                 List<string> allowedReservedSlotPlayers = new List<string>();
                 //Pull players from special player cache
                 List<AdKatsSpecialPlayer> reservedPlayers = GetVerboseASPlayersOfGroup("slot_reserved");
@@ -36259,7 +36259,7 @@ namespace PRoConEvents
                 {
                     if (!allowedReservedSlotPlayers.Contains(playerName))
                     {
-                        Log.Debug(playerName + " in server reserved slots, but not in allowed reserved players. Removing.", 3);
+                        Log.Debug(() => playerName + " in server reserved slots, but not in allowed reserved players. Removing.", 3);
                         ExecuteCommand("procon.protected.send", "reservedSlotsList.remove", playerName);
                         _threadMasterWaitHandle.WaitOne(5);
                     }
@@ -36269,7 +36269,7 @@ namespace PRoConEvents
                 {
                     if (!_CurrentReservedSlotPlayers.Contains(playerName))
                     {
-                        Log.Debug(playerName + " in allowed reserved players, but not in server reserved slots. Adding.", 3);
+                        Log.Debug(() => playerName + " in allowed reserved players, but not in server reserved slots. Adding.", 3);
                         ExecuteCommand("procon.protected.send", "reservedSlotsList.add", playerName);
                         _threadMasterWaitHandle.WaitOne(5);
                     }
@@ -36289,7 +36289,7 @@ namespace PRoConEvents
         {
             try
             {
-                Log.Debug("Reserved slots listed.", 5);
+                Log.Debug(() => "Reserved slots listed.", 5);
                 _CurrentReservedSlotPlayers = soldierNames;
             }
             catch (Exception e)
@@ -36300,14 +36300,14 @@ namespace PRoConEvents
 
         private void UpdateSpectatorList()
         {
-            Log.Debug("Entering UpdateSpectatorList", 6);
+            Log.Debug(() => "Entering UpdateSpectatorList", 6);
             try
             {
                 if (!_FeedServerSpectatorList || _CurrentSpectatorListPlayers == null)
                 {
                     return;
                 }
-                Log.Debug("Updating spectator list players.", 6);
+                Log.Debug(() => "Updating spectator list players.", 6);
                 List<string> allowedSpectatorSlotPlayers = new List<string>();
                 //Pull players from special player cache
                 List<AdKatsSpecialPlayer> spectators = GetVerboseASPlayersOfGroup("slot_spectator");
@@ -36338,14 +36338,14 @@ namespace PRoConEvents
                         }
                         if (!allowedSpectatorSlotPlayers.Contains(playerIdentifier))
                         {
-                            Log.Debug("Valid slot_spectator " + playerIdentifier + " fetched.", 5);
+                            Log.Debug(() => "Valid slot_spectator " + playerIdentifier + " fetched.", 5);
                             allowedSpectatorSlotPlayers.Add(playerIdentifier);
                         }
                     }
                 }
                 else
                 {
-                    Log.Debug("No players under special player group slot_spectator.", 5);
+                    Log.Debug(() => "No players under special player group slot_spectator.", 5);
                 }
                 //All players fetched, update the server lists
                 //Remove soldiers from the list where needed
@@ -36353,7 +36353,7 @@ namespace PRoConEvents
                 {
                     if (!allowedSpectatorSlotPlayers.Contains(playerName))
                     {
-                        Log.Debug(playerName + " in server spectator slots, but not in allowed spectator players. Removing.", 3);
+                        Log.Debug(() => playerName + " in server spectator slots, but not in allowed spectator players. Removing.", 3);
                         ExecuteCommand("procon.protected.send", "spectatorList.remove", playerName);
                         _threadMasterWaitHandle.WaitOne(5);
                     }
@@ -36363,7 +36363,7 @@ namespace PRoConEvents
                 {
                     if (!_CurrentSpectatorListPlayers.Contains(playerName))
                     {
-                        Log.Debug(playerName + " in allowed spectator players, but not in server spectator slots. Adding.", 3);
+                        Log.Debug(() => playerName + " in allowed spectator players, but not in server spectator slots. Adding.", 3);
                         ExecuteCommand("procon.protected.send", "spectatorList.add", playerName);
                         _threadMasterWaitHandle.WaitOne(5);
                     }
@@ -36372,20 +36372,20 @@ namespace PRoConEvents
                 ExecuteCommand("procon.protected.send", "spectatorList.save");
                 //Display the list
                 ExecuteCommand("procon.protected.send", "spectatorList.list");
-                Log.Debug("DONE checking validity of spectator list players.", 6);
+                Log.Debug(() => "DONE checking validity of spectator list players.", 6);
             }
             catch (Exception e)
             {
                 HandleException(new AdKatsException("Error while updating server spectator list.", e));
             }
-            Log.Debug("Exiting UpdateSpectatorList", 6);
+            Log.Debug(() => "Exiting UpdateSpectatorList", 6);
         }
 
         public override void OnSpectatorListList(List<String> soldierNames)
         {
             try
             {
-                Log.Debug("Spectators listed.", 5);
+                Log.Debug(() => "Spectators listed.", 5);
                 _CurrentSpectatorListPlayers = soldierNames;
             }
             catch (Exception e)
@@ -36421,7 +36421,7 @@ namespace PRoConEvents
 
         public void IssueCommand(params String[] commandParams)
         {
-            Log.Debug("IssueCommand starting!", 6);
+            Log.Debug(() => "IssueCommand starting!", 6);
             try
             {
                 if (!_threadsReady)
@@ -36439,12 +36439,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while starting external command processing.", e));
             }
-            Log.Debug("IssueCommand finished!", 6);
+            Log.Debug(() => "IssueCommand finished!", 6);
         }
 
         private void ParseExternalCommand(Object commandParams)
         {
-            Log.Debug("ParseExternalCommand starting!", 6);
+            Log.Debug(() => "ParseExternalCommand starting!", 6);
             try
             {
                 //Set current thread id
@@ -36645,12 +36645,12 @@ namespace PRoConEvents
                 //Log the error in console
                 HandleException(new AdKatsException("Unable to process external command.", e));
             }
-            Log.Debug("ParseExternalCommand finished!", 6);
+            Log.Debug(() => "ParseExternalCommand finished!", 6);
         }
 
         public void FetchAuthorizedSoldiers(params String[] commandParams)
         {
-            Log.Debug("FetchAuthorizedSoldiers starting!", 6);
+            Log.Debug(() => "FetchAuthorizedSoldiers starting!", 6);
             if (!commandParams.Any())
             {
                 Log.Error("Authorized soldier fetch canceled. No parameters were provided.");
@@ -36663,12 +36663,12 @@ namespace PRoConEvents
             }
             //TODO add logging for this
             new Thread(SendAuthorizedSoldiers).Start(commandParams[1]);
-            Log.Debug("FetchAuthorizedSoldiers finished!", 6);
+            Log.Debug(() => "FetchAuthorizedSoldiers finished!", 6);
         }
 
         private void SendAuthorizedSoldiers(Object clientInformation)
         {
-            Log.Debug("SendAuthorizedSoldiers starting!", 6);
+            Log.Debug(() => "SendAuthorizedSoldiers starting!", 6);
             try
             {
                 //Set current thread id
@@ -36770,7 +36770,7 @@ namespace PRoConEvents
                     string subset = (String)parsedClientInformation["user_subset"];
                     if (String.IsNullOrEmpty(subset))
                     {
-                        Log.Debug("user_subset was found in request, but it was empty. Unable to process soldier fetch.", 3);
+                        Log.Debug(() => "user_subset was found in request, but it was empty. Unable to process soldier fetch.", 3);
                         return;
                     }
                     switch (subset)
@@ -36818,7 +36818,7 @@ namespace PRoConEvents
                 //Log the error in console
                 HandleException(new AdKatsException("Error returning authorized soldiers .", e));
             }
-            Log.Debug("SendAuthorizedSoldiers finished!", 6);
+            Log.Debug(() => "SendAuthorizedSoldiers finished!", 6);
         }
 
         private Boolean SubscribeClient(AdKatsClient aClient)
@@ -36878,7 +36878,7 @@ namespace PRoConEvents
 
         public void ReceiveLoadoutValidity(params String[] informationParams)
         {
-            Log.Debug("ReceiveLoadoutValidity starting!", 6);
+            Log.Debug(() => "ReceiveLoadoutValidity starting!", 6);
             try
             {
                 if (!informationParams.Any())
@@ -37018,12 +37018,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while processing loadout validity.", e));
             }
-            Log.Debug("ReceiveLoadoutValidity finished!", 6);
+            Log.Debug(() => "ReceiveLoadoutValidity finished!", 6);
         }
 
         public void SubscribeAsClient(params String[] subscriptionParams)
         {
-            Log.Debug("SubscribeAsClient starting!", 6);
+            Log.Debug(() => "SubscribeAsClient starting!", 6);
             if (!subscriptionParams.Any())
             {
                 Log.Error("SubscribeAsClient canceled. No parameters were provided.");
@@ -37128,12 +37128,12 @@ namespace PRoConEvents
                 UnsubscribeClient(aClient);
             }
 
-            Log.Debug("SubscribeAsClient finished!", 6);
+            Log.Debug(() => "SubscribeAsClient finished!", 6);
         }
 
         private Boolean SendOnlineSoldiers()
         {
-            Log.Debug("SendOnlineSoldiers starting!", 6);
+            Log.Debug(() => "SendOnlineSoldiers starting!", 6);
             Stopwatch timer = new Stopwatch();
             try
             {
@@ -37205,7 +37205,7 @@ namespace PRoConEvents
                 }
                 if (timer.ElapsedMilliseconds > 500)
                 {
-                    Log.Debug("SendOnlineSoldiers build took " + timer.ElapsedMilliseconds + "ms.", 4);
+                    Log.Debug(() => "SendOnlineSoldiers build took " + timer.ElapsedMilliseconds + "ms.", 4);
                 }
 
                 foreach (AdKatsClient client in
@@ -37217,7 +37217,7 @@ namespace PRoConEvents
                         timer.Stop();
                         if (timer.ElapsedMilliseconds > 500)
                         {
-                            Log.Debug("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
+                            Log.Debug(() => "SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
                         }
                         return false;
                     }
@@ -37227,7 +37227,7 @@ namespace PRoConEvents
                         timer.Stop();
                         if (timer.ElapsedMilliseconds > 500)
                         {
-                            Log.Debug("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
+                            Log.Debug(() => "SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
                         }
                         return false;
                     }
@@ -37237,7 +37237,7 @@ namespace PRoConEvents
                         timer.Stop();
                         if (timer.ElapsedMilliseconds > 500)
                         {
-                            Log.Debug("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
+                            Log.Debug(() => "SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
                         }
                         return false;
                     }
@@ -37254,7 +37254,7 @@ namespace PRoConEvents
                 timer.Stop();
                 if (timer.ElapsedMilliseconds > 500)
                 {
-                    Log.Debug("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
+                    Log.Debug(() => "SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
                 }
                 return true;
             }
@@ -37262,11 +37262,11 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error sending online soldiers.", e));
             }
-            Log.Debug("SendOnlineSoldiers finished!", 6);
+            Log.Debug(() => "SendOnlineSoldiers finished!", 6);
             timer.Stop();
             if (timer.ElapsedMilliseconds > 500)
             {
-                Log.Debug("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
+                Log.Debug(() => "SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
             }
             return false;
         }
@@ -37307,7 +37307,7 @@ namespace PRoConEvents
                     return false;
                 }
                 if (_gameVersion == GameVersion.BF3) {
-                    Log.Debug("Preparing to fetch battlelog info for BF3 player " + aPlayer.GetVerboseName(), 7);
+                    Log.Debug(() => "Preparing to fetch battlelog info for BF3 player " + aPlayer.GetVerboseName(), 7);
                     using (WebClient client = new WebClient())
                     {
                         try
@@ -37321,22 +37321,22 @@ namespace PRoConEvents
                                 return false;
                             }
                             aPlayer.player_personaID = pid.Groups[1].Value.Trim();
-                            Log.Debug("Persona ID fetched for " + aPlayer.player_name, 4);
+                            Log.Debug(() => "Persona ID fetched for " + aPlayer.player_name, 4);
                             Match tag = Regex.Match(response, @"\[\s*([a-zA-Z0-9]+)\s*\]\s*" + aPlayer.player_name, RegexOptions.IgnoreCase | RegexOptions.Singleline);
                             if (!tag.Success || String.IsNullOrEmpty(tag.Groups[1].Value.Trim()))
                             {
-                                Log.Debug("Could not find BF3 clan tag for " + aPlayer.player_name, 4);
+                                Log.Debug(() => "Could not find BF3 clan tag for " + aPlayer.player_name, 4);
                             }
                             else
                             {
                                 aPlayer.player_clanTag = tag.Groups[1].Value.Trim();
-                                Log.Debug("Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
+                                Log.Debug(() => "Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
                             }
                         }
                         catch (Exception e)
                         {
                             if (e is WebException) {
-                                Log.Debug("Error connecting to battlelog.", 3);
+                                Log.Debug(() => "Error connecting to battlelog.", 3);
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -37345,7 +37345,7 @@ namespace PRoConEvents
                     }
                 }
                 else if (_gameVersion == GameVersion.BF4) {
-                    Log.Debug("Preparing to fetch battlelog info for BF4 player " + aPlayer.GetVerboseName(), 7);
+                    Log.Debug(() => "Preparing to fetch battlelog info for BF4 player " + aPlayer.GetVerboseName(), 7);
                     using (WebClient client = new WebClient())
                     {
                         try
@@ -37362,7 +37362,7 @@ namespace PRoConEvents
                                     return false;
                                 }
                                 aPlayer.player_personaID = pid.Groups[1].Value.Trim();
-                                Log.Debug("Persona ID fetched for " + aPlayer.player_name, 4);
+                                Log.Debug(() => "Persona ID fetched for " + aPlayer.player_name, 4);
                             }
 
                             DoBattlelogWait();
@@ -37373,7 +37373,7 @@ namespace PRoConEvents
                             if (!data.ContainsKey("viewedPersonaInfo") || (info = (Hashtable)data["viewedPersonaInfo"]) == null)
                             {
                                 aPlayer.player_clanTag = String.Empty;
-                                Log.Debug("Could not find BF4 clan tag for " + aPlayer.player_name, 4);
+                                Log.Debug(() => "Could not find BF4 clan tag for " + aPlayer.player_name, 4);
                             }
                             else
                             {
@@ -37381,18 +37381,18 @@ namespace PRoConEvents
                                 if (!info.ContainsKey("tag") || String.IsNullOrEmpty(tag = (String)info["tag"]))
                                 {
                                     aPlayer.player_clanTag = String.Empty;
-                                    Log.Debug("Could not find BF4 clan tag for " + aPlayer.player_name, 4);
+                                    Log.Debug(() => "Could not find BF4 clan tag for " + aPlayer.player_name, 4);
                                 }
                                 else
                                 {
                                     aPlayer.player_clanTag = tag;
-                                    Log.Debug("Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
+                                    Log.Debug(() => "Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
                                 }
                             }
                         }
                         catch (Exception e) {
                             if (e is WebException) {
-                                Log.Debug("Error connecting to battlelog.", 3);
+                                Log.Debug(() => "Error connecting to battlelog.", 3);
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -37401,7 +37401,7 @@ namespace PRoConEvents
                     }
                 }
                 else if (_gameVersion == GameVersion.BFHL) {
-                    Log.Debug("Preparing to fetch battlelog info for BFHL player " + aPlayer.GetVerboseName(), 7);
+                    Log.Debug(() => "Preparing to fetch battlelog info for BFHL player " + aPlayer.GetVerboseName(), 7);
                     using (WebClient client = new WebClient())
                     {
                         try
@@ -37419,7 +37419,7 @@ namespace PRoConEvents
                                     if (json.ContainsKey("player"))
                                     {
                                         aPlayer.player_personaID = ((Hashtable)json["player"])["id"].ToString();
-                                        Log.Debug("Fetched Persona ID from P-STATS NETWORK API for " + aPlayer.player_name, 3);
+                                        Log.Debug(() => "Fetched Persona ID from P-STATS NETWORK API for " + aPlayer.player_name, 3);
                                     }
                                     else
                                     {
@@ -37435,7 +37435,7 @@ namespace PRoConEvents
                                     if (pid.Success)
                                     {
                                         aPlayer.player_personaID = pid.Groups[1].Value.Trim();
-                                        Log.Debug("Fetched Persona ID from Battlelog for " + aPlayer.player_name, 3);
+                                        Log.Debug(() => "Fetched Persona ID from Battlelog for " + aPlayer.player_name, 3);
                                     }
                                     //additional catch statements for failed webrequest/etc.
                                 }
@@ -37447,17 +37447,17 @@ namespace PRoConEvents
                                 String soldierResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bfh/agent/" + aPlayer.player_name + "/stats/" + aPlayer.player_personaID + "/pc/?nocacherandom=" + Environment.TickCount);
                                 Match tag = Regex.Match(soldierResponse, @"\[\s*([a-zA-Z0-9]+)\s*\]\s*</span>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                                 if (!tag.Success || String.IsNullOrEmpty(tag.Groups[1].Value.Trim())) {
-                                    Log.Debug("Could not find BFHL clan tag for " + aPlayer.player_name, 4);
+                                    Log.Debug(() => "Could not find BFHL clan tag for " + aPlayer.player_name, 4);
                                 }
                                 else {
                                     aPlayer.player_clanTag = tag.Groups[1].Value.Trim();
-                                    Log.Debug("Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
+                                    Log.Debug(() => "Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
                                 }
                             }
                         }
                         catch (Exception e) {
                             if (e is WebException) {
-                                Log.Debug("Error connecting to battlelog.", 3);
+                                Log.Debug(() => "Error connecting to battlelog.", 3);
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -37555,7 +37555,7 @@ namespace PRoConEvents
                         return true;
                     } catch (Exception e) {
                         if (e is WebException) {
-                            Log.Debug("Error connecting to battlelog.", 3);
+                            Log.Debug(() => "Error connecting to battlelog.", 3);
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -37696,7 +37696,7 @@ namespace PRoConEvents
                         return true;
                     } catch (Exception e) {
                         if (e is WebException) {
-                            Log.Debug("Error connecting to battlelog.", 3);
+                            Log.Debug(() => "Error connecting to battlelog.", 3);
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -37778,7 +37778,7 @@ namespace PRoConEvents
                         return true;
                     } catch (Exception e) {
                         if (e is WebException) {
-                            Log.Debug("Error connecting to battlelog.", 3);
+                            Log.Debug(() => "Error connecting to battlelog.", 3);
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -37876,23 +37876,23 @@ namespace PRoConEvents
 
         private ArrayList FetchAdKatsReputationDefinitions()
         {
-            Log.Debug("Entering FetchAdKatsReputationDefinitions", 7);
+            Log.Debug(() => "Entering FetchAdKatsReputationDefinitions", 7);
             ArrayList repTable = null;
             using (WebClient client = new WebClient())
             {
                 String repInfo;
-                Log.Debug("Fetching reputation definitions...", 2);
+                Log.Debug(() => "Fetching reputation definitions...", 2);
                 try
                 {
                     repInfo = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsreputationstats.json" + "?nocacherandom=" + Environment.TickCount);
-                    Log.Debug("Reputation definitions fetched.", 1);
+                    Log.Debug(() => "Reputation definitions fetched.", 1);
                 }
                 catch (Exception)
                 {
                     try
                     {
                         repInfo = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/reputation" + "?nocacherandom=" + Environment.TickCount);
-                        Log.Debug("Reputation definitions fetched from backup location.", 1);
+                        Log.Debug(() => "Reputation definitions fetched from backup location.", 1);
                     }
                     catch (Exception)
                     {
@@ -37908,7 +37908,7 @@ namespace PRoConEvents
                     HandleException(new AdKatsException("Error while parsing reputation definitions.", e));
                 }
             }
-            Log.Debug("Exiting FetchAdKatsReputationDefinitions", 7);
+            Log.Debug(() => "Exiting FetchAdKatsReputationDefinitions", 7);
             return repTable;
         }
 
@@ -37951,23 +37951,23 @@ namespace PRoConEvents
 
         private Hashtable FetchAdKatsWeaponNames()
         {
-            Log.Debug("Entering FetchAdKatsWeaponNames", 7);
+            Log.Debug(() => "Entering FetchAdKatsWeaponNames", 7);
             Hashtable weaponNames = null;
             using (WebClient client = new WebClient())
             {
                 String downloadString;
-                Log.Debug("Fetching weapon names...", 2);
+                Log.Debug(() => "Fetching weapon names...", 2);
                 try
                 {
                     downloadString = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsweaponnames.json" + "?nocacherandom=" + Environment.TickCount);
-                    Log.Debug("Weapon names fetched.", 1);
+                    Log.Debug(() => "Weapon names fetched.", 1);
                 }
                 catch (Exception)
                 {
                     try
                     {
                         downloadString = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/weaponnames" + "?nocacherandom=" + Environment.TickCount);
-                        Log.Debug("Weapon names fetched from backup location.", 1);
+                        Log.Debug(() => "Weapon names fetched from backup location.", 1);
                     }
                     catch (Exception)
                     {
@@ -37983,13 +37983,13 @@ namespace PRoConEvents
                     HandleException(new AdKatsException("Error while parsing reputation definitions.", e));
                 }
             }
-            Log.Debug("Exiting FetchAdKatsWeaponNames", 7);
+            Log.Debug(() => "Exiting FetchAdKatsWeaponNames", 7);
             return weaponNames;
         }
 
         private Boolean PopulateSpecialGroupDictionaries()
         {
-            Log.Debug("Entering PopulateSpecialGroupsDictionary", 7);
+            Log.Debug(() => "Entering PopulateSpecialGroupsDictionary", 7);
             try
             {
                 List<AdKatsSpecialGroup> groupList = FetchAdKatsSpecialGroupDefinitions();
@@ -38016,29 +38016,29 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Exception while populating special group cache", e));
             }
-            Log.Debug("Exiting PopulateSpecialGroupsDictionary", 7);
+            Log.Debug(() => "Exiting PopulateSpecialGroupsDictionary", 7);
             return false;
         }
 
         private List<AdKatsSpecialGroup> FetchAdKatsSpecialGroupDefinitions()
         {
-            Log.Debug("Entering FetchAdKatsSpecialGroupDefinitions", 7);
+            Log.Debug(() => "Entering FetchAdKatsSpecialGroupDefinitions", 7);
             List<AdKatsSpecialGroup> SpecialGroupsList = null;
             using (WebClient client = new WebClient())
             {
                 String groupInfo;
-                Log.Debug("Fetching special group definitions...", 2);
+                Log.Debug(() => "Fetching special group definitions...", 2);
                 try
                 {
                     groupInfo = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsspecialgroups.json" + "?nocacherandom=" + Environment.TickCount);
-                    Log.Debug("Special group definitions fetched.", 1);
+                    Log.Debug(() => "Special group definitions fetched.", 1);
                 }
                 catch (Exception)
                 {
                     try
                     {
                         groupInfo = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/specialgroups" + "?nocacherandom=" + Environment.TickCount);
-                        Log.Debug("Special group definitions fetched from backup location.", 1);
+                        Log.Debug(() => "Special group definitions fetched from backup location.", 1);
                     }
                     catch (Exception)
                     {
@@ -38085,13 +38085,13 @@ namespace PRoConEvents
                     return null;
                 }
             }
-            Log.Debug("Exiting FetchAdKatsSpecialGroupDefinitions", 7);
+            Log.Debug(() => "Exiting FetchAdKatsSpecialGroupDefinitions", 7);
             return SpecialGroupsList;
         }
 
         private void RunSQLUpdates(Boolean async)
         {
-            Log.Debug("Entering RunSQLUpdates", 7);
+            Log.Debug(() => "Entering RunSQLUpdates", 7);
             if (_aliveThreads.Values.Any(aThread => aThread.Name == "SQLUpdater"))
             {
                 return;
@@ -38110,7 +38110,7 @@ namespace PRoConEvents
             {
                 RunSQLUpdates();
             }
-            Log.Debug("Exiting RunSQLUpdates", 7);
+            Log.Debug(() => "Exiting RunSQLUpdates", 7);
         }
 
         private void RunSQLUpdates()
@@ -38138,12 +38138,12 @@ namespace PRoConEvents
                         //Check for valid version
                         if (!String.IsNullOrEmpty(update.version_minimum) && currentVersionInt < ConvertVersionInt(update.version_minimum))
                         {
-                            Log.Debug("Cancelling SQL update '" + update.update_id + "'. Version too early for update.", 5);
+                            Log.Debug(() => "Cancelling SQL update '" + update.update_id + "'. Version too early for update.", 5);
                             continue;
                         }
                         if (!String.IsNullOrEmpty(update.version_maximum) && currentVersionInt > ConvertVersionInt(update.version_maximum))
                         {
-                            Log.Debug("Cancelling SQL update '" + update.update_id + "'. Version too late for update.", 5);
+                            Log.Debug(() => "Cancelling SQL update '" + update.update_id + "'. Version too late for update.", 5);
                             continue;
                         }
                         //Check for valid initial conditions
@@ -38176,7 +38176,7 @@ namespace PRoConEvents
                         }
                         if (invalid)
                         {
-                            Log.Debug("Cancelling SQL update '" + update.update_id + "', it does not apply to this database.", 5);
+                            Log.Debug(() => "Cancelling SQL update '" + update.update_id + "', it does not apply to this database.", 5);
                             continue;
                         }
                         //Run the updates
@@ -38230,7 +38230,7 @@ namespace PRoConEvents
 
         private List<AdKatsSQLUpdate> FetchSQLUpdates()
         {
-            Log.Debug("Entering FetchSQLUpdates", 7);
+            Log.Debug(() => "Entering FetchSQLUpdates", 7);
             List<AdKatsSQLUpdate> SQLUpdates = new List<AdKatsSQLUpdate>();
             using (WebClient client = new WebClient())
             {
@@ -38240,14 +38240,14 @@ namespace PRoConEvents
                     try
                     {
                         updateInfo = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsupdates.json" + "?nocacherandom=" + Environment.TickCount);
-                        Log.Debug("SQL updates fetched.", 1);
+                        Log.Debug(() => "SQL updates fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
                             updateInfo = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/sqlupdates" + "?nocacherandom=" + Environment.TickCount);
-                            Log.Debug("SQL updates fetched from backup location.", 1);
+                            Log.Debug(() => "SQL updates fetched from backup location.", 1);
                         }
                         catch (Exception)
                         {
@@ -38259,7 +38259,7 @@ namespace PRoConEvents
                     ArrayList SQLUpdateList = (ArrayList)updateTable["SQLUpdates"];
                     if (SQLUpdateList != null && SQLUpdateList.Count > 0)
                     {
-                        Log.Debug("SQL updates found. Parsing...", 5);
+                        Log.Debug(() => "SQL updates found. Parsing...", 5);
                         foreach (Hashtable updateHash in SQLUpdateList)
                         {
                             AdKatsSQLUpdate update = new AdKatsSQLUpdate();
@@ -38270,13 +38270,13 @@ namespace PRoConEvents
                                 Log.Error("SQL update update_id was not found or empty.");
                                 continue;
                             }
-                            Log.Debug("Parsing SQL Update '" + update.update_id + "'", 5);
+                            Log.Debug(() => "Parsing SQL Update '" + update.update_id + "'", 5);
                             //version_minimum
                             update.version_minimum = (String)updateHash["version_minimum"];
-                            Log.Debug("SQL update '" + update.update_id + "' version_minimum: " + update.version_minimum, 5);
+                            Log.Debug(() => "SQL update '" + update.update_id + "' version_minimum: " + update.version_minimum, 5);
                             //version_maximum
                             update.version_maximum = (String)updateHash["version_maximum"];
-                            Log.Debug("SQL update '" + update.update_id + "' version_maximum: " + update.version_maximum, 5);
+                            Log.Debug(() => "SQL update '" + update.update_id + "' version_maximum: " + update.version_maximum, 5);
                             //message_name
                             update.message_name = (String)updateHash["message_name"];
                             if (String.IsNullOrEmpty(update.message_name))
@@ -38284,7 +38284,7 @@ namespace PRoConEvents
                                 Log.Error("SQL update '" + update.update_id + "' message_name was not found or empty.");
                                 continue;
                             }
-                            Log.Debug("SQL update '" + update.update_id + "' message_name: " + update.message_name, 5);
+                            Log.Debug(() => "SQL update '" + update.update_id + "' message_name: " + update.message_name, 5);
                             //message_success
                             update.message_success = (String)updateHash["message_success"];
                             if (String.IsNullOrEmpty(update.message_success))
@@ -38292,7 +38292,7 @@ namespace PRoConEvents
                                 Log.Error("SQL update '" + update.update_id + "' message_success was not found or empty.");
                                 continue;
                             }
-                            Log.Debug("SQL update '" + update.update_id + "' message_success: " + update.message_success, 5);
+                            Log.Debug(() => "SQL update '" + update.update_id + "' message_success: " + update.message_success, 5);
                             //message_failure
                             update.message_failure = (String)updateHash["message_failure"];
                             if (String.IsNullOrEmpty(update.message_failure))
@@ -38300,7 +38300,7 @@ namespace PRoConEvents
                                 Log.Error("SQL update '" + update.update_id + "' message_failure was not found or empty.");
                                 continue;
                             }
-                            Log.Debug("SQL update '" + update.update_id + "' message_failure: " + update.message_failure, 5);
+                            Log.Debug(() => "SQL update '" + update.update_id + "' message_failure: " + update.message_failure, 5);
                             //update_checks_hasResults
                             Object update_checks_hasResults = updateHash["update_checks_hasResults"];
                             if (update_checks_hasResults == null)
@@ -38309,7 +38309,7 @@ namespace PRoConEvents
                                 continue;
                             }
                             update.update_checks_hasResults = (Boolean)update_checks_hasResults;
-                            Log.Debug("SQL update '" + update.update_id + "' update_checks_hasResults: " + update.update_checks_hasResults, 5);
+                            Log.Debug(() => "SQL update '" + update.update_id + "' update_checks_hasResults: " + update.update_checks_hasResults, 5);
                             //update_checks
                             ArrayList update_checks = (ArrayList)updateHash["update_checks"];
                             if (update_checks == null)
@@ -38321,7 +38321,7 @@ namespace PRoConEvents
                             {
                                 update.update_checks.Add(line);
                             }
-                            Log.Debug("SQL update '" + update.update_id + "' update_checks: " + update.update_checks.Count, 5);
+                            Log.Debug(() => "SQL update '" + update.update_id + "' update_checks: " + update.update_checks.Count, 5);
                             //update_execute_requiresModRows
                             Object update_execute_requiresModRows = updateHash["update_execute_requiresModRows"];
                             if (update_execute_requiresModRows == null)
@@ -38330,7 +38330,7 @@ namespace PRoConEvents
                                 continue;
                             }
                             update.update_execute_requiresModRows = (Boolean)update_execute_requiresModRows;
-                            Log.Debug("SQL update '" + update.update_id + "' update_execute_requiresModRows: " + update.update_execute_requiresModRows, 5);
+                            Log.Debug(() => "SQL update '" + update.update_id + "' update_execute_requiresModRows: " + update.update_execute_requiresModRows, 5);
                             //update_execute
                             ArrayList update_execute = (ArrayList)updateHash["update_execute"];
                             if (update_execute == null)
@@ -38342,7 +38342,7 @@ namespace PRoConEvents
                             {
                                 update.update_execute.Add(line);
                             }
-                            Log.Debug("SQL update '" + update.update_id + "' update_execute: " + update.update_execute.Count, 5);
+                            Log.Debug(() => "SQL update '" + update.update_id + "' update_execute: " + update.update_execute.Count, 5);
                             //update_success
                             ArrayList update_success = (ArrayList)updateHash["update_success"];
                             if (update_success == null)
@@ -38354,7 +38354,7 @@ namespace PRoConEvents
                             {
                                 update.update_success.Add(line);
                             }
-                            Log.Debug("SQL update '" + update.update_id + "' update_success: " + update.update_success.Count, 5);
+                            Log.Debug(() => "SQL update '" + update.update_id + "' update_success: " + update.update_success.Count, 5);
                             //update_failure
                             ArrayList update_failure = (ArrayList)updateHash["update_failure"];
                             if (update_failure == null)
@@ -38366,14 +38366,14 @@ namespace PRoConEvents
                             {
                                 update.update_failure.Add(line);
                             }
-                            Log.Debug("SQL update '" + update.update_id + "' update_failure: " + update.update_failure.Count, 5);
+                            Log.Debug(() => "SQL update '" + update.update_id + "' update_failure: " + update.update_failure.Count, 5);
                             //Add
                             SQLUpdates.Add(update);
                         }
                     }
                     else
                     {
-                        Log.Debug("No SQL updates found.", 5);
+                        Log.Debug(() => "No SQL updates found.", 5);
                     }
                 }
                 catch (Exception e)
@@ -38388,7 +38388,7 @@ namespace PRoConEvents
                     }
                 }
             }
-            Log.Debug("Exiting FetchSQLUpdates", 7);
+            Log.Debug(() => "Exiting FetchSQLUpdates", 7);
             return SQLUpdates;
         }
 
@@ -38396,7 +38396,7 @@ namespace PRoConEvents
         {
             try
             {
-                Log.Debug(ticks + " " + thread + " " + threadid + " " + line + " " + element, 8);
+                Log.Debug(() => ticks + " " + thread + " " + threadid + " " + line + " " + element, 8);
             }
             catch (Exception e)
             {
@@ -38628,20 +38628,20 @@ namespace PRoConEvents
         {
             try
             {
-                Log.Debug("Checking player '" + input + "' for validity.", 7);
+                Log.Debug(() => "Checking player '" + input + "' for validity.", 7);
                 if (String.IsNullOrEmpty(input))
                 {
-                    Log.Debug("Soldier Name empty or null.", 5);
+                    Log.Debug(() => "Soldier Name empty or null.", 5);
                     return false;
                 }
                 if (input.Length > 16)
                 {
-                    Log.Debug("Soldier Name '" + input + "' too long, maximum length is 16 characters.", 5);
+                    Log.Debug(() => "Soldier Name '" + input + "' too long, maximum length is 16 characters.", 5);
                     return false;
                 }
                 if (new Regex("[^a-zA-Z0-9_-]").Replace(input, "").Length != input.Length)
                 {
-                    Log.Debug("Soldier Name '" + input + "' contained invalid characters.", 5);
+                    Log.Debug(() => "Soldier Name '" + input + "' contained invalid characters.", 5);
                     return false;
                 }
                 return true;
@@ -38656,7 +38656,7 @@ namespace PRoConEvents
 
         public String FormatTimeString(TimeSpan timeSpan, Int32 maxComponents)
         {
-            Log.Debug("Entering formatTimeString", 7);
+            Log.Debug(() => "Entering formatTimeString", 7);
             String timeString = null;
             if (maxComponents < 1)
             {
@@ -38732,7 +38732,7 @@ namespace PRoConEvents
             {
                 timeString = "0s";
             }
-            Log.Debug("Exiting formatTimeString", 7);
+            Log.Debug(() => "Exiting formatTimeString", 7);
             return timeString;
         }
 
@@ -38748,7 +38748,7 @@ namespace PRoConEvents
 
         private void RemovePlayerFromDictionary(String playerName, Boolean lockDictionary)
         {
-            Log.Debug("Entering removePlayerFromDictionary", 7);
+            Log.Debug(() => "Entering removePlayerFromDictionary", 7);
             try
             {
                 //If the player is currently in the player list, remove them
@@ -38756,7 +38756,7 @@ namespace PRoConEvents
                 {
                     if (_PlayerDictionary.ContainsKey(playerName))
                     {
-                        Log.Debug("Removing " + playerName + " from current player list.", 4);
+                        Log.Debug(() => "Removing " + playerName + " from current player list.", 4);
                         if (lockDictionary)
                         {
                             lock (_PlayerDictionary)
@@ -38775,12 +38775,12 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while removing player from player dictionary.", e));
             }
-            Log.Debug("Exiting removePlayerFromDictionary", 7);
+            Log.Debug(() => "Exiting removePlayerFromDictionary", 7);
         }
 
         public CPlayerInfo BuildCPlayerInfo(String playerName, String playerGUID)
         {
-            Log.Debug("Entering ", 7);
+            Log.Debug(() => "Entering ", 7);
             CPlayerInfo playerInfo = null;
             try
             {
@@ -38796,7 +38796,7 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while creating CPlayerInfo object.", e));
             }
-            Log.Debug("Exiting ", 7);
+            Log.Debug(() => "Exiting ", 7);
             return playerInfo;
         }
 
@@ -39005,14 +39005,14 @@ namespace PRoConEvents
                 Int32 maxLoop = (paramSplit.Length < maxParamCount) ? (paramSplit.Length) : (maxParamCount);
                 for (Int32 i = 0; i < maxLoop - 1; i++)
                 {
-                    Log.Debug("Param " + i + ": " + paramSplit[i], 6);
+                    Log.Debug(() => "Param " + i + ": " + paramSplit[i], 6);
                     parameters.Add(paramSplit[i]);
                     message = message.TrimStart(paramSplit[i].ToCharArray()).Trim();
                 }
                 //Add final multi-word parameter
                 parameters.Add(message);
             }
-            Log.Debug("Num params: " + parameters.Count, 6);
+            Log.Debug(() => "Num params: " + parameters.Count, 6);
             return parameters.ToArray();
         }
 
@@ -39020,10 +39020,10 @@ namespace PRoConEvents
         {
             if (thread == null || !thread.IsAlive)
             {
-                Log.Debug("Thread already finished.", 3);
+                Log.Debug(() => "Thread already finished.", 3);
                 return;
             }
-            Log.Debug("Waiting for ^b" + thread.Name + "^n to finish", 3);
+            Log.Debug(() => "Waiting for ^b" + thread.Name + "^n to finish", 3);
             thread.Join();
         }
 
@@ -39607,17 +39607,17 @@ namespace PRoConEvents
                 _plugin.ExecuteCommand("procon.protected.chat.write", _plugin.GetType().Name + " > " + msg);
             }
 
-            public void Debug(String msg, Int32 level)
+            public void Debug(Func<String> messageFunc, Int32 level)
             {
                 if (DebugLevel >= level)
                 {
                     if (DebugLevel >= 8)
                     {
-                        WriteConsole("[" + level + "-" + new StackFrame(1).GetMethod().Name + "-" + ((String.IsNullOrEmpty(Thread.CurrentThread.Name)) ? ("Main") : (Thread.CurrentThread.Name)) + Thread.CurrentThread.ManagedThreadId + "] " + msg);
+                        WriteConsole("[" + level + "-" + new StackFrame(1).GetMethod().Name + "-" + ((String.IsNullOrEmpty(Thread.CurrentThread.Name)) ? ("Main") : (Thread.CurrentThread.Name)) + Thread.CurrentThread.ManagedThreadId + "] " + messageFunc());
                     }
                     else
                     {
-                        WriteConsole(msg);
+                        WriteConsole(messageFunc());
                     }
                 }
             }
@@ -39974,7 +39974,7 @@ namespace PRoConEvents
                             //If the handler is already alive, return
                             if (_DisconnectHandlingThread != null && _DisconnectHandlingThread.IsAlive)
                             {
-                                Log.Debug("Attempted to start disconnect handling thread when it was already running.", 2);
+                                Log.Debug(() => "Attempted to start disconnect handling thread when it was already running.", 2);
                                 return;
                             }
                             //Create a new thread to handle the disconnect orchestration
@@ -40079,7 +40079,7 @@ namespace PRoConEvents
             }
             else
             {
-                Log.Debug("Attempted to handle database timeout when threads not running.", 2);
+                Log.Debug(() => "Attempted to handle database timeout when threads not running.", 2);
             }
         }
 
@@ -40100,7 +40100,7 @@ namespace PRoConEvents
                         try
                         {
                             Thread.CurrentThread.Name = "RoundTimer";
-                            Log.Debug("starting round timer", 2);
+                            Log.Debug(() => "starting round timer", 2);
                             _threadMasterWaitHandle.WaitOne(5000);
                             int maxRoundTimeSeconds = (Int32)(_maxRoundTimeMinutes * 60);
                             for (Int32 secondsRemaining = maxRoundTimeSeconds; secondsRemaining > 0; secondsRemaining--)
@@ -40112,27 +40112,27 @@ namespace PRoConEvents
                                 if (secondsRemaining == maxRoundTimeSeconds - 60 && secondsRemaining > 60)
                                 {
                                     AdminTellMessage("Round will end automatically in ~" + (Int32)(secondsRemaining / 60.0) + " minutes.");
-                                    Log.Debug("Round will end automatically in ~" + (Int32)(secondsRemaining / 60.0) + " minutes.", 3);
+                                    Log.Debug(() => "Round will end automatically in ~" + (Int32)(secondsRemaining / 60.0) + " minutes.", 3);
                                 }
                                 else if (secondsRemaining == (maxRoundTimeSeconds / 2) && secondsRemaining > 60)
                                 {
                                     AdminTellMessage("Round will end automatically in ~" + (Int32)(secondsRemaining / 60.0) + " minutes.");
-                                    Log.Debug("Round will end automatically in ~" + (Int32)(secondsRemaining / 60.0) + " minutes.", 3);
+                                    Log.Debug(() => "Round will end automatically in ~" + (Int32)(secondsRemaining / 60.0) + " minutes.", 3);
                                 }
                                 else if (secondsRemaining == 30)
                                 {
                                     AdminTellMessage("Round ends in 30 seconds. (Current winning team will win)");
-                                    Log.Debug("Round ends in 30 seconds. (Current winning team will win)", 3);
+                                    Log.Debug(() => "Round ends in 30 seconds. (Current winning team will win)", 3);
                                 }
                                 else if (secondsRemaining == 20)
                                 {
                                     AdminTellMessage("Round ends in 20 seconds. (Current winning team will win)");
-                                    Log.Debug("Round ends in 20 seconds. (Current winning team will win)", 3);
+                                    Log.Debug(() => "Round ends in 20 seconds. (Current winning team will win)", 3);
                                 }
                                 else if (secondsRemaining <= 10)
                                 {
                                     AdminSayMessage("Round ends in..." + secondsRemaining);
-                                    Log.Debug("Round ends in..." + secondsRemaining, 3);
+                                    Log.Debug(() => "Round ends in..." + secondsRemaining, 3);
                                 }
                                 //Sleep for 1 second
                                 _threadMasterWaitHandle.WaitOne(1000);
@@ -40159,19 +40159,19 @@ namespace PRoConEvents
                             if (team1.TeamTicketCount < team2.TeamTicketCount)
                             {
                                 ExecuteCommand("procon.protected.send", "mapList.endRound", "2");
-                                Log.Debug("Ended Round (2)", 4);
+                                Log.Debug(() => "Ended Round (2)", 4);
                             }
                             else
                             {
                                 ExecuteCommand("procon.protected.send", "mapList.endRound", "1");
-                                Log.Debug("Ended Round (1)", 4);
+                                Log.Debug(() => "Ended Round (1)", 4);
                             }
                         }
                         catch (Exception e)
                         {
                             HandleException(new AdKatsException("Error in round timer thread.", e));
                         }
-                        Log.Debug("Exiting round timer.", 2);
+                        Log.Debug(() => "Exiting round timer.", 2);
                         LogThreadExit();
                     }));
 
@@ -40186,12 +40186,12 @@ namespace PRoConEvents
         }
 
         private String ClientDownloadTimer(WebClient wClient, String url) {
-            Log.Debug("Preparing to download from " + GetDomainName(url), 7);
+            Log.Debug(() => "Preparing to download from " + GetDomainName(url), 7);
             Stopwatch timer = new Stopwatch();
             timer.Start();
             String returnString = wClient.DownloadString(url);
             timer.Stop();
-            Log.Debug("Downloaded from " + GetDomainName(url) + " in " + timer.ElapsedMilliseconds + "ms", 7);
+            Log.Debug(() => "Downloaded from " + GetDomainName(url) + " in " + timer.ElapsedMilliseconds + "ms", 7);
             return returnString;
         }
 
@@ -40211,7 +40211,7 @@ namespace PRoConEvents
         {
             if ((UtcDbTime() - _LastBattlelogAction) < _BattlelogWaitDuration) {
                 var waitTime = _BattlelogWaitDuration - (UtcDbTime() - _LastBattlelogAction);
-                Log.Debug("Waiting " + ((int)waitTime.TotalMilliseconds) + "ms to query battlelog.", 7);
+                Log.Debug(() => "Waiting " + ((int)waitTime.TotalMilliseconds) + "ms to query battlelog.", 7);
                 if (waitTime > _BattlelogWaitDuration) {
                     Log.Warn("Wait time excessive for battlelog.");
                     waitTime = _BattlelogWaitDuration;
@@ -40225,7 +40225,7 @@ namespace PRoConEvents
         {
             if ((UtcDbTime() - _LastIPAPIAction) < _IPAPIWaitDuration) {
                 var waitTime = _IPAPIWaitDuration - (UtcDbTime() - _LastIPAPIAction);
-                Log.Debug("Waiting " + ((int) waitTime.TotalMilliseconds) + "ms to query IPAPI.", 7);
+                Log.Debug(() => "Waiting " + ((int) waitTime.TotalMilliseconds) + "ms to query IPAPI.", 7);
                 if (waitTime > _IPAPIWaitDuration) {
                     Log.Warn("Wait time excessive for IPAPI.");
                     waitTime = _IPAPIWaitDuration;
@@ -41600,16 +41600,16 @@ namespace PRoConEvents
 
             private void QueueEmailForSending(MailMessage email)
             {
-                Plugin.Log.Debug("Entering QueueEmailForSending", 7);
+                Plugin.Log.Debug(() => "Entering QueueEmailForSending", 7);
                 try
                 {
                     if (Plugin._pluginEnabled)
                     {
-                        Plugin.Log.Debug("Preparing to queue email for processing", 6);
+                        Plugin.Log.Debug(() => "Preparing to queue email for processing", 6);
                         lock (_EmailProcessingQueue)
                         {
                             _EmailProcessingQueue.Enqueue(email);
-                            Plugin.Log.Debug("Email queued for processing", 6);
+                            Plugin.Log.Debug(() => "Email queued for processing", 6);
                             //Start the processing thread if not already running
                             if (_EmailProcessingThread == null || !_EmailProcessingThread.IsAlive)
                             {
@@ -41627,24 +41627,24 @@ namespace PRoConEvents
                 {
                     Plugin.HandleException(new AdKatsException("Error while queueing email for processing.", e));
                 }
-                Plugin.Log.Debug("Exiting QueueEmailForSending", 7);
+                Plugin.Log.Debug(() => "Exiting QueueEmailForSending", 7);
             }
 
             public void EmailProcessingThreadLoop()
             {
                 try
                 {
-                    Plugin.Log.Debug("Starting Email Handling Thread", 1);
+                    Plugin.Log.Debug(() => "Starting Email Handling Thread", 1);
                     Thread.CurrentThread.Name = "EmailProcessing";
                     DateTime loopStart = Plugin.UtcDbTime();
                     while (true)
                     {
                         try
                         {
-                            Plugin.Log.Debug("Entering Email Handling Thread Loop", 7);
+                            Plugin.Log.Debug(() => "Entering Email Handling Thread Loop", 7);
                             if (!Plugin._pluginEnabled)
                             {
-                                Plugin.Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                                Plugin.Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                                 break;
                             }
 
@@ -41652,10 +41652,10 @@ namespace PRoConEvents
                             Queue<MailMessage> inboundEmailMessages = new Queue<MailMessage>();
                             if (_EmailProcessingQueue.Any())
                             {
-                                Plugin.Log.Debug("Preparing to lock inbound mail queue to retrive new mail", 7);
+                                Plugin.Log.Debug(() => "Preparing to lock inbound mail queue to retrive new mail", 7);
                                 lock (_EmailProcessingQueue)
                                 {
-                                    Plugin.Log.Debug("Inbound mail found. Grabbing.", 6);
+                                    Plugin.Log.Debug(() => "Inbound mail found. Grabbing.", 6);
                                     //Grab all mail in the queue
                                     inboundEmailMessages = new Queue<MailMessage>(_EmailProcessingQueue.ToArray());
                                     //Clear the queue for next run
@@ -41664,11 +41664,11 @@ namespace PRoConEvents
                             }
                             else
                             {
-                                Plugin.Log.Debug("No inbound mail. Waiting for Input.", 6);
+                                Plugin.Log.Debug(() => "No inbound mail. Waiting for Input.", 6);
                                 //Wait for input
                                 if ((Plugin.UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 {
-                                    Plugin.Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((Plugin.UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                    Plugin.Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((Plugin.UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                                 }
                                 _EmailProcessingWaitHandle.Reset();
                                 _EmailProcessingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
@@ -41683,7 +41683,7 @@ namespace PRoConEvents
                                 {
                                     break;
                                 }
-                                Plugin.Log.Debug("begin reading mail", 6);
+                                Plugin.Log.Debug(() => "begin reading mail", 6);
                                 MailMessage message = inboundEmailMessages.Dequeue();
                                 if (Plugin.Log.DebugLevel >= 5)
                                 {
@@ -41709,11 +41709,11 @@ namespace PRoConEvents
                                 };
                                 smtp.SendCompleted += new SendCompletedEventHandler(smtp_SendCompleted);
 
-                                Plugin.Log.Debug("Sending notification email. Please wait.", 1);
+                                Plugin.Log.Debug(() => "Sending notification email. Please wait.", 1);
 
                                 smtp.Send(message);
 
-                                Plugin.Log.Debug("A notification email has been sent.", 1);
+                                Plugin.Log.Debug(() => "A notification email has been sent.", 1);
 
                                 if (inboundEmailMessages.Any())
                                 {
@@ -41732,7 +41732,7 @@ namespace PRoConEvents
                             Plugin.HandleException(new AdKatsException("Error occured in mail processing thread. skipping loop.", e));
                         }
                     }
-                    Plugin.Log.Debug("Ending mail Processing Thread", 1);
+                    Plugin.Log.Debug(() => "Ending mail Processing Thread", 1);
                     Plugin.LogThreadExit();
                 }
                 catch (Exception e)
@@ -42409,18 +42409,18 @@ namespace PRoConEvents
                 using (WebClient client = new WebClient())
                 {
                     String weaponInfo;
-                    Plugin.Log.Debug("Fetching weapon statistic definitions...", 2);
+                    Plugin.Log.Debug(() => "Fetching weapon statistic definitions...", 2);
                     try
                     {
                         weaponInfo = Plugin.ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsblweaponstats.json" + "?nocacherandom=" + Environment.TickCount);
-                        Plugin.Log.Debug("Weapon statistic definitions fetched.", 1);
+                        Plugin.Log.Debug(() => "Weapon statistic definitions fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
                             weaponInfo = Plugin.ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/weapons" + "?nocacherandom=" + Environment.TickCount);
-                            Plugin.Log.Debug("Weapon statistic definitions fetched from backup location.", 1);
+                            Plugin.Log.Debug(() => "Weapon statistic definitions fetched from backup location.", 1);
                         }
                         catch (Exception)
                         {
@@ -44745,9 +44745,9 @@ namespace PRoConEvents
 
                 _mClientTsInfo = clientInfo;
 
-                //Log.Debug(DbgClients, "[Clients] Result of Teamspeak Client Update:");
+                //Log.Debug(() => DbgClients, "[Clients] Result of Teamspeak Client Update:");
                 //foreach (TeamspeakClient tsClient in _mClientTsInfo)
-                //Log.Debug(DbgClients, "- TS Client [Ip: {0}, Channel: {1}, Name: {2}]", tsClient.AdvIpAddress, tsClient.MedChannelId, tsClient.TsName);
+                //Log.Debug(() => DbgClients, "- TS Client [Ip: {0}, Channel: {1}, Name: {2}]", tsClient.AdvIpAddress, tsClient.MedChannelId, tsClient.TsName);
             }
 
             private void AddToActionQueue(Commands command, params Object[] arguments)
