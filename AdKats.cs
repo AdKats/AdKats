@@ -40209,18 +40209,28 @@ namespace PRoConEvents
 
         private void DoBattlelogWait()
         {
-            if ((UtcDbTime() - _LastBattlelogAction) < _BattlelogWaitDuration)
-            {
-                Thread.Sleep(_BattlelogWaitDuration - (UtcDbTime() - _LastBattlelogAction));
+            if ((UtcDbTime() - _LastBattlelogAction) < _BattlelogWaitDuration) {
+                var waitTime = _BattlelogWaitDuration - (UtcDbTime() - _LastBattlelogAction);
+                Log.Debug("Waiting " + ((int)waitTime.TotalMilliseconds) + "ms to query battlelog.", 7);
+                if (waitTime > _BattlelogWaitDuration) {
+                    Log.Warn("Wait time excessive for battlelog.");
+                    waitTime = _BattlelogWaitDuration;
+                }
+                _threadMasterWaitHandle.WaitOne(waitTime);
             }
             _LastBattlelogAction = UtcDbTime();
         }
 
         private void DoIPAPIWait()
         {
-            if ((UtcDbTime() - _LastIPAPIAction) < _IPAPIWaitDuration)
-            {
-                Thread.Sleep(_IPAPIWaitDuration - (UtcDbTime() - _LastIPAPIAction));
+            if ((UtcDbTime() - _LastIPAPIAction) < _IPAPIWaitDuration) {
+                var waitTime = _IPAPIWaitDuration - (UtcDbTime() - _LastIPAPIAction);
+                Log.Debug("Waiting " + ((int) waitTime.TotalMilliseconds) + "ms to query IPAPI.", 7);
+                if (waitTime > _IPAPIWaitDuration) {
+                    Log.Warn("Wait time excessive for IPAPI.");
+                    waitTime = _IPAPIWaitDuration;
+                }
+                _threadMasterWaitHandle.WaitOne(waitTime);
             }
             _LastIPAPIAction = UtcDbTime();
         }
