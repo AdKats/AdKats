@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.52
- * 4-JUN-2015
+ * Version 6.7.0.53
+ * 5-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.52</version_code>
+ * <version_code>6.7.0.53</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.52";
+        private const String PluginVersion = "6.7.0.53";
 
         public enum GameVersion
         {
@@ -6432,6 +6432,17 @@ namespace PRoConEvents
 
                             //Check for short keep alive every 30 seconds
                             if ((UtcDbTime() - lastShortKeepAliveCheck).TotalSeconds > 30) {
+                                if (_isTestingAuthorized && _serverInfo.ServerID == 1 && _roundID > 0) {
+                                    if (_roundID >= 15005) {
+                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | ADKGamers.com");
+                                    } 
+                                    else if (_roundID >= 15000) {
+                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Metro | ROUND 15,000 EVENT! | ADKGamers.com");
+                                    } 
+                                    else {
+                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Metro NO-EX | Round " + String.Format("{0:n0}", _roundID) + " | ADKGamers.com");
+                                    }
+                                }
                                 //Auto-assist
                                 AdKatsTeam team1, team2, winningTeam, losingTeam;
                                 if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
