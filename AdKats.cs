@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.54
+ * Version 6.7.0.56
  * 5-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.54</version_code>
+ * <version_code>6.7.0.56</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.54";
+        private const String PluginVersion = "6.7.0.56";
 
         public enum GameVersion
         {
@@ -6320,10 +6320,6 @@ namespace PRoConEvents
                             {
                                 if ((UtcDbTime() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotSayQueue.Peek();
-                                    if (message.Contains("%Round15000Date%")) {
-                                        var futureDate = FetchFutureRoundDate(15000);
-                                        message = message.Replace("%Round15000Date%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcDbTime(), 2) + ")");
-                                    }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
                                             OnlineNonWhitelistSayMessage(message);
@@ -6338,10 +6334,6 @@ namespace PRoConEvents
                                 }
                                 if ((UtcDbTime() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds && _spamBotYellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotYellQueue.Peek();
-                                    if (message.Contains("%Round15000Date%")) {
-                                        var futureDate = FetchFutureRoundDate(15000);
-                                        message = message.Replace("%Round15000Date%", futureDate.ToShortDateString() + "(" + FormatTimeString(futureDate - UtcDbTime(), 2) + ")");
-                                    }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
                                             OnlineNonWhitelistYellMessage(message);
@@ -6356,10 +6348,6 @@ namespace PRoConEvents
                                 }
                                 if ((UtcDbTime() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds && _spamBotTellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotTellQueue.Peek();
-                                    if (message.Contains("%Round15000Date%")) {
-                                        var futureDate = FetchFutureRoundDate(15000);
-                                        message = message.Replace("%Round15000Date%", futureDate.ToShortDateString() + "(" + FormatTimeString(futureDate - UtcDbTime(), 2) + ")");
-                                    }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
                                             OnlineNonWhitelistTellMessage(message);
@@ -6437,7 +6425,7 @@ namespace PRoConEvents
                                         this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | ADKGamers.com");
                                     } 
                                     else if (_roundID >= 15000) {
-                                        String result = " ALL WEAPONS!";
+                                        String result = "";
                                         switch (_roundID) {
                                             case 15000:
                                                 result = " KNIVES!";
@@ -6455,7 +6443,7 @@ namespace PRoConEvents
                                                 result = " ALL WEAPONS!";
                                                 break;
                                         }
-                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Metro | ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! " + result);
+                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Metro | ROUND 15,000 EVENT!" + result);
                                     } 
                                     else {
                                         this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | Round " + String.Format("{0:n0}", _roundID));
@@ -9676,6 +9664,34 @@ namespace PRoConEvents
                             stat_time = UtcDbTime()
                         });
                     } else if (_serverInfo.ServerID == 1) {
+                        if ((_roundID + 1) >= 15000 && (_roundID + 1) <= 15004) {
+                            _pingEnforcerEnable = false;
+                            _surrenderVoteEnable = false;
+                            _surrenderAutoEnable = false;
+                            ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "False");
+                            this.ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                            this.ExecuteCommand("procon.protected.send", "vars.friendlyFire", "true");
+                            this.ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                            this.ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                            this.ExecuteCommand("procon.protected.send", "vars.gameModeCounter ", "375");
+                            this.ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                            this.ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                            this.ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                            this.ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
+                        } else {
+                            _pingEnforcerEnable = true;
+                            _surrenderVoteEnable = true;
+                            _surrenderAutoEnable = true;
+                            ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
+                            this.ExecuteCommand("procon.protected.send", "vars.idleTimeout", "300");
+                            this.ExecuteCommand("procon.protected.send", "vars.friendlyFire", "false");
+                            this.ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "100");
+                            this.ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "100");
+                            this.ExecuteCommand("procon.protected.send", "vars.gameModeCounter ", "125");
+                            this.ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "300");
+                            this.ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "5");
+                            this.ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan ", "3");
+                        }
                         Int32 quality = 4;
                         if (winningTeam.TeamTicketCount >= 800) {
                             quality = 0;
@@ -10439,12 +10455,15 @@ namespace PRoConEvents
                         _roundID >= 15000 &&
                         _roundID <= 15004) {
                         if (aKill.killerCPI.TeamID != aKill.victimCPI.TeamID) {
+                            var killSpam = (aKill.killer.lastKill.AddSeconds(2) > UtcDbTime());
+                            aKill.killer.lastKill = UtcDbTime();
                             switch (_roundID) {
                                 case 15000:
                                     //Only 5 knife codes known, fuzzy match for unknown knife types
                                     if (!aKill.weaponCode.ToLower().Contains("knife") && 
                                         !aKill.weaponCode.ToLower().Contains("melee") && 
-                                        aKill.weaponCode != "DamageArea") {
+                                        aKill.weaponCode != "DamageArea" && 
+                                        !killSpam) {
                                         AdKatsCommand aCommand = GetCommandByKey("player_kill");
                                         if (_populationStatus == PopulationState.High &&
                                             aKill.killer.TargetedRecords.Any(targetedRecord =>
@@ -10467,8 +10486,9 @@ namespace PRoConEvents
                                     }
                                     break;
                                 case 15001:
-                                    if (aKill.weaponCode != "U_Defib" && 
-                                        aKill.weaponCode != "DamageArea") {
+                                    if (aKill.weaponCode != "U_Defib" &&
+                                        aKill.weaponCode != "DamageArea" &&
+                                        !killSpam) {
                                         AdKatsCommand aCommand = GetCommandByKey("player_kill");
                                         if (_populationStatus == PopulationState.High &&
                                             aKill.killer.TargetedRecords.Any(targetedRecord =>
@@ -10493,8 +10513,9 @@ namespace PRoConEvents
                                 case 15002:
                                     if (aKill.weaponCode != "U_Repairtool" && 
                                         aKill.weaponCode != "EODBot" && 
-                                        aKill.weaponCode != "Death" && 
-                                        aKill.weaponCode != "DamageArea") {
+                                        aKill.weaponCode != "Death" &&
+                                        aKill.weaponCode != "DamageArea" &&
+                                        !killSpam) {
                                         AdKatsCommand aCommand = GetCommandByKey("player_kill");
                                         if (_populationStatus == PopulationState.High &&
                                             aKill.killer.TargetedRecords.Any(targetedRecord =>
@@ -10518,7 +10539,8 @@ namespace PRoConEvents
                                     break;
                                 case 15003:
                                     if (aKill.weaponCode != "U_SaddlegunSnp" &&
-                                        aKill.weaponCode != "DamageArea") {
+                                        aKill.weaponCode != "DamageArea" &&
+                                        !killSpam) {
                                         AdKatsCommand aCommand = GetCommandByKey("player_kill");
                                         if (_populationStatus == PopulationState.High &&
                                             aKill.killer.TargetedRecords.Any(targetedRecord =>
@@ -10536,7 +10558,7 @@ namespace PRoConEvents
                                             target_player = aKill.killer,
                                             source_name = "AutoAdmin",
                                             record_time = UtcDbTime(),
-                                            record_message = "ROUND 15000 EVENT (4): MARE'S LEG ONLY"
+                                            record_message = "ROUND 15000 EVENT (PT 4): MARE'S LEG ONLY"
                                         });
                                     }
                                     break;
@@ -10552,7 +10574,7 @@ namespace PRoConEvents
                         !aKill.IsSuicide)
                     {
                         //Case for valid medkit teamkills
-                        if (aKill.weaponCode != "U_PortableMedicpack" && aKill.weaponCode != "U_Medkit")
+                        if (_serverInfo.ServerID == 1 && aKill.weaponCode != "U_PortableMedicpack" && aKill.weaponCode != "U_Medkit")
                         {
                             //Slay the teamkiller
                             AdKatsRecord aRecord = new AdKatsRecord
@@ -10585,7 +10607,7 @@ namespace PRoConEvents
                                 {
                                     //Get player from the dictionary
                                     if (aKill.killer != null) {
-                                        var spamRejection = (aKill.killer.lastKill.AddSeconds(2) < UtcDbTime());
+                                        var killSpam = (aKill.killer.lastKill.AddSeconds(2) > UtcDbTime());
                                         aKill.killer.lastKill = UtcDbTime();
 
                                         const string removeWeapon = "Weapons/";
@@ -10614,7 +10636,7 @@ namespace PRoConEvents
                                         };
                                         QueueRecordForProcessing(repRecord);
 
-                                        if (!spamRejection && _serverInfo.ServerType != "OFFICIAL")
+                                        if (!killSpam && _serverInfo.ServerType != "OFFICIAL")
                                         {
                                             //Create the punish record
                                             AdKatsRecord record = new AdKatsRecord
@@ -10712,8 +10734,26 @@ namespace PRoConEvents
                                 StartAndLogThread(new Thread(new ThreadStart(delegate {
                                     Thread.CurrentThread.Name = "RoundWelcome";
                                     Thread.Sleep(TimeSpan.FromSeconds(17));
-                                    var kTime = FetchFutureRoundDate(15000);
-                                    AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro" + ((_roundID < 15000) ? (Environment.NewLine + "Round 15,000 in " + FormatTimeString(kTime - UtcDbTime(), 3) + " (" + kTime.ToShortDateString() + ")") : ("")));
+                                    switch (_roundID) {
+                                        case 15000:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! KNIVES ONLY!");
+                                            break;
+                                        case 15001:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! DEFIBS ONLY!");
+                                            break;
+                                        case 15002:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! REPAIR TOOL/EOD BOT ONLY!");
+                                            break;
+                                        case 15003:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! MARE'S LEG ONLY!");
+                                            break;
+                                        case 15004:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! ALL WEAPONS ALLOWED!");
+                                            break;
+                                        default:
+                                            AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro");
+                                            break;
+                                    }
                                     LogThreadExit();
                                 })));
                             } else if (_serverInfo.ServerName.Contains("#6")) {
@@ -10782,7 +10822,26 @@ namespace PRoConEvents
                         _toldCol = true;
                     }
 
-                    if (!aPlayer.player_spawnedOnce)
+                    if (_isTestingAuthorized && _serverInfo.ServerID == 1 && _roundID > 0) {
+                        switch (_roundID) {
+                            case 15000:
+                                PlayerTellMessage(aPlayer.player_name, "KNIVES ONLY!");
+                                break;
+                            case 15001:
+                                PlayerTellMessage(aPlayer.player_name, "DEFIBS ONLY!");
+                                break;
+                            case 15002:
+                                PlayerTellMessage(aPlayer.player_name, "REPAIR TOOL/EOD ONLY!");
+                                break;
+                            case 15003:
+                                PlayerTellMessage(aPlayer.player_name, "MARE'S LEG ONLY!");
+                                break;
+                            case 15004:
+                                PlayerTellMessage(aPlayer.player_name, "ALL WEAPONS ALLOWED!");
+                                break;
+                        }
+                    }
+                    else if (!aPlayer.player_spawnedOnce)
                     {
                         aPlayer.player_spawnedOnce = true;
                         if (_ShowNewPlayerAnnouncement && aPlayer.player_new)
@@ -13633,8 +13692,12 @@ namespace PRoConEvents
                                     FinalizeRecord(record);
                                     return;
                                 }
-                                if (_isTestingAuthorized)
-                                {
+                                if (_isTestingAuthorized) {
+                                    if (_serverInfo.ServerID == 1 && _roundID >= 15000 && _roundID <= 15004) {
+                                        SendMessageToSource(record, "ROUND 15,000 EVENT. REPORT DISABLED.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
                                     string lowerM = " " + record.record_message.ToLower() + " ";
                                     if (lowerM.Contains("bipod"))
                                     {
@@ -21819,6 +21882,8 @@ namespace PRoConEvents
                     {
                         SendMessageToSource(record, "You KICKED " + record.GetTargetNames() + " for " + record.record_message);
                     }
+                    Thread.Sleep(2000);
+                    ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_player.player_name, kickReason);
                 }
             }
             catch (Exception e)
@@ -22096,9 +22161,9 @@ namespace PRoConEvents
                 Log.Debug(() => "Ban Enforce '" + generatedBanReason + "'", 3);
 
                 //Perform Actions
+                ExecuteCommand("procon.protected.send", "admin.kickPlayer", aBan.ban_record.target_player.player_name, generatedBanReason);
                 if (_PlayerDictionary.ContainsKey(aBan.ban_record.target_player.player_name) && aBan.ban_startTime < UtcDbTime())
                 {
-                    ExecuteCommand("procon.protected.send", "admin.kickPlayer", aBan.ban_record.target_player.player_name, generatedBanReason);
                     //Inform the server of the enforced ban
                     if (verbose)
                     {
@@ -22117,6 +22182,8 @@ namespace PRoConEvents
                         AdminSayMessage("Enforcing " + banDurationString + " ban on " + aBan.ban_record.GetTargetNames() + " for " + aBan.ban_record.record_message);
                     }
                 }
+                Thread.Sleep(2000);
+                ExecuteCommand("procon.protected.send", "admin.kickPlayer", aBan.ban_record.target_player.player_name, generatedBanReason);
             }
             catch (Exception e)
             {
