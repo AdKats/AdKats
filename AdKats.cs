@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.53
+ * Version 6.7.0.54
  * 5-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.53</version_code>
+ * <version_code>6.7.0.54</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.53";
+        private const String PluginVersion = "6.7.0.54";
 
         public enum GameVersion
         {
@@ -6437,10 +6437,28 @@ namespace PRoConEvents
                                         this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | ADKGamers.com");
                                     } 
                                     else if (_roundID >= 15000) {
-                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Metro | ROUND 15,000 EVENT! | ADKGamers.com");
+                                        String result = " ALL WEAPONS!";
+                                        switch (_roundID) {
+                                            case 15000:
+                                                result = " KNIVES!";
+                                                break;
+                                            case 15001:
+                                                result = " DEFIBS!";
+                                                break;
+                                            case 15002:
+                                                result = " REPAIR TOOLS!";
+                                                break;
+                                            case 15003:
+                                                result = " MARE'S LEG!";
+                                                break;
+                                            case 15004:
+                                                result = " ALL WEAPONS!";
+                                                break;
+                                        }
+                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Metro | ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! " + result);
                                     } 
                                     else {
-                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Metro NO-EX | Round " + String.Format("{0:n0}", _roundID) + " | ADKGamers.com");
+                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | Round " + String.Format("{0:n0}", _roundID));
                                     }
                                 }
                                 //Auto-assist
