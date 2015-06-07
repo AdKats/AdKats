@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.56
- * 5-JUN-2015
+ * Version 6.7.0.57
+ * 7-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.56</version_code>
+ * <version_code>6.7.0.57</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.56";
+        private const String PluginVersion = "6.7.0.57";
 
         public enum GameVersion
         {
@@ -6422,7 +6422,7 @@ namespace PRoConEvents
                             if ((UtcDbTime() - lastShortKeepAliveCheck).TotalSeconds > 30) {
                                 if (_isTestingAuthorized && _serverInfo.ServerID == 1 && _roundID > 0) {
                                     if (_roundID >= 15005) {
-                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | ADKGamers.com");
+                                        ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | ADKGamers.com");
                                     } 
                                     else if (_roundID >= 15000) {
                                         String result = "";
@@ -6443,10 +6443,10 @@ namespace PRoConEvents
                                                 result = " ALL WEAPONS!";
                                                 break;
                                         }
-                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Metro | ROUND 15,000 EVENT!" + result);
+                                        ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Metro | ROUND 15,000 EVENT!" + result);
                                     } 
                                     else {
-                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | Round " + String.Format("{0:n0}", _roundID));
+                                        ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | Round " + String.Format("{0:n0}", _roundID));
                                     }
                                 }
                                 //Auto-assist
@@ -9669,28 +9669,28 @@ namespace PRoConEvents
                             _surrenderVoteEnable = false;
                             _surrenderAutoEnable = false;
                             ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "False");
-                            this.ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
-                            this.ExecuteCommand("procon.protected.send", "vars.friendlyFire", "true");
-                            this.ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
-                            this.ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
-                            this.ExecuteCommand("procon.protected.send", "vars.gameModeCounter ", "375");
-                            this.ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
-                            this.ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
-                            this.ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
-                            this.ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
-                        } else {
+                            ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                            ExecuteCommand("procon.protected.send", "vars.friendlyFire", "true");
+                            ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                            ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "375");
+                            ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
+                        } else if (_roundID + 1 > 15004) {
                             _pingEnforcerEnable = true;
                             _surrenderVoteEnable = true;
                             _surrenderAutoEnable = true;
                             ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
-                            this.ExecuteCommand("procon.protected.send", "vars.idleTimeout", "300");
-                            this.ExecuteCommand("procon.protected.send", "vars.friendlyFire", "false");
-                            this.ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "100");
-                            this.ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "100");
-                            this.ExecuteCommand("procon.protected.send", "vars.gameModeCounter ", "125");
-                            this.ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "300");
-                            this.ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "5");
-                            this.ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan ", "3");
+                            ExecuteCommand("procon.protected.send", "vars.idleTimeout", "300");
+                            ExecuteCommand("procon.protected.send", "vars.friendlyFire", "false");
+                            ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "100");
+                            ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "100");
+                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "125");
+                            ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "300");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "5");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "3");
                         }
                         Int32 quality = 4;
                         if (winningTeam.TeamTicketCount >= 800) {
@@ -12131,7 +12131,7 @@ namespace PRoConEvents
                                     //Onced triggered, ban after 90 seconds.
                                     OnlineAdminTellMessage(banPlayer.GetVerboseName() + " triggered HSK timer. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "] They will be banned in 90 seconds.");
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
-                                    if (actedWeapon.HSKR >= .7)
+                                    if (actedWeapon.HSKR >= .75)
                                     {
                                         PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", true, 6);
                                     }
@@ -14788,7 +14788,7 @@ namespace PRoConEvents
                             String debug = (PlayerIsAdmin(record.source_player)) ? ("[" + friendlyTeam.TeamKey + ":" + friendlyTeam.TeamTicketCount + ":" + (int)friendlyTeam.TeamTicketDifferenceRate + "][" + enemyTeam.TeamKey + ":" + enemyTeam.TeamTicketCount + ":" + (int)enemyTeam.TeamTicketDifferenceRate + "]") : ("");
 
                             record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]";
-                            var teamFlux = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) <= 50;
+                            var teamFlux = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) <= 60;
                             Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID || teamFlux);
                             Boolean enemyStrong = true;
                             if (record.target_player.frostbitePlayerInfo.TeamID == team1.TeamID)
