@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.57
+ * Version 6.7.0.58
  * 7-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.57</version_code>
+ * <version_code>6.7.0.58</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.57";
+        private const String PluginVersion = "6.7.0.58";
 
         public enum GameVersion
         {
@@ -9664,7 +9664,8 @@ namespace PRoConEvents
                             stat_time = UtcDbTime()
                         });
                     } else if (_serverInfo.ServerID == 1) {
-                        if ((_roundID + 1) >= 15000 && (_roundID + 1) <= 15004) {
+                        var nRound = _roundID + 1;
+                        if (nRound >= 15000 && nRound <= 15004) {
                             _pingEnforcerEnable = false;
                             _surrenderVoteEnable = false;
                             _surrenderAutoEnable = false;
@@ -9678,7 +9679,29 @@ namespace PRoConEvents
                             ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
                             ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
                             ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
-                        } else if (_roundID + 1 > 15004) {
+                            for (int i = 0; i < 8; i++) {
+                                switch (nRound) {
+                                    case 15000:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! KNIVES ONLY!");
+                                        break;
+                                    case 15001:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! DEFIBS ONLY!");
+                                        break;
+                                    case 15002:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! REPAIR TOOL/EOD BOT ONLY!");
+                                        break;
+                                    case 15003:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! MARE'S LEG ONLY!");
+                                        break;
+                                    case 15004:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! ALL WEAPONS ALLOWED!");
+                                        break;
+                                    default:
+                                        AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro");
+                                        break;
+                                }
+                            }
+                        } else if (nRound > 15004) {
                             _pingEnforcerEnable = true;
                             _surrenderVoteEnable = true;
                             _surrenderAutoEnable = true;
