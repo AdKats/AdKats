@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.59
- * 8-JUN-2015
+ * Version 6.7.0.60
+ * 12-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.59</version_code>
+ * <version_code>6.7.0.60</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.59";
+        private const String PluginVersion = "6.7.0.60";
 
         public enum GameVersion
         {
@@ -9636,11 +9636,11 @@ namespace PRoConEvents
                         });
                     } else if (_serverInfo.ServerID == 1) {
                         Int32 quality = 4;
-                        if (winningTeam.TeamTicketCount >= 800) {
+                        if (winningTeam.TeamTicketCount >= 900) {
                             quality = 0;
-                        } else if (winningTeam.TeamTicketCount >= 700) {
+                        } else if (winningTeam.TeamTicketCount >= 750) {
                             quality = 1;
-                        } else if (winningTeam.TeamTicketCount >= 600) {
+                        } else if (winningTeam.TeamTicketCount >= 625) {
                             quality = 2;
                         } else if (winningTeam.TeamTicketCount >= 500) {
                             quality = 3;
@@ -37346,6 +37346,23 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while fetching battlelog information for " + aPlayer.player_name, e));
                 return false;
+            }
+            if (_isTestingAuthorized && 
+                (aPlayer.player_clanTag.ToUpper() == "D1CE" || 
+                 aPlayer.player_clanTag.ToUpper() == "D1C3" ||
+                 aPlayer.player_clanTag.ToUpper() == "DIC3")) {
+                //Create the ban record
+                QueueRecordForProcessing(new AdKatsRecord {
+                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                    server_id = _serverInfo.ServerID,
+                    command_type = GetCommandByKey("player_ban_perm"),
+                    command_numeric = 0,
+                    target_name = aPlayer.player_name,
+                    target_player = aPlayer,
+                    source_name = "AutoAdmin",
+                    record_message = "Banned Tag [" + aPlayer.player_clanTag + "]",
+                    record_time = UtcDbTime()
+                });
             }
             return true;
         }
