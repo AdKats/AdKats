@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.60
+ * Version 6.7.0.61
  * 12-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.60</version_code>
+ * <version_code>6.7.0.61</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.60";
+        private const String PluginVersion = "6.7.0.61";
 
         public enum GameVersion
         {
@@ -7410,12 +7410,7 @@ namespace PRoConEvents
                             if (inboundPlayerList.Count > 0)
                             {
                                 Log.Debug(() => "Listing Players", 5);
-                                //Reset the player counts of all teams and recount everything
                                 //Loop over all players in the list
-                                Int32 team1PC = 0;
-                                Int32 team2PC = 0;
-                                Int32 team3PC = 0;
-                                Int32 team4PC = 0;
 
                                 List<Double> durations = new List<Double>();
                                 IEnumerable<CPlayerInfo> trimmedInboundPlayers = inboundPlayerList.Where(player => !removedPlayers.Contains(player.SoldierName));
@@ -7729,30 +7724,6 @@ namespace PRoConEvents
                                             QueuePlayerForHackerCheck(aPlayer);
                                         }
                                     }
-                                    if (aPlayer.player_type == PlayerType.Player)
-                                    {
-                                        switch (playerInfo.TeamID)
-                                        {
-                                            case 0:
-                                                //Do nothing, team 0 is the joining team
-                                                break;
-                                            case 1:
-                                                team1PC++;
-                                                break;
-                                            case 2:
-                                                team2PC++;
-                                                break;
-                                            case 3:
-                                                team3PC++;
-                                                break;
-                                            case 4:
-                                                team4PC++;
-                                                break;
-                                            default:
-                                                Log.Error("Team ID " + playerInfo.TeamID + " for player " + playerInfo.SoldierName + " was invalid.");
-                                                break;
-                                        }
-                                    }
                                     if (_CMDRManagerEnable && _firstPlayerListComplete && (aPlayer.player_type == PlayerType.CommanderPC || aPlayer.player_type == PlayerType.CommanderMobile) && _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) < _CMDRMinimumPlayers)
                                     {
                                         AdKatsRecord record = new AdKatsRecord
@@ -7831,14 +7802,12 @@ namespace PRoConEvents
                                     }
                                 }
 
-                                AdKatsTeam team1, team2, team3, team4;
-                                if (GetTeamByID(1, out team1))
-                                {
-                                    team1.UpdatePlayerCount(team1PC);
+                                AdKatsTeam team1, team2;
+                                if (GetTeamByID(1, out team1)) {
+                                    team1.UpdatePlayerCount(_PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == 1));
                                 }
-                                if (GetTeamByID(2, out team2))
-                                {
-                                    team2.UpdatePlayerCount(team1PC);
+                                if (GetTeamByID(2, out team2)) {
+                                    team2.UpdatePlayerCount(_PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == 2));
                                 }
                                 //Make sure the player dictionary is clean of any straglers
                                 Int32 straglerCount = 0;
