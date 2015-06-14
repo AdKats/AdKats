@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.61
- * 12-JUN-2015
+ * Version 6.7.0.62
+ * 13-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.61</version_code>
+ * <version_code>6.7.0.62</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.61";
+        private const String PluginVersion = "6.7.0.62";
 
         public enum GameVersion
         {
@@ -11501,7 +11501,7 @@ namespace PRoConEvents
                                 Log.Warn(logString);
                                 Log.Warn(String.Join(", ", aPlayer.RecentKills.Select(aKill => aKill.weaponCode).ToArray()));
                             }
-                            if (killDiff > 5 && !PlayerProtected(aPlayer)) {
+                            if (false && killDiff > 5 && !PlayerProtected(aPlayer)) {
                                 QueueRecordForProcessing(new AdKatsRecord {
                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                     server_id = _serverInfo.ServerID,
