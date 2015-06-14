@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.62
- * 13-JUN-2015
+ * Version 6.7.0.64
+ * 14-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.62</version_code>
+ * <version_code>6.7.0.64</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.62";
+        private const String PluginVersion = "6.7.0.64";
 
         public enum GameVersion
         {
@@ -13347,7 +13347,7 @@ namespace PRoConEvents
                 if (!record.record_action_executed)
                 {
                     //Check for command lock
-                    if (record.target_player != null && record.target_player.IsLocked())
+                    if (record.target_player != null && record.target_player.IsLocked() && record.target_player.GetLockSource() != record.source_name) 
                     {
                         SendMessageToSource(record, record.GetTargetNames() + " is command locked by " + record.target_player.GetLockSource() + ". Please wait for unlock [" + FormatTimeString(record.target_player.GetLockRemaining(), 3) + "].");
                         FinalizeRecord(record);
@@ -20894,7 +20894,12 @@ namespace PRoConEvents
                     record.command_action = record.command_type;
                 }
                 //Automatic player locking
-                if (!record.record_action_executed && record.target_player != null && (record.source_player == null || PlayerIsAdmin(record.source_player)) && _playerLockingAutomaticLock && !record.target_player.IsLocked())
+                if (!record.record_action_executed && 
+                    record.target_player != null && 
+                    record.source_name != record.target_name &&
+                    (record.source_player == null || PlayerIsAdmin(record.source_player)) && 
+                    _playerLockingAutomaticLock && 
+                    !record.target_player.IsLocked())
                 {
                     record.target_player.Lock(record.source_name, TimeSpan.FromMinutes(_playerLockingAutomaticDuration));
                 }
