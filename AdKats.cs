@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.64
+ * Version 6.7.0.65
  * 14-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.64</version_code>
+ * <version_code>6.7.0.65</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.64";
+        private const String PluginVersion = "6.7.0.65";
 
         public enum GameVersion
         {
@@ -10014,10 +10014,15 @@ namespace PRoConEvents
                         });
                         return;
                     }
-                    Int32 lowKillCount = 25;
+                    Int32 lowKillCount = 20;
                     Double lowKillTriggerHSKP = 90;
-                    Int32 highKillCount = 50;
+                    Int32 highKillCount = 45;
                     Double highKillTriggerHSKP = 80;
+                    if (_serverInfo.InfoObject.Map == "XP0_Metro" || 
+                        _serverInfo.InfoObject.Map == "MP_Prison") {
+                        lowKillCount = 30;
+                        highKillCount = 60;
+                    }
                     var nonSniperKills = aKill.killer.RecentKills
                         .Where(dKill => 
                             dKill.weaponCategory != DamageTypes.None && 
@@ -11600,22 +11605,25 @@ namespace PRoConEvents
                                     AdKatsWeaponStat previousWeaponStat;
                                     if (previousStats.WeaponStats.TryGetValue(weaponStat.ID, out previousWeaponStat)) {
                                         if (weaponStat.Kills > previousWeaponStat.Kills) {
+                                            Double weaponHitsToKill = (100 / weapon.DamageMax);
                                             Double killDiff = weaponStat.Kills - previousWeaponStat.Kills;
                                             Double hitDiff = weaponStat.Hits - previousWeaponStat.Hits;
                                             Double HSDiff = weaponStat.Headshots - previousWeaponStat.Headshots;
-                                            Double diffDPS = (killDiff / hitDiff) * 100;
-                                            Double percDiff = (diffDPS - weapon.DamageMax) / weapon.DamageMax;
+                                            Double liveDPS = (killDiff / hitDiff) * 100;
+                                            Double expectedHits = (HSDiff * weaponHitsToKill / 2) + ((killDiff - HSDiff) * weaponHitsToKill);
+                                            Double expectedDPS = (killDiff / expectedHits) * 100;
+                                            Double percDiff = (liveDPS - expectedDPS) / expectedDPS;
 
                                             String formattedName = weaponStat.ID.Replace("-", "").Replace(" ", "").ToUpper();
                                             if (Math.Round(percDiff) > 0) {
-                                                Log.Info("STATDIFF - " + aPlayer.GetVerboseName() + " - " + formattedName + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(diffDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
+                                                Log.Info("STATDIFF - " + aPlayer.GetVerboseName() + " - " + formattedName + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(liveDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
                                             }
-                                            //Check for damage hack
-                                            //Require at least 12 kills difference, +100% (double) normal weapon damage for non-sidearm weapons, and 85 DPS weapon damage for sidearms.
+                                            //Check for damage mod
+                                            //Require at least 12 kills difference, +75% normal weapon damage for non-sidearm weapons, and 85 DPS weapon damage for sidearms.
                                             if (killDiff >= 12 &&
-                                                diffDPS > weapon.DamageMax &&
-                                                (diffDPS >= 85 || (!isSidearm && percDiff > 1.00))) {
-                                                Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int) diffDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "]");
+                                                liveDPS > weapon.DamageMax &&
+                                                (liveDPS >= 85 || (!isSidearm && percDiff > 0.75))) {
+                                                Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "]");
                                                 if (!debugMode) {
                                                     //Create the ban record
                                                     QueueRecordForProcessing(new AdKatsRecord {
@@ -11626,7 +11634,7 @@ namespace PRoConEvents
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
                                                         source_name = "AutoAdmin",
-                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE][" + formattedName + "-" + (int) diffDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "]",
+                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "]",
                                                         record_time = UtcDbTime()
                                                     });
                                                 }
