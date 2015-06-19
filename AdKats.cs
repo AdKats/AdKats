@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.65
- * 14-JUN-2015
+ * Version 6.7.0.66
+ * 18-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.65</version_code>
+ * <version_code>6.7.0.66</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.65";
+        private const String PluginVersion = "6.7.0.66";
 
         public enum GameVersion
         {
@@ -20225,7 +20225,7 @@ namespace PRoConEvents
                         return false;
                     }
                     //No online or left player found, run external fetch over checking for fuzzy match
-                    aPlayer = FetchPlayer(false, true, true, null, -1, playerNameInput, null, null);
+                    aPlayer = FetchPlayer(false, false, true, null, -1, playerNameInput, null, null);
                     if (aPlayer != null) {
                         resultMessage = "Offline player found.";
                         aPlayer.player_online = false;
