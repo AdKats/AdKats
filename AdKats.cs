@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.66
- * 18-JUN-2015
+ * Version 6.7.0.67
+ * 25-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.66</version_code>
+ * <version_code>6.7.0.67</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.66";
+        private const String PluginVersion = "6.7.0.67";
 
         public enum GameVersion
         {
@@ -41652,22 +41652,25 @@ namespace PRoConEvents
             }
         }
 
-        internal class MetabansAPI
-        {
-            public delegate void ExecuteCommandHandler(params string[] commands);
-
-            public delegate void RequestSuccessHandler(Hashtable request, Hashtable data);
+        internal class MetabansAPI {
 
             private static string METABANS_API_HREF = "http://metabans.com/mb-api.php";
 
-            private readonly string ApiKey;
-            private readonly enumBoolOnOff Debug;
-            private readonly string Username;
-            private readonly ArrayList m_requests;
+            private ArrayList m_requests;
+            private string Username;
+            private string ApiKey;
+            private enumBoolOnOff Debug;
 
-            public MetabansAPI(string Username, string ApiKey, enumBoolOnOff Debug)
-            {
-                m_requests = new ArrayList();
+            // You must have this event registered to see output of the Debug.
+            public delegate void ExecuteCommandHandler(params string[] commands);
+            public event ExecuteCommandHandler ExecuteCommand;
+
+            public delegate void RequestSuccessHandler(Hashtable request, Hashtable data);
+            public event RequestSuccessHandler mb_sight_player_ok;
+            public event RequestSuccessHandler mb_assess_player_ok;
+
+            public MetabansAPI(string Username, string ApiKey, enumBoolOnOff Debug) {
+                this.m_requests = new ArrayList();
 
                 // if username + apikey == "", load from xml file.
 
@@ -41676,18 +41679,9 @@ namespace PRoConEvents
                 this.Debug = Debug;
             }
 
-            // You must have this event registered to see output of the Debug.
 
-            public event ExecuteCommandHandler ExecuteCommand;
 
-            public event RequestSuccessHandler mb_sight_player_ok;
-            public event RequestSuccessHandler mb_assess_player_ok;
-
-            // You may implement more functions if you need them at http://wiki.metabans.com/API
-            // Just remember to change the API version and publish your changes on the forums
-
-            public MetabansAPI mb_assess_player(int player_id, AssessmentTypes assessment_type, string reason, int assessment_length)
-            {
+            public MetabansAPI mb_assess_player(int player_id, AssessmentTypes assessment_type, string reason, int assessment_length) {
                 Hashtable hash = new Hashtable();
                 hash.Add("action", "mb_assess_player");
                 hash.Add("player_id", player_id.ToString());
@@ -41695,13 +41689,12 @@ namespace PRoConEvents
                 hash.Add("reason", reason);
                 hash.Add("assessment_length", assessment_length.ToString());
 
-                m_requests.Add(hash);
+                this.m_requests.Add(hash);
 
                 return this;
             }
 
-            public MetabansAPI mb_assess_player(SupportedGames game_name, string player_uid, AssessmentTypes assessment_type, string reason, int assessment_length)
-            {
+            public MetabansAPI mb_assess_player(SupportedGames game_name, string player_uid, AssessmentTypes assessment_type, string reason, int assessment_length) {
                 Hashtable hash = new Hashtable();
                 hash.Add("action", "mb_assess_player");
                 hash.Add("game_name", game_name.ToString());
@@ -41710,14 +41703,14 @@ namespace PRoConEvents
                 hash.Add("reason", reason);
                 hash.Add("assessment_length", assessment_length.ToString());
 
-                m_requests.Add(hash);
+                this.m_requests.Add(hash);
 
                 return this;
             }
 
             // You shouldn't ever need to sight a player.  Only the main Metabans plugin should ever need to do this.
-            public MetabansAPI mb_sight_player(SupportedGames game_name, string player_uid, string player_name, string group_name, string player_ip, string alternate_uid)
-            {
+            public MetabansAPI mb_sight_player(SupportedGames game_name, string player_uid, string player_name, string group_name, string player_ip, string alternate_uid) {
+
                 Hashtable hash = new Hashtable();
                 hash.Add("action", "mb_sight_player");
                 hash.Add("game_name", game_name.ToString());
@@ -41725,143 +41718,120 @@ namespace PRoConEvents
                 hash.Add("player_name", player_name);
                 hash.Add("group_name", group_name);
 
-                if (player_ip != null)
-                {
-                    hash.Add("player_ip", player_ip.Split(':')[0]);
+                if (player_ip != null) {
+                    hash.Add("player_ip", ((string) player_ip).Split(':')[0]);
                 }
 
                 hash.Add("alternate_uid", alternate_uid);
 
-                m_requests.Add(hash);
+                this.m_requests.Add(hash);
 
                 return this;
             }
 
-            private static string GenerateSalt()
-            {
+            private static string GenerateSalt() {
                 Random random = new Random();
                 byte[] salt = new byte[random.Next(24, 48)];
 
-                for (int i = 0; i < salt.Length; i++)
-                {
-                    salt[i] = (byte)random.Next(1, 254);
+                for (int i = 0; i < salt.Length; i++) {
+                    salt[i] = (byte) random.Next(1, 254);
                 }
 
                 return SHA1.Data(salt);
             }
 
-            private string GeneratePostData()
-            {
+            private string GeneratePostData() {
+
                 StringBuilder postBuilder = new StringBuilder();
 
-                postBuilder.AppendFormat("&username={0}", Uri.EscapeUriString(Username));
+                postBuilder.AppendFormat("&username={0}", Uri.EscapeUriString(this.Username));
 
-                string salt = GenerateSalt();
+                string salt = MetabansAPI.GenerateSalt();
                 postBuilder.AppendFormat("&salt={0}", Uri.EscapeUriString(salt));
-                postBuilder.AppendFormat("&apikey={0}", Uri.EscapeUriString(SHA1.String(salt + ApiKey)));
+                postBuilder.AppendFormat("&apikey={0}", Uri.EscapeUriString(SHA1.String(salt + this.ApiKey)));
                 postBuilder.Append("&options=mirror");
 
-                for (int offset = 0; offset < m_requests.Count; offset++)
-                {
-                    if (m_requests[offset] is Hashtable)
-                    {
-                        foreach (DictionaryEntry entry in (Hashtable)m_requests[offset])
-                        {
-                            if (entry.Value != null)
-                            {
-                                postBuilder.AppendFormat("&{0}={1}", Uri.EscapeUriString(String.Format("requests[{0}][{1}]", offset, entry.Key)), Uri.EscapeUriString(entry.Value.ToString()));
+                for (int offset = 0; offset < this.m_requests.Count; offset++) {
+
+                    if (this.m_requests[offset] is Hashtable) {
+
+                        foreach (DictionaryEntry entry in (Hashtable) this.m_requests[offset]) {
+                            if (entry.Value != null) {
+                                postBuilder.AppendFormat("&{0}={1}", Uri.EscapeUriString(String.Format("requests[{0}][{1}]", offset, entry.Key.ToString())), Uri.EscapeUriString(entry.Value.ToString()));
                             }
                         }
+
                     }
                 }
 
                 return postBuilder.ToString();
             }
 
-            private void request_RequestComplete(MetabansRequest sender)
-            {
-                Hashtable table = (Hashtable)JSON.JsonDecode(Encoding.UTF8.GetString(sender.CompleteFileData));
+            private void request_RequestComplete(MetabansRequest sender) {
+                Hashtable table = (Hashtable) JSON.JsonDecode(Encoding.UTF8.GetString(sender.CompleteFileData));
 
-                try
-                {
-                    if (Debug == enumBoolOnOff.On && ExecuteCommand != null)
-                    {
-                        ExecuteCommand("procon.protected.pluginconsole.write", "^4Metabans API: Received sync response, beginning parse");
+                try {
+                    if (this.Debug == enumBoolOnOff.On && this.ExecuteCommand != null) {
+                        this.ExecuteCommand("procon.protected.pluginconsole.write", "^4Metabans API: Received sync response, beginning parse");
                     }
 
-                    foreach (Hashtable response in (ArrayList)table["responses"])
-                    {
-                        if (response.ContainsKey("status") == true && (string)response["status"] == "OK")
-                        {
-                            if (response.ContainsKey("request") == true && response.ContainsKey("data") == true)
-                            {
-                                Hashtable request = (Hashtable)response["request"];
-                                Hashtable data = (Hashtable)response["data"];
+                    foreach (Hashtable response in (ArrayList) table["responses"]) {
+                        if (response.ContainsKey("status") == true && (string) response["status"] == "OK") {
+                            if (response.ContainsKey("request") == true && response.ContainsKey("data") == true) {
 
-                                if (request.ContainsKey("action") == true)
-                                {
-                                    switch ((string)request["action"])
-                                    {
+                                Hashtable request = (Hashtable) response["request"];
+                                Hashtable data = (Hashtable) response["data"];
+
+                                if (request.ContainsKey("action") == true) {
+                                    switch ((string) request["action"]) {
                                         case "mb_sight_player":
-                                            if (mb_sight_player_ok != null)
-                                            {
-                                                mb_sight_player_ok(request, data);
+                                            if (this.mb_sight_player_ok != null) {
+                                                this.mb_sight_player_ok(request, data);
                                             }
                                             break;
                                         case "mb_assess_player":
-                                            if (mb_assess_player_ok != null)
-                                            {
-                                                mb_assess_player_ok(request, data);
+                                            if (this.mb_assess_player_ok != null) {
+                                                this.mb_assess_player_ok(request, data);
                                             }
                                             break;
                                     }
                                 }
                             }
-                        }
-                        else if (response.ContainsKey("error") == true)
-                        {
-                            if ( /*this.Debug == enumBoolOnOff.On && */ExecuteCommand != null)
-                            {
+                        } else if (response.ContainsKey("error") == true) {
+                            if (/*this.Debug == enumBoolOnOff.On && */this.ExecuteCommand != null) {
                                 // This is an error because of information sent to the metabans (like api key error or something)
                                 // not an actual problem that requires debugging.
-                                ExecuteCommand("procon.protected.pluginconsole.write", "^1Metabans API: Response error; " + (string)((Hashtable)response["error"])["message"]);
+                                this.ExecuteCommand("procon.protected.pluginconsole.write", "^1Metabans API: Response error; " + (string) ((Hashtable) response["error"])["message"]);
                             }
                         }
                     }
 
-                    if (Debug == enumBoolOnOff.On && ExecuteCommand != null)
-                    {
-                        ExecuteCommand("procon.protected.pluginconsole.write", "^4Metabans API: Received sync and parse completed");
+                    if (this.Debug == enumBoolOnOff.On && this.ExecuteCommand != null) {
+                        this.ExecuteCommand("procon.protected.pluginconsole.write", "^4Metabans API: Received sync and parse completed");
                     }
-                }
-                catch (Exception e)
-                {
-                    if (Debug == enumBoolOnOff.On && ExecuteCommand != null)
-                    {
-                        ExecuteCommand("procon.protected.pluginconsole.write", "^1Metabans API (request_RequestComplete): " + e.Message);
+                } catch (Exception e) {
+                    if (this.Debug == enumBoolOnOff.On && this.ExecuteCommand != null) {
+                        this.ExecuteCommand("procon.protected.pluginconsole.write", "^1Metabans API (request_RequestComplete): " + e.Message);
                     }
                 }
             }
 
-            private void request_RequestError(MetabansRequest sender)
-            {
-                if (Debug == enumBoolOnOff.On && ExecuteCommand != null)
-                {
-                    ExecuteCommand("procon.protected.pluginconsole.write", "^1Metabans API request_RequestError: " + sender.Error);
+            private void request_RequestError(MetabansRequest sender) {
+                if (this.Debug == enumBoolOnOff.On && this.ExecuteCommand != null) {
+                    this.ExecuteCommand("procon.protected.pluginconsole.write", "^1Metabans API request_RequestError: " + sender.Error);
                 }
             }
 
-            public MetabansAPI Post()
-            {
-                MetabansRequest request = new MetabansRequest(METABANS_API_HREF);
+            public MetabansAPI Post() {
+
+                MetabansRequest request = new MetabansRequest(MetabansAPI.METABANS_API_HREF);
                 request.RequestComplete += new MetabansRequest.RequestEventDelegate(request_RequestComplete);
                 request.RequestError += new MetabansRequest.RequestEventDelegate(request_RequestError);
                 request.Method = "POST";
-                request.RequestContent = GeneratePostData();
+                request.RequestContent = this.GeneratePostData();
 
-                if (Debug == enumBoolOnOff.On && ExecuteCommand != null)
-                {
-                    ExecuteCommand("procon.protected.pluginconsole.write", "^4Metabans API: Post " + Uri.EscapeUriString(request.RequestContent));
+                if (this.Debug == enumBoolOnOff.On && this.ExecuteCommand != null) {
+                    this.ExecuteCommand("procon.protected.pluginconsole.write", "^4Metabans API: Post " + Uri.EscapeUriString(request.RequestContent));
                 }
 
                 request.BeginRequest();
@@ -41870,272 +41840,251 @@ namespace PRoConEvents
             }
         }
 
+        internal static class SHA1 {
+            private static System.Security.Cryptography.SHA1 HASHER = System.Security.Cryptography.SHA1.Create();
+
+            public static string Data(byte[] data) {
+                StringBuilder stringifyHash = new StringBuilder();
+                byte[] hash = SHA1.HASHER.ComputeHash(data);
+
+                for (int x = 0; x < hash.Length; x++) {
+                    stringifyHash.Append(hash[x].ToString("x2"));
+                }
+
+                return stringifyHash.ToString();
+            }
+
+            public static string String(string data) {
+                return SHA1.Data(Encoding.UTF8.GetBytes(data));
+            }
+        }
+
         // This is similar to CDownloadFile but has some POST options included
-        internal class MetabansRequest
-        {
+        internal class MetabansRequest {
+
             public delegate void RequestEventDelegate(MetabansRequest sender);
+            public event RequestEventDelegate RequestComplete;
+            public event RequestEventDelegate RequestError;
+            public event RequestEventDelegate RequestDiscoveredFileSize;
+            public event RequestEventDelegate RequestProgressUpdate;
+
+            private HttpWebRequest m_webRequest;
+            private WebResponse m_webResponse;
+            private Stream m_responseStream;
+
+            public string DownloadSource;
 
             private const int INT_BUFFER_SIZE = UInt16.MaxValue;
-            public object AdditionalData;
+            private byte[] ma_bBufferStream;
+
+            private System.Timers.Timer m_progressTimer;
+
+            public bool FileDownloading;
 
             public int BytesDownloaded;
 
-            public byte[] CompleteFileData;
-            public string DownloadSource;
-
-            public string Error;
-            public bool FileDownloading;
             public int FileSize;
 
-            /// <summary>
-            ///     The WebRequestMethods.Http string representing the type of
-            ///     method to use in the request.  Default is Get.
-            /// </summary>
-            public string Method;
+            public byte[] CompleteFileData;
+
+            public bool UnknownSize;
+
+            public object AdditionalData;
+
+            public string Error;
 
             /// <summary>
-            ///     Optional range to include in the request header
+            /// Optional range to include in the request header
             /// </summary>
             public int? Range;
 
             /// <summary>
-            ///     Optional referrer to include in the request header
+            /// Optional referrer to include in the request header
             /// </summary>
-            public string Referrer = "PRoCon Metabans Plugin/1.0.6.0";
+            public string Referrer = "PRoCon Metabans Plugin/1.1.0.0";
 
             /// <summary>
-            ///     The contents of a POST request
+            /// The WebRequestMethods.Http string representing the type of
+            /// method to use in the request.  Default is Get.
+            /// </summary>
+            public string Method;
+
+            /// <summary>
+            /// The contents of a POST request
             /// </summary>
             public string RequestContent;
 
-            public bool UnknownSize;
-            private Timer m_progressTimer;
-            private Stream m_responseStream;
-
             private int m_timeout;
-            private HttpWebRequest m_webRequest;
-            private WebResponse m_webResponse;
-            private byte[] ma_bBufferStream;
-
-            public MetabansRequest(string downloadSource)
-            {
-                DownloadSource = downloadSource;
-
-                m_timeout = 30000;
-                Method = WebRequestMethods.Http.Get;
-            }
-
             /// <summary>
-            ///     ReadTimeout of the stream in milliseconds.  Default is 10 seconds.
+            /// ReadTimeout of the stream in milliseconds.  Default is 10 seconds.
             /// </summary>
-            public int Timeout
-            {
-                get { return m_timeout; }
-                set
-                {
-                    m_timeout = value;
+            public int Timeout {
+                get {
+                    return this.m_timeout;
+                }
+                set {
+                    this.m_timeout = value;
 
-                    if (m_responseStream != null)
-                    {
-                        m_responseStream.ReadTimeout = value;
+                    if (this.m_responseStream != null) {
+                        this.m_responseStream.ReadTimeout = value;
                     }
                 }
             }
 
-            public string FileName
-            {
-                get
-                {
+            public string FileName {
+                get {
                     string strReturnFileName = String.Empty;
 
-                    if (DownloadSource.Length > 0)
-                    {
-                        strReturnFileName = DownloadSource.Substring(DownloadSource.LastIndexOf("/") + 1, (DownloadSource.Length - DownloadSource.LastIndexOf("/") - 1));
+                    if (this.DownloadSource.Length > 0) {
+                        strReturnFileName = this.DownloadSource.Substring(this.DownloadSource.LastIndexOf("/") + 1, (this.DownloadSource.Length - this.DownloadSource.LastIndexOf("/") - 1));
                     }
 
                     return strReturnFileName;
                 }
             }
 
-            public event RequestEventDelegate RequestComplete;
-            public event RequestEventDelegate RequestError;
-            public event RequestEventDelegate RequestDiscoveredFileSize;
-            public event RequestEventDelegate RequestProgressUpdate;
+            public MetabansRequest(string downloadSource) {
+                this.DownloadSource = downloadSource;
 
-            public void EndDownload()
-            {
-                FileDownloading = false;
+                this.m_timeout = 30000;
+                this.Method = WebRequestMethods.Http.Get;
             }
 
-            private void RequestTimeoutCallback(object state, bool timedOut)
-            {
-                if (timedOut == true)
-                {
-                    MetabansRequest cdfParent = (MetabansRequest)state;
+            public void EndDownload() {
+                this.FileDownloading = false;
+            }
 
-                    if (cdfParent != null)
-                    {
-                        try
-                        {
+            private void RequestTimeoutCallback(object state, bool timedOut) {
+                if (timedOut == true) {
+                    MetabansRequest cdfParent = (MetabansRequest) state;
+
+                    if (cdfParent != null) {
+                        try {
                             cdfParent.m_webRequest.Abort();
-                        }
-                        catch (Exception e)
-                        {
-                            if (RequestError != null)
-                            {
-                                Error = e.Message;
+                        } catch (Exception e) {
+                            if (this.RequestError != null) {
+                                this.Error = e.Message;
 
-                                RequestError(this);
+                                this.RequestError(this);
                             }
                         }
                     }
                 }
             }
 
-            public void BeginRequest()
-            {
-                try
-                {
-                    new Thread(new ThreadStart(BeginRequestCallback)).Start();
-                }
-                catch (Exception e)
-                {
-                    if (RequestError != null)
-                    {
-                        Error = e.Message;
+            public void BeginRequest() {
+                try {
+                    new Thread(new ThreadStart(this.BeginRequestCallback)).Start();
+                } catch (Exception e) {
+                    if (this.RequestError != null) {
+                        this.Error = e.Message;
 
-                        RequestError(this);
+                        this.RequestError(this);
                     }
                 }
             }
 
-            private void BeginRequestCallback()
-            {
-                UnknownSize = true;
+            private void BeginRequestCallback() {
 
-                BytesDownloaded = 0;
-                FileSize = 1;
+                this.UnknownSize = true;
 
-                FileDownloading = true;
+                this.BytesDownloaded = 0;
+                this.FileSize = 1;
 
-                ma_bBufferStream = new byte[INT_BUFFER_SIZE];
+                this.FileDownloading = true;
 
-                try
-                {
-                    m_webRequest = (HttpWebRequest)WebRequest.Create(DownloadSource);
-                    m_webRequest.Method = Method;
+                this.ma_bBufferStream = new byte[MetabansRequest.INT_BUFFER_SIZE];
 
-                    if (Range != null)
-                    {
-                        m_webRequest.AddRange((int)Range);
+                try {
+                    this.m_webRequest = (HttpWebRequest) HttpWebRequest.Create(this.DownloadSource);
+                    this.m_webRequest.Method = this.Method;
+
+                    if (this.Range != null) {
+                        this.m_webRequest.AddRange((int) this.Range);
                     }
 
-                    if (Referrer != null)
-                    {
-                        m_webRequest.UserAgent = Referrer;
+                    if (this.Referrer != null) {
+                        this.m_webRequest.UserAgent = this.Referrer;
                     }
 
-                    m_webRequest.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip");
+                    this.m_webRequest.Headers.Add(System.Net.HttpRequestHeader.AcceptEncoding, "gzip");
 
-                    try
-                    {
-                        m_webRequest.Proxy = null;
-                    }
-                    catch (Exception)
-                    {
-                    }
+                    try {
+                        this.m_webRequest.Proxy = null;
+                    } catch (Exception) { }
 
-                    if (RequestContent != null && RequestContent.Length > 0)
-                    {
-                        m_webRequest.ContentType = "application/x-www-form-urlencoded";
-                        m_webRequest.ContentLength = RequestContent.Length;
+                    if (this.RequestContent != null && this.RequestContent.Length > 0) {
+                        this.m_webRequest.ContentType = "application/x-www-form-urlencoded";
+                        this.m_webRequest.ContentLength = this.RequestContent.Length;
 
-                        Stream newStream = m_webRequest.GetRequestStream();
+                        Stream newStream = this.m_webRequest.GetRequestStream();
                         // Send the data.
-                        newStream.Write(Encoding.UTF8.GetBytes(RequestContent), 0, RequestContent.Length);
+                        newStream.Write(Encoding.UTF8.GetBytes(this.RequestContent), 0, this.RequestContent.Length);
                         newStream.Close();
                     }
 
-                    if (m_webRequest != null)
-                    {
-                        IAsyncResult arResult = m_webRequest.BeginGetResponse(new AsyncCallback(ResponseCallback), this);
-                        ThreadPool.RegisterWaitForSingleObject(arResult.AsyncWaitHandle, new WaitOrTimerCallback(RequestTimeoutCallback), this, m_timeout, true);
+                    if (this.m_webRequest != null) {
+                        IAsyncResult arResult = this.m_webRequest.BeginGetResponse(new AsyncCallback(this.ResponseCallback), this);
+                        ThreadPool.RegisterWaitForSingleObject(arResult.AsyncWaitHandle, new WaitOrTimerCallback(this.RequestTimeoutCallback), this, this.m_timeout, true);
                     }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(DownloadSource);
+                } catch (Exception e) {
+                    Console.WriteLine(this.DownloadSource);
                     Console.WriteLine(e.StackTrace);
 
-                    if (RequestError != null)
-                    {
-                        Error = e.Message;
+                    if (this.RequestError != null) {
+                        this.Error = e.Message;
 
-                        RequestError(this);
+                        this.RequestError(this);
                     }
                 }
             }
 
-            private void ResponseCallback(IAsyncResult ar)
-            {
+            private void ResponseCallback(IAsyncResult ar) {
                 //Request cdfParent = (Request)ar.AsyncState;
 
-                try
-                {
-                    m_webResponse = m_webRequest.EndGetResponse(ar);
+                try {
+                    this.m_webResponse = this.m_webRequest.EndGetResponse(ar);
 
                     string strContentLength = null;
-                    if ((strContentLength = m_webResponse.Headers["Content-Length"]) != null)
-                    {
-                        FileSize = Convert.ToInt32(strContentLength);
-                        CompleteFileData = new byte[FileSize];
+                    if ((strContentLength = this.m_webResponse.Headers["Content-Length"]) != null) {
+                        this.FileSize = Convert.ToInt32(strContentLength);
+                        this.CompleteFileData = new byte[this.FileSize];
 
-                        UnknownSize = false;
+                        this.UnknownSize = false;
 
-                        if (RequestDiscoveredFileSize != null)
-                        {
-                            RequestDiscoveredFileSize(this);
+                        if (this.RequestDiscoveredFileSize != null) {
+                            this.RequestDiscoveredFileSize(this);
                         }
-                    }
-                    else
-                    {
-                        CompleteFileData = new byte[0];
+                    } else {
+                        this.CompleteFileData = new byte[0];
                     }
 
-                    m_responseStream = m_webResponse.GetResponseStream();
+                    this.m_responseStream = this.m_webResponse.GetResponseStream();
 
-                    if (m_webResponse.Headers.Get("Content-Encoding") != null && m_webResponse.Headers.Get("Content-Encoding").ToLower() == "gzip")
-                    {
-                        m_responseStream = new GZipStream(m_responseStream, CompressionMode.Decompress);
+                    if (this.m_webResponse.Headers.Get("Content-Encoding") != null && this.m_webResponse.Headers.Get("Content-Encoding").ToLower() == "gzip") {
+                        this.m_responseStream = new GZipStream(this.m_responseStream, CompressionMode.Decompress);
                     }
 
-                    IAsyncResult arResult = m_responseStream.BeginRead(ma_bBufferStream, 0, INT_BUFFER_SIZE, new AsyncCallback(ReadCallBack), this);
+                    IAsyncResult arResult = this.m_responseStream.BeginRead(this.ma_bBufferStream, 0, MetabansRequest.INT_BUFFER_SIZE, new AsyncCallback(this.ReadCallBack), this);
 
-                    ThreadPool.RegisterWaitForSingleObject(arResult.AsyncWaitHandle, new WaitOrTimerCallback(ReadTimeoutCallback), this, m_timeout, true);
-                }
-                catch (Exception e)
-                {
-                    FileDownloading = false;
-                    if (RequestError != null)
-                    {
-                        Error = e.Message;
+                    ThreadPool.RegisterWaitForSingleObject(arResult.AsyncWaitHandle, new WaitOrTimerCallback(this.ReadTimeoutCallback), this, this.m_timeout, true);
+                } catch (Exception e) {
+                    this.FileDownloading = false;
+                    if (this.RequestError != null) {
+                        this.Error = e.Message;
 
-                        RequestError(this);
+                        this.RequestError(this);
                     }
                 }
             }
 
-            private void ReadTimeoutCallback(object state, bool timedOut)
-            {
-                if (timedOut == true)
-                {
-                    MetabansRequest cdfParent = (MetabansRequest)state;
-                    if (cdfParent != null && cdfParent.m_responseStream != null)
-                    {
+            private void ReadTimeoutCallback(object state, bool timedOut) {
+                if (timedOut == true) {
+                    MetabansRequest cdfParent = (MetabansRequest) state;
+                    if (cdfParent != null && cdfParent.m_responseStream != null) {
                         cdfParent.m_responseStream.Close();
 
-                        if (cdfParent.RequestError != null)
-                        {
+                        if (cdfParent.RequestError != null) {
                             cdfParent.Error = "Read Timeout";
 
                             cdfParent.RequestError(cdfParent);
@@ -42144,82 +42093,52 @@ namespace PRoConEvents
                 }
             }
 
-            private void ReadCallBack(IAsyncResult ar)
-            {
-                if (FileDownloading == true)
-                {
-                    try
-                    {
+            private void ReadCallBack(IAsyncResult ar) {
+
+                if (this.FileDownloading == true) {
+                    try {
+
                         int iBytesRead = -1;
-                        if ((iBytesRead = m_responseStream.EndRead(ar)) > 0)
-                        {
-                            if (UnknownSize == true)
-                            {
-                                byte[] resizedFileData = new byte[CompleteFileData.Length + iBytesRead];
+                        if ((iBytesRead = this.m_responseStream.EndRead(ar)) > 0) {
 
-                                CompleteFileData.CopyTo(resizedFileData, 0);
+                            if (this.UnknownSize == true) {
+                                byte[] resizedFileData = new byte[this.CompleteFileData.Length + iBytesRead];
 
-                                CompleteFileData = resizedFileData;
+                                this.CompleteFileData.CopyTo(resizedFileData, 0);
+
+                                this.CompleteFileData = resizedFileData;
 
                                 // Array.Resize<byte>(ref cdfParent.CompleteFileData, cdfParent.CompleteFileData.Length + iBytesRead);
                             }
 
-                            Array.Copy(ma_bBufferStream, 0, CompleteFileData, BytesDownloaded, iBytesRead);
-                            BytesDownloaded += iBytesRead;
+                            Array.Copy(this.ma_bBufferStream, 0, this.CompleteFileData, this.BytesDownloaded, iBytesRead);
+                            this.BytesDownloaded += iBytesRead;
 
-                            IAsyncResult arResult = m_responseStream.BeginRead(ma_bBufferStream, 0, INT_BUFFER_SIZE, new AsyncCallback(ReadCallBack), this);
+                            IAsyncResult arResult = this.m_responseStream.BeginRead(this.ma_bBufferStream, 0, MetabansRequest.INT_BUFFER_SIZE, new AsyncCallback(this.ReadCallBack), this);
 
-                            ThreadPool.RegisterWaitForSingleObject(arResult.AsyncWaitHandle, new WaitOrTimerCallback(ReadTimeoutCallback), this, m_timeout, true);
-                        }
-                        else
-                        {
-                            FileDownloading = false;
-                            if (RequestComplete != null)
-                            {
+                            ThreadPool.RegisterWaitForSingleObject(arResult.AsyncWaitHandle, new WaitOrTimerCallback(this.ReadTimeoutCallback), this, this.m_timeout, true);
+                        } else {
+
+                            this.FileDownloading = false;
+                            if (this.RequestComplete != null) {
                                 //FrostbiteConnection.RaiseEvent(cdfParent.DownloadComplete.GetInvocationList(), cdfParent);
-                                RequestComplete(this);
+                                this.RequestComplete(this);
                             }
 
-                            m_responseStream.Close();
-                            m_responseStream.Dispose();
-                            m_responseStream = null;
+                            this.m_responseStream.Close();
+                            this.m_responseStream.Dispose();
+                            this.m_responseStream = null;
                         }
-                    }
-                    catch (Exception e)
-                    {
-                        FileDownloading = false;
-                        if (RequestError != null)
-                        {
-                            Error = e.Message;
+                    } catch (Exception e) {
+                        this.FileDownloading = false;
+                        if (this.RequestError != null) {
+                            this.Error = e.Message;
 
                             //FrostbiteConnection.RaiseEvent(cdfParent.DownloadError.GetInvocationList(), cdfParent);
-                            RequestError(this);
+                            this.RequestError(this);
                         }
                     }
                 }
-            }
-        }
-
-        internal static class SHA1
-        {
-            private static readonly System.Security.Cryptography.SHA1 HASHER = System.Security.Cryptography.SHA1.Create();
-
-            public static string Data(byte[] data)
-            {
-                StringBuilder stringifyHash = new StringBuilder();
-                byte[] hash = HASHER.ComputeHash(data);
-
-                for (int x = 0; x < hash.Length; x++)
-                {
-                    stringifyHash.Append(hash[x].ToString("x2"));
-                }
-
-                return stringifyHash.ToString();
-            }
-
-            public static string String(string data)
-            {
-                return Data(Encoding.UTF8.GetBytes(data));
             }
         }
 
