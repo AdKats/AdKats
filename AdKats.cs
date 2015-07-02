@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.67
- * 25-JUN-2015
+ * Version 6.7.0.68
+ * 1-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.67</version_code>
+ * <version_code>6.7.0.68</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.67";
+        private const String PluginVersion = "6.7.0.68";
 
         public enum GameVersion
         {
@@ -5597,6 +5597,7 @@ namespace PRoConEvents
                 RegisterEvents(GetType().Name, 
                     "OnVersion", 
                     "OnServerInfo", 
+                    "OnSoldierHealth",
                     "OnListPlayers", 
                     "OnPunkbusterPlayerInfo", 
                     "OnReservedSlotsList", 
@@ -9383,6 +9384,10 @@ namespace PRoConEvents
             Log.Debug(() => "Exiting OnServerInfo", 7);
         }
 
+        public override void OnSoldierHealth(Int32 limit) {
+            _soldierHealth = limit;
+        }
+
         public void PostAndResetMapBenefitStatistics()
         {
             Log.Debug(() => "Entering PostAndResetMapBenefitStatistics", 7);
@@ -11605,15 +11610,27 @@ namespace PRoConEvents
                                     AdKatsWeaponStat previousWeaponStat;
                                     if (previousStats.WeaponStats.TryGetValue(weaponStat.ID, out previousWeaponStat)) {
                                         if (weaponStat.Kills > previousWeaponStat.Kills) {
-                                            Double weaponHitsToKill = (100 / weapon.DamageMax);
+                                            //Handle servers with different health amounts
+                                            Double weaponHitsToKill = (_soldierHealth / weapon.DamageMax);
                                             Double killDiff = weaponStat.Kills - previousWeaponStat.Kills;
                                             Double hitDiff = weaponStat.Hits - previousWeaponStat.Hits;
                                             Double HSDiff = weaponStat.Headshots - previousWeaponStat.Headshots;
-                                            Double liveDPS = (killDiff / hitDiff) * 100;
+                                            //Reject processing of bad data returned from battlelog
+                                            if (killDiff < 0 || hitDiff < 0 || HSDiff < 0) {
+                                                return false;
+                                            }
+                                            Double liveDPS = (killDiff / hitDiff) * _soldierHealth;
+                                            //Coerce the live damage
+                                            if (liveDPS < 0) {
+                                                liveDPS = 0;
+                                            }
                                             Double expectedHits = (HSDiff * weaponHitsToKill / 2) + ((killDiff - HSDiff) * weaponHitsToKill);
-                                            Double expectedDPS = (killDiff / expectedHits) * 100;
+                                            Double expectedDPS = (killDiff / expectedHits) * _soldierHealth;
+                                            //Coerce the expected damage
+                                            if (expectedDPS < 0) {
+                                                expectedDPS = 0;
+                                            }
                                             Double percDiff = (liveDPS - expectedDPS) / expectedDPS;
-
                                             String formattedName = weaponStat.ID.Replace("-", "").Replace(" ", "").ToUpper();
                                             if (Math.Round(percDiff) > 0) {
                                                 Log.Info("STATDIFF - " + aPlayer.GetVerboseName() + " - " + formattedName + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(liveDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
@@ -11623,7 +11640,7 @@ namespace PRoConEvents
                                             if (killDiff >= 12 &&
                                                 liveDPS > weapon.DamageMax &&
                                                 (liveDPS >= 85 || (!isSidearm && percDiff > 0.75))) {
-                                                Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "]");
+                                                    Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE " + _soldierHealth + "][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]");
                                                 if (!debugMode) {
                                                     //Create the ban record
                                                     QueueRecordForProcessing(new AdKatsRecord {
@@ -11634,7 +11651,7 @@ namespace PRoConEvents
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
                                                         source_name = "AutoAdmin",
-                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "]",
+                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE " + _soldierHealth + "][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]",
                                                         record_time = UtcDbTime()
                                                     });
                                                 }
@@ -24343,9 +24360,13 @@ namespace PRoConEvents
                         Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                         ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                         _MULTIBalancerUnswitcherDisabled = true;
-                        ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_name, record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "true");
-                        _LastPlayerMoveIssued = UtcDbTime();
-                        SendMessageToSource(record, "Attempting to join " + record.GetTargetNames());
+                        AdKatsTeam targetTeam;
+                        if (GetTeamByID(record.target_player.frostbitePlayerInfo.TeamID, out targetTeam)) {
+                            record.target_player.RequiredTeam = targetTeam;
+                            _LastPlayerMoveIssued = UtcDbTime();
+                            SendMessageToSource(record, "Attempting to join " + record.GetTargetNames());
+                            ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_name, record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "true");
+                        }
                     }
                 }
                 else
@@ -24376,9 +24397,13 @@ namespace PRoConEvents
                 Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                 _MULTIBalancerUnswitcherDisabled = true;
-                ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_name, record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "true");
-                _LastPlayerMoveIssued = UtcDbTime();
-                SendMessageToSource(record, "Attempting to pull " + record.GetTargetNames());
+                AdKatsTeam targetTeam;
+                if (GetTeamByID(record.source_player.frostbitePlayerInfo.TeamID, out targetTeam)) {
+                    record.source_player.RequiredTeam = targetTeam;
+                    _LastPlayerMoveIssued = UtcDbTime();
+                    SendMessageToSource(record, "Attempting to pull " + record.GetTargetNames());
+                    ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_name, record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "true");
+                }
             }
             catch (Exception e)
             {
@@ -27106,7 +27131,7 @@ namespace PRoConEvents
             {
                 if (_SettingUploadQueue.Count > 0)
                 {
-                    if (_aliveThreads.Values.Any(aThread => aThread.Name == "SettingUploader"))
+                    if (_aliveThreads.Values.ToList().Any(aThread => aThread.Name == "SettingUploader"))
                     {
                         return;
                     }
