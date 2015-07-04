@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.70
+ * Version 6.7.0.71
  * 4-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.70</version_code>
+ * <version_code>6.7.0.71</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.70";
+        private const String PluginVersion = "6.7.0.71";
 
         public enum GameVersion
         {
@@ -37493,12 +37493,9 @@ namespace PRoConEvents
                                 }
                                 if (overviewStatsTable.ContainsKey("kills")) {
                                     stats.Kills = Int32.Parse((String) overviewStatsTable["kills"]);
-                                    if (_isTestingAuthorized) {
-                                        Log.Info(aPlayer.GetVerboseName() + " - Kills: " + stats.Kills);
-                                    }
                                 }
                                 if (overviewStatsTable.ContainsKey("accuracy")) {
-                                    stats.Accuracy = Double.Parse((String) overviewStatsTable["accuracy"]);
+                                    stats.Accuracy = (Double) overviewStatsTable["accuracy"];
                                 }
                                 if (overviewStatsTable.ContainsKey("shotsFired")) {
                                     stats.Shots = Int32.Parse((String) overviewStatsTable["shotsFired"]);
@@ -37508,9 +37505,6 @@ namespace PRoConEvents
                                 }
                                 if (overviewStatsTable.ContainsKey("shotsHit")) {
                                     stats.Hits = Int32.Parse((String) overviewStatsTable["shotsHit"]);
-                                    if (_isTestingAuthorized) {
-                                        Log.Info(aPlayer.GetVerboseName() + " - Hits: " + stats.Hits);
-                                    }
                                 }
                                 if (overviewStatsTable.ContainsKey("rank")) {
                                     stats.Rank = Int32.Parse((String) overviewStatsTable["rank"]);
@@ -37523,6 +37517,9 @@ namespace PRoConEvents
                                 }
                                 if (overviewStatsTable.ContainsKey("headshots")) {
                                     stats.Headshots = Int32.Parse((String) overviewStatsTable["headshots"]);
+                                }
+                                if (_isTestingAuthorized) {
+                                    Log.Info(aPlayer.GetVerboseName() + " - Kills: " + stats.Kills + " - Hits: " + stats.Hits);
                                 }
                             }
                         }
