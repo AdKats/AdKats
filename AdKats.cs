@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.74
+ * Version 6.7.0.75
  * 4-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.74</version_code>
+ * <version_code>6.7.0.75</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.74";
+        private const String PluginVersion = "6.7.0.75";
 
         public enum GameVersion
         {
@@ -37482,18 +37482,18 @@ namespace PRoConEvents
                             Hashtable data = (Hashtable) json["data"];
                             Hashtable overviewStatsTable = null;
                             if (data.ContainsKey("generalStats") && (overviewStatsTable = (Hashtable) data["generalStats"]) != null) {
-                                stats.Skill = Int32.Parse((String) overviewStatsTable["skill"]);
-                                stats.Revives = Int32.Parse(overviewStatsTable["revives"].ToString() + "");
-                                stats.Rank = Int32.Parse((String) overviewStatsTable["rank"]);
-                                stats.Kills = Int32.Parse((String) overviewStatsTable["kills"]);
+                                stats.Skill = Int32.Parse(overviewStatsTable["skill"].ToString());
+                                stats.Revives = Int32.Parse(overviewStatsTable["revives"].ToString());
+                                stats.Rank = Int32.Parse(overviewStatsTable["rank"].ToString());
+                                stats.Kills = Int32.Parse(overviewStatsTable["kills"].ToString());
                                 stats.Accuracy = (Double) overviewStatsTable["accuracy"];
-                                stats.Shots = Int32.Parse((String) overviewStatsTable["shotsFired"]);
-                                stats.Score = Int32.Parse((String) overviewStatsTable["score"]);
-                                stats.Hits = Int32.Parse((String) overviewStatsTable["shotsHit"]);
-                                stats.Rank = Int32.Parse((String) overviewStatsTable["rank"]);
-                                stats.Heals = Int32.Parse((String) overviewStatsTable["heals"]);
-                                stats.Deaths = Int32.Parse((String) overviewStatsTable["deaths"]);
-                                stats.Headshots = Int32.Parse((String) overviewStatsTable["headshots"]);
+                                stats.Shots = Int32.Parse(overviewStatsTable["shotsFired"].ToString());
+                                stats.Score = Int32.Parse(overviewStatsTable["score"].ToString());
+                                stats.Hits = Int32.Parse(overviewStatsTable["shotsHit"].ToString());
+                                stats.Rank = Int32.Parse(overviewStatsTable["rank"].ToString());
+                                stats.Heals = Int32.Parse(overviewStatsTable["heals"].ToString());
+                                stats.Deaths = Int32.Parse(overviewStatsTable["deaths"].ToString());
+                                stats.Headshots = Int32.Parse(overviewStatsTable["headshots"].ToString());
                                 if (_isTestingAuthorized) {
                                     Log.Info(aPlayer.GetVerboseName() + " - Kills: " + stats.Kills + " - Hits: " + stats.Hits);
                                 }
