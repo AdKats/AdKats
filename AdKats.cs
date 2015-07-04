@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.75
+ * Version 6.7.0.76
  * 4-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.75</version_code>
+ * <version_code>6.7.0.76</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.75";
+        private const String PluginVersion = "6.7.0.76";
 
         public enum GameVersion
         {
@@ -11492,8 +11492,7 @@ namespace PRoConEvents
                     AdKatsPlayerStats currentStats;
                     if (aPlayer.RoundStats.TryGetValue(_roundID, out currentStats) &&
                         aPlayer.RoundStats.TryGetValue(_roundID - 1, out previousStats)) {
-                            if (previousStats.LiveStats != null &&
-                                previousStats.WeaponStats != null &&
+                            if (previousStats.WeaponStats != null &&
                                 previousStats.VehicleStats != null &&
                                 currentStats.WeaponStats != null &&
                                 currentStats.VehicleStats != null) {
@@ -11518,6 +11517,9 @@ namespace PRoConEvents
                                     Log.Warn("KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + killDiscrepancy + " Unaccounted Kills)(" + hitDiscrepancy + " Unaccounted Hits)");
                                     Log.Warn(String.Join(", ", aPlayer.RecentKills.Select(aKill => aKill.weaponCode).ToArray()));
                                 }
+                                else {
+                                    Log.Success(aPlayer.GetVerboseName() + " all kills accounted for. Kills:(" + weaponKillDiff + "|" + overallKillDiff + ") Hits: (" + weaponHitDiff + "|" + overallHitDiff + ")");
+                                }
                                 if (killDiscrepancy > 5 && !PlayerProtected(aPlayer)) {
                                     QueueRecordForProcessing(new AdKatsRecord {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -11533,7 +11535,7 @@ namespace PRoConEvents
                                     acted = true;
                                 }
                         } else {
-                            Log.Warn(aPlayer.GetVerboseName() + " has no live stats to use.");
+                            Log.Warn(aPlayer.GetVerboseName() + " has no stats to use.");
                         }
                     }
                 }
@@ -37474,30 +37476,25 @@ namespace PRoConEvents
                         //Fetch stats
                         AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
 
-                        if (_isTestingAuthorized) {
-                            //Handle overview stats
-                            DoBattlelogWait();
-                            String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawdetailedstatspopulate/" + aPlayer.player_personaID + "/1/?nocacherandom=" + Environment.TickCount);
-                            Hashtable json = (Hashtable) JSON.JsonDecode(overviewResponse);
-                            Hashtable data = (Hashtable) json["data"];
-                            Hashtable overviewStatsTable = null;
-                            if (data.ContainsKey("generalStats") && (overviewStatsTable = (Hashtable) data["generalStats"]) != null) {
-                                stats.Skill = Int32.Parse(overviewStatsTable["skill"].ToString());
-                                stats.Revives = Int32.Parse(overviewStatsTable["revives"].ToString());
-                                stats.Rank = Int32.Parse(overviewStatsTable["rank"].ToString());
-                                stats.Kills = Int32.Parse(overviewStatsTable["kills"].ToString());
-                                stats.Accuracy = (Double) overviewStatsTable["accuracy"];
-                                stats.Shots = Int32.Parse(overviewStatsTable["shotsFired"].ToString());
-                                stats.Score = Int32.Parse(overviewStatsTable["score"].ToString());
-                                stats.Hits = Int32.Parse(overviewStatsTable["shotsHit"].ToString());
-                                stats.Rank = Int32.Parse(overviewStatsTable["rank"].ToString());
-                                stats.Heals = Int32.Parse(overviewStatsTable["heals"].ToString());
-                                stats.Deaths = Int32.Parse(overviewStatsTable["deaths"].ToString());
-                                stats.Headshots = Int32.Parse(overviewStatsTable["headshots"].ToString());
-                                if (_isTestingAuthorized) {
-                                    Log.Info(aPlayer.GetVerboseName() + " - Kills: " + stats.Kills + " - Hits: " + stats.Hits);
-                                }
-                            }
+                        //Handle overview stats
+                        DoBattlelogWait();
+                        String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawdetailedstatspopulate/" + aPlayer.player_personaID + "/1/?nocacherandom=" + Environment.TickCount);
+                        Hashtable json = (Hashtable) JSON.JsonDecode(overviewResponse);
+                        Hashtable data = (Hashtable) json["data"];
+                        Hashtable overviewStatsTable = null;
+                        if (data.ContainsKey("generalStats") && (overviewStatsTable = (Hashtable) data["generalStats"]) != null) {
+                            stats.Skill = Int32.Parse(overviewStatsTable["skill"].ToString());
+                            stats.Revives = Int32.Parse(overviewStatsTable["revives"].ToString());
+                            stats.Rank = Int32.Parse(overviewStatsTable["rank"].ToString());
+                            stats.Kills = Int32.Parse(overviewStatsTable["kills"].ToString());
+                            stats.Accuracy = (Double) overviewStatsTable["accuracy"];
+                            stats.Shots = Int32.Parse(overviewStatsTable["shotsFired"].ToString());
+                            stats.Score = Int32.Parse(overviewStatsTable["score"].ToString());
+                            stats.Hits = Int32.Parse(overviewStatsTable["shotsHit"].ToString());
+                            stats.Rank = Int32.Parse(overviewStatsTable["rank"].ToString());
+                            stats.Heals = Int32.Parse(overviewStatsTable["heals"].ToString());
+                            stats.Deaths = Int32.Parse(overviewStatsTable["deaths"].ToString());
+                            stats.Headshots = Int32.Parse(overviewStatsTable["headshots"].ToString());
                         }
 
                         //Handle specific weapon stats
