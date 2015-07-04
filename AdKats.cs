@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.68
- * 1-JUL-2015
+ * Version 6.7.0.69
+ * 4-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.68</version_code>
+ * <version_code>6.7.0.69</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.68";
+        private const String PluginVersion = "6.7.0.69";
 
         public enum GameVersion
         {
@@ -5404,7 +5404,7 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"SpamBot Tell List").Success)
                 {
                     List<String> spamBotTellList = new List<String>(CPluginVariable.DecodeStringArray(strValue));
-                    if (!_spamBotYellList.SequenceEqual(spamBotTellList))
+                    if (!_spamBotTellList.SequenceEqual(spamBotTellList))
                     {
                         _spamBotTellQueue.Clear();
                         foreach (String line in spamBotTellList.Where(message => !String.IsNullOrEmpty(message)).ToList())
@@ -11497,34 +11497,41 @@ namespace PRoConEvents
                                 previousStats.VehicleStats != null &&
                                 currentStats.WeaponStats != null &&
                                 currentStats.VehicleStats != null) {
-                            Int32 liveKillDiff = previousStats.LiveStats.Kills;
-                            Int32 previousKillCount = 
-                                (Int32) previousStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
-                                (Int32) previousStats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
-                            Int32 currentKillCount = 
-                                (Int32) currentStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) + 
-                                (Int32) currentStats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
-                            Int32 statKillDiff = currentKillCount - previousKillCount;
-                            Int32 killDiff = liveKillDiff - statKillDiff;
-                            var logString = "KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + liveKillDiff + "|" + statKillDiff + ") " + killDiff + " Unaccounted Kills";
-                            if (killDiff > 0) {
-                                Log.Warn(logString);
-                                Log.Warn(String.Join(", ", aPlayer.RecentKills.Select(aKill => aKill.weaponCode).ToArray()));
-                            }
-                            if (false && killDiff > 5 && !PlayerProtected(aPlayer)) {
-                                QueueRecordForProcessing(new AdKatsRecord {
-                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                    server_id = _serverInfo.ServerID,
-                                    command_type = GetCommandByKey("player_report"),
-                                    command_numeric = 0,
-                                    target_name = aPlayer.player_name,
-                                    target_player = aPlayer,
-                                    source_name = "AutoAdmin",
-                                    record_message = "Code 7-" + killDiff + " TEST",
-                                    record_time = UtcDbTime()
-                                });
-                                acted = true;
-                            }
+                                //Weapon specific info
+                                Int32 previousWeaponKillCount = 
+                                    (Int32) previousStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
+                                    (Int32) previousStats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
+                                Int32 currentWeaponKillCount =
+                                    (Int32) currentStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
+                                    (Int32) currentStats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
+                                Int32 previousWeaponHitCount = (Int32) previousStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Hits);
+                                Int32 currentWeaponHitCount = (Int32) currentStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Hits);
+                                //Calcs
+                                Int32 weaponKillDiff = currentWeaponKillCount - previousWeaponKillCount;
+                                Int32 weaponHitDiff = currentWeaponHitCount - previousWeaponHitCount;
+                                Int32 overallKillDiff = currentStats.Kills - previousStats.Kills;
+                                Int32 overallHitDiff = currentStats.Hits - previousStats.Hits;
+                                Int32 killDiscrepancy = overallKillDiff - weaponKillDiff;
+                                Int32 hitDiscrepancy = overallHitDiff - weaponHitDiff;
+
+                                if (killDiscrepancy > 0) {
+                                    Log.Warn("KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + killDiscrepancy + " Unaccounted Kills)(" + hitDiscrepancy + " Unaccounted Hits)");
+                                    Log.Warn(String.Join(", ", aPlayer.RecentKills.Select(aKill => aKill.weaponCode).ToArray()));
+                                }
+                                if (killDiscrepancy > 5 && !PlayerProtected(aPlayer)) {
+                                    QueueRecordForProcessing(new AdKatsRecord {
+                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("player_report"),
+                                        command_numeric = 0,
+                                        target_name = aPlayer.player_name,
+                                        target_player = aPlayer,
+                                        source_name = "AutoAdmin",
+                                        record_message = "Code 7-" + killDiscrepancy + "-" + hitDiscrepancy + " TEST",
+                                        record_time = UtcDbTime()
+                                    });
+                                    acted = true;
+                                }
                         } else {
                             Log.Warn(aPlayer.GetVerboseName() + " has no live stats to use.");
                         }
@@ -37466,6 +37473,61 @@ namespace PRoConEvents
                     try {
                         //Fetch stats
                         AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
+
+                        if (_isTestingAuthorized) {
+                            //Handle overview stats
+                            DoBattlelogWait();
+                            String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawdetailedstatspopulate/" + aPlayer.player_personaID + "/1/?nocacherandom=" + Environment.TickCount);
+                            Hashtable json = (Hashtable) JSON.JsonDecode(overviewResponse);
+                            Hashtable data = (Hashtable) json["data"];
+                            Hashtable overviewStatsTable = null;
+                            if (data.ContainsKey("overviewStats") && (overviewStatsTable = (Hashtable) data["overviewStats"]) != null) {
+                                if (overviewStatsTable.ContainsKey("skill")) {
+                                    stats.Skill = Int32.Parse((String) overviewStatsTable["skill"]);
+                                }
+                                if (overviewStatsTable.ContainsKey("revives")) {
+                                    stats.Revives = Int32.Parse((String) overviewStatsTable["revives"]);
+                                }
+                                if (overviewStatsTable.ContainsKey("rank")) {
+                                    stats.Rank = Int32.Parse((String) overviewStatsTable["rank"]);
+                                }
+                                if (overviewStatsTable.ContainsKey("kills")) {
+                                    stats.Kills = Int32.Parse((String) overviewStatsTable["kills"]);
+                                    if (_isTestingAuthorized) {
+                                        Log.Info(aPlayer.GetVerboseName() + " - Kills: " + stats.Kills);
+                                    }
+                                }
+                                if (overviewStatsTable.ContainsKey("accuracy")) {
+                                    stats.Accuracy = Double.Parse((String) overviewStatsTable["accuracy"]);
+                                }
+                                if (overviewStatsTable.ContainsKey("shotsFired")) {
+                                    stats.Shots = Int32.Parse((String) overviewStatsTable["shotsFired"]);
+                                }
+                                if (overviewStatsTable.ContainsKey("score")) {
+                                    stats.Score = Int32.Parse((String) overviewStatsTable["score"]);
+                                }
+                                if (overviewStatsTable.ContainsKey("shotsHit")) {
+                                    stats.Hits = Int32.Parse((String) overviewStatsTable["shotsHit"]);
+                                    if (_isTestingAuthorized) {
+                                        Log.Info(aPlayer.GetVerboseName() + " - Hits: " + stats.Hits);
+                                    }
+                                }
+                                if (overviewStatsTable.ContainsKey("rank")) {
+                                    stats.Rank = Int32.Parse((String) overviewStatsTable["rank"]);
+                                }
+                                if (overviewStatsTable.ContainsKey("heals")) {
+                                    stats.Heals = Int32.Parse((String) overviewStatsTable["heals"]);
+                                }
+                                if (overviewStatsTable.ContainsKey("deaths")) {
+                                    stats.Deaths = Int32.Parse((String) overviewStatsTable["deaths"]);
+                                }
+                                if (overviewStatsTable.ContainsKey("headshots")) {
+                                    stats.Headshots = Int32.Parse((String) overviewStatsTable["headshots"]);
+                                }
+                            }
+                        }
+
+                        //Handle specific weapon stats
                         DoBattlelogWait();
                         String response = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/");
                         Hashtable responseData = (Hashtable) JSON.JsonDecode(response);
@@ -40624,6 +40686,17 @@ namespace PRoConEvents
 
         public class AdKatsPlayerStats {
             public Int64 RoundID;
+            public Int32 Rank;
+            public Int32 Skill;
+            public Int32 Kills;
+            public Int32 Headshots;
+            public Int32 Deaths;
+            public Int32 Shots;
+            public Int32 Hits;
+            public Int32 Score;
+            public Double Accuracy;
+            public Int32 Revives;
+            public Int32 Heals;
             public Dictionary<String, AdKatsWeaponStat> WeaponStats = null;
             public Dictionary<String, AdKatsVehicleStat> VehicleStats = null;
             public CPlayerInfo LiveStats = null;
