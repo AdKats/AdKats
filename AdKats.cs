@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.76
+ * Version 6.7.0.77
  * 4-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.76</version_code>
+ * <version_code>6.7.0.77</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.76";
+        private const String PluginVersion = "6.7.0.77";
 
         public enum GameVersion
         {
@@ -10030,7 +10030,6 @@ namespace PRoConEvents
                     }
                     var nonSniperKills = aKill.killer.RecentKills
                         .Where(dKill => 
-                            dKill.weaponCategory != DamageTypes.None && 
                             dKill.weaponCategory != DamageTypes.SniperRifle && 
                             dKill.weaponCategory != DamageTypes.DMR)
                         .OrderByDescending(dKill => dKill.timestamp);
