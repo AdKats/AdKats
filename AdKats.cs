@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.77
- * 4-JUL-2015
+ * Version 6.7.0.78
+ * 7-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.77</version_code>
+ * <version_code>6.7.0.78</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.77";
+        private const String PluginVersion = "6.7.0.78";
 
         public enum GameVersion
         {
@@ -11519,16 +11519,16 @@ namespace PRoConEvents
                                 else {
                                     Log.Success(aPlayer.GetVerboseName() + " all kills accounted for. Kills:(" + weaponKillDiff + "|" + overallKillDiff + ") Hits: (" + weaponHitDiff + "|" + overallHitDiff + ")");
                                 }
-                                if (killDiscrepancy > 5 && !PlayerProtected(aPlayer)) {
+                                if (killDiscrepancy >= 8 && hitDiscrepancy <= 16 && !PlayerProtected(aPlayer)) {
                                     QueueRecordForProcessing(new AdKatsRecord {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         server_id = _serverInfo.ServerID,
-                                        command_type = GetCommandByKey("player_report"),
+                                        command_type = GetCommandByKey("player_ban_perm"),
                                         command_numeric = 0,
                                         target_name = aPlayer.player_name,
                                         target_player = aPlayer,
                                         source_name = "AutoAdmin",
-                                        record_message = "Code 7-" + killDiscrepancy + "-" + hitDiscrepancy + " TEST",
+                                        record_message = "Code 7-" + killDiscrepancy + "-" + hitDiscrepancy + " Dispute Requested",
                                         record_time = UtcDbTime()
                                     });
                                     acted = true;
