@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.78
- * 7-JUL-2015
+ * Version 6.7.0.79
+ * 8-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.78</version_code>
+ * <version_code>6.7.0.79</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.78";
+        private const String PluginVersion = "6.7.0.79";
 
         public enum GameVersion
         {
@@ -9916,7 +9916,7 @@ namespace PRoConEvents
                                 killerCPI = playerKill.Killer,
                                 victim = victim,
                                 victimCPI = playerKill.Victim,
-                                weaponCode = playerKill.DamageType,
+                                weaponCode = String.IsNullOrEmpty(playerKill.DamageType) ? "NoDamageType" : playerKill.DamageType,
                                 weaponCategory = category,
                                 timestamp = playerKill.TimeOfDeath,
                                 IsSuicide = playerKill.IsSuicide,
@@ -9993,8 +9993,8 @@ namespace PRoConEvents
 
                 //Add the kill
                 aKill.killer.RecentKills.Enqueue(aKill);
-                //Only keep the last 50 kills in memory
-                while (aKill.killer.RecentKills.Count > 50)
+                //Only keep the last 100 kills in memory
+                while (aKill.killer.RecentKills.Count > 100)
                 {
                     aKill.killer.RecentKills.Dequeue();
                 }
@@ -11512,6 +11512,7 @@ namespace PRoConEvents
                                 Int32 killDiscrepancy = overallKillDiff - weaponKillDiff;
                                 Int32 hitDiscrepancy = overallHitDiff - weaponHitDiff;
 
+                                killDiscrepancy -= aPlayer.RecentKills.Count(aKill => aKill.weaponCode == "DamageArea");
                                 if (killDiscrepancy > 0) {
                                     Log.Warn("KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + killDiscrepancy + " Unaccounted Kills)(" + hitDiscrepancy + " Unaccounted Hits)");
                                     Log.Warn(String.Join(", ", aPlayer.RecentKills.Select(aKill => aKill.weaponCode).ToArray()));
@@ -11519,7 +11520,7 @@ namespace PRoConEvents
                                 else {
                                     Log.Success(aPlayer.GetVerboseName() + " all kills accounted for. Kills:(" + weaponKillDiff + "|" + overallKillDiff + ") Hits: (" + weaponHitDiff + "|" + overallHitDiff + ")");
                                 }
-                                if (killDiscrepancy >= 8 && hitDiscrepancy <= 16 && !PlayerProtected(aPlayer)) {
+                                if (killDiscrepancy >= 8 && hitDiscrepancy <= killDiscrepancy && !PlayerProtected(aPlayer)) {
                                     QueueRecordForProcessing(new AdKatsRecord {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         server_id = _serverInfo.ServerID,
