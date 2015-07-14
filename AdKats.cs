@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.82
+ * Version 6.7.0.83
  * 13-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.82</version_code>
+ * <version_code>6.7.0.83</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.82";
+        private const String PluginVersion = "6.7.0.83";
 
         public enum GameVersion
         {
@@ -4826,7 +4826,7 @@ namespace PRoConEvents
                 } 
                 else if (Regex.Match(strVariable, @"Banned Tags").Success) 
                 {
-                    _BannedTags = CPluginVariable.DecodeStringArray(strValue);
+                    _BannedTags = CPluginVariable.DecodeStringArray(strValue).Where(entry => !String.IsNullOrEmpty(entry)).ToArray();
                     //Once setting has been changed, upload the change to database
                     QueueSettingForUpload(new CPluginVariable(@"Banned Tags", typeof(String), CPluginVariable.EncodeStringArray(_BannedTags)));
                 }
@@ -37399,7 +37399,7 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching battlelog information for " + aPlayer.player_name, e));
                 return false;
             }
-            if (_BannedTags.Contains(aPlayer.player_clanTag)) {
+            if (_BannedTags.Contains(aPlayer.player_clanTag) && !String.IsNullOrEmpty(aPlayer.player_clanTag)) {
                 //Create the ban record
                 QueueRecordForProcessing(new AdKatsRecord {
                     record_source = AdKatsRecord.Sources.InternalAutomated,
