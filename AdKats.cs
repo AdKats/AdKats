@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.80
- * 8-JUL-2015
+ * Version 6.7.0.81
+ * 13-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.80</version_code>
+ * <version_code>6.7.0.81</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.80";
+        private const String PluginVersion = "6.7.0.81";
 
         public enum GameVersion
         {
@@ -569,6 +569,8 @@ namespace PRoConEvents
         private Boolean _TeamspeakPlayerPerksBalanceWhitelist;
         private Boolean _TeamspeakPlayerPerksPingWhitelist;
         private Boolean _TeamspeakPlayerPerksTeamKillTrackerWhitelist;
+        private String[] _BannedTags = { };
+
 
         //Hacker-checker
         private Boolean _UseHackerChecker;
@@ -1136,6 +1138,7 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
                         }
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Banned Tags", typeof(String[]), _BannedTags));
                     }
 
                     if (IsActiveSettingSection("A17")) {
@@ -4820,6 +4823,12 @@ namespace PRoConEvents
                     {
                         Log.Error("Unable to update ban. This should not happen.");
                     }
+                } 
+                else if (Regex.Match(strVariable, @"Banned Tags").Success) 
+                {
+                    _BannedTags = CPluginVariable.DecodeStringArray(strValue);
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"Banned Tags", typeof(String), CPluginVariable.EncodeStringArray(_BannedTags)));
                 }
                 else if (Regex.Match(strVariable, @"Punishment Hierarchy").Success)
                 {
@@ -7514,6 +7523,7 @@ namespace PRoConEvents
                                                             PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")));
                                                         }
                                                     }
+                                                    Boolean acted = false;
                                                     //Are they over the limit, or missing
                                                     if (((aPlayer.player_ping_avg > currentTriggerMS && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0 && (UtcDbTime() - aPlayer.JoinTime).TotalSeconds > 60)) && aPlayer.player_pings_full)
                                                     {
@@ -7521,6 +7531,27 @@ namespace PRoConEvents
                                                         if (pingPickedPlayer == null || (aPlayer.player_ping_avg > pingPickedPlayer.player_ping_avg && pingPickedPlayer.player_ping_avg > 0))
                                                         {
                                                             pingPickedPlayer = aPlayer;
+                                                            acted = true;
+                                                        }
+                                                    }
+                                                    if (!acted && 
+                                                        _isTestingAuthorized && 
+                                                        ((aPlayer.player_ping_avg >= 200 && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0 && (UtcDbTime() - aPlayer.JoinTime).TotalSeconds > 60)) && 
+                                                        aPlayer.player_pings_full) {
+                                                        if (!aPlayer.TargetedRecords.Any(aRecord => 
+                                                            aRecord.command_type.command_key == "player_log" && 
+                                                            aRecord.record_message == "Code 45")) {
+                                                            QueueRecordForProcessing(new AdKatsRecord {
+                                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                                server_id = _serverInfo.ServerID,
+                                                                command_type = GetCommandByKey("player_log"),
+                                                                command_numeric = 0,
+                                                                target_name = aPlayer.player_name,
+                                                                target_player = aPlayer,
+                                                                source_name = "AutoAdmin",
+                                                                record_message = "Code 45",
+                                                                record_time = UtcDbTime()
+                                                            });
                                                         }
                                                     }
                                                 }
@@ -10002,7 +10033,7 @@ namespace PRoConEvents
                 {
                     aKill.killer.RecentKills.Dequeue();
                 }
-                if (_UseTopPlayerMonitor && _serverInfo.ServerType != "OFFICIAL")
+                if (_isTestingAuthorized && _serverInfo.ServerType != "OFFICIAL")
                 {
                     //KPM check
                     Int32 countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
@@ -37367,10 +37398,7 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching battlelog information for " + aPlayer.player_name, e));
                 return false;
             }
-            if (_isTestingAuthorized && 
-                (aPlayer.player_clanTag.ToUpper() == "D1CE" || 
-                 aPlayer.player_clanTag.ToUpper() == "D1C3" ||
-                 aPlayer.player_clanTag.ToUpper() == "DIC3")) {
+            if (_BannedTags.Contains(aPlayer.player_clanTag)) {
                 //Create the ban record
                 QueueRecordForProcessing(new AdKatsRecord {
                     record_source = AdKatsRecord.Sources.InternalAutomated,
