@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.83
- * 13-JUL-2015
+ * Version 6.7.0.84
+ * 15-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.83</version_code>
+ * <version_code>6.7.0.84</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.83";
+        private const String PluginVersion = "6.7.0.85";
 
         public enum GameVersion
         {
@@ -573,7 +573,6 @@ namespace PRoConEvents
 
 
         //Hacker-checker
-        private Boolean _UseHackerChecker;
         private Boolean _UseHskChecker;
         private Boolean _UseKpmChecker;
         private Double _HskTriggerLevel = 60.0;
@@ -1149,19 +1148,16 @@ namespace PRoConEvents
                     }
 
                     if (IsActiveSettingSection("A18")) {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: Enable", typeof(Boolean), _UseHackerChecker));
-                        if (_UseHackerChecker) {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
-                            if (_UseHskChecker) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Trigger Level", typeof(Double), _HskTriggerLevel));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Ban Message", typeof(String), _HackerCheckerHSKBanMessage));
-                            }
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: KPM Checker: Enable", typeof(Boolean), _UseKpmChecker));
-                            if (_UseKpmChecker) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: KPM Checker: Trigger Level", typeof(Double), _KpmTriggerLevel));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: KPM Checker: Ban Message", typeof(String), _HackerCheckerKPMBanMessage));
-                            }
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
+                        if (_UseHskChecker) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Trigger Level", typeof(Double), _HskTriggerLevel));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Ban Message", typeof(String), _HackerCheckerHSKBanMessage));
+                        }
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: KPM Checker: Enable", typeof(Boolean), _UseKpmChecker));
+                        if (_UseKpmChecker) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: KPM Checker: Trigger Level", typeof(Double), _KpmTriggerLevel));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: KPM Checker: Ban Message", typeof(String), _HackerCheckerKPMBanMessage));
                         }
                     }
 
@@ -3836,37 +3832,6 @@ namespace PRoConEvents
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"HackerChecker: Enable").Success)
-                {
-                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
-                    {
-                        strValue = "False";
-                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
-                        return;
-                    }
-                    Boolean useHackChecker = Boolean.Parse(strValue);
-                    if (useHackChecker != _UseHackerChecker)
-                    {
-                        _UseHackerChecker = useHackChecker;
-                        if (_UseHackerChecker)
-                        {
-                            if (_threadsReady)
-                            {
-                                Log.Info("Internal Hacker Checker activated.");
-                            }
-                        }
-                        else
-                        {
-                            Log.Info("Internal Hacker Checker disabled.");
-                            _UseHskChecker = false;
-                            QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
-                            _UseKpmChecker = false;
-                            QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Enable", typeof(Boolean), _UseKpmChecker));
-                        }
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Enable", typeof(Boolean), _UseHackerChecker));
                     }
                 }
                 else if (Regex.Match(strVariable, @"HackerChecker: Whitelist").Success)
@@ -7754,7 +7719,7 @@ namespace PRoConEvents
                                         {
                                             QueuePlayerForBanCheck(aPlayer);
                                         }
-                                        else if (_UseHackerChecker)
+                                        else
                                         {
                                             //Queue the player for a hacker check
                                             QueuePlayerForHackerCheck(aPlayer);
@@ -9707,7 +9672,7 @@ namespace PRoConEvents
                         foreach (var aPlayer in roundPlayerObjects) {
                             if (_UseBanEnforcer) {
                                 QueuePlayerForBanCheck(aPlayer);
-                            } else if (_UseHackerChecker) {
+                            } else {
                                 //Queue the player for a hacker check
                                 QueuePlayerForHackerCheck(aPlayer);
                             }
@@ -10033,7 +9998,7 @@ namespace PRoConEvents
                 {
                     aKill.killer.RecentKills.Dequeue();
                 }
-                if (_isTestingAuthorized && _serverInfo.ServerType != "OFFICIAL")
+                if ((_isTestingAuthorized || _serverInfo.ServerName.Contains("FPSG")) && _serverInfo.ServerType != "OFFICIAL")
                 {
                     //KPM check
                     Int32 countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
@@ -10049,7 +10014,7 @@ namespace PRoConEvents
                             target_name = aKill.killer.player_name,
                             target_player = aKill.killer,
                             source_name = "AutoAdmin",
-                            record_message = "Code 5-" + countRecent + ": Dispute Requested",
+                            record_message = _HackerCheckerKPMBanMessage + " [LIVE][5-" + countRecent + "]",
                             record_time = UtcDbTime()
                         });
                         return;
@@ -10073,11 +10038,11 @@ namespace PRoConEvents
                         var lowKillHSKP = nonSniperKills.Take(lowKillCount).Count(dKill => dKill.IsHeadshot) / ((Double) lowKillCount) * 100.0;
                         var highKillHSKP = nonSniperKills.Take(highKillCount).Count(dKill => dKill.IsHeadshot) / ((Double) highKillCount) * 100.0;
                         String actionMessage = null;
-                        if (countAll >= highKillCount && highKillHSKP >= highKillTriggerHSKP) {
-                            actionMessage = "Code 6-H-" + Math.Round(highKillHSKP) + ": Dispute Requested";
-                        } else if (countAll >= lowKillCount && lowKillHSKP >= lowKillTriggerHSKP) {
-                            actionMessage = "Code 6-L-" + Math.Round(lowKillHSKP) + ": Dispute Requested";
-                        }
+                        if (countAll >= lowKillCount && lowKillHSKP >= lowKillTriggerHSKP) {
+                            actionMessage = _HackerCheckerHSKBanMessage + " [LIVE][6-L-" + countAll + "-" + Math.Round(lowKillHSKP) + "]";
+                        } else if (countAll >= highKillCount && highKillHSKP >= highKillTriggerHSKP) {
+                            actionMessage = _HackerCheckerHSKBanMessage + " [LIVE][6-H-" + countAll + "-" + Math.Round(highKillHSKP) + "]";
+                        } 
                         if (!String.IsNullOrEmpty(actionMessage) && !PlayerProtected(aKill.killer)) {
                             //Create ban record
                             QueueRecordForProcessing(new AdKatsRecord {
@@ -11077,10 +11042,7 @@ namespace PRoConEvents
                                             continue;
                                         }
                                         //Only call a hack check if the player does not already have a ban
-                                        if (_UseHackerChecker)
-                                        {
-                                            QueuePlayerForHackerCheck(aPlayer);
-                                        }
+                                        QueuePlayerForHackerCheck(aPlayer);
                                     }
                                 }
                             }
@@ -11464,15 +11426,11 @@ namespace PRoConEvents
                                 if (!PlayerProtected(aPlayer)) {
                                     _hackerCheckedPlayers.Add(aPlayer.player_guid);
                                     if (!String.IsNullOrEmpty(aPlayer.player_name) && 
-                                        !String.IsNullOrEmpty(aPlayer.player_personaID) && 
+                                        !String.IsNullOrEmpty(aPlayer.player_personaID) &&
                                         FetchPlayerStatInformation(aPlayer)) {
-                                        if (_UseHackerChecker) {
-                                            RunStatSiteHackCheck(aPlayer, false);
-                                            _hackerCheckedPlayersStats.Add(aPlayer.player_guid);
-                                            Log.Debug(() => aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double) _hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players checked)", 4);
-                                        } else {
-                                            Log.Debug(() => "Player skipped after disabling hacker checker.", 2);
-                                        }
+                                        RunStatSiteHackCheck(aPlayer, false);
+                                        _hackerCheckedPlayersStats.Add(aPlayer.player_guid);
+                                        Log.Debug(() => aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double) _hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players checked)", 4);
                                     } else {
                                         //No stats found, requeue them for checking
                                         Thread.Sleep(TimeSpan.FromSeconds(0.50));
@@ -11518,8 +11476,7 @@ namespace PRoConEvents
                     Log.Debug(() => "Preparing to KPM check " + aPlayer.GetVerboseName(), 5);
                     acted = KPMHackCheck(aPlayer, verbose);
                 }
-                if (_isTestingAuthorized && 
-                    _gameVersion == GameVersion.BF4 && 
+                if (_gameVersion == GameVersion.BF4 && 
                     aPlayer.RoundStats.ContainsKey(_roundID - 1) &&
                     aPlayer.RoundStats.ContainsKey(_roundID)) {
                     AdKatsPlayerStats previousStats;
@@ -11564,7 +11521,7 @@ namespace PRoConEvents
                                         target_name = aPlayer.player_name,
                                         target_player = aPlayer,
                                         source_name = "AutoAdmin",
-                                        record_message = "Code 7-" + killDiscrepancy + "-" + hitDiscrepancy + " Dispute Requested",
+                                        record_message = "Magic Bullet [LIVE][7-" + killDiscrepancy + "-" + hitDiscrepancy + "]",
                                         record_time = UtcDbTime()
                                     });
                                     acted = true;
@@ -11684,7 +11641,7 @@ namespace PRoConEvents
                                             if (killDiff >= 12 &&
                                                 liveDPS > weapon.DamageMax &&
                                                 (liveDPS >= 85 || (!isSidearm && percDiff > 0.75))) {
-                                                    Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE " + _soldierHealth + "][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]");
+                                                    Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]");
                                                 if (!debugMode) {
                                                     //Create the ban record
                                                     QueueRecordForProcessing(new AdKatsRecord {
@@ -11695,7 +11652,7 @@ namespace PRoConEvents
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
                                                         source_name = "AutoAdmin",
-                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE " + _soldierHealth + "][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]",
+                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]",
                                                         record_time = UtcDbTime()
                                                     });
                                                 }
@@ -15393,13 +15350,6 @@ namespace PRoConEvents
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
                                 SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-
-                            if (!_UseHackerChecker)
-                            {
-                                SendMessageToSource(record, "Enable Hacker-Checker to use this command.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -19545,13 +19495,6 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
-
-                            if (!_UseHackerChecker)
-                            {
-                                SendMessageToSource(record, "Enable Hacker-Checker to use this command.");
-                                FinalizeRecord(record);
-                                return;
-                            }
 
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 1);
@@ -28628,7 +28571,6 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
-                QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Enable", typeof(Boolean), _UseHackerChecker));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Trigger Level", typeof(Double), _HskTriggerLevel));
@@ -34596,13 +34538,10 @@ namespace PRoConEvents
                                     }
                                     int roleID = reader.GetInt32("role_id");
                                     long commandID = reader.GetInt64("command_id");
-                                    HashSet<Int64> allowedCommandIDs;
-                                    if (!rIDcIDDictionary.TryGetValue(roleID, out allowedCommandIDs))
-                                    {
-                                        allowedCommandIDs = new HashSet<Int64>();
-                                        rIDcIDDictionary.Add(roleID, allowedCommandIDs);
+                                    if (!rIDcIDDictionary.ContainsKey(roleID)) {
+                                        rIDcIDDictionary[roleID] = new HashSet<Int64>();
                                     }
-                                    allowedCommandIDs.Add(commandID);
+                                    rIDcIDDictionary[roleID].Add(commandID);
                                 }
                                 foreach (KeyValuePair<long, HashSet<long>> currentRoleElement in rIDcIDDictionary)
                                 {
