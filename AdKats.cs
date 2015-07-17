@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.84
- * 15-JUL-2015
+ * Version 6.7.0.86
+ * 16-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.84</version_code>
+ * <version_code>6.7.0.86</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.85";
+        private const String PluginVersion = "6.7.0.86";
 
         public enum GameVersion
         {
@@ -11641,13 +11641,13 @@ namespace PRoConEvents
                                             if (killDiff >= 12 &&
                                                 liveDPS > weapon.DamageMax &&
                                                 (liveDPS >= 85 || (!isSidearm && percDiff > 0.75))) {
-                                                    Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]");
+                                                    Log.Info(aPlayer.GetVerboseName() + " auto-reported for damage mod. [LIVE][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]");
                                                 if (!debugMode) {
                                                     //Create the ban record
                                                     QueueRecordForProcessing(new AdKatsRecord {
                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                                         server_id = _serverInfo.ServerID,
-                                                        command_type = GetCommandByKey("player_ban_perm"),
+                                                        command_type = GetCommandByKey("player_report"),
                                                         command_numeric = 0,
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
@@ -24509,7 +24509,7 @@ namespace PRoConEvents
                 else if (_InformReportedPlayers)
                 {
                     String mesLow = record.record_message.ToLower();
-                    if (!_PlayerInformExclusionStrings.Any(exc => mesLow.Contains(exc.ToLower())) && !(_isTestingAuthorized && record.source_name == "AutoAdmin"))
+                    if (!_PlayerInformExclusionStrings.Any(exc => mesLow.Contains(exc.ToLower())) && record.source_name != "AutoAdmin")
                     {
                         PlayerTellMessage(record.target_name, record.GetSourceName() + " reported you for " + record.record_message, true, 6);
                     }
