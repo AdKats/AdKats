@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.86
- * 16-JUL-2015
+ * Version 6.7.0.87
+ * 19-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.86</version_code>
+ * <version_code>6.7.0.87</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.86";
+        private const String PluginVersion = "6.7.0.87";
 
         public enum GameVersion
         {
@@ -11512,7 +11512,9 @@ namespace PRoConEvents
                                 else {
                                     Log.Success(aPlayer.GetVerboseName() + " all kills accounted for. Kills:(" + weaponKillDiff + "|" + overallKillDiff + ") Hits: (" + weaponHitDiff + "|" + overallHitDiff + ")");
                                 }
-                                if (killDiscrepancy >= 8 && hitDiscrepancy <= killDiscrepancy && !PlayerProtected(aPlayer)) {
+                                if (killDiscrepancy >= 8 && 
+                                    hitDiscrepancy * 2 <= killDiscrepancy && 
+                                    !PlayerProtected(aPlayer)) {
                                     QueueRecordForProcessing(new AdKatsRecord {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         server_id = _serverInfo.ServerID,
