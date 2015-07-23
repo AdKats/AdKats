@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.87
- * 19-JUL-2015
+ * Version 6.7.0.88
+ * 22-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.87</version_code>
+ * <version_code>6.7.0.88</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.87";
+        private const String PluginVersion = "6.7.0.88";
 
         public enum GameVersion
         {
@@ -11552,6 +11552,25 @@ namespace PRoConEvents
                 }
                 AdKatsPlayerStats previousStats;
                 aPlayer.RoundStats.TryGetValue(_roundID - 1, out previousStats);
+
+                //Confirm stat changes from battlelog are valid for the previous round
+                var killStatsValid = false;
+                if (previousStats.LiveStats != null) {
+                    Int32 serverKillDiff = previousStats.LiveStats.Kills;
+                    Int32 statKillDiff = 0;
+                    foreach (AdKatsWeaponStat weapon in stats.WeaponStats.Values) {
+                        statKillDiff += ((Int32)weapon.Kills - (Int32)previousStats.WeaponStats[weapon.ID].Kills);
+                    }
+                    killStatsValid = serverKillDiff >= statKillDiff;
+                    if (_isTestingAuthorized) {
+                        if (killStatsValid) {
+                            Log.Success(aPlayer.GetVerboseName() + " kill stats valid. " + serverKillDiff + "-" + statKillDiff);
+                        } else {
+                            Log.Warn(aPlayer.GetVerboseName() + " kill stats invalid. " + serverKillDiff + "-" + statKillDiff);
+                        }
+                    }
+                }
+
                 List<String> allowedCategories;
                 switch (_gameVersion)
                 {
@@ -11592,7 +11611,6 @@ namespace PRoConEvents
 
                 AdKatsWeaponStat actedWeapon = null;
                 Double actedPerc = -1;
-                Int32 index = 0;
                 foreach (AdKatsWeaponStat weaponStat in topWeapons)
                 {
                     //Only count certain weapon categories
