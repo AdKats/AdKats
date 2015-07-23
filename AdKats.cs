@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.89
+ * Version 6.7.0.90
  * 22-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.89</version_code>
+ * <version_code>6.7.0.90</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.89";
+        private const String PluginVersion = "6.7.0.90";
 
         public enum GameVersion
         {
@@ -172,6 +172,7 @@ namespace PRoConEvents
         private Boolean _populationPopulating;
         private readonly Dictionary<String, AdKatsPlayer> _populationPopulatingPlayers = new Dictionary<String, AdKatsPlayer>();
         private String _AdKatsLRTExtensionToken = String.Empty;
+        private List<CPlayerInfo> _roundOverPlayers = null; 
 
         //Debug
         private String _debugSoldierName = "ColColonCleaner";
@@ -5597,6 +5598,7 @@ namespace PRoConEvents
                     "OnBanListLoad", 
                     "OnBanList", 
                     "OnRoundOverTeamScores", 
+                    "OnRoundOverPlayers",
                     "OnSpectatorListLoad", 
                     "OnSpectatorListSave", 
                     "OnSpectatorListPlayerAdded", 
@@ -9554,6 +9556,10 @@ namespace PRoConEvents
         }
 
         //Round ended stuff
+        public override void OnRoundOverPlayers(List<CPlayerInfo> players) {
+            _roundOverPlayers = players;
+        }
+
         public override void OnRoundOverTeamScores(List<TeamScore> teamScores)
         {
             try {
@@ -9652,6 +9658,29 @@ namespace PRoConEvents
                 }
                 if (_PostWinLossBaserapeStatistics) {
                     PostRoundStatistics(winningTeam, losingTeam);
+                }
+                //Wait for round over players to be fired, if not already
+                var start = UtcDbTime();
+                while (_roundOverPlayers == null && (UtcDbTime() - start).TotalSeconds < 10) {
+                    Thread.Sleep(100);
+                }
+                if (_roundOverPlayers != null) {
+                    //Update all players with their final stats
+                    foreach (var player in _roundOverPlayers) {
+                        AdKatsPlayer aPlayer;
+                        if (_PlayerDictionary.TryGetValue(player.SoldierName, out aPlayer)) {
+                            aPlayer.frostbitePlayerInfo = player;
+                            AdKatsPlayerStats aStats;
+                            if (aPlayer.RoundStats.TryGetValue(_roundID, out aStats)) {
+                                aStats.LiveStats = player;
+                            }
+                        }
+                    }
+                    if (_isTestingAuthorized) {
+                        Log.Success("Updated round over players.");
+                    }
+                    //Unassign round over players, wait for next round
+                    _roundOverPlayers = null;
                 }
                 //Stat refresh
                 List<AdKatsPlayer> roundPlayerObjects;
@@ -11627,8 +11656,10 @@ namespace PRoConEvents
                         {
                             //Only handle weapons that do < 50 max dps
                             if (weapon.DamageMax < 50) {
-                                //For live stat check, look for previous round stat difference
-                                if (previousStats != null && previousStats.WeaponStats != null) {
+                                //For live stat check, look for previous round stat difference and valid stat difference
+                                if (previousStats != null && 
+                                    previousStats.WeaponStats != null && 
+                                    killStatsValid) {
                                     AdKatsWeaponStat previousWeaponStat;
                                     if (previousStats.WeaponStats.TryGetValue(weaponStat.ID, out previousWeaponStat)) {
                                         if (weaponStat.Kills > previousWeaponStat.Kills) {
@@ -11668,7 +11699,7 @@ namespace PRoConEvents
                                                     QueueRecordForProcessing(new AdKatsRecord {
                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                                         server_id = _serverInfo.ServerID,
-                                                        command_type = GetCommandByKey("player_report"),
+                                                        command_type = GetCommandByKey((_isTestingAuthorized) ? ("player_ban_perm") : ("player_report")),
                                                         command_numeric = 0,
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
