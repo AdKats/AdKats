@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.91
+ * Version 6.7.0.92
  * 22-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.91</version_code>
+ * <version_code>6.7.0.92</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.91";
+        private const String PluginVersion = "6.7.0.92";
 
         public enum GameVersion
         {
@@ -11575,8 +11575,8 @@ namespace PRoConEvents
         {
             Boolean acted = false;
             try {
-                AdKatsPlayerStats stats;
-                if (aPlayer == null || !aPlayer.RoundStats.TryGetValue(_roundID, out stats) || stats.WeaponStats == null) {
+                AdKatsPlayerStats currentStats;
+                if (aPlayer == null || !aPlayer.RoundStats.TryGetValue(_roundID, out currentStats) || currentStats.WeaponStats == null) {
                     return false;
                 }
                 AdKatsPlayerStats previousStats;
@@ -11587,22 +11587,19 @@ namespace PRoConEvents
                 if (previousStats != null && 
                     previousStats.LiveStats != null) {
                     Int32 serverKillDiff = previousStats.LiveStats.Kills;
-                    Int32 statKillDiff = 0;
-                    foreach (AdKatsWeaponStat currentWeapon in stats.WeaponStats.Values) {
-                        AdKatsWeaponStat previousWeapon;
-                        if (previousStats.WeaponStats.TryGetValue(currentWeapon.ID, out previousWeapon)) {
-                            statKillDiff += ((Int32) currentWeapon.Kills - (Int32) previousWeapon.Kills);
-                        }
-                        else {
-                            statKillDiff += (Int32) currentWeapon.Kills;
-                        }
-                    }
+                    Int32 previousWeaponKillCount =
+                        (Int32) previousStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
+                        (Int32) previousStats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
+                    Int32 currentWeaponKillCount =
+                        (Int32) currentStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
+                        (Int32) currentStats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
+                    Int32 statKillDiff = currentWeaponKillCount - previousWeaponKillCount;
                     killStatsValid = serverKillDiff >= statKillDiff;
                     if (_isTestingAuthorized) {
                         if (killStatsValid) {
-                            Log.Success(aPlayer.GetVerboseName() + " kill stats valid. " + serverKillDiff + "-" + statKillDiff);
+                            Log.Success(aPlayer.GetVerboseName() + " kill stats valid. " + serverKillDiff + "|" + statKillDiff);
                         } else {
-                            Log.Warn(aPlayer.GetVerboseName() + " kill stats invalid. " + serverKillDiff + "-" + statKillDiff);
+                            Log.Warn(aPlayer.GetVerboseName() + " kill stats invalid. " + serverKillDiff + "|" + statKillDiff);
                         }
                     }
                 }
@@ -11643,7 +11640,7 @@ namespace PRoConEvents
                     default:
                         return false;
                 }
-                List<AdKatsWeaponStat> topWeapons = stats.WeaponStats.Values.OrderByDescending(aStat => aStat.Kills).ToList();
+                List<AdKatsWeaponStat> topWeapons = currentStats.WeaponStats.Values.OrderByDescending(aStat => aStat.Kills).ToList();
 
                 AdKatsWeaponStat actedWeapon = null;
                 Double actedPerc = -1;
