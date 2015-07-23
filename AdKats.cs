@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.90
+ * Version 6.7.0.91
  * 22-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.90</version_code>
+ * <version_code>6.7.0.91</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.90";
+        private const String PluginVersion = "6.7.0.91";
 
         public enum GameVersion
         {
@@ -11557,7 +11557,7 @@ namespace PRoConEvents
                                     });
                                     acted = true;
                                 }
-                        } else {
+                        } else if (_isTestingAuthorized) {
                             Log.Warn(aPlayer.GetVerboseName() + " has no stats to use.");
                         }
                     }
@@ -11588,8 +11588,14 @@ namespace PRoConEvents
                     previousStats.LiveStats != null) {
                     Int32 serverKillDiff = previousStats.LiveStats.Kills;
                     Int32 statKillDiff = 0;
-                    foreach (AdKatsWeaponStat weapon in stats.WeaponStats.Values) {
-                        statKillDiff += ((Int32)weapon.Kills - (Int32)previousStats.WeaponStats[weapon.ID].Kills);
+                    foreach (AdKatsWeaponStat currentWeapon in stats.WeaponStats.Values) {
+                        AdKatsWeaponStat previousWeapon;
+                        if (previousStats.WeaponStats.TryGetValue(currentWeapon.ID, out previousWeapon)) {
+                            statKillDiff += ((Int32) currentWeapon.Kills - (Int32) previousWeapon.Kills);
+                        }
+                        else {
+                            statKillDiff += (Int32) currentWeapon.Kills;
+                        }
                     }
                     killStatsValid = serverKillDiff >= statKillDiff;
                     if (_isTestingAuthorized) {
