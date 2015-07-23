@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.88
+ * Version 6.7.0.89
  * 22-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.88</version_code>
+ * <version_code>6.7.0.89</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.88";
+        private const String PluginVersion = "6.7.0.89";
 
         public enum GameVersion
         {
@@ -11555,7 +11555,8 @@ namespace PRoConEvents
 
                 //Confirm stat changes from battlelog are valid for the previous round
                 var killStatsValid = false;
-                if (previousStats.LiveStats != null) {
+                if (previousStats != null && 
+                    previousStats.LiveStats != null) {
                     Int32 serverKillDiff = previousStats.LiveStats.Kills;
                     Int32 statKillDiff = 0;
                     foreach (AdKatsWeaponStat weapon in stats.WeaponStats.Values) {
