@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.92
- * 22-JUL-2015
+ * Version 6.7.0.93
+ * 25-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.92</version_code>
+ * <version_code>6.7.0.93</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.92";
+        private const String PluginVersion = "6.7.0.93";
 
         public enum GameVersion
         {
@@ -4687,7 +4687,6 @@ namespace PRoConEvents
                                             }
                                         }
                                         QueueRoleForUpload(aRole);
-                                        FetchAllAccess(true);
                                         break;
                                     case "ignore":
                                         lock (aRole.RoleSetGroups)
@@ -4695,7 +4694,6 @@ namespace PRoConEvents
                                             aRole.RoleSetGroups.Remove(aGroup.group_key);
                                         }
                                         QueueRoleForUpload(aRole);
-                                        FetchAllAccess(true);
                                         break;
                                     default:
                                         Log.Error("Unknown setting when changing role group assignment.");
@@ -22583,8 +22581,6 @@ namespace PRoConEvents
                 }
                 //Unban the player
                 UnBanTarget(record);
-                //Fetch the special player cache
-                FetchAllAccess(true);
             }
             catch (Exception e)
             {
@@ -22666,8 +22662,6 @@ namespace PRoConEvents
                         }
                     }
                 }
-                //Fetch the special player cache
-                FetchAllAccess(true);
             }
             catch (Exception e)
             {
@@ -22749,8 +22743,6 @@ namespace PRoConEvents
                         }
                     }
                 }
-                //Fetch the special player cache
-                FetchAllAccess(true);
             }
             catch (Exception e)
             {
@@ -22832,8 +22824,6 @@ namespace PRoConEvents
                         }
                     }
                 }
-                //Fetch the special player cache
-                FetchAllAccess(true);
             }
             catch (Exception e)
             {
@@ -22915,8 +22905,6 @@ namespace PRoConEvents
                         }
                     }
                 }
-                //Fetch the special player cache
-                FetchAllAccess(true);
             }
             catch (Exception e)
             {
@@ -23074,8 +23062,6 @@ namespace PRoConEvents
                         record_time = UtcDbTime()
                     });
                 }
-                //Fetch the special player cache
-                FetchAllAccess(true);
             }
             catch (Exception e)
             {
@@ -23217,8 +23203,6 @@ namespace PRoConEvents
                         }
                     }
                 }
-                //Fetch the special player cache
-                FetchAllAccess(true);
             }
             catch (Exception e)
             {
@@ -23360,8 +23344,6 @@ namespace PRoConEvents
                         }
                     }
                 }
-                //Fetch the special player cache
-                FetchAllAccess(true);
             }
             catch (Exception e)
             {
@@ -23503,8 +23485,6 @@ namespace PRoConEvents
                         }
                     }
                 }
-                //Fetch the special player cache
-                FetchAllAccess(true);
             }
             catch (Exception e)
             {
@@ -24124,8 +24104,6 @@ namespace PRoConEvents
                         }
                     }
                 }
-                //Fetch the special player cache
-                FetchAllAccess(true);
             }
             catch (Exception e)
             {
@@ -24266,8 +24244,6 @@ namespace PRoConEvents
                         }
                     }
                 }
-                //Fetch the special player cache
-                FetchAllAccess(true);
             }
             catch (Exception e)
             {
@@ -27307,6 +27283,7 @@ namespace PRoConEvents
                         _RoleUploadQueue.Clear();
                     }
                     //Loop through all roles in order that they came in
+                    var uploaded = false;
                     while (inboundRoleUpload.Count > 0)
                     {
                         AdKatsRole aRole = inboundRoleUpload.Dequeue();
@@ -27338,6 +27315,10 @@ namespace PRoConEvents
                                 _RoleNameDictionary.Add(aRole.role_name, aRole);
                             }
                         }
+                        uploaded = true;
+                    }
+                    if (uploaded) {
+                        FetchAllAccess(true);
                     }
                     return true;
                 }
