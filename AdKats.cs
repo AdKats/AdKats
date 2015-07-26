@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.94
+ * Version 6.7.0.95
  * 26-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.94</version_code>
+ * <version_code>6.7.0.95</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.94";
+        private const String PluginVersion = "6.7.0.95";
 
         public enum GameVersion
         {
@@ -7370,7 +7370,7 @@ namespace PRoConEvents
                                     aPlayer.player_online = false;
                                     aPlayer.player_server = null;
                                     aPlayer.player_spawnedOnce = false;
-                                    aPlayer.RecentKills.Clear();
+                                    aPlayer.LiveKills.Clear();
                                     aPlayer.ClearPingEntries();
                                     DequeuePlayer(aPlayer);
                                     //Remove all old values
@@ -7855,7 +7855,7 @@ namespace PRoConEvents
                                         aPlayer.player_server = null;
                                         aPlayer.player_spawnedOnce = false;
                                         aPlayer.ClearPingEntries();
-                                        aPlayer.RecentKills.Clear();
+                                        aPlayer.LiveKills.Clear();
                                         DequeuePlayer(aPlayer);
                                         //Remove all old values
                                         List<String> removeNames = _PlayerLeftDictionary.Where(pair => (UtcDbTime() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
@@ -9835,7 +9835,7 @@ namespace PRoConEvents
             Log.Debug(() => "Entering queueKillForProcessing", 7);
             try
             {
-                if (_pluginEnabled)
+                if (_pluginEnabled && _threadsReady && _firstPlayerListComplete)
                 {
                     Log.Debug(() => "Preparing to queue kill for processing", 6);
                     lock (_KillProcessingQueue)
@@ -9948,7 +9948,8 @@ namespace PRoConEvents
                                 timestamp = playerKill.TimeOfDeath,
                                 IsSuicide = playerKill.IsSuicide,
                                 IsHeadshot = playerKill.Headshot,
-                                IsTeamkill = (playerKill.Killer.TeamID == playerKill.Victim.TeamID)
+                                IsTeamkill = (playerKill.Killer.TeamID == playerKill.Victim.TeamID),
+                                RoundID = _roundID
                             });
                         }
                     }
@@ -10019,16 +10020,12 @@ namespace PRoConEvents
                 aKill.victim.lastDeath = UtcDbTime();
 
                 //Add the kill
-                aKill.killer.RecentKills.Enqueue(aKill);
-                //Only keep the last 100 kills in memory
-                while (aKill.killer.RecentKills.Count > 100)
-                {
-                    aKill.killer.RecentKills.Dequeue();
-                }
+                aKill.killer.LiveKills.Add(aKill);
+
                 if ((_isTestingAuthorized || _serverInfo.ServerName.Contains("FPSG")) && _serverInfo.ServerType != "OFFICIAL")
                 {
                     //KPM check
-                    Int32 countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
+                    Int32 countRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
                     int countBan = ((_gameVersion == GameVersion.BF3) ? (25) : (20));
                     if (countRecent >= countBan && !PlayerProtected(aKill.killer))
                     {
@@ -10055,7 +10052,7 @@ namespace PRoConEvents
                         lowKillCount = 30;
                         highKillCount = 60;
                     }
-                    var nonSniperKills = aKill.killer.RecentKills
+                    var nonSniperKills = aKill.killer.LiveKills
                         .Where(dKill => 
                             dKill.weaponCategory != DamageTypes.SniperRifle && 
                             dKill.weaponCategory != DamageTypes.DMR)
@@ -10110,31 +10107,31 @@ namespace PRoConEvents
                         //Special weapons
                         String actedCode = null;
                         Int32 triggerCount = 3;
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_PortableAmmopack") >= triggerCount)
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "U_PortableAmmopack") >= triggerCount)
                         {
                             actedCode = "1";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_RadioBeacon") >= triggerCount)
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "U_RadioBeacon") >= triggerCount)
                         {
                             actedCode = "2";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Gameplay/Gadgets/SOFLAM/SOFLAM_Projectile") >= triggerCount)
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "Gameplay/Gadgets/SOFLAM/SOFLAM_Projectile") >= triggerCount)
                         {
                             actedCode = "3";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_Motionsensor") >= triggerCount) 
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "U_Motionsensor") >= triggerCount) 
                         {
                             actedCode = "4";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_PortableMedicpack" && !dKill.IsTeamkill) >= triggerCount) 
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "U_PortableMedicpack" && !dKill.IsTeamkill) >= triggerCount) 
                         {
                             actedCode = "5";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_Medkit" && !dKill.IsTeamkill) >= triggerCount) 
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "U_Medkit" && !dKill.IsTeamkill) >= triggerCount) 
                         {
                             actedCode = "6";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_Ammobag") >= triggerCount) 
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "U_Ammobag") >= triggerCount) 
                         {
                             actedCode = "7";
                         }
@@ -10160,19 +10157,19 @@ namespace PRoConEvents
                         //Special weapons
                         String actedCode = null;
                         Int32 triggerCount = 3;
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "AmmoBag") >= triggerCount)
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "AmmoBag") >= triggerCount)
                         {
                             actedCode = "1";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Weapons/Gadgets/RadioBeacon/Radio_Beacon") >= triggerCount)
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "Weapons/Gadgets/RadioBeacon/Radio_Beacon") >= triggerCount)
                         {
                             actedCode = "2";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Weapons/Gadgets/SOFLAM/SOFLAM_PDA") >= triggerCount)
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "Weapons/Gadgets/SOFLAM/SOFLAM_PDA") >= triggerCount)
                         {
                             actedCode = "3";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Medkit" && !dKill.IsTeamkill) >= triggerCount) 
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "Medkit" && !dKill.IsTeamkill) >= triggerCount) 
                         {
                             actedCode = "4";
                         }
@@ -10232,7 +10229,7 @@ namespace PRoConEvents
                                     Boolean told = false;
                                     List<KeyValuePair<AdKatsPlayer, string>> possible = new List<KeyValuePair<AdKatsPlayer, String>>();
                                     List<KeyValuePair<AdKatsPlayer, string>> sure = new List<KeyValuePair<AdKatsPlayer, String>>();
-                                    foreach (AdKatsKill cookerKill in aKill.killer.RecentKills.Where(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 10))
+                                    foreach (AdKatsKill cookerKill in aKill.killer.LiveKills.Where(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 10))
                                     {
                                         //Get the actual time since cooker value
                                         Double milli = aKill.timestamp.Subtract(cookerKill.timestamp).TotalMilliseconds;
@@ -11531,29 +11528,33 @@ namespace PRoConEvents
                                 Int32 killDiscrepancy = overallKillDiff - weaponKillDiff;
                                 Int32 hitDiscrepancy = overallHitDiff - weaponHitDiff;
 
-                                killDiscrepancy -= aPlayer.RecentKills.Count(aKill => aKill.weaponCode == "DamageArea");
-                                if (killDiscrepancy > 0) {
-                                    Log.Warn("KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + killDiscrepancy + " Unaccounted Kills)(" + hitDiscrepancy + " Unaccounted Hits)");
-                                    Log.Warn(String.Join(", ", aPlayer.RecentKills.Select(aKill => aKill.weaponCode).ToArray()));
-                                }
-                                else {
-                                    Log.Success(aPlayer.GetVerboseName() + " all kills accounted for. Kills:(" + weaponKillDiff + "|" + overallKillDiff + ") Hits: (" + weaponHitDiff + "|" + overallHitDiff + ")");
-                                }
-                                if (killDiscrepancy >= 8 && 
-                                    hitDiscrepancy * 2 <= killDiscrepancy && 
-                                    !PlayerProtected(aPlayer)) {
-                                    QueueRecordForProcessing(new AdKatsRecord {
-                                        record_source = AdKatsRecord.Sources.InternalAutomated,
-                                        server_id = _serverInfo.ServerID,
-                                        command_type = GetCommandByKey("player_ban_perm"),
-                                        command_numeric = 0,
-                                        target_name = aPlayer.player_name,
-                                        target_player = aPlayer,
-                                        source_name = "AutoAdmin",
-                                        record_message = "Magic Bullet [LIVE][7-" + killDiscrepancy + "-" + hitDiscrepancy + "]",
-                                        record_time = UtcDbTime()
-                                    });
-                                    acted = true;
+                                //Confirm all kills have been accounted for live
+                                if (aPlayer.LiveKills.Count() > overallKillDiff) {
+
+                                    killDiscrepancy -= aPlayer.LiveKills.Count(aKill => aKill.weaponCode == "DamageArea");
+
+                                    if (killDiscrepancy > 0) {
+                                        Log.Warn("KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + killDiscrepancy + " Unaccounted Kills)(" + hitDiscrepancy + " Unaccounted Hits)");
+                                        Log.Warn(String.Join(", ", aPlayer.LiveKills.Select(aKill => aKill.weaponCode).ToArray()));
+                                    } else {
+                                        Log.Success(aPlayer.GetVerboseName() + " all kills accounted for. Kills:(" + weaponKillDiff + "|" + overallKillDiff + ") Hits: (" + weaponHitDiff + "|" + overallHitDiff + ")");
+                                    }
+                                    if (killDiscrepancy >= 8 &&
+                                        hitDiscrepancy * 2 <= killDiscrepancy &&
+                                        !PlayerProtected(aPlayer)) {
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("player_ban_perm"),
+                                            command_numeric = 0,
+                                            target_name = aPlayer.player_name,
+                                            target_player = aPlayer,
+                                            source_name = "AutoAdmin",
+                                            record_message = "Magic Bullet [LIVE][7-" + killDiscrepancy + "-" + hitDiscrepancy + "]",
+                                            record_time = UtcDbTime()
+                                        });
+                                        acted = true;
+                                    }
                                 }
                         } else if (_isTestingAuthorized) {
                             Log.Warn(aPlayer.GetVerboseName() + " has no stats to use.");
@@ -20290,7 +20291,7 @@ namespace PRoConEvents
                     if (aPlayer != null) {
                         resultMessage = "Offline player found.";
                         aPlayer.player_online = false;
-                        aPlayer.RecentKills.Clear();
+                        aPlayer.LiveKills.Clear();
                         aPlayer.player_server = null;
                         confirmNeeded = true;
                         aPlayer.LastUsage = UtcDbTime();
@@ -40392,13 +40393,14 @@ namespace PRoConEvents
             public Boolean IsHeadshot;
             public Boolean IsTeamkill;
             public DateTime timestamp;
+            public Int64 RoundID;
         }
 
         public class AdKatsPlayer
         {
             public Boolean blInfoFetched = false;
             public CPunkbusterInfo PBPlayerInfo = null;
-            public Queue<AdKatsKill> RecentKills = null;
+            public List<AdKatsKill> LiveKills = null;
             public List<AdKatsRecord> TargetedRecords = null;
             public String player_clanTag = null;
             public CPlayerInfo frostbitePlayerInfo = null;
@@ -40462,7 +40464,7 @@ namespace PRoConEvents
                 Plugin = plugin;
                 RoundStats = new Dictionary<Int64, AdKatsPlayerStats>();
                 TopStats = new AdKatsTopStats();
-                RecentKills = new Queue<AdKatsKill>();
+                LiveKills = new List<AdKatsKill>();
                 player_pings = new Queue<KeyValuePair<Double, DateTime>>();
                 TargetedRecords = new List<AdKatsRecord>();
                 LastUsage = DateTime.UtcNow;
