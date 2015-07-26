@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.95
+ * Version 6.7.0.96
  * 26-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.95</version_code>
+ * <version_code>6.7.0.96</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.95";
+        private const String PluginVersion = "6.7.0.96";
 
         public enum GameVersion
         {
@@ -11527,11 +11527,16 @@ namespace PRoConEvents
                                 Int32 overallHitDiff = currentStats.Hits - previousStats.Hits;
                                 Int32 killDiscrepancy = overallKillDiff - weaponKillDiff;
                                 Int32 hitDiscrepancy = overallHitDiff - weaponHitDiff;
+                                Int32 liveKillDiff = aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1);
+
+                                if (_isTestingAuthorized) {
+                                    Log.Info("Live kills: " + liveKillDiff);
+                                }
 
                                 //Confirm all kills have been accounted for live
-                                if (aPlayer.LiveKills.Count() > overallKillDiff) {
+                                if (liveKillDiff >= overallKillDiff) {
 
-                                    killDiscrepancy -= aPlayer.LiveKills.Count(aKill => aKill.weaponCode == "DamageArea");
+                                    killDiscrepancy -= aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1 && aKill.weaponCode == "DamageArea");
 
                                     if (killDiscrepancy > 0) {
                                         Log.Warn("KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + killDiscrepancy + " Unaccounted Kills)(" + hitDiscrepancy + " Unaccounted Hits)");
