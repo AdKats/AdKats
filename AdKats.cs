@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.93
- * 25-JUL-2015
+ * Version 6.7.0.94
+ * 26-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.93</version_code>
+ * <version_code>6.7.0.94</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.93";
+        private const String PluginVersion = "6.7.0.94";
 
         public enum GameVersion
         {
@@ -11582,8 +11582,12 @@ namespace PRoConEvents
 
                 //Confirm stat changes from battlelog are valid for the previous round
                 var killStatsValid = false;
-                if (previousStats != null && 
-                    previousStats.LiveStats != null) {
+                if (previousStats != null &&
+                    previousStats.LiveStats != null &&
+                    previousStats.WeaponStats != null &&
+                    previousStats.VehicleStats != null &&
+                    currentStats.WeaponStats != null &&
+                    currentStats.VehicleStats != null) {
                     Int32 serverKillDiff = previousStats.LiveStats.Kills;
                     Int32 previousWeaponKillCount =
                         (Int32) previousStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
@@ -11592,7 +11596,7 @@ namespace PRoConEvents
                         (Int32) currentStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
                         (Int32) currentStats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
                     Int32 statKillDiff = currentWeaponKillCount - previousWeaponKillCount;
-                    killStatsValid = serverKillDiff >= statKillDiff;
+                    killStatsValid = serverKillDiff >= statKillDiff - 1;
                     if (_isTestingAuthorized) {
                         if (killStatsValid) {
                             Log.Success(aPlayer.GetVerboseName() + " kill stats valid. " + serverKillDiff + "|" + statKillDiff);
