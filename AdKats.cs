@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.96
+ * Version 6.7.0.97
  * 26-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.96</version_code>
+ * <version_code>6.7.0.97</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.96";
+        private const String PluginVersion = "6.7.0.97";
 
         public enum GameVersion
         {
@@ -11530,7 +11530,7 @@ namespace PRoConEvents
                                 Int32 liveKillDiff = aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1);
 
                                 if (_isTestingAuthorized) {
-                                    Log.Info("Live kills: " + liveKillDiff);
+                                    Log.Info(aPlayer.GetVerboseName() + " live kills: " + liveKillDiff + " | stat kills: " + overallKillDiff);
                                 }
 
                                 //Confirm all kills have been accounted for live
