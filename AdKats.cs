@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.97
+ * Version 6.7.0.98
  * 26-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.97</version_code>
+ * <version_code>6.7.0.98</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.97";
+        private const String PluginVersion = "6.7.0.98";
 
         public enum GameVersion
         {
@@ -156,6 +156,7 @@ namespace PRoConEvents
         private Boolean _isTestingAuthorized;
         private Boolean _endingRound;
         private readonly AdKatsServer _serverInfo;
+        private TimeSpan _previousRoundDuration = TimeSpan.Zero;
         private Int32 _soldierHealth = 100;
         private Int64 _settingImportID = -1;
         private Boolean _settingsFetched;
@@ -9561,6 +9562,8 @@ namespace PRoConEvents
         public override void OnRoundOverTeamScores(List<TeamScore> teamScores)
         {
             try {
+                //Set round duration
+                _previousRoundDuration = _serverInfo.GetRoundElapsedTime();
                 //Update the live team scores
                 if (teamScores != null) {
                     foreach (var teamScore in teamScores) {
@@ -10107,31 +10110,31 @@ namespace PRoConEvents
                         //Special weapons
                         String actedCode = null;
                         Int32 triggerCount = 3;
-                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "U_PortableAmmopack") >= triggerCount)
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.RoundID == _roundID && dKill.weaponCode == "U_PortableAmmopack") >= triggerCount)
                         {
                             actedCode = "1";
                         }
-                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "U_RadioBeacon") >= triggerCount)
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.RoundID == _roundID && dKill.weaponCode == "U_RadioBeacon") >= triggerCount)
                         {
                             actedCode = "2";
                         }
-                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "Gameplay/Gadgets/SOFLAM/SOFLAM_Projectile") >= triggerCount)
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.RoundID == _roundID && dKill.weaponCode == "Gameplay/Gadgets/SOFLAM/SOFLAM_Projectile") >= triggerCount)
                         {
                             actedCode = "3";
                         }
-                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "U_Motionsensor") >= triggerCount) 
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.RoundID == _roundID && dKill.weaponCode == "U_Motionsensor") >= triggerCount) 
                         {
                             actedCode = "4";
                         }
-                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "U_PortableMedicpack" && !dKill.IsTeamkill) >= triggerCount) 
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.RoundID == _roundID && dKill.weaponCode == "U_PortableMedicpack" && !dKill.IsTeamkill) >= triggerCount) 
                         {
                             actedCode = "5";
                         }
-                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "U_Medkit" && !dKill.IsTeamkill) >= triggerCount) 
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.RoundID == _roundID && dKill.weaponCode == "U_Medkit" && !dKill.IsTeamkill) >= triggerCount) 
                         {
                             actedCode = "6";
                         }
-                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "U_Ammobag") >= triggerCount) 
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.RoundID == _roundID && dKill.weaponCode == "U_Ammobag") >= triggerCount) 
                         {
                             actedCode = "7";
                         }
@@ -10157,19 +10160,19 @@ namespace PRoConEvents
                         //Special weapons
                         String actedCode = null;
                         Int32 triggerCount = 3;
-                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "AmmoBag") >= triggerCount)
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.RoundID == _roundID && dKill.weaponCode == "AmmoBag") >= triggerCount)
                         {
                             actedCode = "1";
                         }
-                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "Weapons/Gadgets/RadioBeacon/Radio_Beacon") >= triggerCount)
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.RoundID == _roundID && dKill.weaponCode == "Weapons/Gadgets/RadioBeacon/Radio_Beacon") >= triggerCount)
                         {
                             actedCode = "2";
                         }
-                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "Weapons/Gadgets/SOFLAM/SOFLAM_PDA") >= triggerCount)
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.RoundID == _roundID && dKill.weaponCode == "Weapons/Gadgets/SOFLAM/SOFLAM_PDA") >= triggerCount)
                         {
                             actedCode = "3";
                         }
-                        if (aKill.killer.LiveKills.Count(dKill => dKill.weaponCode == "Medkit" && !dKill.IsTeamkill) >= triggerCount) 
+                        if (aKill.killer.LiveKills.Count(dKill => dKill.RoundID == _roundID && dKill.weaponCode == "Medkit" && !dKill.IsTeamkill) >= triggerCount) 
                         {
                             actedCode = "4";
                         }
@@ -11500,15 +11503,21 @@ namespace PRoConEvents
                     Log.Debug(() => "Preparing to KPM check " + aPlayer.GetVerboseName(), 5);
                     acted = KPMHackCheck(aPlayer, verbose);
                 }
-                if (_gameVersion == GameVersion.BF4 && 
+                if (//Only on BF4
+                    _gameVersion == GameVersion.BF4 && 
+                    //Stats are available
                     aPlayer.RoundStats.ContainsKey(_roundID - 1) &&
-                    aPlayer.RoundStats.ContainsKey(_roundID)) {
+                    aPlayer.RoundStats.ContainsKey(_roundID) &&
+                    //AdKats has been running long enough to collect kill codes
+                    _previousRoundDuration.TotalSeconds > 0 &&
+                    (UtcDbTime() - _AdKatsRunningTime).TotalSeconds > _previousRoundDuration.TotalSeconds * 1.5) {
                     AdKatsPlayerStats previousStats;
                     AdKatsPlayerStats currentStats;
                     if (aPlayer.RoundStats.TryGetValue(_roundID, out currentStats) &&
                         aPlayer.RoundStats.TryGetValue(_roundID - 1, out previousStats)) {
                             if (previousStats.WeaponStats != null &&
                                 previousStats.VehicleStats != null &&
+                                previousStats.LiveStats != null &&
                                 currentStats.WeaponStats != null &&
                                 currentStats.VehicleStats != null) {
                                 //Weapon specific info
@@ -11527,14 +11536,15 @@ namespace PRoConEvents
                                 Int32 overallHitDiff = currentStats.Hits - previousStats.Hits;
                                 Int32 killDiscrepancy = overallKillDiff - weaponKillDiff;
                                 Int32 hitDiscrepancy = overallHitDiff - weaponHitDiff;
-                                Int32 liveKillDiff = aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1);
+                                Int32 rconKillDiff = aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1);
+                                Int32 serverKillDiff = previousStats.LiveStats.Kills;
 
                                 if (_isTestingAuthorized) {
-                                    Log.Info(aPlayer.GetVerboseName() + " live kills: " + liveKillDiff + " | stat kills: " + overallKillDiff);
+                                    Log.Info(aPlayer.GetVerboseName() + " live kills: " + rconKillDiff + " | server kills: " + serverKillDiff + " | stat kills: " + overallKillDiff);
                                 }
 
-                                //Confirm all kills have been accounted for live
-                                if (liveKillDiff >= overallKillDiff) {
+                                //Confirm kill codes are loaded
+                                if (rconKillDiff > 0) {
 
                                     killDiscrepancy -= aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1 && aKill.weaponCode == "DamageArea");
 
@@ -11544,7 +11554,7 @@ namespace PRoConEvents
                                     } else {
                                         Log.Success(aPlayer.GetVerboseName() + " all kills accounted for. Kills:(" + weaponKillDiff + "|" + overallKillDiff + ") Hits: (" + weaponHitDiff + "|" + overallHitDiff + ")");
                                     }
-                                    if (killDiscrepancy >= 8 &&
+                                    if (killDiscrepancy >= 10 &&
                                         hitDiscrepancy * 2 <= killDiscrepancy &&
                                         !PlayerProtected(aPlayer)) {
                                         QueueRecordForProcessing(new AdKatsRecord {
