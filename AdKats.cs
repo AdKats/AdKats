@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.99
+ * Version 6.7.0.100
  * 27-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.99</version_code>
+ * <version_code>6.7.0.100</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.99";
+        private const String PluginVersion = "6.7.0.100";
 
         public enum GameVersion
         {
@@ -11573,7 +11573,8 @@ namespace PRoConEvents
                                 else {
                                     //Kills were not loaded. Why?
                                     if (_isTestingAuthorized) {
-                                        Log.Warn(aPlayer.GetVerboseName() + " Kills Not Loaded. " + 
+                                        Log.Warn(aPlayer.GetVerboseName() + 
+                                            " Kills Not Loaded. (" + FormatNowSub(aPlayer.JoinTime, 2) + ")(" + aPlayer.player_spawnedOnce + ") " +
                                             (_roundID + 1) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID + 1) + " | " +
                                             (_roundID    ) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID    ) + " | " +
                                             (_roundID - 1) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1) + " | " +
@@ -38620,6 +38621,10 @@ namespace PRoConEvents
                 Log.Error("Soldier Name '" + input + "' contained invalid characters.");
                 return false;
             }
+        }
+
+        public String FormatNowSub(DateTime sub, Int32 maxComponents) {
+            return FormatTimeString(UtcDbTime() - sub, maxComponents);
         }
 
         public String FormatTimeString(TimeSpan timeSpan, Int32 maxComponents)
