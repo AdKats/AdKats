@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.98
- * 26-JUL-2015
+ * Version 6.7.0.99
+ * 27-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.98</version_code>
+ * <version_code>6.7.0.99</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.98";
+        private const String PluginVersion = "6.7.0.99";
 
         public enum GameVersion
         {
@@ -11551,12 +11551,11 @@ namespace PRoConEvents
                                     if (killDiscrepancy > 0) {
                                         Log.Warn("KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + killDiscrepancy + " Unaccounted Kills)(" + hitDiscrepancy + " Unaccounted Hits)");
                                         Log.Warn(String.Join(", ", aPlayer.LiveKills.Select(aKill => aKill.weaponCode).ToArray()));
-                                    } else {
+                                    }
+                                    else {
                                         Log.Success(aPlayer.GetVerboseName() + " all kills accounted for. Kills:(" + weaponKillDiff + "|" + overallKillDiff + ") Hits: (" + weaponHitDiff + "|" + overallHitDiff + ")");
                                     }
-                                    if (killDiscrepancy >= 10 &&
-                                        hitDiscrepancy * 2 <= killDiscrepancy &&
-                                        !PlayerProtected(aPlayer)) {
+                                    if (killDiscrepancy >= 10 && hitDiscrepancy * 2 <= killDiscrepancy && !PlayerProtected(aPlayer)) {
                                         QueueRecordForProcessing(new AdKatsRecord {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
                                             server_id = _serverInfo.ServerID,
@@ -11569,6 +11568,16 @@ namespace PRoConEvents
                                             record_time = UtcDbTime()
                                         });
                                         acted = true;
+                                    }
+                                }
+                                else {
+                                    //Kills were not loaded. Why?
+                                    if (_isTestingAuthorized) {
+                                        Log.Warn(aPlayer.GetVerboseName() + " Kills Not Loaded. " + 
+                                            (_roundID + 1) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID + 1) + " | " +
+                                            (_roundID    ) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID    ) + " | " +
+                                            (_roundID - 1) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1) + " | " +
+                                            (_roundID - 2) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 2));
                                     }
                                 }
                         } else if (_isTestingAuthorized) {
