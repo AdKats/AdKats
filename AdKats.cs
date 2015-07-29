@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.100
- * 27-JUL-2015
+ * Version 6.7.0.101
+ * 28-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.100</version_code>
+ * <version_code>6.7.0.101</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.100";
+        private const String PluginVersion = "6.7.0.101";
 
         public enum GameVersion
         {
@@ -11608,27 +11608,35 @@ namespace PRoConEvents
 
                 //Confirm stat changes from battlelog are valid for the previous round
                 var killStatsValid = false;
+                Int32 serverKillDiff = 0;
+                Int32 statKillDiff = 0;
                 if (previousStats != null &&
                     previousStats.LiveStats != null &&
                     previousStats.WeaponStats != null &&
                     previousStats.VehicleStats != null &&
                     currentStats.WeaponStats != null &&
                     currentStats.VehicleStats != null) {
-                    Int32 serverKillDiff = previousStats.LiveStats.Kills;
+                    serverKillDiff = previousStats.LiveStats.Kills;
                     Int32 previousWeaponKillCount =
                         (Int32) previousStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
                         (Int32) previousStats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
                     Int32 currentWeaponKillCount =
                         (Int32) currentStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
                         (Int32) currentStats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
-                    Int32 statKillDiff = currentWeaponKillCount - previousWeaponKillCount;
+                    statKillDiff = currentWeaponKillCount - previousWeaponKillCount;
                     killStatsValid = serverKillDiff >= statKillDiff - 1;
-                    if (_isTestingAuthorized) {
-                        if (killStatsValid) {
-                            Log.Success(aPlayer.GetVerboseName() + " kill stats valid. " + serverKillDiff + "|" + statKillDiff);
-                        } else {
-                            Log.Warn(aPlayer.GetVerboseName() + " kill stats invalid. " + serverKillDiff + "|" + statKillDiff);
-                        }
+                }
+                if (_isTestingAuthorized) {
+                    if (killStatsValid) {
+                        Log.Success(aPlayer.GetVerboseName() + " kill stats valid. " + serverKillDiff + "|" + statKillDiff);
+                    } else {
+                        Log.Warn(aPlayer.GetVerboseName() + " kill stats invalid. " +
+                            "(" + (previousStats != null) + ")" +
+                            "(" + (previousStats.LiveStats != null) + ")" +
+                            "(" + (previousStats.WeaponStats != null) + ")" +
+                            "(" + (previousStats.VehicleStats != null) + ")" +
+                            "(" + (currentStats.WeaponStats != null) + ")" +
+                            "(" + (currentStats.VehicleStats != null) + ") " + serverKillDiff + "|" + statKillDiff);
                     }
                 }
 
@@ -11689,8 +11697,7 @@ namespace PRoConEvents
                             if (weapon.DamageMax < 50) {
                                 //For live stat check, look for previous round stat difference and valid stat difference
                                 if (previousStats != null && 
-                                    previousStats.WeaponStats != null && 
-                                    killStatsValid) {
+                                    previousStats.WeaponStats != null) {
                                     AdKatsWeaponStat previousWeaponStat;
                                     if (previousStats.WeaponStats.TryGetValue(weaponStat.ID, out previousWeaponStat)) {
                                         if (weaponStat.Kills > previousWeaponStat.Kills) {
@@ -11730,12 +11737,12 @@ namespace PRoConEvents
                                                     QueueRecordForProcessing(new AdKatsRecord {
                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                                         server_id = _serverInfo.ServerID,
-                                                        command_type = GetCommandByKey((_isTestingAuthorized) ? ("player_ban_perm") : ("player_report")),
+                                                        command_type = GetCommandByKey((_isTestingAuthorized && killStatsValid) ? ("player_ban_perm") : ("player_report")),
                                                         command_numeric = 0,
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
                                                         source_name = "AutoAdmin",
-                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]",
+                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE]" + (killStatsValid)?(""):("[CAUTION]") + "[" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]",
                                                         record_time = UtcDbTime()
                                                     });
                                                 }
