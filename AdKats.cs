@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.102
+ * Version 6.7.0.103
  * 28-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.102</version_code>
+ * <version_code>6.7.0.103</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.102";
+        private const String PluginVersion = "6.7.0.103";
 
         public enum GameVersion
         {
@@ -11629,12 +11629,11 @@ namespace PRoConEvents
                 if (_isTestingAuthorized) {
                     if (killStatsValid) {
                         Log.Success(aPlayer.GetVerboseName() + " kill stats valid. " + serverKillDiff + "|" + statKillDiff);
-                    } else {
+                    } else if (previousStats != null) {
                         Log.Warn(aPlayer.GetVerboseName() + " kill stats invalid. " +
-                            "(" + (previousStats != null) + ")" +
-                            "(" + (previousStats != null && previousStats.LiveStats != null) + ")" +
-                            "(" + (previousStats != null && previousStats.WeaponStats != null) + ")" +
-                            "(" + (previousStats != null && previousStats.VehicleStats != null) + ")" +
+                            "(" + (previousStats.LiveStats != null) + ")" +
+                            "(" + (previousStats.WeaponStats != null) + ")" +
+                            "(" + (previousStats.VehicleStats != null) + ")" +
                             "(" + (currentStats != null && currentStats.WeaponStats != null) + ")" +
                             "(" + (currentStats != null && currentStats.VehicleStats != null) + ") " + serverKillDiff + "|" + statKillDiff);
                     }
