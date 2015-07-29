@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.103
+ * Version 6.7.0.104
  * 28-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.103</version_code>
+ * <version_code>6.7.0.104</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.103";
+        private const String PluginVersion = "6.7.0.104";
 
         public enum GameVersion
         {
@@ -37503,6 +37503,64 @@ namespace PRoConEvents
                         } else {
                             Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                         }
+
+                        //Fetch vehicle stats
+                        DoBattlelogWait();
+                        String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/vehiclesPopulateStats/" + aPlayer.player_personaID + "/1/");
+                        Hashtable vehicleResponseData = (Hashtable) JSON.JsonDecode(vehicleResponse);
+
+                        if (vehicleResponseData.ContainsKey("type") &&
+                            (String) vehicleResponseData["type"] == "success" &&
+                            vehicleResponseData.ContainsKey("message") &&
+                            (String) vehicleResponseData["message"] == "OK" &&
+                            vehicleResponseData.ContainsKey("data")) {
+                            Hashtable statsData = (Hashtable) vehicleResponseData["data"];
+                            if (statsData != null && statsData.ContainsKey("mainVehicleStats")) {
+                                ArrayList vehicleData = (ArrayList) statsData["mainVehicleStats"];
+                                try {
+                                    //Get Vehicles
+                                    if (vehicleData != null && vehicleData.Count > 0) {
+                                        stats.VehicleStats = new Dictionary<String, AdKatsVehicleStat>();
+                                        foreach (Hashtable currentWeapon in vehicleData) {
+                                            //Create new construct
+                                            AdKatsVehicleStat vehicle = new AdKatsVehicleStat();
+
+                                            //serviceStars
+                                            vehicle.ServiceStars = (Double) currentWeapon["serviceStars"];
+                                            //serviceStarsProgress
+                                            vehicle.ServiceStarsProgress = (Double) currentWeapon["serviceStarsProgress"];
+                                            //category
+                                            vehicle.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_').Replace('-', '_');
+                                            //slug
+                                            vehicle.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_').Replace('-', '_');
+                                            //name
+                                            vehicle.WarsawID = (String) currentWeapon["name"];
+                                            //kills
+                                            vehicle.Kills = (Double) currentWeapon["kills"];
+                                            //timeIn
+                                            vehicle.TimeIn = TimeSpan.FromSeconds((Double) currentWeapon["timeIn"]);
+
+                                            //Calculate values
+                                            if (vehicle.TimeIn.TotalMinutes > 0) {
+                                                vehicle.KPM = vehicle.Kills / vehicle.TimeIn.TotalMinutes;
+                                            }
+
+                                            //Assign the construct
+                                            stats.VehicleStats.Add(vehicle.ID, vehicle);
+                                        }
+                                    } else {
+                                        Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats data.");
+                                    }
+                                } catch (Exception e) {
+                                    HandleException(new AdKatsException("Error while parsing player vehicle data.", e));
+                                }
+                            } else {
+                                Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats construct.");
+                            }
+                        } else {
+                            Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
+                        }
+
                         aPlayer.RoundStats[_roundID] = stats;
                         return true;
                     } catch (Exception e) {
@@ -37637,9 +37695,9 @@ namespace PRoConEvents
                                             //serviceStarsProgress
                                             vehicle.ServiceStarsProgress = (Double) currentWeapon["serviceStarsProgress"];
                                             //category
-                                            vehicle.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
+                                            vehicle.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_').Replace('-', '_');
                                             //slug
-                                            vehicle.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
+                                            vehicle.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_').Replace('-', '_');
                                             //name
                                             vehicle.WarsawID = (String) currentWeapon["name"];
                                             //kills
@@ -37667,6 +37725,7 @@ namespace PRoConEvents
                         } else {
                             Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                         }
+
                         aPlayer.RoundStats[_roundID] = stats;
                         return true;
                     } catch (Exception e) {
