@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.107
- * 30-JUL-2015
+ * Version 6.7.0.108
+ * 31-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.107</version_code>
+ * <version_code>6.7.0.108</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.107";
+        private const String PluginVersion = "6.7.0.108";
 
         public enum GameVersion
         {
@@ -9936,7 +9936,9 @@ namespace PRoConEvents
                             _PlayerDictionary.TryGetValue(playerKill.Killer.SoldierName, out killer);
                             if (killer == null || victim == null)
                             {
-                                if (_isTestingAuthorized) {
+                                if (_isTestingAuthorized && 
+                                    !String.IsNullOrEmpty(playerKill.Killer.SoldierName) && 
+                                    !String.IsNullOrEmpty(playerKill.Victim.SoldierName)) {
                                     Log.Warn("Unable to process kill " + 
                                         playerKill.Killer.SoldierName + "/" +
                                         playerKill.Victim.SoldierName + " | " + 
@@ -11717,7 +11719,7 @@ namespace PRoConEvents
                                             }
                                             Double percDiff = (liveDPS - expectedDPS) / expectedDPS;
                                             String formattedName = weaponStat.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                                            if (Math.Round(percDiff) > 0) {
+                                            if (Math.Round(percDiff) > 0 || _isTestingAuthorized) {
                                                 Log.Info("STATDIFF - " + aPlayer.GetVerboseName() + " - " + formattedName + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(liveDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
                                             }
                                             //Check for damage mod
