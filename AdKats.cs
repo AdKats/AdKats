@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.105
+ * Version 6.7.0.106
  * 30-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.105</version_code>
+ * <version_code>6.7.0.106</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.105";
+        private const String PluginVersion = "6.7.0.106";
 
         public enum GameVersion
         {
@@ -9989,26 +9989,6 @@ namespace PRoConEvents
                 aKill.victim.lastAction = UtcDbTime();
                 aKill.killer.lastAction = UtcDbTime();
 
-                if (aKill.killer.player_type == PlayerType.Spectator)
-                {
-                    //Unlock the player
-                    aKill.killer.Unlock();
-                    //Create the ban record
-                    QueueRecordForProcessing(new AdKatsRecord
-                    {
-                        record_source = AdKatsRecord.Sources.InternalAutomated,
-                        server_id = _serverInfo.ServerID,
-                        command_type = GetCommandByKey("player_ban_perm"),
-                        command_numeric = 0,
-                        target_name = aKill.killer.player_name,
-                        target_player = aKill.killer,
-                        source_name = "AutoAdmin",
-                        record_message = "Spectator Hack",
-                        record_time = UtcDbTime()
-                    });
-                    return;
-                }
-
                 //Add the unmatched unique round death
                 if (!_unmatchedRoundDeaths.Contains(aKill.victim.player_name))
                 {
@@ -10031,6 +10011,11 @@ namespace PRoConEvents
 
                 //Add the kill
                 aKill.killer.LiveKills.Add(aKill);
+
+                if (_isTestingAuthorized && aKill.killer.frostbitePlayerInfo.Kills > aKill.killer.LiveKills.Count) {
+                    Log.Error(aKill.killer.GetVerboseName() + " kills not loading. " + 
+                        aKill.killer.LiveKills.Count + " < " + aKill.killer.frostbitePlayerInfo.Kills);
+                }
 
                 if ((_isTestingAuthorized || _serverInfo.ServerName.Contains("FPSG")) && _serverInfo.ServerType != "OFFICIAL")
                 {
