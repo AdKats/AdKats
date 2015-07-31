@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.104
- * 28-JUL-2015
+ * Version 6.7.0.105
+ * 30-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.104</version_code>
+ * <version_code>6.7.0.105</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.104";
+        private const String PluginVersion = "6.7.0.105";
 
         public enum GameVersion
         {
@@ -8299,7 +8299,7 @@ namespace PRoConEvents
                             }
                             AdKatsTeam team1 = _teamDictionary[1];
                             AdKatsTeam team2 = _teamDictionary[2];
-                            if (_roundState == RoundState.Ended || !_pluginEnabled || (team1.TeamPlayerCount == 0 && team1.Populated && team2.TeamPlayerCount == 0 && team2.Populated))
+                            if (_roundState == RoundState.Ended || !_pluginEnabled || _PlayerDictionary.Count() <= 2)
                             {
                                 break;
                             }
@@ -9936,6 +9936,13 @@ namespace PRoConEvents
                             _PlayerDictionary.TryGetValue(playerKill.Killer.SoldierName, out killer);
                             if (killer == null || victim == null)
                             {
+                                if (_isTestingAuthorized) {
+                                    Log.Warn("Unable to process kill " + 
+                                        playerKill.Killer.SoldierName + "/" +
+                                        playerKill.Victim.SoldierName + " | " + 
+                                        (_PlayerDictionary.ContainsKey(playerKill.Killer.SoldierName)) + "/" + 
+                                        (_PlayerDictionary.ContainsKey(playerKill.Victim.SoldierName)));
+                                }
                                 continue;
                             }
 
@@ -10581,6 +10588,7 @@ namespace PRoConEvents
                             StartRoundTimer();
                         }
                     }
+
                     if (_CommandNameDictionary.Count > 0)
                     {
                         //Handle TeamSwap notifications
