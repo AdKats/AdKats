@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.108
+ * Version 6.7.0.109
  * 31-JUL-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.108</version_code>
+ * <version_code>6.7.0.109</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.108";
+        private const String PluginVersion = "6.7.0.109";
 
         public enum GameVersion
         {
@@ -1333,6 +1333,14 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Main Channel Name", typeof(String), _tsViewer.Ts3MainChannelName));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Secondary Channel Names", typeof(String[]), _tsViewer.Ts3SubChannelNames));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Debug Display Teamspeak Clients", typeof(Boolean), _tsViewer.DbgClients));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept +
+                                "TeamSpeak Player Join Announcement",
+                                "enum.commandActiveEnum(Disabled|Say|Yell|Tell)",
+                                _tsViewer.JoinDisplay.ToString()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept +
+                                "TeamSpeak Player Join Message",
+                                typeof(String),
+                                _tsViewer.JoinDisplayMessage));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Enable Teamspeak Player Perks", typeof(Boolean), _TeamspeakPlayerPerksEnable));
                             if (_TeamspeakPlayerPerksEnable) {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Player Perks - Reserved Slot", typeof(Boolean), _TeamspeakPlayerPerksReservedSlot));
@@ -3543,6 +3551,32 @@ namespace PRoConEvents
                         _tsViewer.DbgClients = DbgClients;
                         //Upload change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Debug Display Teamspeak Clients", typeof(Boolean), _tsViewer.DbgClients));
+                    }
+                } 
+                else if (Regex.Match(strVariable, @"TeamSpeak Player Join Announcement").Success) {
+                    switch (strValue.ToLower()) {
+                        case "Disabled":
+                            _tsViewer.JoinDisplay = TeamSpeakClientViewer.JoinDisplayType.Disabled;
+                            break;
+                        case "Say":
+                            _tsViewer.JoinDisplay = TeamSpeakClientViewer.JoinDisplayType.Say;
+                            break;
+                        case "Yell":
+                            _tsViewer.JoinDisplay = TeamSpeakClientViewer.JoinDisplayType.Yell;
+                            break;
+                        case "Tell":
+                            _tsViewer.JoinDisplay = TeamSpeakClientViewer.JoinDisplayType.Tell;
+                            break;
+                        default:
+                            Log.Error("Unknown setting when setting teamspeak player announcement.");
+                            return;
+                    }
+                    QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Announcement", typeof(String), _tsViewer.JoinDisplay.ToString()));
+                } 
+                else if (Regex.Match(strVariable, @"TeamSpeak Player Join Message").Success) {
+                    if (_tsViewer.JoinDisplayMessage != strValue && strValue.Contains("%player%")) {
+                        _tsViewer.JoinDisplayMessage = strValue;
+                        QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Message", typeof(String), _tsViewer.JoinDisplayMessage));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Enable Teamspeak Player Perks").Success)
@@ -6460,6 +6494,20 @@ namespace PRoConEvents
                                             if (_tsViewer.DbgClients)
                                             {
                                                 Log.Success("Teamspeak soldier " + aPlayer.player_name + " connected.");
+                                            }
+                                            switch (_tsViewer.JoinDisplay) {
+                                                case TeamSpeakClientViewer.JoinDisplayType.Say:
+                                                    AdminSayMessage(_tsViewer.JoinDisplayMessage
+                                                        .Replace("%player%", aPlayer.GetVerboseName()));
+                                                    break;
+                                                case TeamSpeakClientViewer.JoinDisplayType.Yell:
+                                                    AdminYellMessage(_tsViewer.JoinDisplayMessage
+                                                        .Replace("%player%", aPlayer.GetVerboseName()));
+                                                    break;
+                                                case TeamSpeakClientViewer.JoinDisplayType.Tell:
+                                                    AdminTellMessage(_tsViewer.JoinDisplayMessage
+                                                        .Replace("%player%", aPlayer.GetVerboseName()));
+                                                    break;
                                             }
                                             accessUpdateRequired = true;
                                         }
@@ -11567,11 +11615,13 @@ namespace PRoConEvents
                                         acted = true;
                                     }
                                 }
-                                else {
+                                else if(serverKillDiff > 0 || overallKillDiff > 0) {
                                     //Kills were not loaded. Why?
                                     if (_isTestingAuthorized) {
-                                        Log.Warn(aPlayer.GetVerboseName() + 
-                                            " Kills Not Loaded. (" + FormatNowSub(aPlayer.JoinTime, 2) + ")(" + aPlayer.player_spawnedOnce + ") " +
+                                        Log.Warn(aPlayer.GetVerboseName() +
+                                            " Kills Not Loaded. (" + FormatNowSub(aPlayer.JoinTime, 2) +
+                                            ")(online-" + aPlayer.player_online + ") " +
+                                            ")(spawned-" + aPlayer.player_spawnedOnce + ") " +
                                             (_roundID + 1) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID + 1) + " | " +
                                             (_roundID    ) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID    ) + " | " +
                                             (_roundID - 1) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1) + " | " +
@@ -28625,6 +28675,8 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Main Channel Name", typeof(String), _tsViewer.Ts3MainChannelName));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Secondary Channel Names", typeof(String), CPluginVariable.EncodeStringArray(_tsViewer.Ts3SubChannelNames)));
                 QueueSettingForUpload(new CPluginVariable(@"Debug Display Teamspeak Clients", typeof(Boolean), _tsViewer.DbgClients));
+                QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Announcement", typeof(String), _tsViewer.JoinDisplay.ToString()));
+                QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Message", typeof(String), _tsViewer.JoinDisplayMessage));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Teamspeak Player Perks", typeof(Boolean), _TeamspeakPlayerPerksEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Reserved Slot", typeof(Boolean), _TeamspeakPlayerPerksReservedSlot));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Autobalance Whitelist", typeof(Boolean), _TeamspeakPlayerPerksBalanceWhitelist));
@@ -42494,6 +42546,16 @@ namespace PRoConEvents
             public String Ts3MainChannelName { get; set; }
             public String[] Ts3SubChannelNames { get; set; }
             public Boolean DbgClients { get; set; }
+
+            public enum JoinDisplayType {
+                Disabled,
+                Say,
+                Yell,
+                Tell
+            }
+
+            public JoinDisplayType JoinDisplay = JoinDisplayType.Disabled;
+            public String JoinDisplayMessage = "%player% joined teamspeak! Welcome!";
 
             private const Int32 SynDelayQueriesAmount = 1000;
             private const Int32 SynUpdateInterval = 30000;
