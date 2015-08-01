@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.112
+ * Version 6.7.0.114
  * 1-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.112</version_code>
+ * <version_code>6.7.0.114</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.112";
+        private const String PluginVersion = "6.7.0.114";
 
         public enum GameVersion
         {
@@ -208,7 +208,7 @@ namespace PRoConEvents
         private DateTime _LastTicketRateDisplay = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
-        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(1.1);
+        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(2);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private readonly TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(5);
         private DateTime _LastGoogleAction = DateTime.UtcNow - TimeSpan.FromSeconds(0.3);
@@ -37325,7 +37325,7 @@ namespace PRoConEvents
                         catch (Exception e)
                         {
                             if (e is WebException) {
-                                Log.Debug(() => "Error connecting to battlelog.", 3);
+                                Log.Warn("Issue connecting to battlelog.");
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -37381,7 +37381,7 @@ namespace PRoConEvents
                         }
                         catch (Exception e) {
                             if (e is WebException) {
-                                Log.Debug(() => "Error connecting to battlelog.", 3);
+                                Log.Warn("Issue connecting to battlelog.");
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -37446,7 +37446,7 @@ namespace PRoConEvents
                         }
                         catch (Exception e) {
                             if (e is WebException) {
-                                Log.Debug(() => "Error connecting to battlelog.", 3);
+                                Log.Warn("Issue connecting to battlelog.");
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -37616,7 +37616,7 @@ namespace PRoConEvents
                         return true;
                     } catch (Exception e) {
                         if (e is WebException) {
-                            Log.Debug(() => "Error connecting to battlelog.", 3);
+                            Log.Warn("Issue connecting to battlelog.");
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -37781,7 +37781,7 @@ namespace PRoConEvents
                         return true;
                     } catch (Exception e) {
                         if (e is WebException) {
-                            Log.Debug(() => "Error connecting to battlelog.", 3);
+                            Log.Warn("Issue connecting to battlelog.");
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -37863,7 +37863,7 @@ namespace PRoConEvents
                         return true;
                     } catch (Exception e) {
                         if (e is WebException) {
-                            Log.Debug(() => "Error connecting to battlelog.", 3);
+                            Log.Warn("Issue connecting to battlelog.");
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
