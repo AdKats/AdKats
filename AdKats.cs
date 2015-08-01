@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.110
- * 31-JUL-2015
+ * Version 6.7.0.111
+ * 1-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.110</version_code>
+ * <version_code>6.7.0.111</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.110";
+        private const String PluginVersion = "6.7.0.111";
 
         public enum GameVersion
         {
@@ -11619,9 +11619,11 @@ namespace PRoConEvents
                                     //Kills were not loaded. Why?
                                     if (_isTestingAuthorized) {
                                         Log.Warn(aPlayer.GetVerboseName() +
-                                            " Kills Not Loaded. (" + FormatNowSub(aPlayer.JoinTime, 2) +
-                                            ")(online-" + aPlayer.player_online + ") " +
-                                            ")(spawned-" + aPlayer.player_spawnedOnce + ") " +
+                                            " Kills Not Loaded. (Join-" + FormatNowSub(aPlayer.JoinTime, 2) + ")" +
+                                            "(Action-" + FormatNowSub(aPlayer.lastAction, 2) + ")" +
+                                            "(Usage-" + FormatNowSub(aPlayer.LastUsage, 2) + ")" +
+                                            "(Online-" + aPlayer.player_online + ")" +
+                                            "(Spawned-" + aPlayer.player_spawnedOnce + ") " +
                                             (_roundID + 1) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID + 1) + " | " +
                                             (_roundID    ) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID    ) + " | " +
                                             (_roundID - 1) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1) + " | " +
