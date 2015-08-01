@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.111
+ * Version 6.7.0.112
  * 1-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.111</version_code>
+ * <version_code>6.7.0.112</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.111";
+        private const String PluginVersion = "6.7.0.112";
 
         public enum GameVersion
         {
@@ -1335,7 +1335,7 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Debug Display Teamspeak Clients", typeof(Boolean), _tsViewer.DbgClients));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept +
                                 "TeamSpeak Player Join Announcement",
-                                "enum.commandActiveEnum(Disabled|Say|Yell|Tell)",
+                                "enum.tsAnnounceEnum(Disabled|Say|Yell|Tell)",
                                 _tsViewer.JoinDisplay.ToString()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept +
                                 "TeamSpeak Player Join Message",
