@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.114
- * 1-AUG-2015
+ * Version 6.7.0.115
+ * 3-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.114</version_code>
+ * <version_code>6.7.0.115</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.114";
+        private const String PluginVersion = "6.7.0.115";
 
         public enum GameVersion
         {
@@ -7710,22 +7710,37 @@ namespace PRoConEvents
                                                 Log.Error("Player type " + aPlayer.frostbitePlayerInfo.Type + " is not valid.");
                                                 break;
                                         }
-                                        if (aPlayer.player_type == PlayerType.Spectator && GetMatchingVerboseASPlayersOfGroup("blacklist_spectator", aPlayer).Any())
-                                        {
-                                            AdKatsRecord record = new AdKatsRecord
-                                            {
-                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
-                                                command_type = GetCommandByKey("player_kick"),
-                                                command_numeric = 0,
-                                                target_name = aPlayer.player_name,
-                                                target_player = aPlayer,
-                                                source_name = "SpectatorManager",
-                                                record_message = "You may not spectate the server at this time.",
-                                                record_time = UtcDbTime()
-                                            };
-                                            QueueRecordForProcessing(record);
-                                        }
+                                        if (aPlayer.player_type == PlayerType.Spectator) {
+                                            if (GetMatchingVerboseASPlayersOfGroup("blacklist_spectator", aPlayer).Any()) {
+                                                AdKatsRecord record = new AdKatsRecord {
+                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                    server_id = _serverInfo.ServerID,
+                                                    command_type = GetCommandByKey("player_kick"),
+                                                    command_numeric = 0,
+                                                    target_name = aPlayer.player_name,
+                                                    target_player = aPlayer,
+                                                    source_name = "SpectatorManager",
+                                                    record_message = "You may not spectate the server at this time.",
+                                                    record_time = UtcDbTime()
+                                                };
+                                                QueueRecordForProcessing(record);
+                                            }
+                                            if (GetASPlayersOfGroup("slot_spectator").Any() &&
+                                                !GetMatchingVerboseASPlayersOfGroup("slot_spectator", aPlayer).Any()) {
+                                                AdKatsRecord record = new AdKatsRecord {
+                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                    server_id = _serverInfo.ServerID,
+                                                    command_type = GetCommandByKey("player_kick"),
+                                                    command_numeric = 0,
+                                                    target_name = aPlayer.player_name,
+                                                    target_player = aPlayer,
+                                                    source_name = "SpectatorManager",
+                                                    record_message = "Whitelist required to spectate this server.",
+                                                    record_time = UtcDbTime()
+                                                };
+                                                QueueRecordForProcessing(record);
+                                            }
+                                        } 
                                         if (_firstPlayerListComplete)
                                         {
                                             bool isAdmin = PlayerIsAdmin(aPlayer);
