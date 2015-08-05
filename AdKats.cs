@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.115
- * 3-AUG-2015
+ * Version 6.7.0.116
+ * 4-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.115</version_code>
+ * <version_code>6.7.0.116</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.115";
+        private const String PluginVersion = "6.7.0.116";
 
         public enum GameVersion
         {
@@ -1341,6 +1341,10 @@ namespace PRoConEvents
                                 "TeamSpeak Player Join Message",
                                 typeof(String),
                                 _tsViewer.JoinDisplayMessage));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept +
+                                "TeamSpeak Player Update Seconds",
+                                typeof(Int32),
+                                _tsViewer.UpdateIntervalSeconds));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Enable Teamspeak Player Perks", typeof(Boolean), _TeamspeakPlayerPerksEnable));
                             if (_TeamspeakPlayerPerksEnable) {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Player Perks - Reserved Slot", typeof(Boolean), _TeamspeakPlayerPerksReservedSlot));
@@ -3577,6 +3581,17 @@ namespace PRoConEvents
                     if (_tsViewer.JoinDisplayMessage != strValue && strValue.Contains("%player%")) {
                         _tsViewer.JoinDisplayMessage = strValue;
                         QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Message", typeof(String), _tsViewer.JoinDisplayMessage));
+                    }
+                } 
+                else if (Regex.Match(strVariable, @"TeamSpeak Player Update Seconds").Success) {
+                    //Initial parse
+                    Int32 UpdateIntervalSeconds = Int32.Parse(strValue);
+                    //Check for changed value
+                    if (_tsViewer.UpdateIntervalSeconds != UpdateIntervalSeconds) {
+                        //Assignment
+                        _tsViewer.UpdateIntervalSeconds = UpdateIntervalSeconds;
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Update Seconds", typeof(Int32), _tsViewer.UpdateIntervalSeconds));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Enable Teamspeak Player Perks").Success)
@@ -28694,6 +28709,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Debug Display Teamspeak Clients", typeof(Boolean), _tsViewer.DbgClients));
                 QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Announcement", typeof(String), _tsViewer.JoinDisplay.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Message", typeof(String), _tsViewer.JoinDisplayMessage));
+                QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Update Seconds", typeof(Int32), _tsViewer.UpdateIntervalSeconds));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Teamspeak Player Perks", typeof(Boolean), _TeamspeakPlayerPerksEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Reserved Slot", typeof(Boolean), _TeamspeakPlayerPerksReservedSlot));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Autobalance Whitelist", typeof(Boolean), _TeamspeakPlayerPerksBalanceWhitelist));
@@ -42573,9 +42589,9 @@ namespace PRoConEvents
 
             public JoinDisplayType JoinDisplay = JoinDisplayType.Disabled;
             public String JoinDisplayMessage = "%player% joined teamspeak! Welcome!";
+            public Int32 UpdateIntervalSeconds = 30;
 
             private const Int32 SynDelayQueriesAmount = 1000;
-            private const Int32 SynUpdateInterval = 30000;
             private const Int32 ErrReconnectOnErrorAttempts = 20;
             private const Int32 ErrReconnectOnErrorInterval = 30000;
 
@@ -44455,7 +44471,7 @@ namespace PRoConEvents
                     {
                         AddToActionQueue(Commands.UpdateTsClientInfo);
                     }
-                    Thread.Sleep(SynUpdateInterval);
+                    Thread.Sleep(UpdateIntervalSeconds * 1000);
                 }
             }
 
