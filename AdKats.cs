@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.116
- * 4-AUG-2015
+ * Version 6.7.0.117
+ * 9-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.116</version_code>
+ * <version_code>6.7.0.117</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.116";
+        private const String PluginVersion = "6.7.0.117";
 
         public enum GameVersion
         {
@@ -208,7 +208,7 @@ namespace PRoConEvents
         private DateTime _LastTicketRateDisplay = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
-        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(2);
+        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(5);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private readonly TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(5);
         private DateTime _LastGoogleAction = DateTime.UtcNow - TimeSpan.FromSeconds(0.3);
