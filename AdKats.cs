@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.117
- * 9-AUG-2015
+ * Version 6.7.0.118
+ * 10-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.117</version_code>
+ * <version_code>6.7.0.118</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.117";
+        private const String PluginVersion = "6.7.0.118";
 
         public enum GameVersion
         {
@@ -6127,14 +6127,14 @@ namespace PRoConEvents
                     Log.Debug(() => "Fetching plugin links...", 2);
                     try
                     {
-                        _pluginLinks = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/LINKS.md?nocacherandom=" + Environment.TickCount);
+                        _pluginLinks = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/LINKS.md?cacherand=" + Environment.TickCount);
                         Log.Debug(() => "Plugin links fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
-                            _pluginLinks = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/links?nocacherandom=" + Environment.TickCount);
+                            _pluginLinks = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/links?cacherand=" + Environment.TickCount);
                             Log.Debug(() => "Plugin links fetched from backup location.", 1);
                         }
                         catch (Exception)
@@ -6146,14 +6146,14 @@ namespace PRoConEvents
                     Log.Debug(() => "Fetching plugin readme...", 2);
                     try
                     {
-                        _pluginDescription = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/README.md?nocacherandom=" + Environment.TickCount);
+                        _pluginDescription = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/README.md?cacherand=" + Environment.TickCount);
                         Log.Debug(() => "Plugin readme fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
-                            _pluginDescription = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/readme?nocacherandom=" + Environment.TickCount);
+                            _pluginDescription = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/readme?cacherand=" + Environment.TickCount);
                             Log.Debug(() => "Plugin readme fetched from backup location.", 1);
                         }
                         catch (Exception)
@@ -6165,14 +6165,14 @@ namespace PRoConEvents
                     Log.Debug(() => "Fetching plugin changelog...", 2);
                     try
                     {
-                        _pluginChangelog = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/CHANGELOG.md?nocacherandom=" + Environment.TickCount);
+                        _pluginChangelog = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/CHANGELOG.md?cacherand=" + Environment.TickCount);
                         Log.Debug(() => "Plugin changelog fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
-                            _pluginChangelog = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/changelog?nocacherandom=" + Environment.TickCount);
+                            _pluginChangelog = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/changelog?cacherand=" + Environment.TickCount);
                             Log.Debug(() => "Plugin changelog fetched from backup location.", 1);
                         }
                         catch (Exception)
@@ -28013,14 +28013,14 @@ namespace PRoConEvents
                         Log.Debug(() => "Fetching plugin changelog...", 2);
                         try
                         {
-                            command.CommandText = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkats.sql?nocacherandom=" + Environment.TickCount);
+                            command.CommandText = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkats.sql?cacherand=" + Environment.TickCount);
                             Log.Debug(() => "SQL setup script fetched.", 1);
                         }
                         catch (Exception)
                         {
                             try
                             {
-                                command.CommandText = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/sqlsetup?nocacherandom=" + Environment.TickCount);
+                                command.CommandText = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/sqlsetup?cacherand=" + Environment.TickCount);
                                 Log.Debug(() => "SQL setup script fetched from backup location.", 1);
                             }
                             catch (Exception)
@@ -37333,7 +37333,7 @@ namespace PRoConEvents
                         try
                         {
                             DoBattlelogWait();
-                            String response = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/user/" + aPlayer.player_name + "?nocacherandom=" + Environment.TickCount);
+                            String response = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/user/" + aPlayer.player_name + "?cacherand=" + Environment.TickCount);
                             Match pid = Regex.Match(response, @"bf3/soldier/" + aPlayer.player_name + @"/stats/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                             if (!pid.Success)
                             {
@@ -37357,6 +37357,7 @@ namespace PRoConEvents
                         {
                             if (e is WebException) {
                                 Log.Warn("Issue connecting to battlelog.");
+                                _LastBattlelogAction = UtcDbTime().AddSeconds(30);
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -37374,7 +37375,7 @@ namespace PRoConEvents
                             {
                                 DoBattlelogWait();
 
-                                String personaResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/user/" + aPlayer.player_name + "?nocacherandom=" + Environment.TickCount);
+                                String personaResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/user/" + aPlayer.player_name + "?cacherand=" + Environment.TickCount);
                                 Match pid = Regex.Match(personaResponse, @"bf4/soldier/" + aPlayer.player_name + @"/stats/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                                 if (!pid.Success)
                                 {
@@ -37386,7 +37387,7 @@ namespace PRoConEvents
                             }
 
                             DoBattlelogWait();
-                            String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawoverviewpopulate/" + aPlayer.player_personaID + "/1/?nocacherandom=" + Environment.TickCount);
+                            String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawoverviewpopulate/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount);
                             Hashtable json = (Hashtable)JSON.JsonDecode(overviewResponse);
                             Hashtable data = (Hashtable)json["data"];
                             Hashtable info = null;
@@ -37413,6 +37414,7 @@ namespace PRoConEvents
                         catch (Exception e) {
                             if (e is WebException) {
                                 Log.Warn("Issue connecting to battlelog.");
+                                _LastBattlelogAction = UtcDbTime().AddSeconds(30);
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -37464,7 +37466,7 @@ namespace PRoConEvents
                             if (!String.IsNullOrEmpty(aPlayer.player_personaID)) {
                                 //Get tag
                                 DoBattlelogWait();
-                                String soldierResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bfh/agent/" + aPlayer.player_name + "/stats/" + aPlayer.player_personaID + "/pc/?nocacherandom=" + Environment.TickCount);
+                                String soldierResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bfh/agent/" + aPlayer.player_name + "/stats/" + aPlayer.player_personaID + "/pc/?cacherand=" + Environment.TickCount);
                                 Match tag = Regex.Match(soldierResponse, @"\[\s*([a-zA-Z0-9]+)\s*\]\s*</span>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                                 if (!tag.Success || String.IsNullOrEmpty(tag.Groups[1].Value.Trim())) {
                                     Log.Debug(() => "Could not find BFHL clan tag for " + aPlayer.player_name, 4);
@@ -37478,6 +37480,7 @@ namespace PRoConEvents
                         catch (Exception e) {
                             if (e is WebException) {
                                 Log.Warn("Issue connecting to battlelog.");
+                                _LastBattlelogAction = UtcDbTime().AddSeconds(30);
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -37520,7 +37523,7 @@ namespace PRoConEvents
                         //Fetch stats
                         AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
                         DoBattlelogWait();
-                        String weaponResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/weaponsPopulateStats/" + aPlayer.player_personaID + "/1/?nocacherandom=" + Environment.TickCount);
+                        String weaponResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/weaponsPopulateStats/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount);
                         Hashtable responseData = (Hashtable) JSON.JsonDecode(weaponResponse);
 
                         if (responseData.ContainsKey("type") && (String) responseData["type"] == "success" && responseData.ContainsKey("message") && (String) responseData["message"] == "OK" && responseData.ContainsKey("data")) {
@@ -37648,6 +37651,7 @@ namespace PRoConEvents
                     } catch (Exception e) {
                         if (e is WebException) {
                             Log.Warn("Issue connecting to battlelog.");
+                            _LastBattlelogAction = UtcDbTime().AddSeconds(30);
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -37662,7 +37666,7 @@ namespace PRoConEvents
 
                         //Handle overview stats
                         DoBattlelogWait();
-                        String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawdetailedstatspopulate/" + aPlayer.player_personaID + "/1/?nocacherandom=" + Environment.TickCount);
+                        String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawdetailedstatspopulate/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount);
                         Hashtable json = (Hashtable) JSON.JsonDecode(overviewResponse);
                         Hashtable data = (Hashtable) json["data"];
                         Hashtable overviewStatsTable = null;
@@ -37813,6 +37817,7 @@ namespace PRoConEvents
                     } catch (Exception e) {
                         if (e is WebException) {
                             Log.Warn("Issue connecting to battlelog.");
+                            _LastBattlelogAction = UtcDbTime().AddSeconds(30);
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -37825,7 +37830,7 @@ namespace PRoConEvents
                         //Fetch stats
                         AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
                         DoBattlelogWait();
-                        String weaponResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bfh/BFHWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/?nocacherandom=" + Environment.TickCount);
+                        String weaponResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bfh/BFHWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/?cacherand=" + Environment.TickCount);
                         Hashtable responseData = (Hashtable) JSON.JsonDecode(weaponResponse);
 
                         if (responseData.ContainsKey("type") && (String) responseData["type"] == "success" && responseData.ContainsKey("message") && (String) responseData["message"] == "OK" && responseData.ContainsKey("data")) {
@@ -37895,6 +37900,7 @@ namespace PRoConEvents
                     } catch (Exception e) {
                         if (e is WebException) {
                             Log.Warn("Issue connecting to battlelog.");
+                            _LastBattlelogAction = UtcDbTime().AddSeconds(30);
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -38000,14 +38006,14 @@ namespace PRoConEvents
                 Log.Debug(() => "Fetching reputation definitions...", 2);
                 try
                 {
-                    repInfo = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsreputationstats.json" + "?nocacherandom=" + Environment.TickCount);
+                    repInfo = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsreputationstats.json" + "?cacherand=" + Environment.TickCount);
                     Log.Debug(() => "Reputation definitions fetched.", 1);
                 }
                 catch (Exception)
                 {
                     try
                     {
-                        repInfo = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/reputation" + "?nocacherandom=" + Environment.TickCount);
+                        repInfo = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/reputation" + "?cacherand=" + Environment.TickCount);
                         Log.Debug(() => "Reputation definitions fetched from backup location.", 1);
                     }
                     catch (Exception)
@@ -38075,14 +38081,14 @@ namespace PRoConEvents
                 Log.Debug(() => "Fetching weapon names...", 2);
                 try
                 {
-                    downloadString = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsweaponnames.json" + "?nocacherandom=" + Environment.TickCount);
+                    downloadString = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsweaponnames.json" + "?cacherand=" + Environment.TickCount);
                     Log.Debug(() => "Weapon names fetched.", 1);
                 }
                 catch (Exception)
                 {
                     try
                     {
-                        downloadString = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/weaponnames" + "?nocacherandom=" + Environment.TickCount);
+                        downloadString = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/weaponnames" + "?cacherand=" + Environment.TickCount);
                         Log.Debug(() => "Weapon names fetched from backup location.", 1);
                     }
                     catch (Exception)
@@ -38146,14 +38152,14 @@ namespace PRoConEvents
                 Log.Debug(() => "Fetching special group definitions...", 2);
                 try
                 {
-                    groupInfo = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsspecialgroups.json" + "?nocacherandom=" + Environment.TickCount);
+                    groupInfo = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsspecialgroups.json" + "?cacherand=" + Environment.TickCount);
                     Log.Debug(() => "Special group definitions fetched.", 1);
                 }
                 catch (Exception)
                 {
                     try
                     {
-                        groupInfo = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/specialgroups" + "?nocacherandom=" + Environment.TickCount);
+                        groupInfo = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/specialgroups" + "?cacherand=" + Environment.TickCount);
                         Log.Debug(() => "Special group definitions fetched from backup location.", 1);
                     }
                     catch (Exception)
@@ -38355,14 +38361,14 @@ namespace PRoConEvents
                     String updateInfo;
                     try
                     {
-                        updateInfo = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsupdates.json" + "?nocacherandom=" + Environment.TickCount);
+                        updateInfo = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsupdates.json" + "?cacherand=" + Environment.TickCount);
                         Log.Debug(() => "SQL updates fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
-                            updateInfo = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/sqlupdates" + "?nocacherandom=" + Environment.TickCount);
+                            updateInfo = ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/sqlupdates" + "?cacherand=" + Environment.TickCount);
                             Log.Debug(() => "SQL updates fetched from backup location.", 1);
                         }
                         catch (Exception)
@@ -39255,8 +39261,8 @@ namespace PRoConEvents
                             {
                                 try
                                 {
-                                    string stableURL = "https://raw.githubusercontent.com/AdKats/AdKats/master/AdKats.cs" + "?nocacherandom=" + Environment.TickCount;
-                                    string testURL = "https://raw.githubusercontent.com/AdKats/AdKats/test/AdKats.cs" + "?nocacherandom=" + Environment.TickCount;
+                                    string stableURL = "https://raw.githubusercontent.com/AdKats/AdKats/master/AdKats.cs" + "?cacherand=" + Environment.TickCount;
+                                    string testURL = "https://raw.githubusercontent.com/AdKats/AdKats/test/AdKats.cs" + "?cacherand=" + Environment.TickCount;
                                     if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                     {
                                         pluginSource = ClientDownloadTimer(client, stableURL);
@@ -39457,7 +39463,7 @@ namespace PRoConEvents
                                 {
                                     try
                                     {
-                                        externalPluginSource = ClientDownloadTimer(client, "https://raw.githubusercontent.com/ColColonCleaner/multi-balancer/master/MULTIbalancer.cs" + "?nocacherandom=" + Environment.TickCount);
+                                        externalPluginSource = ClientDownloadTimer(client, "https://raw.githubusercontent.com/ColColonCleaner/multi-balancer/master/MULTIbalancer.cs" + "?cacherand=" + Environment.TickCount);
                                     }
                                     catch (Exception e)
                                     {
@@ -39567,7 +39573,7 @@ namespace PRoConEvents
                                 {
                                     try
                                     {
-                                        extensionSource = ClientDownloadTimer(client, "https://raw.githubusercontent.com/AdKats/AdKats-LRT/master/AdKatsLRT.cs?token=" + _AdKatsLRTExtensionToken + "&nocacherandom=" + Environment.TickCount);
+                                        extensionSource = ClientDownloadTimer(client, "https://raw.githubusercontent.com/AdKats/AdKats-LRT/master/AdKatsLRT.cs?token=" + _AdKatsLRTExtensionToken + "&cacherand=" + Environment.TickCount);
                                     }
                                     catch (Exception e)
                                     {
@@ -40332,7 +40338,7 @@ namespace PRoConEvents
             if ((UtcDbTime() - _LastBattlelogAction) < _BattlelogWaitDuration) {
                 var waitTime = _BattlelogWaitDuration - (UtcDbTime() - _LastBattlelogAction);
                 Log.Debug(() => "Waiting " + ((int)waitTime.TotalMilliseconds) + "ms to query battlelog.", 7);
-                if (waitTime > _BattlelogWaitDuration) {
+                if (waitTime.TotalSeconds > 60) {
                     Log.Warn("Wait time excessive for battlelog.");
                     waitTime = _BattlelogWaitDuration;
                 }
@@ -40401,7 +40407,7 @@ namespace PRoConEvents
                     try
                     {
                         DoIPAPIWait();
-                        response = (Hashtable)JSON.JsonDecode(ClientDownloadTimer(client, "http://ip-api.com/json/" + aPlayer.player_ip + "?nocacherandom=" + Environment.TickCount));
+                        response = (Hashtable)JSON.JsonDecode(ClientDownloadTimer(client, "http://ip-api.com/json/" + aPlayer.player_ip + "?cacherand=" + Environment.TickCount));
                     }
                     catch (Exception e)
                     {
@@ -42463,14 +42469,14 @@ namespace PRoConEvents
                     Plugin.Log.Debug(() => "Fetching weapon statistic definitions...", 2);
                     try
                     {
-                        weaponInfo = Plugin.ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsblweaponstats.json" + "?nocacherandom=" + Environment.TickCount);
+                        weaponInfo = Plugin.ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsblweaponstats.json" + "?cacherand=" + Environment.TickCount);
                         Plugin.Log.Debug(() => "Weapon statistic definitions fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
-                            weaponInfo = Plugin.ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/weapons" + "?nocacherandom=" + Environment.TickCount);
+                            weaponInfo = Plugin.ClientDownloadTimer(client, "http://api.gamerethos.net/adkats/fetch/weapons" + "?cacherand=" + Environment.TickCount);
                             Plugin.Log.Debug(() => "Weapon statistic definitions fetched from backup location.", 1);
                         }
                         catch (Exception)
