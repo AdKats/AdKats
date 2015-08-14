@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.118
- * 10-AUG-2015
+ * Version 6.7.0.119
+ * 13-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.118</version_code>
+ * <version_code>6.7.0.119</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.118";
+        private const String PluginVersion = "6.7.0.119";
 
         public enum GameVersion
         {
@@ -208,7 +208,7 @@ namespace PRoConEvents
         private DateTime _LastTicketRateDisplay = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
-        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(5);
+        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(3);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private readonly TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(5);
         private DateTime _LastGoogleAction = DateTime.UtcNow - TimeSpan.FromSeconds(0.3);
@@ -11524,7 +11524,7 @@ namespace PRoConEvents
                             aPlayer = playerCheckingQueue.Dequeue();
                             if (aPlayer != null)
                             {
-                                Log.Debug(() => "begin reading player for hacker-checker", 5);
+                                Log.Debug(() => "begin reading " + aPlayer.GetVerboseName() + " for hacker-checker", 5);
                                 if (!PlayerProtected(aPlayer)) {
                                     _hackerCheckedPlayers.Add(aPlayer.player_guid);
                                     if (!String.IsNullOrEmpty(aPlayer.player_name) && 
@@ -11613,16 +11613,19 @@ namespace PRoConEvents
                                 Int32 hitDiscrepancy = overallHitDiff - weaponHitDiff;
                                 Int32 rconKillDiff = aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1);
                                 Int32 serverKillDiff = previousStats.LiveStats.Kills;
+                                Int32 nonBLWeaponKills = aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1 && aKill.weaponCode == "DamageArea");
 
                                 if (_isTestingAuthorized) {
+                                    if (nonBLWeaponKills > 0) {
+                                        Log.Info(aPlayer.GetVerboseName() + " Ignoring " + nonBLWeaponKills + " non-bl weapon kills.");
+                                    }
                                     Log.Info(aPlayer.GetVerboseName() + " live kills: " + rconKillDiff + " | server kills: " + serverKillDiff + " | stat kills: " + overallKillDiff);
                                 }
 
-                                //Confirm kill codes are loaded
-                                if (rconKillDiff > 0) {
+                                killDiscrepancy = killDiscrepancy - nonBLWeaponKills;
 
-                                    killDiscrepancy -= aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1 && aKill.weaponCode == "DamageArea");
-
+                                //Confirm kill codes are loaded and valid
+                                if (rconKillDiff > 0 && Math.Abs(serverKillDiff - overallKillDiff) <= 5) {
                                     if (killDiscrepancy > 0) {
                                         Log.Warn("KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + killDiscrepancy + " Unaccounted Kills)(" + hitDiscrepancy + " Unaccounted Hits)");
                                         Log.Warn(String.Join(", ", aPlayer.LiveKills.Select(aKill => aKill.weaponCode).ToArray()));
@@ -11778,7 +11781,7 @@ namespace PRoConEvents
                                     previousStats.WeaponStats != null) {
                                     AdKatsWeaponStat previousWeaponStat;
                                     if (previousStats.WeaponStats.TryGetValue(weaponStat.ID, out previousWeaponStat)) {
-                                        if (weaponStat.Kills > previousWeaponStat.Kills) {
+                                        if (weaponStat.Kills > previousWeaponStat.Kills && killStatsValid) {
                                             //Handle servers with different health amounts
                                             Double weaponHitsToKill = (_soldierHealth / weapon.DamageMax);
                                             Double killDiff = weaponStat.Kills - previousWeaponStat.Kills;
@@ -11786,7 +11789,7 @@ namespace PRoConEvents
                                             Double HSDiff = weaponStat.Headshots - previousWeaponStat.Headshots;
                                             //Reject processing of bad data returned from battlelog
                                             if (killDiff < 0 || hitDiff < 0 || HSDiff < 0) {
-                                                return false;
+                                                continue;
                                             }
                                             Double liveDPS = (killDiff / hitDiff) * _soldierHealth;
                                             //Coerce the live damage
@@ -11809,18 +11812,18 @@ namespace PRoConEvents
                                             if (killDiff >= 12 &&
                                                 liveDPS > weapon.DamageMax &&
                                                 (liveDPS >= 85 || (!isSidearm && percDiff > 0.75))) {
-                                                    Log.Info(aPlayer.GetVerboseName() + " auto-reported for damage mod. [LIVE][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]");
+                                                    Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]");
                                                 if (!debugMode) {
                                                     //Create the ban record
                                                     QueueRecordForProcessing(new AdKatsRecord {
                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                                         server_id = _serverInfo.ServerID,
-                                                        command_type = GetCommandByKey((_isTestingAuthorized && killStatsValid) ? ("player_ban_perm") : ("player_report")),
+                                                        command_type = GetCommandByKey("player_ban_perm"),
                                                         command_numeric = 0,
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
                                                         source_name = "AutoAdmin",
-                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE]" + ((killStatsValid)?(""):("[CAUTION]")) + "[" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]",
+                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]",
                                                         record_time = UtcDbTime()
                                                     });
                                                 }
@@ -11843,7 +11846,7 @@ namespace PRoConEvents
                                         //Increase trigger level for kill counts under 100
                                         if (weaponStat.Kills < 100) 
                                         {
-                                            triggerLevel = triggerLevel * 1.5;
+                                            triggerLevel = triggerLevel * 1.8;
                                         }
                                         //Increase trigger level for sidearms
                                         if (isSidearm) 
@@ -13115,8 +13118,9 @@ namespace PRoConEvents
                                             lowerM.Contains(" cheat") ||
                                             lowerM.Contains(" aimbot") ||
                                             lowerM.Contains(" bot ") ||
-                                            lowerM.Contains(" botting ") || 
-                                            lowerM.Contains(" macro")) {
+                                            lowerM.Contains(" botting ") ||
+                                            lowerM.Contains(" macro") ||
+                                            lowerM.Contains(" hax")) {
                                             if (!PlayerIsAdmin(aPlayer)) {
                                                 if (messageObject.Subset == AdKatsChatMessage.ChatSubset.Global) {
                                                     PlayerYellMessage(messageObject.Speaker, "If you think a player is cheating use !report playername reason. Otherwise, it's chat spam.");
@@ -13166,12 +13170,12 @@ namespace PRoConEvents
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug(() => "Preparing to queue player for TeamSwap ", 6);
+                    Log.Debug(() => "Preparing to queue " + player.SoldierName + " for TeamSwap ", 6);
                     lock (_TeamswapForceMoveQueue)
                     {
                         _TeamswapForceMoveQueue.Enqueue(player);
                         _TeamswapWaitHandle.Set();
-                        Log.Debug(() => "Player queued for TeamSwap", 6);
+                        Log.Debug(() => player.SoldierName + " queued for TeamSwap", 6);
                     }
                 }
             }
@@ -13189,18 +13193,18 @@ namespace PRoConEvents
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug(() => "Preparing to add player to 'on-death' move dictionary.", 6);
+                    Log.Debug(() => "Preparing to add " + player.SoldierName + " to 'on-death' move dictionary.", 6);
                     lock (_TeamswapOnDeathCheckingQueue)
                     {
                         if (!_TeamswapOnDeathMoveDic.ContainsKey(player.SoldierName))
                         {
                             _TeamswapOnDeathMoveDic.Add(player.SoldierName, player);
                             _TeamswapWaitHandle.Set();
-                            Log.Debug(() => "Player added to 'on-death' move dictionary.", 6);
+                            Log.Debug(() => player.SoldierName + " added to 'on-death' move dictionary.", 6);
                         }
                         else
                         {
-                            Log.Debug(() => "Player already in 'on-death' move dictionary.", 6);
+                            Log.Debug(() => player.SoldierName + " already in 'on-death' move dictionary.", 6);
                         }
                     }
                 }
