@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.119
- * 13-AUG-2015
+ * Version 6.7.0.120
+ * 15-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.119</version_code>
+ * <version_code>6.7.0.120</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.119";
+        private const String PluginVersion = "6.7.0.120";
 
         public enum GameVersion
         {
@@ -18114,7 +18114,7 @@ namespace PRoConEvents
                             {
                                 case 0:
                                     record.target_name = record.source_name;
-                                    record.record_message = "Player Voted for Against Surrender";
+                                    record.record_message = "Player Voted against Surrender";
                                     if (record.record_source == AdKatsRecord.Sources.InGame)
                                     {
                                         if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player))
@@ -26103,14 +26103,60 @@ namespace PRoConEvents
                 }
                 record.command_numeric = (Int32)record.target_player.player_reputation;
                 record.record_message = record.target_player.player_name + "'s reputation is " + Math.Round(record.target_player.player_reputation, 2);
-                bool isAdmin = PlayerIsAdmin(record.target_player);
-                if (record.source_name == record.target_name)
-                {
-                    SendMessageToSource(record, "Your server reputation is " + ((!isAdmin) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)) + ((record.target_player.player_reputation > _reputationThresholdBad && (!isAdmin)) ? (", thank you for helping the admins!") : ("")));
+                var isAdmin = PlayerIsAdmin(record.target_player);
+                var points = FetchPoints(record.target_player, false, true);
+                if (record.source_name == record.target_name) {
+                    String repMessage = "Your server reputation is " + ((!isAdmin || !_isTestingAuthorized) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)) + ", with ";
+                    if (points > 0) {
+                        repMessage += points + " infraction point(s). ";
+                    } else {
+                        repMessage += "a clean infraction record. ";
+                    }
+                    if (!isAdmin) {
+                        if (_isTestingAuthorized) {
+                            repMessage += Environment.NewLine;
+                            if (record.target_player.player_reputation < _reputationThresholdGood) {
+                                if (record.target_player.player_reputation > 15) {
+                                    repMessage += "Thank you for helping the admins! At " + Math.Round(_reputationThresholdGood, 2) + " reputation you receive large perks.";
+                                } else if (record.target_player.player_reputation > 0) {
+                                    repMessage += "Thank you for helping the admins! At 15 reputation you receive small perks.";
+                                } else {
+                                    repMessage += "!" + GetCommandByKey("player_report").command_text + " rule breakers to increase reputation.";
+                                }
+                            } else {
+                                repMessage += "You have report auto-contest and spambot whitelist. Thank you.";
+                            }
+                        } else if (points < 1 &&
+                            record.target_player.player_reputation > _reputationThresholdBad) {
+                            repMessage += "Thank you for helping the admins!";
+                        }
+                    }
+                    if (points > 0 && _AutomaticForgives) {
+                        var forgiveTime = UtcDbTime();
+                        if (record.target_player.LastForgive != null) {
+                            var forgiveDiff = record.target_player.LastForgive.record_time.AddDays(_AutomaticForgiveLastForgiveDays);
+                            if (forgiveDiff > forgiveTime) {
+                                forgiveTime = forgiveDiff;
+                            }
+                        }
+                        if (record.target_player.LastPunishment != null) {
+                            var punishDiff = record.target_player.LastPunishment.record_time.AddDays(_AutomaticForgiveLastForgiveDays);
+                            if (punishDiff > forgiveTime) {
+                                forgiveTime = punishDiff;
+                            }
+                        }
+                        repMessage += Environment.NewLine + "Next auto-forgive in " + FormatNowSub(forgiveTime, 2);
+                    }
+                    SendMessageToSource(record, repMessage);
                 }
-                else
-                {
-                    SendMessageToSource(record, record.GetTargetNames() + "'s server reputation is " + ((!isAdmin) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)));
+                else {
+                    String repMessage = record.GetTargetNames() + "'s server reputation is " + ((!isAdmin || !_isTestingAuthorized) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)) + ", with ";
+                    if (points > 0) {
+                        repMessage += points + " infraction point(s). ";
+                    } else {
+                        repMessage += "a clean infraction record. ";
+                    }
+                    SendMessageToSource(record, repMessage);
                 }
             }
             catch (Exception e)
