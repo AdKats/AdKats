@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.120
+ * Version 6.7.0.121
  * 15-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.120</version_code>
+ * <version_code>6.7.0.121</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.120";
+        private const String PluginVersion = "6.7.0.121";
 
         public enum GameVersion
         {
@@ -11652,9 +11652,9 @@ namespace PRoConEvents
                                     //Kills were not loaded. Why?
                                     if (_isTestingAuthorized) {
                                         Log.Warn(aPlayer.GetVerboseName() +
-                                            " Kills Not Loaded. (Join-" + FormatNowSub(aPlayer.JoinTime, 2) + ")" +
-                                            "(Action-" + FormatNowSub(aPlayer.lastAction, 2) + ")" +
-                                            "(Usage-" + FormatNowSub(aPlayer.LastUsage, 2) + ")" +
+                                            " Kills Not Loaded. (Join-" + FormatNowDiff(aPlayer.JoinTime, 2) + ")" +
+                                            "(Action-" + FormatNowDiff(aPlayer.lastAction, 2) + ")" +
+                                            "(Usage-" + FormatNowDiff(aPlayer.LastUsage, 2) + ")" +
                                             "(Online-" + aPlayer.player_online + ")" +
                                             "(Spawned-" + aPlayer.player_spawnedOnce + ") " +
                                             (_roundID + 1) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID + 1) + " | " +
@@ -26140,12 +26140,12 @@ namespace PRoConEvents
                             }
                         }
                         if (record.target_player.LastPunishment != null) {
-                            var punishDiff = record.target_player.LastPunishment.record_time.AddDays(_AutomaticForgiveLastForgiveDays);
+                            var punishDiff = record.target_player.LastPunishment.record_time.AddDays(_AutomaticForgiveLastPunishDays);
                             if (punishDiff > forgiveTime) {
                                 forgiveTime = punishDiff;
                             }
                         }
-                        repMessage += Environment.NewLine + "Next auto-forgive in " + FormatNowSub(forgiveTime, 2);
+                        repMessage += Environment.NewLine + "Next auto-forgive in " + FormatNowDiff(forgiveTime, 2);
                     }
                     SendMessageToSource(record, repMessage);
                 }
@@ -38826,8 +38826,8 @@ namespace PRoConEvents
             }
         }
 
-        public String FormatNowSub(DateTime sub, Int32 maxComponents) {
-            return FormatTimeString(UtcDbTime() - sub, maxComponents);
+        public String FormatNowDiff(DateTime diff, Int32 maxComponents) {
+            return FormatTimeString((UtcDbTime() - diff).Duration(), maxComponents);
         }
 
         public String FormatTimeString(TimeSpan timeSpan, Int32 maxComponents)
@@ -39742,7 +39742,7 @@ namespace PRoConEvents
 
         public void ProconChatWrite(String msg)
         {
-            msg = msg.Replace(Environment.NewLine, String.Empty);
+            msg = msg.Replace(Environment.NewLine, " ");
             ExecuteCommand("procon.protected.chat.write", "AdKats > " + msg);
             if (_slowmo)
             {
@@ -39880,7 +39880,7 @@ namespace PRoConEvents
 
             public void Chat(String msg)
             {
-                msg = msg.Replace(Environment.NewLine, String.Empty);
+                msg = msg.Replace(Environment.NewLine, " ");
                 WriteChat(msg);
             }
 
