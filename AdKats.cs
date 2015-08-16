@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.121
- * 15-AUG-2015
+ * Version 6.7.0.122
+ * 16-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.121</version_code>
+ * <version_code>6.7.0.122</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.121";
+        private const String PluginVersion = "6.7.0.122";
 
         public enum GameVersion
         {
@@ -6344,7 +6344,6 @@ namespace PRoConEvents
                             if (_pluginEnabled && 
                                 _spamBotEnabled && 
                                 _firstPlayerListComplete && 
-                                _roundState == RoundState.Playing && 
                                 _PlayerDictionary.Any())
                             {
                                 if ((UtcDbTime() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
@@ -7081,7 +7080,7 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        Log.Info("Not enough top players online to do splitting.");
+                                        Log.Debug(() => "Not enough top players online to do splitting.", 3);
                                     }
                                     FetchAllAccess(true);
                                 }
@@ -8551,7 +8550,9 @@ namespace PRoConEvents
                                 winningTeam = team2;
                                 losingTeam = team1;
                             }
-                            if (_DisplayTicketRatesInProconChat && _roundState == RoundState.Playing)
+                            if (_DisplayTicketRatesInProconChat && 
+                                _roundState == RoundState.Playing &&
+                                _PlayerDictionary.Any())
                             {
                                 String flagMessage = "";
                                 if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" || _serverInfo.InfoObject.GameMode == "Chainlink0")
@@ -9512,7 +9513,7 @@ namespace PRoConEvents
 
         public void PostRoundStatistics(AdKatsTeam winningTeam, AdKatsTeam losingTeam)
         {
-            Log.Debug(() => "Entering PostPlayerWinLossStatistics", 7);
+            Log.Debug(() => "Entering PostRoundStatistics", 7);
             try
             {
                 List<AdKatsPlayer> OrderedPlayers = _PlayerDictionary.Values.Where(aPlayer => aPlayer.player_type == PlayerType.Player).OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
@@ -9579,9 +9580,9 @@ namespace PRoConEvents
             }
             catch (Exception e)
             {
-                HandleException(new AdKatsException("Error while preparing map stats for upload", e));
+                HandleException(new AdKatsException("Error while preparing round stats for upload", e));
             }
-            Log.Debug(() => "Exiting PostPlayerWinLossStatistics", 7);
+            Log.Debug(() => "Exiting PostRoundStatistics", 7);
         }
 
         public override void OnLevelLoaded(String strMapFileName, String strMapMode, Int32 roundsPlayed, Int32 roundsTotal)
@@ -11630,7 +11631,7 @@ namespace PRoConEvents
                                         Log.Warn("KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + killDiscrepancy + " Unaccounted Kills)(" + hitDiscrepancy + " Unaccounted Hits)");
                                         Log.Warn(String.Join(", ", aPlayer.LiveKills.Select(aKill => aKill.weaponCode).ToArray()));
                                     }
-                                    else {
+                                    else if (_isTestingAuthorized) {
                                         Log.Success(aPlayer.GetVerboseName() + " all kills accounted for. Kills:(" + weaponKillDiff + "|" + overallKillDiff + ") Hits: (" + weaponHitDiff + "|" + overallHitDiff + ")");
                                     }
                                     if (killDiscrepancy >= 10 && hitDiscrepancy * 2 <= killDiscrepancy && !PlayerProtected(aPlayer)) {
@@ -13379,12 +13380,8 @@ namespace PRoConEvents
                                             if (dicPlayer != null && team1.TeamTicketCount <= team2.TeamTicketCount)
                                             {
                                                 AdKatsRecord assistRecord = dicPlayer.TargetedRecords.FirstOrDefault(record => record.command_type.command_key == "self_assist" && record.command_action.command_key == "self_assist_unconfirmed");
-                                                if (assistRecord != null)
-                                                {
-                                                    if (_isTestingAuthorized)
-                                                    {
-                                                        AdminSayMessage(assistRecord.target_player.GetVerboseName() + ", thank you for assisting " + team1.TeamName + "!");
-                                                    }
+                                                if (assistRecord != null) {
+                                                    AdminSayMessage(assistRecord.target_player.GetVerboseName() + ", thank you for assisting " + team1.TeamName + "!");
                                                     assistRecord.command_action = GetCommandByKey("self_assist");
                                                     QueueRecordForProcessing(assistRecord);
                                                 }
@@ -13425,12 +13422,8 @@ namespace PRoConEvents
                                             if (dicPlayer != null && team2.TeamTicketCount <= team1.TeamTicketCount)
                                             {
                                                 AdKatsRecord assistRecord = dicPlayer.TargetedRecords.FirstOrDefault(record => record.command_type.command_key == "self_assist" && record.command_action.command_key == "self_assist_unconfirmed");
-                                                if (assistRecord != null) 
-                                                {
-                                                    if (_isTestingAuthorized) 
-                                                    {
-                                                        AdminSayMessage(assistRecord.target_player.GetVerboseName() + ", thank you for assisting " + team2.TeamName + "!");
-                                                    }
+                                                if (assistRecord != null) {
+                                                    AdminSayMessage(assistRecord.target_player.GetVerboseName() + ", thank you for assisting " + team2.TeamName + "!");
                                                     assistRecord.command_action = GetCommandByKey("self_assist");
                                                     QueueRecordForProcessing(assistRecord);
                                                 }
@@ -33705,7 +33698,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
                                                     changed = true;
                                                 }
@@ -33716,7 +33709,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
                                                     changed = true;
                                                 }
@@ -33727,7 +33720,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
                                                     changed = true;
                                                 }
@@ -33738,7 +33731,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
                                                     changed = true;
                                                 }
@@ -33749,7 +33742,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
                                                     changed = true;
                                                 }
@@ -33760,7 +33753,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
                                                     changed = true;
                                                 }
@@ -33771,7 +33764,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
                                                     changed = true;
                                                 }
@@ -33782,7 +33775,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
                                                     changed = true;
                                                 }
@@ -33790,7 +33783,7 @@ namespace PRoConEvents
                                             break;
                                         case "player_say":
                                             if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden) {
-                                                Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
                                                 currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
                                                 changed = true;
                                             }
@@ -33800,7 +33793,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
                                                     changed = true;
                                                 }
@@ -33808,7 +33801,7 @@ namespace PRoConEvents
                                             break;
                                         case "player_yell":
                                             if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden) {
-                                                Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
                                                 currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
                                                 changed = true;
                                             }
@@ -33818,7 +33811,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
                                                     changed = true;
                                                 }
@@ -33826,7 +33819,7 @@ namespace PRoConEvents
                                             break;
                                         case "player_tell":
                                             if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden) {
-                                                Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
                                                 currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
                                                 changed = true;
                                             }
@@ -33836,7 +33829,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
                                                     changed = true;
                                                 }
@@ -33847,7 +33840,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
                                                     changed = true;
                                                 }
@@ -33858,7 +33851,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
                                                     changed = true;
                                                 }
@@ -33866,7 +33859,7 @@ namespace PRoConEvents
                                             break;
                                         case "player_find":
                                             if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden) {
-                                                Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
                                                 currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
                                                 changed = true;
                                             }
@@ -33876,7 +33869,7 @@ namespace PRoConEvents
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
                                                 {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
                                                     currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
                                                     changed = true;
                                                 }
@@ -37339,32 +37332,6 @@ namespace PRoConEvents
                 Log.Debug(() => "SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
             }
             return false;
-        }
-
-        private Hashtable FetchBF3StatsPlayer(String playerName)
-        {
-            Hashtable playerData = null;
-            try
-            {
-                using (WebClient client = new WebClient())
-                {
-                    NameValueCollection data = new NameValueCollection {
-                        {"player", playerName},
-                        {"opt", "all"}
-                    };
-                    byte[] response = client.UploadValues("http://api.bf3stats.com/pc/player/", data);
-                    if (response != null)
-                    {
-                        String textResponse = Encoding.Default.GetString(response);
-                        playerData = (Hashtable)JSON.JsonDecode(textResponse);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                //Do nothing
-            }
-            return playerData;
         }
 
         public Boolean FetchPlayerBattlelogInformation(AdKatsPlayer aPlayer)
