@@ -629,6 +629,7 @@ CREATE TABLE `adkats_statistics` (
   CONSTRAINT `adkats_statistics_server_id_fk` FOREIGN KEY (`server_id`) REFERENCES `tbl_server` (`ServerID`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Statistics';
 
+DROP TABLE IF EXISTS `adkats_rolegroups`;
 CREATE TABLE `adkats_rolegroups` (
   `role_id` int(11) unsigned NOT NULL,
   `group_key` VARCHAR(100) NOT NULL,
@@ -636,7 +637,7 @@ CREATE TABLE `adkats_rolegroups` (
   KEY `adkats_rolegroups_fk_role` (`role_id`),
   KEY `adkats_rolegroups_fk_command` (`group_key`),
   CONSTRAINT `adkats_rolegroups_fk_role` FOREIGN KEY (`role_id`) REFERENCES `adkats_roles` (`role_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Connection of groups to roles'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Connection of groups to roles';
 
 SET FOREIGN_KEY_CHECKS=1;
 
