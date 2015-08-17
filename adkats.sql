@@ -1,6 +1,6 @@
 -- AdKats Database Setup Script
--- Version 6.6.0.0 (5/17/2015)
--- ColColonCleaner
+-- Version 6.8.0.0 (8/16/2015)
+-- Daniel J. Gradinjan (ColColonCleaner)
 
 SET FOREIGN_KEY_CHECKS=0;
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
@@ -44,33 +44,33 @@ CALL addLogPlayerID() $$
 
 DROP TRIGGER IF EXISTS `tbl_chatlog_player_id_insert`$$
 CREATE TRIGGER `tbl_chatlog_player_id_insert` BEFORE INSERT ON `tbl_chatlog`
- FOR EACH ROW BEGIN 
-        SET NEW.logPlayerID = (SELECT `tbl_playerdata`.`PlayerID` FROM `tbl_server`
-                            INNER JOIN `tbl_games` ON `tbl_server`.`GameID` = `tbl_games`.`GameID`
-                            INNER JOIN `tbl_playerdata` ON `tbl_games`.`GameID` = `tbl_playerdata`.`GameID`
-                            WHERE `tbl_playerdata`.`SoldierName` = NEW.logSoldierName AND `tbl_server`.`ServerID` = NEW.ServerID LIMIT 1);
-    END
+  FOR EACH ROW BEGIN 
+    SET NEW.logPlayerID = (SELECT `tbl_playerdata`.`PlayerID` FROM `tbl_server`
+      INNER JOIN `tbl_games` ON `tbl_server`.`GameID` = `tbl_games`.`GameID`
+      INNER JOIN `tbl_playerdata` ON `tbl_games`.`GameID` = `tbl_playerdata`.`GameID`
+      WHERE `tbl_playerdata`.`SoldierName` = NEW.logSoldierName AND `tbl_server`.`ServerID` = NEW.ServerID LIMIT 1);
+  END
 $$
 
 DROP TRIGGER IF EXISTS `Player_Update_BlankDataFix`$$
 CREATE TRIGGER
-    Player_Update_BlankDataFix
+  Player_Update_BlankDataFix
 BEFORE UPDATE ON
-    tbl_playerdata
+  tbl_playerdata
 FOR EACH ROW
 BEGIN
-    IF (NEW.SoldierName IS NULL OR CHAR_LENGTH(NEW.SoldierName) = 0) AND OLD.SoldierName IS NOT NULL
-        THEN SET NEW.SoldierName = OLD.SoldierName;
-    END IF;
-    IF (NEW.EAGUID IS NULL OR CHAR_LENGTH(NEW.EAGUID) = 0) AND OLD.EAGUID IS NOT NULL
-        THEN SET NEW.EAGUID = OLD.EAGUID;
-    END IF;
-    IF (NEW.PBGUID IS NULL OR CHAR_LENGTH(NEW.PBGUID) = 0) AND OLD.PBGUID IS NOT NULL
-        THEN SET NEW.PBGUID = OLD.PBGUID;
-    END IF;
-    IF (NEW.IP_Address IS NULL OR CHAR_LENGTH(NEW.IP_Address) = 0) AND OLD.IP_Address IS NOT NULL
-        THEN SET NEW.IP_Address = OLD.IP_Address;
-    END IF;
+  IF (NEW.SoldierName IS NULL OR CHAR_LENGTH(NEW.SoldierName) = 0) AND OLD.SoldierName IS NOT NULL
+    THEN SET NEW.SoldierName = OLD.SoldierName;
+  END IF;
+  IF (NEW.EAGUID IS NULL OR CHAR_LENGTH(NEW.EAGUID) = 0) AND OLD.EAGUID IS NOT NULL
+    THEN SET NEW.EAGUID = OLD.EAGUID;
+  END IF;
+  IF (NEW.PBGUID IS NULL OR CHAR_LENGTH(NEW.PBGUID) = 0) AND OLD.PBGUID IS NOT NULL
+    THEN SET NEW.PBGUID = OLD.PBGUID;
+  END IF;
+  IF (NEW.IP_Address IS NULL OR CHAR_LENGTH(NEW.IP_Address) = 0) AND OLD.IP_Address IS NOT NULL
+    THEN SET NEW.IP_Address = OLD.IP_Address;
+  END IF;
 END;
 $$
 
@@ -219,6 +219,14 @@ REPLACE INTO `adkats_commands` VALUES(107, 'Active', 'player_whitelistteamkill_r
 REPLACE INTO `adkats_commands` VALUES(108, 'Invisible', 'self_assist_unconfirmed', 'Log', 'Unconfirmed Assist', 'uassist', FALSE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(109, 'Active', 'player_blacklistspectator', 'Log', 'Spectator Blacklist Player', 'specblacklist', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(110, 'Active', 'player_blacklistspectator_remove', 'Log', 'Remove Spectator Blacklist', 'unspecblacklist', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(111, 'Active', 'player_blacklistreport', 'Log', 'Report Source Blacklist', 'rblacklist', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(112, 'Active', 'player_blacklistreport_remove', 'Log', 'Remove Report Source Blacklist', 'unrblacklist', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(113, 'Active', 'player_whitelistcommand', 'Log', 'Command Target Whitelist', 'cwhitelist', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(114, 'Active', 'player_whitelistcommand_remove', 'Log', 'Remove Command Target Whitelist', 'uncwhitelist', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(115, 'Active', 'player_blacklistautoassist', 'Log', 'Auto-Assist Blacklist', 'auablacklist', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(116, 'Active', 'player_blacklistautoassist_remove', 'Log', 'Remove Auto-Assist Blacklist', 'unauablacklist', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(117, 'Active', 'player_isadmin', 'Log', 'Fetch Admin Status', 'isadmin', FALSE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(118, 'Active', 'self_feedback', 'Log', 'Give Server Feedback', 'feedback', FALSE, 'AnyHidden');
 
 DROP TABLE IF EXISTS `adkats_infractions_global`;
 CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
@@ -383,6 +391,7 @@ CREATE TABLE IF NOT EXISTS `adkats_rolecommands` (
   KEY `adkats_rolecommands_fk_command` (`command_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Connection of commands to roles';
 
+-- Default Guest Role
 REPLACE INTO `adkats_rolecommands` VALUES(1, 1);
 REPLACE INTO `adkats_rolecommands` VALUES(1, 2);
 REPLACE INTO `adkats_rolecommands` VALUES(1, 12);
@@ -399,6 +408,10 @@ REPLACE INTO `adkats_rolecommands` VALUES(1, 68);
 REPLACE INTO `adkats_rolecommands` VALUES(1, 74);
 REPLACE INTO `adkats_rolecommands` VALUES(1, 75);
 REPLACE INTO `adkats_rolecommands` VALUES(1, 76);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 117);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 118);
+
+-- Full Admin Role
 REPLACE INTO `adkats_rolecommands` VALUES(2, 1);
 REPLACE INTO `adkats_rolecommands` VALUES(2, 2);
 REPLACE INTO `adkats_rolecommands` VALUES(2, 3);
@@ -475,6 +488,29 @@ REPLACE INTO `adkats_rolecommands` VALUES(2, 81);
 REPLACE INTO `adkats_rolecommands` VALUES(2, 82);
 REPLACE INTO `adkats_rolecommands` VALUES(2, 83);
 REPLACE INTO `adkats_rolecommands` VALUES(2, 84);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 91);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 92);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 93);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 94);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 95);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 96);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 97);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 98);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 99);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 100);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 101);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 102);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 107);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 109);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 110);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 111);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 112);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 113);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 114);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 115);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 116);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 117);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 118);
 
 DROP TABLE IF EXISTS `adkats_roles`;
 CREATE TABLE IF NOT EXISTS `adkats_roles` (
@@ -575,23 +611,32 @@ CREATE TABLE `tbl_extendedroundstats` (
 
 DROP TABLE IF EXISTS `adkats_statistics`;
 CREATE TABLE `adkats_statistics` (
-      `stat_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-      `server_id` SMALLINT(5) UNSIGNED NOT NULL,
-      `round_id` INT(10) UNSIGNED NOT NULL,
-      `stat_type` varchar(50) NOT NULL,
-      `target_name` varchar(50) NOT NULL,
-      `target_id` INT(10) UNSIGNED DEFAULT NULL,
-      `stat_value` FLOAT NOT NULL,
-      `stat_comment` TEXT,
-      `stat_time` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
-      PRIMARY KEY (`stat_id`),
-      KEY `server_id` (`server_id`),
-      KEY `stat_type` (`stat_type`),
-      KEY `target_id` (`target_id`),
-      KEY `stat_time` (`stat_time`),
-      CONSTRAINT `adkats_statistics_target_id_fk` FOREIGN KEY (`target_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-      CONSTRAINT `adkats_statistics_server_id_fk` FOREIGN KEY (`server_id`) REFERENCES `tbl_server` (`ServerID`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  `stat_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `server_id` SMALLINT(5) UNSIGNED NOT NULL,
+  `round_id` INT(10) UNSIGNED NOT NULL,
+  `stat_type` varchar(50) NOT NULL,
+  `target_name` varchar(50) NOT NULL,
+  `target_id` INT(10) UNSIGNED DEFAULT NULL,
+  `stat_value` FLOAT NOT NULL,
+  `stat_comment` TEXT,
+  `stat_time` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`stat_id`),
+  KEY `server_id` (`server_id`),
+  KEY `stat_type` (`stat_type`),
+  KEY `target_id` (`target_id`),
+  KEY `stat_time` (`stat_time`),
+  CONSTRAINT `adkats_statistics_target_id_fk` FOREIGN KEY (`target_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `adkats_statistics_server_id_fk` FOREIGN KEY (`server_id`) REFERENCES `tbl_server` (`ServerID`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Statistics';
+
+CREATE TABLE `adkats_rolegroups` (
+  `role_id` int(11) unsigned NOT NULL,
+  `group_key` VARCHAR(100) NOT NULL,
+  PRIMARY KEY (`role_id`,`group_key`),
+  KEY `adkats_rolegroups_fk_role` (`role_id`),
+  KEY `adkats_rolegroups_fk_command` (`group_key`),
+  CONSTRAINT `adkats_rolegroups_fk_role` FOREIGN KEY (`role_id`) REFERENCES `adkats_roles` (`role_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Connection of groups to roles'
 
 SET FOREIGN_KEY_CHECKS=1;
 
