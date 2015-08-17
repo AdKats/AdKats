@@ -77,6 +77,14 @@
         play. DPS checks are enabled by default, with others available after a few clicks.
     </li>
     <li>
+        <b>Surrender Vote System.</b>
+        When enabled, if players are stuck in their base with no options, they can vote to end the round with the current winning team as winner.
+    </li>
+    <li>
+        <b>Auto-Surrender/Auto-Nuke System.</b>
+        This uses ticket loss rates to detect where teams are on the map, specifically with how many flags are captured. If a team is being base-camped, it can either automatically end the round with current winner, or nuke the team who is causing the base-camp. Optimal values for Metro 2014 and Operation Locker are available, for both surrender and nuke options.
+    </li>
+    <li>
         <b>Automatic Updates.</b>
         AdKats automatically updates itself when stable releases are made, only requiring a Procon instance
         reboot to run updated versions. This can be disabled if desired, but is required if running TEST versions.
