@@ -236,7 +236,7 @@
     database and/or a Procon layer we suggest using Branzone's hosting services. Our group has been with them across
     BF3, BF4, and Hardline with no issues.<br/>
     <b>Web/Database Hosting:</b><a href="https://www.branzone.com/aff.php?aff=226&pid=266" target="_blank">
-    Branzone MySQL Databases</a>
+    Branzone MySQL Databases</a><br/>
     <b>Procon Layer Hosting:</b><a href="https://www.branzone.com/aff.php?aff=226&pid=192" target="_blank">
     Branzone Procon Layers</a>
 </p>
