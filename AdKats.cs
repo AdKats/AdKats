@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.122
+ * Version 6.7.0.123
  * 16-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.122</version_code>
+ * <version_code>6.7.0.123</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.122";
+        private const String PluginVersion = "6.7.0.123";
 
         public enum GameVersion
         {
@@ -430,7 +430,7 @@ namespace PRoConEvents
         private Boolean _pingEnforcerIgnoreUserList = true;
         private String _pingEnforcerMessagePrefix = "Please fix your ping and join us again.";
         private String[] _pingEnforcerIgnoreRoles = { };
-        private Boolean _attemptManualPingWhenMissing = true;
+        private Boolean _attemptManualPingWhenMissing = false;
 
         //Commander manager
         private Boolean _CMDRManagerEnable;
@@ -1203,7 +1203,9 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Full Population Time Modifier", typeof(String[]), _pingEnforcerFullTimeModifier.Select(x => x.ToString()).ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Minimum Players", typeof(Int32), _pingEnforcerTriggerMinimumPlayers));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
+                            if (_pingEnforcerKickMissingPings) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
+                            }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Ignore User List", typeof(Boolean), _pingEnforcerIgnoreUserList));
                             if (!_pingEnforcerIgnoreUserList) {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Ignore Roles", typeof(String[]), _pingEnforcerIgnoreRoles));
@@ -3588,6 +3590,9 @@ namespace PRoConEvents
                     Int32 UpdateIntervalSeconds = Int32.Parse(strValue);
                     //Check for changed value
                     if (_tsViewer.UpdateIntervalSeconds != UpdateIntervalSeconds) {
+                        if (UpdateIntervalSeconds < 5) {
+                            UpdateIntervalSeconds = 5;
+                        }
                         //Assignment
                         _tsViewer.UpdateIntervalSeconds = UpdateIntervalSeconds;
                         //Upload change to database  
@@ -3929,11 +3934,12 @@ namespace PRoConEvents
                         HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
                         return;
                     }
-                    if (_HskTriggerLevel != triggerLevel)
+                    if (_HskTriggerLevel != triggerLevel) 
                     {
-                        if (triggerLevel <= 0)
-                        {
-                            triggerLevel = 100.0;
+                        if (triggerLevel < 45) {
+                            triggerLevel = 45;
+                        } else if (triggerLevel > 100) {
+                            triggerLevel = 100;
                         }
                         _HskTriggerLevel = triggerLevel;
                         //Once setting has been changed, upload the change to database
@@ -3978,11 +3984,12 @@ namespace PRoConEvents
                         HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
                         return;
                     }
-                    if (_KpmTriggerLevel != triggerLevel)
+                    if (_KpmTriggerLevel != triggerLevel) 
                     {
-                        if (triggerLevel <= 0)
-                        {
-                            triggerLevel = 100.0;
+                        if (triggerLevel < 4) {
+                            triggerLevel = 4;
+                        } else if (triggerLevel > 10) {
+                            triggerLevel = 10;
                         }
                         _KpmTriggerLevel = triggerLevel;
                         //Once setting has been changed, upload the change to database
@@ -4875,6 +4882,9 @@ namespace PRoConEvents
                     Int32 AutomaticForgiveLastPunishDays = Int32.Parse(strValue);
                     if (AutomaticForgiveLastPunishDays != _AutomaticForgiveLastPunishDays)
                     {
+                        if (AutomaticForgiveLastPunishDays < 7) {
+                            AutomaticForgiveLastPunishDays = 7;
+                        }
                         _AutomaticForgiveLastPunishDays = AutomaticForgiveLastPunishDays;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Automatic Forgive Days Since Punished", typeof(Int32), _AutomaticForgiveLastPunishDays));
@@ -4883,8 +4893,11 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"Automatic Forgive Days Since Forgiven").Success)
                 {
                     Int32 AutomaticForgiveLastForgiveDays = Int32.Parse(strValue);
-                    if (AutomaticForgiveLastForgiveDays != _AutomaticForgiveLastForgiveDays)
+                    if (AutomaticForgiveLastForgiveDays != _AutomaticForgiveLastForgiveDays) 
                     {
+                        if (AutomaticForgiveLastForgiveDays < 7) {
+                            AutomaticForgiveLastForgiveDays = 7;
+                        }
                         _AutomaticForgiveLastForgiveDays = AutomaticForgiveLastForgiveDays;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Automatic Forgive Days Since Forgiven", typeof(Int32), _AutomaticForgiveLastForgiveDays));
@@ -7508,7 +7521,10 @@ namespace PRoConEvents
                                         }
                                         Double ping = aPlayer.frostbitePlayerInfo.Ping;
                                         Boolean proconFetched = false;
-                                        if (_attemptManualPingWhenMissing && ping < 0 && !String.IsNullOrEmpty(aPlayer.player_ip))
+                                        if (_pingEnforcerKickMissingPings && 
+                                            _attemptManualPingWhenMissing && 
+                                            ping < 0 && 
+                                            !String.IsNullOrEmpty(aPlayer.player_ip))
                                         {
                                             PingReply reply = null;
                                             try
@@ -11627,14 +11643,11 @@ namespace PRoConEvents
 
                                 //Confirm kill codes are loaded and valid
                                 if (rconKillDiff > 0 && Math.Abs(serverKillDiff - overallKillDiff) <= 5) {
-                                    if (killDiscrepancy > 0) {
+                                    if (killDiscrepancy >= 10 && 
+                                        hitDiscrepancy * 2 <= killDiscrepancy &&
+                                        !PlayerProtected(aPlayer)) {
                                         Log.Warn("KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + killDiscrepancy + " Unaccounted Kills)(" + hitDiscrepancy + " Unaccounted Hits)");
                                         Log.Warn(String.Join(", ", aPlayer.LiveKills.Select(aKill => aKill.weaponCode).ToArray()));
-                                    }
-                                    else if (_isTestingAuthorized) {
-                                        Log.Success(aPlayer.GetVerboseName() + " all kills accounted for. Kills:(" + weaponKillDiff + "|" + overallKillDiff + ") Hits: (" + weaponHitDiff + "|" + overallHitDiff + ")");
-                                    }
-                                    if (killDiscrepancy >= 10 && hitDiscrepancy * 2 <= killDiscrepancy && !PlayerProtected(aPlayer)) {
                                         QueueRecordForProcessing(new AdKatsRecord {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
                                             server_id = _serverInfo.ServerID,
@@ -26138,7 +26151,7 @@ namespace PRoConEvents
                                 forgiveTime = punishDiff;
                             }
                         }
-                        repMessage += Environment.NewLine + "Next auto-forgive in " + FormatNowDiff(forgiveTime, 2);
+                        repMessage += Environment.NewLine + "Next auto-forgive after you spawn " + FormatNowDiff(forgiveTime, 2) + " from now.";
                     }
                     SendMessageToSource(record, repMessage);
                 }
