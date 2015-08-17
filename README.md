@@ -25,28 +25,33 @@
 <ul>
     <li>
         <b>Extensive In-Game Commands.</b>
-        Commands for player killing, kicking, punishing, banning, unbanning, moving, joining, whitelisting, messaging, etc, etc... ~90 available in-game commands. Commands can be accessed from in-game, Procon's chat window, database, HTTP server, and from other plugins.
+        Commands for player killing, kicking, punishing, banning, unbanning, moving, joining, whitelisting, messaging,
+        etc, etc... ~100 available in-game commands. Commands can be accessed from in-game, Procon's chat window,
+        database, and from other plugins.
     </li>
     <li>
-        <b>Editable Ranks and Roles.</b>
-        Custom ranks and roles can be created for users, with each role given access to only the commands you want them to use. Default guest role is given to all players, and can be edited to your desired specs. Roles and powers are automatically synced between servers, so you only need to change user information once. Soldiers assigned to users will also keep their powers even if they change their in-game names.
+        <b>Customizable User Roles.</b>
+        Custom user roles can be created for admins and players, with each role given access to only the commands you want them
+        to use. Default guest role is given to all players and can be edited to your desired specs. Roles and powers
+        are automatically synced between servers so you only need to change user information once. Soldiers assigned
+        to users will also keep their powers even if they change their in-game names.
     </li>
     <li>
         <b>Setting sync between servers.</b>
-        All changes to plugin settings are stored in the database, and can be automatically synced between your Procon
-        layers. Setting up new layers or switching layers is a breeze, as the settings for existing servers are
+        All changes to plugin settings are stored in the database and can be automatically synced between your Procon
+        layers. Setting up new layers or switching layers is a breeze as the settings for existing servers are
         automatically imported on startup.
     </li>
     <li>
         <b>Infraction Tracking System.</b>
-        Punish/Forgive players for breaking rules on your servers. Everything is tracked, so the more infractions they
+        Punish/forgive players for breaking rules on your servers. Everything is tracked so the more infractions they
         commit, the worse their punishment automatically gets. Created so all players can be treated equally based on
         their history, regardless of who is issuing punishments against them. Heavily customizable.
     </li>
     <li>
         <b>Player Reputation System.</b>
-        System based on issued commands from and against players, forming a reputation on the server.
-        Documentation below. Local leaderboard for reputation given in the BFAdminCP 2.0+.
+        Based on issued commands from and against players they can form a numeric reputation on the server.
+        Documentation below. A local leaderboard for reputation is provided in the BFAdminCP.
     </li>
     <li>
         <b>Quick Player Report and Admin Call Handling, with email support.</b>
@@ -55,71 +60,73 @@
     </li>
     <li>
         <b>Orchestration and Server List Management.</b>
-        Server reserved slots, server spectator slots, autobalancer whitelising through MULTIBalancer,
-        ping kick whitelists, and several others can all be automatically handled through the AdKats user list and
+        Server reserved slots, spectator slots, autobalance whitelising through MULTIBalancer,
+        ping kick whitelists, and several others can be automatically handled through the AdKats user list, role groups, and
         orchestration commands.
     </li>
     <li>
         <b>AdKats Ban Enforcer.</b>
-        AdKats can enforce bans across all of your servers, and can enforce on all metrics at the same time. System will automatically import bans from your servers and consolidate them, and can import existing bans from the BF3 Ban Manager plugin's tables. Full documentation below.
+        AdKats can enforce bans across all of your servers and can enforce on all identity metrics at the same time. System
+        will automatically import bans from your servers, consolidating them in one place, and can import existing bans
+        from the BF3 Ban Manager plugin's tables. Full documentation below.
     </li>
     <li>
         <b>BF3/BF4 "Hacker-Checker" with Whitelist.</b>
-        BF3Stats and BF4Stats are internally used to pull player information, and can be enabled for automatic
-        cheat/hack detection with a couple clicks.
-        Please read documentation before enabling.
+        Battlelog stats can be polled for players in the server, issuing automatic bans for damage mods, aimbots,
+        magic bullet, and several others. The LIVE system can detect damage mods and magic bullet from a single round of
+        play. DPS checks are enabled by default, with others available after a few clicks.
     </li>
     <li>
         <b>Automatic Updates.</b>
-        AdKats can automatically update itself when stable releases are made, all it requires is a Procon instance
-        reboot to run updated versions. This can be disabled, but is recommended to keep enabled.
+        AdKats automatically updates itself when stable releases are made, only requiring a Procon instance
+        reboot to run updated versions. This can be disabled if desired, but is required if running TEST versions.
     </li>
     <li>
         <b>Ping Enforcer.</b>
-        Automatic kick system based on ping, with moving average calculation, customizable messages, logged kicks, and
-        manual ping options.
+        Automated kick system based on ping, with moving average calculation, modifiers based on time of day and server
+        population, customizable messages, logged kicks, and manual ping options.
     </li>
     <li>
         <b>AFK Manager.</b>
-        Automatic kick system based on player AFK time, with manual kick command. Customizable durations, and option to
+        Automated kick system based on player AFK time, with manual kick command. Customizable durations, and option to
         ignore chat messages counting toward active time.
     </li>
     <li>
         <b>Internal SpamBot with Whitelist.</b>
-        SpamBot with options for simultaneous say, yell, and tell. Customizable interval between each type of message,
-        and ability to whitelist players/admins from seeing spam messages.
+        SpamBot with options for simultaneous say, yell, and tell. Customizable intervals between each type of message,
+        and ability to whitelist players/admins from seeing spambot messages.
     </li>
     <li>
         <b>Commander Manager.</b>
-        Commanders can cause team imbalance when the server is in low population. This manager allows control of
-        commanders in those cases.
+        Commanders can cause team imbalance when servers are in low population. This manager can forbid commanders before
+        a certain player count is active.
     </li>
     <li>
         <b>Cross-Server Player Messaging.</b>
-        Private conversations between players can operate not only within the same server, but will work between any online         server in the database, and even between BF3 and BF4.
+        Private conversations between players can operate not only within the same server, but will work between any
+        online server in the database, and even between any AdKats supported game.
     </li>
     <li>
         <b>Admin Assistants.</b>
-        When fully used this can turn your regular playerbase into a human autoadmin. Trusted players can fill the gaps
-        normal autoadmins don't see, utilizing the report system, and keeping your server under control even when admins
-        are offline.
+        When fully used this can turn your regular playerbase into a human autoadmin. Trusted players fill the gaps
+        normal autoadmins don't see by utilizing the report system and keeping your server under control even when
+        normal admins are offline.
     </li>
     <li>
         <b>Email Notification System.</b>
-        Email addresses can be added to every user, and once enabled they will be sent emails for player reports and
+        Email addresses can be added to every user, and once enabled they will receive emails for player reports and
         admin calls.
-        I am currently working on adding command parsing on reply to emails, and possibly text message command support
-        in the future.
     </li>
     <li>
         <b>Fuzzy Player Name Completion.</b>
-        Fully completes partial or misspelled player names.
-        I've been consistently able to find almost any player only a few characters from their name.
+        Fully completes partial or misspelled player names. I've been consistently able to find almost any player only
+        a few characters from their name. Can also fetch players who have left the server, are in another server of yours
+        on the same database, or have been in your servers at any point in time.
     </li>
     <li>
         <b>Player Muting.</b>
-        Players can be muted if necessary, giving warnings and kicks if they talk. Automatic mute for language can be
-        orchestrated using Insane limits.
+        Players can be muted if necessary, giving warnings and kicks if they talk. Automatic mute in specific cases like
+        lanuage can be orchestrated by other plugins like Insane limits.
     </li>
     <li>
         <b>Player Joining.</b>
@@ -134,22 +141,22 @@
     <li>
         <b>Player Assist.</b>
         Player's want to play with their friends, but you don't want to imbalance the teams? The assist command lets
-        any player join the weak team to help them out and squad up with friends without hurting the server.
+        any player join the weak team to help them out and squad up with friends without hurting server balance.
     </li>
     <li>
         <b>Yell/Say Pre-Recording.</b>
-        Use numbers to reference predefined messages. Avoid typing long reasons or messages. e.g. @kill player 3
+        Use numbers to reference predefined messages. Avoid typing long reasons or messages. e.g. /kill player 3
     </li>
     <li>
         <b>Server Rule Management.</b>
-        Server rules can be listed, requests for rules logged, rules targeted at players,
+        Server rules can be listed, requests for rules logged, rules targeted at other players,
         and rules can be distributed between servers automatically.
     </li>
     <li>
         <b>External Controller API.</b>
-        AdKats can be controlled from outside the game through systems like BFAdminCP 2.0+, and through other plugins
+        AdKats can be controlled from outside the game through systems like the BFAdminCP and through other plugins
         like Insane Limits. For example, you can issue AdKats punish commands from Insane Limits or ProconRulz and have
-        them logged like any other admin command.
+        them logged against the player's profile like any other admin command.
     </li>
     <li>
         <b>Internal Implementation of TeamSwap.</b>
@@ -158,23 +165,23 @@
     </li>
     <li>
         <b>Metabans Support.</b>
-        When using ban enforcer, all bans can be optionally submitted to metabans, and removed when a player is
+        When using ban enforcer all bans can be submitted to metabans and removed if the player is
         unbanned.
     </li>
     <li>
         <b>Editable In-Game Commands.</b>
-        Command text, logging options, and enable options can be edited to suit your needs.
+        Command text, logging options, chat access types, and enable options can be edited to suit your needs.
     </li>
     <li>
         <b>Full Logging.</b>
-        One of the main reasons AdKats was created in the first place.
-        All admin activity is trackable via the database per your custom settings for every command,
+        All admin activity is tracked via the database per your custom settings for every command,
         so holding your admins accountable for their actions is quick and painless.
-        And, if you are using BFAdminCP 2.0+ nobody but your highest admins will need manual Procon access.
+        If you are using the BFAdminCP nobody but your highest admins will need manual Procon access.
     </li>
     <li>
         <b>Setting Lock.</b>
-        The settings page in AdKats can be locked with a password. This means even admins with access to plugin settings can be blocked from changes using the password.
+        The settings page in AdKats can be locked with a password. This means even admins with access to plugin settings
+        can be blocked from changes using the password.
     </li>
     <li>
         <b>Performance.</b>
@@ -217,19 +224,19 @@
     connect.<br/>
     <br/>
     <b>Getting a Database:</b>
-    Usually the hosting company for your layers can provide you a database, and using that is advisable as the latency
-    between Procon and the DB will be the lowest possible.
-    Or even better if you're hosting layers on a VPS just create a local database by downloading the appropriate
-    installer from MySQL's website.
-    We use our webserver for database hosting and that works great.
-    Be cautious of free database options and services, those paths usually have restrictions on database size and are
-    hosted on unreliable servers, which can lead to many problems down the road.
+    This plugin requires a MySQL database, and XpKiller's Stat logger plugin to operate. If you do not have an existing
+    database and/or a Procon layer we suggest using Branzone's hosting services. Our group has been with them across
+    BF3, BF4, and Hardline with no issues.<br/>
+    <b>Web/Database Hosting:</b><a href="https://www.branzone.com/aff.php?aff=226&pid=266" target="_blank">
+    Branzone MySQL Databases</a>
+    <b>Procon Layer Hosting:</b><a href="https://www.branzone.com/aff.php?aff=226&pid=192" target="_blank">
+    Branzone Procon Layers</a>
 </p>
 <h4>2. XpKiller's "Procon Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
 <p>
     AdKats will only run if one of this plugin is (1) using the same database AdKats uses, and (2) running on every
     battlefield Server you plan to install AdKats on.
-    Running it along-side AdKats on each Procon layer will ensure these conditions are met.
+    Running it along-side AdKats on each Procon layer is advised, and will ensure these conditions are met.
 </p>
 <p>
     The latest universal version of XpKiller's Stat Logger can be downloaded from here: <a
@@ -237,12 +244,13 @@
     Logger</a>
 </p>
 <p>
-    The BF3 only version of stat logger can be used with AdKats too, but it limits some of the functionality.
+    The BF3 only version of stat logger CAN be used with AdKats if you don't want to lose your old data, but is not advised.
 </p>
 <h4>3. Web Request Access</h4>
 <p>
     AdKats uses web statistics and requests to manage players types, hack detection, user lists, and updates.
-    The list of domains/sub-domains AdKats must be able to access for proper function are documented below in the "Web Requests" section.
+    The list of domains/sub-domains AdKats must be able to access for proper function are documented below in the
+    "Web Requests" section. Whitelist these domains in your layer firewall if they cannot be accessed.
 </p>
 <HR>
 <p>
@@ -262,17 +270,19 @@
     <li>
         <b style='color:#DF0101;'>GO BACK TO STEP 1 AND INSTALL STAT LOGGER.</b>
         I cannot emphasize this enough; Far too many people have posted issues because they refuse to follow instructions.
-        Do NOT attempt to install AdKats until that plugin is running without issue.
+        Do NOT attempt to install AdKats until stat logger is running without issue.
     </li>
     <li>
         <b>Set up the database.</b>
         Run the contents of the <a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">AdKats Database Setup Script</a> on your database, on the same schema stat logger uses.
-        <b><u>WARNING, if you already have AdKats installed, this will completely wipe your existing information for this plugin.</u></b>
+        <b><u>WARNING: If you already have AdKats installed and running this script will completely wipe your existing
+            data for the plugin and all of your settings.</u></b>
         The script must be run by an account with permissions to create tables, triggers, and stored procedures.
     </li>
     <li>
         <b>Download the plugin.</b>
-        Download the <a href="https://sourceforge.net/projects/adkats/files/latest/download" target="_blank">Latest Stable Release of AdKats</a>
+        Download the <a href="https://sourceforge.net/projects/adkats/files/latest/download" target="_blank">Latest
+        Stable Release of AdKats</a>
     </li>
     <li>
         <b>Add the plugin to Procon.</b>
@@ -281,7 +291,8 @@
     </li>
     <li>
         <b>Enter database credentials.</b>
-        All database connection information must be entered in the settings tab before AdKats can run.
+        All database connection information must be entered in the settings tab before AdKats can run. Plugin must be
+        able to create/modify/use tables and their data.
     </li>
     <li>
         <b>Enable AdKats.</b>
@@ -292,7 +303,7 @@
     </li>
 </ol>
 <p>
-    If you have any problems installing AdKats please let me know on the MyRCON forums, or on Github as an issue and
+    If you have any problems installing AdKats please let me know on the MyRCON forums or on Github as an issue and
     I'll respond promptly.
 </p>
 <HR>
@@ -303,7 +314,7 @@
 <ul>
     <li>
         <b>Trouble running the setup SQL script.</b>
-        If this happens it is most likely your database provider has restricted your access to create either triggers,
+        If this happens it is most likely your database provider has restricted your access to create triggers,
         stored procedures, or both.
         These elements are required for AdKats to properly function, and thus it cannot be run without them.
         Please talk with your database provider and gain access to creation of stored procedures and triggers.
@@ -324,54 +335,65 @@
 </p>
 <h3>User Ranks and Roles</h3>
 <p>
-    On first enable you will need to add a user before you can access a majority of the in-game commands.
+    AdKats hands out powers based on roles you configure, these are completely separate from the setup you've done for
+    Procon and are not affected by that system in any way.
+    These users are distributed to all AdKats instances you run through your database.
+    On first run of the plugin you will need to add a user before you can access a majority of the in-game commands.
     You can have as many users as you want.
     When a user is added you need to assign them a role.
     The default role is "Default Guest" and the allowed commands for that role are shown to you in the role section.
-    The default guest role cannot be deleted, but can be edited to your heart's content.
+    The default guest role cannot be deleted but can be edited to allow any non-admin commands.
     You can add more roles by typing a new role name in the "add role" field.
-    Any newly added roles default to allow all commands, so you will need to edit the allowed commands for new roles.
+    Any newly added roles default to allow all commands so you will need to edit the allowed commands for new roles.
     When you change a user's role and they are currently in-game they will be told that their role has changed, and what
     it was changed to.
 </p>
 <p>
     Once a user is added you need to assign their soldiers.
-    If you add a user with the same name as their soldier(s), their soldier(s) will be added automatically.
-    Users can have multiple soldiers, so if your admins have multiple accounts you can assign all of those soldiers
+    If you add a user with the same name as their soldier(s) their soldier(s) will be added automatically if they are
+    already in the database.
+    Users can have multiple soldiers so if your admins have multiple accounts you can assign all of those soldiers
     under their user.
-    All soldiers added need to be in your database before they can be added to a user.
-    This system tracks user's soldiers, so if they change their soldier names they will still have powers without
+    <b>Soldiers need to be in your database before they can be added to a user, so make sure they have been in the server
+    with AdKats/Stat Logger running before you try to add them to a user.</b>
+    This system tracks user's soldiers so if they change their soldier names they will still have powers without
     needing to contact admins about the name change.
-    Type their soldier's name in the "new soldier" field to add them.
+    Type a soldier's name in the "new soldier" field to add that soldier to a user.
     It will error out if it cannot find the soldier in the database.
     To add soldiers to the database quickly after installing stat logger for the first time, have them join any server
     you are running this version of AdKats on and their information will be immediately added.
 </p>
 <p>
-    The user list is sorted by role ID, then by user name.
-    Any item that says "Delete?" you need to type the word delete in the line and press enter.
+    The user list is sorted by role power level and then by user name. Power level is a metric for how much a role has
+    access to.
+    For any setting item that says "Delete?" you need to type the word delete in the line and press enter, this avoids
+    accidental deletion of users/roles.
 </p>
 <h3>Full Logging</h3>
 <p>
     All commands, their usage, who used them, who they were targeted on, why, when they were used, and where from, are
     logged in the database.
     All plugin actions are additionally stored in Procon's event log for review without connecting to the database.
-    Player's name/IP changes are logged and the records connected to their player ID, so tracking players is easier.
+    Player name/IP changes are logged and the records connected to their player ID, so tracking players is easier.
 </p>
 <h3>Infraction Tracking System</h3>
 <p>
-    Infraction Tracking commands take the load off admins remembering which players have broken server rules, and how
-    many times. These commands have been dubbed "punish" and "forgive". Each time a player is punished a log is made in
-    the
-    database; The more punishes they get, the more severe the action gets. Available punishments include: kill, kick,
-    temp-ban 60 minutes, temp-ban 1 day, temp-ban 1 week, temp-ban 2 weeks, temp-ban 1 month, and permaban. The order
-    and severity of punishments can be configured to your needs.
+    Infraction Tracking commands take the load off admins remembering which players have broken server rules and how
+    many times.
+    These commands have been dubbed "punish" and "forgive". Each time a player is punished a log is made in the
+    database;
+    The more punishes they get, the more severe the action gets.
+    Available punishments include: kill, kick, temp-ban 60 minutes, temp-ban 2 hours, temp-ban 1 day, temp-ban 2 days,
+    temp-ban 3 days, temp temp-ban 1 week, temp-ban 2 weeks, temp-ban 1 month, and permaban.
+    The order and severity of punishments can be configured to your needs.
 </p>
 <p>
-    Detailed Stuff: After a player is punished, their total points are calculated using this very basic formula:
+    Detailed Stuff: After a player is punished, their total infraction points are calculated using this very basic
+    formula:
     <b>(Punishment Points - Forgiveness Points) = Total Points</b>
-    Then an action is decided using Total Points from the punishment hierarchy. Punishments should get harsher as the
-    player gets more points. A player cannot be punished more than once every 20 seconds; this prevents multiple admins
+    Then an action is decided using Total Points from the punishment hierarchy.
+    Punishments should get harsher as the player gets more points.
+    A player cannot be punished more than once every 20 seconds; this prevents multiple admins
     from accidentally punishing a player multiple times for the same infraction.
 </p>
 <h4>TeamKilling Management</h4>
@@ -380,11 +402,10 @@
 </p>
 <h4>IRO Punishments</h4>
 <p>
-    When a player is punished, and has already been punished in the past 10 minutes, the new punish counts
-    for 2 points instead of 1 since the player is immediately breaking server rules again. A punish worth 2
-    points is called an "IRO" punish by the plugin, standing for Immediate Repeat Offence. "[IRO]" will be appended to
-    the
-    punish reason when this type of punish is activated.
+    When a player is punished and has already been punished in the past 10 minutes the new punish counts
+    for 2 infraction points instead of 1 since the player is immediately breaking server rules again.
+    A punish worth 2 points is called an "IRO" punish by the plugin, standing for Immediate Repeat Offence.
+    "[IRO]" will be appended to the punish reason when this type of punish is activated.
 </p>
 <h4>Punishment Hierarchy</h4>
 <p>
@@ -395,11 +416,6 @@
         <td><b>Total Points</b></td>
         <td><b>Punishment Outcome</b></td>
         <td><b>Hierarchy String</b></td>
-    </tr>
-    <tr>
-        <td><b>Less than 1</b></td>
-        <td>Warn</td>
-        <td>warn</td>
     </tr>
     <tr>
         <td><b>1</b></td>
@@ -422,84 +438,103 @@
         <td>tban60</td>
     </tr>
     <tr>
-        <td><b>4</b></td>
+        <td><b>5</b></td>
         <td>Temp-Ban 2 hours</td>
         <td>tban120</td>
     </tr>
     <tr>
-        <td><b>5</b></td>
+        <td><b>6</b></td>
         <td>Temp-Ban 1 Day</td>
         <td>tbanday</td>
     </tr>
     <tr>
-        <td><b>6</b></td>
+        <td><b>7</b></td>
+        <td>Temp-Ban 2 Days</td>
+        <td>tbanday</td>
+    </tr>
+    <tr>
+        <td><b>8</b></td>
+        <td>Temp-Ban 3 Days</td>
+        <td>tbanday</td>
+    </tr>
+    <tr>
+        <td><b>9</b></td>
         <td>Temp-Ban 1 Week</td>
         <td>tbanweek</td>
     </tr>
     <tr>
-        <td><b>7</b></td>
+        <td><b>10</b></td>
         <td>Temp-Ban 2 Weeks</td>
         <td>tban2weeks</td>
     </tr>
     <tr>
-        <td><b>8</b></td>
+        <td><b>11</b></td>
         <td>Temp-Ban 1 Month</td>
         <td>tbanmonth</td>
     </tr>
     <tr>
-        <td><b>9</b></td>
+        <td><b>12</b></td>
         <td>Perma-Ban</td>
         <td>ban</td>
     </tr>
     <tr>
-        <td><b>Greater Than 9</b></td>
+        <td><b>Greater Than 12</b></td>
         <td>Perma-Ban</td>
         <td>ban</td>
     </tr>
 </table>
 <p>
-    Players may also be 'forgiven', which will reduce their Total Points value by 1 each time, this is useful if you
-    have a
-    website where players can apologize for their actions in-game. Players can be forgiven into negative total point
-    values
-    which is why a 'less than 1' clause is needed.
+    Players may also be 'forgiven', which will reduce their infraction points by 1 each time, this is useful if you
+    have a website where players can apologize for their actions in-game.
+    Players cannot be forgiven into negative infraction point values.
 </p>
 <p>
-    You can run multiple servers with this plugin on the same database; A different ID is automatically assigned to each
-    server. If you want punishments to increase on this server when infractions are committed on others set
-    "Combine Server Punishments" to true. Rule breaking on another server won't cause increase in punishments on the
-    current
-    server if "Combine Server Punishments" is false. This is available since many groups run different rule sets on each
-    server they own, so players breaking rules on one server may not know rules on another, so they get a clean slate.
+    Since you can run multiple servers with this plugin on the same database, if you want punishments to increase on
+    the current server when infractions are committed on others (or vice-versa) enable "Combine Server Punishments".
+    Punishments from another server won't cause increase in infractions on the current server if
+    "Combine Server Punishments" is disabled.
+    This is available since many groups run different rule sets on each server they own, so players breaking rules on
+    one may not know rules on another, so they get a clean slate.
+</p>
+<h4>Auto-Forgives</h4>
+<p>
+    Players can optionally be automatically forgiven infraction points after a specified duration of clean play and positive
+    reputation.
+    Settings are available to specify the minimum day count since last forgiven and last punished before an auto-forgive
+    will be issued.
+    The reputation command can be used by players to find out when their next auto-forgive will happen if the auto-forgive
+    system is enabled.
+    Minimum of 7 days for each auto-forgive duration, with suggested/default values of 14 and 30 days for forgive and punish
+    durations respectively.
 </p>
 <p>
-    <b>Suggestions:</b> When deciding to use this system, 'punish' should be the only command used for player
+    <b>Suggestions:</b> When deciding to use the infraction system, 'punish' should be the only command used for player
     rule-breaking.
-    Other commands like kill, or kick are not counted in the system since sometimes players ask to be killed, admins
-    kill/kick themselves,
-    or players get kicked for AFKing. Kill and kick should only be used for server management. Direct temp ban
-    and ban are of course still available for hacking/glitching situations, but that is the ONLY time they should be
-    used.
+    Other commands like kill, or kick are not counted toward infractions since sometimes players ask to be killed,
+    admins kill/kick themselves, or players get kicked for AFKing.
+    Kill and kick should only be used for server management.
+    Direct temp-ban and ban are of course still available for hacking/glitching situations, but that is the ONLY time
+    they should be used.
 </p>
 <h3>Player Reputation System</h3>
 <p>
     Reputation is a numeric for how helpful a player is to the server.
-    The more they help admins by reporting rule breakers, especially from spectator, or assisting the weak team,
-    the more their reputation increases.
+    The more they help admins by reporting rule breakers, moreso from spectator, assisting the weak team, or populating
+    the server, the more their reputation increases.
     Committing infractions, breaking server rules, getting banned, etc, reduces their server reputation.
 </p>
 <p>
-    Reputation starts at zero, and is capped between -1000 and 1000, so it's easy to get/lose rep early on, but harder
+    Reputation starts at zero and moves toward -1000 or 1000 so it's easy to get/lose rep early on but harder
     near the top/bottom.
-    Players will never reach -1000 or 1000 reputation, but can get close.
-    Each command a player issues, and every command issued against them, has a reputation amount; Some good, some bad.
-    Every time a player's reputation changes, you are notified of the change in chat.
+    Players will never reach -1000 or 1000 reputation, but can get close with a lot of effort.
+    Each command a player issues and every command issued against them has a reputation amount; Some good, some bad.
+    Every time a player's reputation changes you are notified of the change in chat.
 </p>
 <p>
     The following are ways reputation can be gained:
 <ul>
     <li>
-        <b>Issuing good reports on players.</b> Just reporting someone gives rep, but when an admin accepts the
+        <b>Issuing good reports on players.</b> Just reporting someone gives rep but when an admin accepts the
         report or acts on it it's triple the rep bonus.
     </li>
     <li>
@@ -510,38 +545,42 @@
         <b>Using @assist.</b> Sometimes teams really need help, and sometimes a player's friends are stuck on the
         weak team. Helping them and the server out by using this command to switch increases rep greatly.
     </li>
+    <li>
+        <b>Populating servers.</b> Worth twice that of an assist, populating a server helps more than almost anything
+        else. Players are notified and thanked for populating servers along with the rep bonus.
+    </li>
 </ul>
 </p>
 <p>
-    If a player has infractions on their record, that causes a reputation reduction, but the reduction they cause
-    reduces over time. So if they have infractions on their record, simply not committing them for a while reduces the
-    rep loss caused. It does not reduce completely however, they will need to report some rule breakers to get it
-    positive again.
+    If a player has infractions on their record that causes a reputation reduction, but the reduction infraction points
+    cause reduces over time.
+    So if they have infractions on their record, simply not committing them for a while reduces the rep loss caused.
+    It does not reduce completely however, they will need to report some rule breakers to get it positive again.
 </p>
 <h3>Ban Enforcer</h3>
 <p>
     AdKats can enforce bans across all of your servers.
     The Ban Enforcer will import and consolidate bans from every Procon instance you run.
     Bans can be made by name, GUID, IP, any combination, or all at once.
-    The default ban is by EA GUID only, this default can be edited but is not recommended.
+    The default ban is by EA GUID only; this default can be edited but doing so is not recommended.
     Banned players are told how long their ban will last, and when a banned player attempts to re-join they are told the
     remaining time on their ban.
-    Using ban enforcer also gives access to the unban and future-ban commands.
+    Using ban enforcer also gives access to the unban and future-permaban commands.
 </p>
 <p>
-    The Enforcer works properly with existing auto-admins, and any bans added manually through Procon will be
-    automatically imported by the system.
-    A mini-ban-management section is added to the plugin settings when you enable this, however, for full fledged ban
-    management it helps to run the BFAdminCP 2.0+ by Prophet731.
+    The Enforcer works with existing auto-admins and any bans added manually through Procon will be
+    automatically imported.
+    A mini ban management section is added to the plugin settings when you enable this, however, for full fledged ban
+    management it helps to run the BFAdminCP by Prophet731.
     Ban enforcer's options are simply too much for the plugin setting interface to house properly.
     Use of the ban enforcer is optional because of this slight dependency, and is disabled by default.
 </p>
 <p>
     Ban Enforcer can be enabled with the "Use Ban Enforcer" setting. On enable it will import all bans from your ban
-    list then clear it.
-    Once you enable enforcer you will be unable to manage any bans from Procon's banlist tab.
+    list, then clear it.
+    Once you enable the enforcer you will be unable to manage any bans from Procon's banlist tab.
     Disabling ban enforcer will repopulate Procon's banlist with the imported bans, but you will lose any additional
-    information ban enforcer was able to gather about the banned players.
+    information ban enforcer gathered about the banned players.
 </p>
 <p>
     <b>Reasoning behind creation, for those interested:</b>
@@ -555,17 +594,15 @@
     <li>Tracking of bans added through in-game commands or autoadmins on any server is a cakewalk now, so clan leaders
         don't need to go great lengths to look things up.</li>
 </ol>
-Several other reasons as well, but overall it was a fantastic move, and thankfully we had the devs available to make
-it happen.
 </p>
 <h3>Report/CallAdmin System w/Email Support</h3>
 <p>
     When a player puts in a proper @report or @admin all in-game admins are notified.
-    Reports are logged in the database with full player names for reporter/target, and the full reason for
+    Reports are logged in the database with full player names for reporter/target and the full reason for
     reporting.
     Uses of @report and @admin with this plugin require players to enter a reason, and will tell them if they
     haven't entered one.
-    It will not send the report to admins unless reports are complete, which cleans up what admins end up seeing for
+    It will not send the report to admins unless reports are complete, cleaning up what admins end up seeing for
     reports.
 </p>
 <h4>Using Report IDs</h4>
@@ -581,8 +618,7 @@ it happen.
 </p>
 <h4>Report Emails</h4>
 <p>
-    When email usage is enabled, all users with access to player interaction commands will get an email containing the
-    report information.
+    When email usage is enabled, all admins with emails defined will get an email containing the report information.
 </p>
 <h4>Report PBSS</h4>
 <p>
@@ -590,9 +626,7 @@ it happen.
 </p>
 <h3>Admin Assistants</h3>
 <p>
-    This system has been completely revamped in 4.1.0.0, and several hidden features have now been released to the
-    public.
-    We utilized the full system on our no explosives server with great success, mainly catching things autoadmin cannot.
+    We utilized this system on our no explosives server with great success, mainly catching things autoadmin cannot.
     Basically this system automatically tracks who the trusted players in your servers are,
     and who are reliable sources of reports.
 </p>
@@ -646,7 +680,7 @@ it happen.
     information at round end. AdKats adds a table tbl_extendedroundstats, which shows how matches progress while the
     round is still going, not just at the end. Every 30 seconds, the current round ID, round duration, team counts,
     ticket counts, ticket difference rates, team total scores, score rates, and a timestamp are logged in the table. A
-    display of this information (in part) can be seen in the BFAdminCP 2.0+ server stats page. Logging starts at the
+    display of this information (in part) can be seen in the BFAdminCP server stats page. Logging starts at the
     beginning of each round, it will not start immediately for the current round when AdKats enables.
 </p>
 <h3>Player Muting</h3>
@@ -755,54 +789,58 @@ it happen.
 </p>
 <h3>Internal Hacker-Checker with Whitelist</h3>
 <p>
-    The "Hacker-Checker", however strangely named, is a system for automatically catching and acting on players with
-    suspicious or impossible statistics.
+    The "Hacker-Checker" (Was uninspired when naming it, sue me.) is a system for automatically catching and acting
+    on players with suspicious or impossible statistics.
 </p>
 <p>
-    The system uses BF3Stats.com and BF4Stats.com for player stats, and is able to catch both aimbots and damage
-    mods.
-    To avoid false positives, only weapons that fire bullets (no crossbow, M320, Knife, etc), and deal less than 50%
-    damage per shot are included in the calculations.
-    This removes all equipment, sniper rifles, shotguns, and heavy-hitting pistols like the magnum/rex from damage
-    calculations.
-    For the remaining weapons there are three checks each one goes through, customizable to your desired trigger levels.
+    The system uses battlelog for player stats, and is able to catch aimbots, damage mods, magic bullet, and other oddities.
 </p>
-<h4>Damage Mod Checker</h4>
+<h4>DPS Checker</h4>
 <p>
-    Damage per shot for all known weapons is held on the AdKats repository, and is downloaded when the plugin enables.
-    If a weapon damage is not found in that repository, the weapon damage from BFXStats API is used instead. Those
-    values are not always correct, so inform ColColonCleaner about any new weapons or missing entries.
-    The damage per shot each player gets with that weapon is calculated from BF3Stats/BF4Stats.
-    The threshold you set for this check is the percentage above normal required to trigger the ban.
-    We have ours set at 50% above normal damage (just 50 in the setting).
-    e.g. A weapon is dealing at least 150% of the damage it normally should. (A 25 DPS assault rifle is dealing 37.5+
-    DPS)
-    Every ban on trigger level 50 on our servers has been examined personally, and this check has never triggered a
-    false positive.
-    50 kills with the weapon in question are required to trigger a ban using this check.
+    The damage per shot each player gets with their weapons is calculated from their battlelog stats, bans being issued
+    if a player attains impossible damage.
+    This section is now completely automated and enabled by default without a means to turn it off, any doubt about bans
+    it issues should be taken with extreme caution as this system when properly configured has not issued a false
+    positive ban in the 2 years it has been active on our servers.
 </p>
-<h4>Aimbot Checker</h4>
+<p>
+    The LIVE mods for this section enable it to detect damage mods from round to round, regardless of overall stats.
+    Players using a damage mod during a round should be banned automatically after round end.
+</p>
+<h4>HSK Checker</h4>
 <p>
     For this check only automatic weapons from specific categories are used in the calculation.
     This includes Sub Machine Guns, Assault Rifles, Carbines, and Machine Guns.
     Handguns, snipers, equipment, etc are not included since their HSK values can vary drastically.
     This limit is simple, if the headshot/kill percentage for any valid weapon is greater than your trigger level, the
     ban is issued.
-    HS/K percentage for even the top competitive players caps at 38%, so we set our value much higher than that.
+    HSK percentage for even the top competitive players caps at 38%, so we set our value much higher than that.
     We started with 70% HS/K, and no false positives were found with that value, but lower as desired.
-    The minimum we allowed during testing was 50%.
+    The minimum acceptable value we allowed during testing was 50%, and that's where we have it now.
     100 kills with the weapon in question are required to trigger this check.
+</p>
+<p>
+    The LIVE mods for this section are not public yet.
 </p>
 <h4>KPM Checker</h4>
 <p>
     Be careful with this one, this is where a lot of legit competitive players reside.
-    This check should only be used to request video gameplay of players to prove their play, then whitelist the player.
+    This check should only be used to request gameplay video of players to prove their play, then whitelist the player
+    if everything checks out.
     For this check all weapons aside from melee weapons and equipment are included.
     This includes Sub Machine Guns, Assault Rifles, Carbines, Machine Guns, Handguns, and Sniper Rifles.
-    This check uses weapon time and total kills, rather simple, just kills/total minutes.
+    This check uses weapon time and total kills, rather simplistic, just kills/total minutes.
     If that value is greater than your trigger level the ban is issued.
-    After some research and testing the value used on our servers is the default, 4.5.
-    100 kills with the weapon in question are required to trigger this check.
+    After some research and testing the value used on our servers is the default, 5.0.
+    200 kills with the weapon in question are required to trigger this check.
+</p>
+<p>
+    The LIVE mods for this section are not public yet.
+</p>
+<h4>Magic Bullet</h4>
+<p>
+    The hacker-checker is able to detect the magic bullet hack and will issue bans accordingly.
+    If any ban it issues is questionable please post about it on MyRCON in the AdKats thread.
 </p>
 <h4>Posting Method</h4>
 <p>
@@ -810,24 +848,21 @@ it happen.
     following formats:<br/>
     Damage Mod Bans:<br/>
     DPS Automatic Ban [WEAPONNAME-DPS-KILLS-HEADSHOTS]<br/>
+    LIVE Damage Mod Bans:<br/>
+    DPS Automatic Ban [LIVE][WEAPONNAME-DPS-KILLS-HEADSHOTS-HITS]<br/>
     Aimbot Bans:<br/>
     HSK Automatic Ban [WEAPONNAME-HSK-KILLS-HEADSHOTS]<br/>
     KPM Bans:<br/>
     KPM Automatic Ban [WEAPONNAME-KPM-KILLS-HEADSHOTS]
+    LIVE Magic Bullet:<br/>
+    Magic Bullet [LIVE][7-KILLS-HITS]
 </p>
 <p>
 <ul>
-    <li>DPS bans take priority over HSK bans, and HSK over KPM.</li>
+    <li>HSK bans take priority over DPS bans, and DPS over KPM.</li>
     <li>Whitelisting can either be done using the hcwhitelist command, or by entering their player ID, name, guid,
         or IP in the adkats_specialplayers table using the group "whitelist_hackerchecker"</li>
-    <li>If a player is not found on BF3Stats or BF4Stats, AdKats will keep checking for stats every couple minutes
-        while they are in the server, stopping if they leave.</li>
 </ul>
-</p>
-<p>
-    Additional info posts about the calculations:<br/>
-    https://forum.myrcon.com/showthread.php?6045-AdKats-Advanced-In-Game-Admin-and-Ban-Enforcer-4-0-0-0&p=90700&viewfull=1#post90700<br/>
-    https://forum.myrcon.com/showthread.php?6045-AdKats-Advanced-In-Game-Admin-and-Ban-Enforcer-4-0-0-0&p=92106&viewfull=1#post92106
 </p>
 <h3>Automatic Updates</h3>
 <p>
@@ -849,7 +884,7 @@ it happen.
 </p>
 <p>
     Players who join the server and are over the limit are warned about it in chat.
-    Players whose ping is normal, but spikes over your limit, are warned about the spike.
+    A player whose ping is normal, but spikes over your limit, is warned about the spike.
 </p>
 <p>
     Admins are automatically whitelisted, but the entire user list can be optionally whitelisted, or a given
@@ -881,8 +916,8 @@ it happen.
     The key difference is that admins and whitelisted players can be blocked from seeing SpamBot messages.
     This way your admins' chat are not cluttered with messages meant only for promotion or information they
     already know.
-</p>
-<p>
+    Add [whitelistbypass] to the beginning of any spambot message and it will be sent to all players,
+    ignoring this whitelist.
     Individual players can be whitelisted from seeing messages using the spamwhitelist command.
 </p>
 <h3>Commander Manager</h3>
@@ -901,7 +936,7 @@ it happen.
     winning team as winner, having the running autobalancer scramble teams for a more balanced game next match.
 </p>
 <p>
-    There are 3 commands that are used for surrender vote, surrender, votenext, and nosurrender. Access to these three
+    There are 3 commands used for surrender vote, surrender, votenext, and nosurrender. Access to these three
     commands, or a subset of them, must be given to your "Guest" role in the role settings section before this system
     can be used.
 <ul>
@@ -926,6 +961,7 @@ it happen.
     vote is canceled and all votes removed.
 </p>
 <h3>Auto-Surrender/Auto-Nuke System</h3>
+<h4>This system is based on ticket loss rates and only operates properly on servers running a single map/mode.</h4>
 <p>
     Sometimes surrender vote is not enough to help the server. This system uses ticket loss/gain rates to automatically
     trigger either round surrender on the losing team, or auto-nuke on the winning team. This system should not be used
@@ -951,7 +987,7 @@ it happen.
     If the connected database goes offline, or becomes over encumbered to the point of being unusable, AdKats will automatically handle that state. If that state is reached, AdKats will temporarily halt all interaction with the database, disable stat logger, and wait for the situation to be rectified. Checks for fixed connection are made every 30 seconds, and once restored stat logger and AdKats connections with the database are re-enabled.
 </p>
 <h3>Commanding AdKats from External Source</h3>
-<h4><u>BFAdminCP 2.0+ can be used for this.</u></h4>
+<h4><u>BFAdminCP can be used for this.</u></h4>
 <p>
     There are currently two ways to interact with AdKats externally. (A third coming soon if possible).
 </p>
@@ -1735,6 +1771,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
         <td>
             The in-game command used for sending a message through admin chat to only a specific player.
+            Chat access must be AnyHidden.
         </td>
     </tr>
     <tr>
@@ -1759,6 +1796,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
         <td>
             The in-game command used for sending a message through admin yell to only a specific player.
+            Chat access must be AnyHidden.
         </td>
     </tr>
     <tr>
@@ -1783,6 +1821,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
         <td>
             The in-game command used for sending a message through both admin say and admin yell to only a specific player.
+            Chat access must be AnyHidden.
         </td>
     </tr>
     <tr>
@@ -1866,6 +1905,16 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
+        <td><b>Feedback</b></td>
+        <td>feedback</td>
+        <td>
+            message
+        </td>
+        <td>
+            Logs the given message as feedback for the server.
+        </td>
+    </tr>
+    <tr>
         <td><b>Request Reputation</b></td>
         <td>rep</td>
         <td>
@@ -1919,6 +1968,8 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
         <td>
             The in-game command used to join the weak/losing team.
+            Blocked from usage until 2 minutes into any round.
+            Blocked from usage when teams are within 60 tickets of each other.
         </td>
     </tr>
     <tr>
@@ -1965,6 +2016,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         <td>None</td>
         <td>
             The in-game command used for killing the speaker.
+            Specific timeout of 10 minutes to avoid abuse.
         </td>
     </tr>
     <tr>
@@ -2107,6 +2159,17 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
         <td>
             Returns the team, position, and score, of the targeted player.
+            Chat access must be AnyHidden.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Player Is Admin</b></td>
+        <td>isadmin</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Returns whether the given player is an admin, and states their role.
         </td>
     </tr>
     <tr>
@@ -2707,6 +2770,8 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </li>
     <li><b>'Exclude Commands from Chat Logs'</b> - Whether to exclude messages containing commands from being stored in the database.
     </li>
+    <li><b>'Banned Tags'</b> - List of clan tags which will cause players to be banned from the server.
+    </li>
 </ul>
 <h3>A17. Round Settings:</h3>
 <ul>
@@ -2717,15 +2782,6 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 </ul>
 <h3>A18. Internal Hacker-Checker Settings:</h3>
 <ul>
-    <li><b>'HackerChecker: Enable'</b> - Whether the internal BF3Stats hacker-checker is enabled.</li>
-    <li><b>'HackerChecker: DPS Checker: Enable'</b> - Whether the Damage Mod portion of the hacker-checker is enabled.
-    </li>
-    <li>
-        <b>'HackerChecker: DPS Checker: Trigger Level'</b> -
-        The percentage over normal weapon damage that will cause a ban.
-        50 kills minimum to trigger.
-        After 3 months of testing, 50 is the best value, and has not issued a single false positive in that time.
-    </li>
     <li><b>'HackerChecker: DPS Checker: Ban Message'</b> - Message prefix to use when banning for damage mod.</li>
     <li><b>'HackerChecker: HSK Checker: Enable'</b> - Whether the Aimbot portion of the hacker-checker is enabled.</li>
     <li><b>'HackerChecker: HSK Checker: Trigger Level'</b> -
@@ -2733,7 +2789,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         100 kills minimum to trigger.
         After 3 months of testing, we suggest setting between 50 and 70 depending on the severity you want to enforce.
         You will get some false positives down near 50 but will catch many more aimbotters, setting near 70 will not
-        result in any false positives but also wont catch as many aimbotters.
+        result in false positives but also wont catch as many bots.
     </li>
     <li><b>'HackerChecker: HSK Checker: Ban Message'</b> - Message prefix to use when banning for high HSK.</li>
     <li><b>'HackerChecker: KPM Checker: Enable'</b> - Whether the KPM portion of the hacker-checker is enabled.</li>
@@ -2753,6 +2809,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </li>
     <li><b>'Server Rule Numbers'</b> - Whether to include the rule numbers at the beginning of each line during rule
         printing.
+    </li>
+    <li><b>'Yell Server Rules'</b> - Whether to send rules in both yell and chat to players requesting them or being
+        told them.
     </li>
 </ul>
 <h3>B20. AFK Settings:</h3>
@@ -2776,12 +2835,22 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <h3>B21. Ping Enforcer Settings:</h3>
 <ul>
     <li><b>'Ping Enforcer Enable'</b> - Whether to enable the Ping Enforcer.</li>
+    <li><b>'Current Pint Limit (Display)'</b> - The current ping limit based on all the settings below, showing the
+        formula for how it was calculated.</li>
     <li><b>'Ping Moving Average Duration sec'</b> - The amount of time that should be used to average the player pings.
         Default is a 3 minute window.</li>
     <li><b>'Ping Kick Low Population Trigger ms'</b> - The minimum ping that will trigger a kick in low population.</li>
+    <li><b>'Ping Kick Low Population Time Modifier'</b> - 24 lines, one for each hour of the day. Positive numbers will
+        add to the current ping limit at this population level, negative numbers will take away from it.</li>
     <li><b>'Ping Kick Medium Population Trigger ms'</b> - The minimum ping that will trigger a kick in medium population.</li>
+    <li><b>'Ping Kick Medium Population Time Modifier'</b> - 24 lines, one for each hour of the day. Positive numbers will
+        add to the current ping limit at this population level, negative numbers will take away from it.</li>
     <li><b>'Ping Kick High Population Trigger ms'</b> - The minimum ping that will trigger a kick in high population.</li>
+    <li><b>'Ping Kick High Population Time Modifier'</b> - 24 lines, one for each hour of the day. Positive numbers will
+        add to the current ping limit at this population level, negative numbers will take away from it.</li>
     <li><b>'Ping Kick Full Population Trigger ms'</b> - The minimum ping that will trigger a kick in full population.</li>
+    <li><b>'Ping Kick Full Population Time Modifier'</b> - 24 lines, one for each hour of the day. Positive numbers will
+        add to the current ping limit at this population level, negative numbers will take away from it.</li>
     <li><b>'Ping Kick Minimum Players'</b> - The minimum number of players that must be in the server before ping kicks
         will happen.</li>
     <li><b>'Kick Missing Pings'</b> - Whether to kick players for having missing ping.</li>
@@ -2789,6 +2858,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         their ping manually from the Procon instance.</li>
     <li><b>'Ping Kick Ignore User List'</b> - Whether to ignore all users on the user list.</li>
     <li><b>'Ping Kick Ignore Roles'</b> - List the role keys that will be ignored.</li>
+    <li><b>'Ping Kick Message Prefix'</b> - Custom message to be displayed in ping kicks.</li>
 </ul>
 <h3>B22. Commander Manager Settings:</h3>
 <ul>
@@ -2869,6 +2939,12 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Monitor Teamspeak Players - Thanks CMWGaming'</b> - When enabled, the teamspeak player monitor settings
         will be displayed in setting section B27-3.
     </li>
+    <li><b>'Monitor/Disperse Top Players'</b> - When enabled, the top player monitor settings will be displayed in
+        setting section B27-4.
+        This is a new take on server balance, mainly to prevent stacking, it uses how often players place in top team
+        positions to split and balance them and only affects top tier players if set up that way.
+        Built to work in tandem with MULTIBalancer.
+    </li>
 </ul>
 <h3>B27-1. Baserape Causing Player Monitor Settings:</h3>
 <ul>
@@ -2904,12 +2980,22 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Teamspeak Server Query Nickname'</b> - Nickname to use for the teamspeak connection.</li>
     <li><b>'Teamspeak Main Channel Name'</b> - Main channel to grab players from. Must be set on connection start, cannot be modified afterwards.</li>
     <li><b>'Teamspeak Secondary Channel Names'</b> - Any additional channels to pull players from.</li>
-    <li><b>'Debug Display Teamspeak Clients'</b> - Disply console debug when relevant events happen.</li>
+    <li><b>'Debug Display Teamspeak Clients'</b> - Display console debug when relevant events happen.</li>
+    <li><b>'TeamSpeak Player Join Announcement'</b> - Whether to announce players who join in both teamspeak and the game.</li>
+    <li><b>'TeamSpeak Player Join Message'</b> - Message to announce joining teamspeak players with.</li>
+    <li><b>'TeamSpeak Player Update Seconds'</b> - How often the system will query teamspeak for client updates.
+        Minimum 5 seconds.</li>
     <li><b>'Enable Teamspeak Player Perks'</b> - Whether to give players in teamspeak any automatic perks.</li>
     <li><b>'Teamspeak Player Perks - Reserved Slot'</b> - When enabled, teamspeak players are given reserved slots. (used to avoid agressive kicks as well).</li>
     <li><b>'Teamspeak Player Perks - Autobalance Whitelist'</b> - When enabled, teamspeak players are given MULTIBalancer whitelist.</li>
     <li><b>'Teamspeak Player Perks - Ping Whitelist'</b> - When enabled, teamspeak players are given whitelist from ping kicks.</li>
     <li><b>'Teamspeak Player Perks - TeamKillTracker Whitelist'</b> - When enabled, teamspeak players are given a whitelist in TeamKillTracker.</li>
+</ul>
+<h3>B27-4. Top Player Monitor Settings:</h3>
+<ul>
+    <li><b>'Online Top Players (Display)'</b> - Current display of online top players using the below options.</li>
+    <li><b>'Top Players (Display)'</b> - Current display of all top players using the below options.</li>
+    <li><b>'Affected Top Players'</b> - How many players should be affected by this system.</li>
 </ul>
 <h3>D99. Debug Settings:</h3>
 <ul>
