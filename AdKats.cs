@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.2
+ * Version 6.8.0.3
  * 18-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.2</version_code>
+ * <version_code>6.8.0.3</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.2";
+        private const String PluginVersion = "6.8.0.3";
 
         public enum GameVersion
         {
@@ -669,7 +669,6 @@ namespace PRoConEvents
         private const String _AllSettingSections = "All Settings .*";
 
         public readonly Logger Log;
-        private Boolean _PingDebug = false;
 
         public AdKats()
         {
@@ -1812,10 +1811,6 @@ namespace PRoConEvents
                         else if (tmp == 4533) 
                         {
                             Environment.Exit(4533);
-                        } 
-                        else if (tmp == 9146) 
-                        {
-                            _PingDebug = true;
                         }
                         else if (tmp == 5837) 
                         {
@@ -7235,9 +7230,6 @@ namespace PRoConEvents
                 AdKatsPlayer aPlayer;
                 if (_PlayerDictionary.TryGetValue(soldierName, out aPlayer) &&
                     _roundState == RoundState.Playing) {
-                    if (_PingDebug) {
-                        Log.Info("Got fetch ping " + ping + " for " + aPlayer.GetVerboseName());
-                    }
                     aPlayer.AddPingEntry(ping);
                 }
             }
@@ -7552,9 +7544,6 @@ namespace PRoConEvents
                                                 
                                                 //If this game is not BF3, their ping will be loaded through the player list
                                                 ping = aPlayer.frostbitePlayerInfo.Ping;
-                                                if (_PingDebug) {
-                                                    Log.Info("Got list ping " + ping + " for " + aPlayer.GetVerboseName());
-                                                }
                                                 if (_pingEnforcerKickMissingPings &&
                                                     _attemptManualPingWhenMissing &&
                                                     ping < 0 &&
@@ -7594,9 +7583,6 @@ namespace PRoConEvents
                                                   FetchAllUserSoldiers().Any(sPlayer => sPlayer.player_guid == aPlayer.player_guid)) &&
                                                 _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) > _pingEnforcerTriggerMinimumPlayers) 
                                             {
-                                                if (_PingDebug) {
-                                                    Log.Info("Ping kicks possible for " + aPlayer.GetVerboseName());
-                                                }
                                                 Double currentTriggerMS = GetPingLimit();
                                                 //Warn players of limit and spikes
                                                 if (ping > currentTriggerMS) {
@@ -40730,9 +40716,6 @@ namespace PRoConEvents
 
             public void ClearPingEntries()
             {
-                if (Plugin._PingDebug) {
-                    Plugin.Log.Info("Clearing ping entries for " + this.GetVerboseName());
-                }
                 player_pings.Clear();
                 player_pings_full = false;
                 player_ping = 0;
@@ -40740,9 +40723,6 @@ namespace PRoConEvents
             }
 
             public void AddPingEntry(Double newPingValue) {
-                if (Plugin._PingDebug) {
-                    Plugin.Log.Info("Adding ping entry " + newPingValue + " to " + this.GetVerboseName());
-                }
                 //Get rounded time (floor)
                 DateTime newPingTime = Plugin.UtcDbTime();
                 newPingTime = newPingTime.AddTicks(-(newPingTime.Ticks % TimeSpan.TicksPerSecond));
@@ -40787,10 +40767,6 @@ namespace PRoConEvents
                 player_ping = newPingValue;
                 player_ping_time = newPingTime;
                 player_ping_avg = player_pings.Sum(pingEntry => pingEntry.Key) / player_pings.Count;
-
-                if (Plugin._PingDebug) {
-                    Plugin.Log.Info("New average ping " + Math.Round(this.player_ping_avg, 2) + " for " + this.GetVerboseName());
-                }
             }
 
             public Boolean IsLocked()
