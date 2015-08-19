@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.0
- * 16-AUG-2015
+ * Version 6.8.0.1
+ * 18-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.0</version_code>
+ * <version_code>6.8.0.1</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.0";
+        private const String PluginVersion = "6.8.0.1";
 
         public enum GameVersion
         {
@@ -669,6 +669,7 @@ namespace PRoConEvents
         private const String _AllSettingSections = "All Settings .*";
 
         public readonly Logger Log;
+        private Boolean _PingDebug = false;
 
         public AdKats()
         {
@@ -1811,6 +1812,10 @@ namespace PRoConEvents
                         else if (tmp == 4533) 
                         {
                             Environment.Exit(4533);
+                        } 
+                        else if (tmp == 9146) 
+                        {
+                            _PingDebug = true;
                         }
                         else if (tmp == 5837) 
                         {
@@ -7520,6 +7525,10 @@ namespace PRoConEvents
                                                 break;
                                         }
                                         Double ping = aPlayer.frostbitePlayerInfo.Ping;
+
+                                        if (_PingDebug) {
+                                            Log.Info("Got raw ping " + ping + " for " + aPlayer.GetVerboseName());
+                                        }
                                         Boolean proconFetched = false;
                                         if (_pingEnforcerKickMissingPings && 
                                             _attemptManualPingWhenMissing && 
@@ -7550,53 +7559,62 @@ namespace PRoConEvents
                                         {
                                             aPlayer.AddPingEntry(ping);
                                             //Automatic ping kick
-                                            if (_pingEnforcerEnable && aPlayer.player_type == PlayerType.Player && !PlayerIsAdmin(aPlayer) && !GetMatchingVerboseASPlayersOfGroup("whitelist_ping", aPlayer).Any() && !(_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksPingWhitelist && _populatorPlayers.Values.Any(pPlayer => pPlayer.player_id == aPlayer.player_id)) && !(_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksPingWhitelist && _tsPlayers.Values.Any(pPlayer => pPlayer.player_id == aPlayer.player_id)) && !_pingEnforcerIgnoreRoles.Contains(aPlayer.player_role.role_key) && !(_pingEnforcerIgnoreUserList && FetchAllUserSoldiers().Any(sPlayer => sPlayer.player_guid == aPlayer.player_guid)))
+                                            if (_pingEnforcerEnable && 
+                                                aPlayer.player_type == PlayerType.Player && 
+                                                !PlayerIsAdmin(aPlayer) && 
+                                                !GetMatchingVerboseASPlayersOfGroup("whitelist_ping", aPlayer).Any() && 
+                                                !(_PopulatorMonitor && 
+                                                  _PopulatorPerksEnable && 
+                                                  _PopulatorPerksPingWhitelist && 
+                                                  _populatorPlayers.Values.Any(pPlayer => pPlayer.player_id == aPlayer.player_id)) && 
+                                                !(_TeamspeakPlayerMonitorEnable && 
+                                                  _TeamspeakPlayerPerksEnable && 
+                                                  _TeamspeakPlayerPerksPingWhitelist && 
+                                                  _tsPlayers.Values.Any(pPlayer => pPlayer.player_id == aPlayer.player_id)) && 
+                                                !_pingEnforcerIgnoreRoles.Contains(aPlayer.player_role.role_key) && 
+                                                !(_pingEnforcerIgnoreUserList && 
+                                                  FetchAllUserSoldiers().Any(sPlayer => sPlayer.player_guid == aPlayer.player_guid)) &&
+                                                _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) > _pingEnforcerTriggerMinimumPlayers) 
                                             {
-                                                int playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
-                                                if (playerCount > _pingEnforcerTriggerMinimumPlayers) {
-                                                    Double currentTriggerMS = GetPingLimit();
-                                                    //Warn players of limit and spikes
-                                                    if (ping > currentTriggerMS)
-                                                    {
-                                                        if (aPlayer.player_pings_full && aPlayer.player_ping_avg < currentTriggerMS && ping > (aPlayer.player_ping_avg * 1.5))
-                                                        {
-                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping) + "ms] Avg: [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")));
-                                                        }
-                                                        else
-                                                        {
-                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")));
-                                                        }
+                                                if (_PingDebug) {
+                                                    Log.Info("Ping kicks possible for " + aPlayer.GetVerboseName());
+                                                }
+                                                Double currentTriggerMS = GetPingLimit();
+                                                //Warn players of limit and spikes
+                                                if (ping > currentTriggerMS) {
+                                                    if (aPlayer.player_pings_full && aPlayer.player_ping_avg < currentTriggerMS && ping > (aPlayer.player_ping_avg * 1.5)) {
+                                                        PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping) + "ms] Avg: [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")));
+                                                    } else {
+                                                        PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")));
                                                     }
-                                                    Boolean acted = false;
-                                                    //Are they over the limit, or missing
-                                                    if (((aPlayer.player_ping_avg > currentTriggerMS && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0 && (UtcDbTime() - aPlayer.JoinTime).TotalSeconds > 60)) && aPlayer.player_pings_full)
-                                                    {
-                                                        //Are they worse than the current picked player
-                                                        if (pingPickedPlayer == null || (aPlayer.player_ping_avg > pingPickedPlayer.player_ping_avg && pingPickedPlayer.player_ping_avg > 0))
-                                                        {
-                                                            pingPickedPlayer = aPlayer;
-                                                            acted = true;
-                                                        }
+                                                }
+                                                Boolean acted = false;
+                                                //Are they over the limit, or missing
+                                                if (((aPlayer.player_ping_avg > currentTriggerMS && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0 && (UtcDbTime() - aPlayer.JoinTime).TotalSeconds > 60)) && aPlayer.player_pings_full) {
+                                                    //Are they worse than the current picked player
+                                                    if (pingPickedPlayer == null || (aPlayer.player_ping_avg > pingPickedPlayer.player_ping_avg && pingPickedPlayer.player_ping_avg > 0)) {
+                                                        pingPickedPlayer = aPlayer;
+                                                        acted = true;
                                                     }
-                                                    if (!acted && 
-                                                        _isTestingAuthorized && 
-                                                        ((aPlayer.player_ping_avg >= 200 && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0 && (UtcDbTime() - aPlayer.JoinTime).TotalSeconds > 60)) && 
-                                                        aPlayer.player_pings_full) {
-                                                        if (!aPlayer.TargetedRecords.Any(aRecord => 
-                                                            aRecord.command_type.command_key == "player_log" && 
-                                                            aRecord.record_message == "Code 45")) {
-                                                            QueueRecordForProcessing(new AdKatsRecord {
-                                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                                server_id = _serverInfo.ServerID,
-                                                                command_type = GetCommandByKey("player_log"),
-                                                                command_numeric = 0,
-                                                                target_name = aPlayer.player_name,
-                                                                target_player = aPlayer,
-                                                                source_name = "AutoAdmin",
-                                                                record_message = "Code 45",
-                                                                record_time = UtcDbTime()
-                                                            });
-                                                        }
+                                                }
+                                                if (!acted &&
+                                                    _isTestingAuthorized &&
+                                                    ((aPlayer.player_ping_avg >= 200 && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0 && (UtcDbTime() - aPlayer.JoinTime).TotalSeconds > 60)) &&
+                                                    aPlayer.player_pings_full) {
+                                                    if (!aPlayer.TargetedRecords.Any(aRecord =>
+                                                        aRecord.command_type.command_key == "player_log" &&
+                                                        aRecord.record_message == "Code 45")) {
+                                                        QueueRecordForProcessing(new AdKatsRecord {
+                                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                            server_id = _serverInfo.ServerID,
+                                                            command_type = GetCommandByKey("player_log"),
+                                                            command_numeric = 0,
+                                                            target_name = aPlayer.player_name,
+                                                            target_player = aPlayer,
+                                                            source_name = "AutoAdmin",
+                                                            record_message = "Code 45",
+                                                            record_time = UtcDbTime()
+                                                        });
                                                     }
                                                 }
                                             }
@@ -40694,14 +40712,19 @@ namespace PRoConEvents
 
             public void ClearPingEntries()
             {
+                if (Plugin._PingDebug) {
+                    Plugin.Log.Info("Clearing ping entries for " + this.GetVerboseName());
+                }
                 player_pings.Clear();
                 player_pings_full = false;
                 player_ping = 0;
                 player_ping_avg = 0;
             }
 
-            public void AddPingEntry(Double newPingValue)
-            {
+            public void AddPingEntry(Double newPingValue) {
+                if (Plugin._PingDebug) {
+                    Plugin.Log.Info("Adding ping entry " + newPingValue + " to " + this.GetVerboseName());
+                }
                 //Get rounded time (floor)
                 DateTime newPingTime = Plugin.UtcDbTime();
                 newPingTime = newPingTime.AddTicks(-(newPingTime.Ticks % TimeSpan.TicksPerSecond));
@@ -40746,6 +40769,10 @@ namespace PRoConEvents
                 player_ping = newPingValue;
                 player_ping_time = newPingTime;
                 player_ping_avg = player_pings.Sum(pingEntry => pingEntry.Key) / player_pings.Count;
+
+                if (Plugin._PingDebug) {
+                    Plugin.Log.Info("New average ping " + Math.Round(this.player_ping_avg, 2) + " for " + this.GetVerboseName());
+                }
             }
 
             public Boolean IsLocked()
