@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.3
- * 18-AUG-2015
+ * Version 6.8.0.4
+ * 19-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.3</version_code>
+ * <version_code>6.8.0.4</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.3";
+        private const String PluginVersion = "6.8.0.4";
 
         public enum GameVersion
         {
@@ -7570,14 +7570,6 @@ namespace PRoConEvents
                                                 aPlayer.player_type == PlayerType.Player && 
                                                 !PlayerIsAdmin(aPlayer) && 
                                                 !GetMatchingVerboseASPlayersOfGroup("whitelist_ping", aPlayer).Any() && 
-                                                !(_PopulatorMonitor && 
-                                                  _PopulatorPerksEnable && 
-                                                  _PopulatorPerksPingWhitelist && 
-                                                  _populatorPlayers.Values.Any(pPlayer => pPlayer.player_id == aPlayer.player_id)) && 
-                                                !(_TeamspeakPlayerMonitorEnable && 
-                                                  _TeamspeakPlayerPerksEnable && 
-                                                  _TeamspeakPlayerPerksPingWhitelist && 
-                                                  _tsPlayers.Values.Any(pPlayer => pPlayer.player_id == aPlayer.player_id)) && 
                                                 !_pingEnforcerIgnoreRoles.Contains(aPlayer.player_role.role_key) && 
                                                 !(_pingEnforcerIgnoreUserList && 
                                                   FetchAllUserSoldiers().Any(sPlayer => sPlayer.player_guid == aPlayer.player_guid)) &&
@@ -11456,7 +11448,7 @@ namespace PRoConEvents
         public Boolean PlayerProtected(AdKatsPlayer aPlayer)
         {
             //Pull players from special player cache
-            if (GetMatchingASPlayersOfGroup("whitelist_hackerchecker", aPlayer).Any())
+            if (GetMatchingVerboseASPlayersOfGroup("whitelist_hackerchecker", aPlayer).Any())
             {
                 return true;
             }
@@ -13586,7 +13578,7 @@ namespace PRoConEvents
                         FinalizeRecord(record);
                         return;
                     }
-                    if (record.target_player != null && _CommandTargetWhitelistCommands.Contains(record.command_type.command_text) && GetMatchingASPlayersOfGroup("whitelist_commandtarget", record.target_player).Any())
+                    if (record.target_player != null && _CommandTargetWhitelistCommands.Contains(record.command_type.command_text) && GetMatchingVerboseASPlayersOfGroup("whitelist_commandtarget", record.target_player).Any())
                     {
                         SendMessageToSource(record, record.command_type.command_name + " cannot be issued on " + record.target_player.GetVerboseName());
                         FinalizeRecord(record);
@@ -27821,7 +27813,6 @@ namespace PRoConEvents
                         }
                         if (duplicateFound)
                         {
-                            Log.Info("Attempted to post duplicate ban for player " + record.target_player.player_id + ". Cancelling operation.");
                             continue;
                         }
 
@@ -35622,14 +35613,11 @@ namespace PRoConEvents
                                     break;
                                 case "whitelist_teamkill":
                                     //Pull players from user list
-                                    if (_userCache.Count > 0 && _FeedTeamKillTrackerWhitelist && _FeedTeamKillTrackerWhitelist_Admins)
-                                    {
-                                        foreach (AdKatsPlayer aPlayer in FetchAdminSoldiers().Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
-                                        {
-                                            tempASPlayers.Add(new AdKatsSpecialPlayer()
-                                            {
-                                                player_game = (int)_serverInfo.GameID,
-                                                player_server = (int)_serverInfo.ServerID,
+                                    if (_userCache.Count > 0 && _FeedTeamKillTrackerWhitelist && _FeedTeamKillTrackerWhitelist_Admins) {
+                                        foreach (AdKatsPlayer aPlayer in FetchAdminSoldiers().Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
+                                            tempASPlayers.Add(new AdKatsSpecialPlayer() {
+                                                player_game = (int) _serverInfo.GameID,
+                                                player_server = (int) _serverInfo.ServerID,
                                                 player_group = asGroup,
                                                 player_identifier = aPlayer.player_name,
                                                 player_object = aPlayer,
@@ -35639,16 +35627,12 @@ namespace PRoConEvents
                                         }
                                     }
                                     //Pull players from perk list
-                                    if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksTeamKillTrackerWhitelist)
-                                    {
-                                        lock (_populatorPlayers)
-                                        {
-                                            foreach (AdKatsPlayer aPlayer in _populatorPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
-                                            {
-                                                tempASPlayers.Add(new AdKatsSpecialPlayer()
-                                                {
-                                                    player_game = (int)_serverInfo.GameID,
-                                                    player_server = (int)_serverInfo.ServerID,
+                                    if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksTeamKillTrackerWhitelist) {
+                                        lock (_populatorPlayers) {
+                                            foreach (AdKatsPlayer aPlayer in _populatorPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
+                                                tempASPlayers.Add(new AdKatsSpecialPlayer() {
+                                                    player_game = (int) _serverInfo.GameID,
+                                                    player_server = (int) _serverInfo.ServerID,
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
@@ -35658,16 +35642,45 @@ namespace PRoConEvents
                                             }
                                         }
                                     }
-                                    if (_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksTeamKillTrackerWhitelist)
-                                    {
-                                        lock (_tsPlayers)
-                                        {
-                                            foreach (AdKatsPlayer aPlayer in _tsPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
-                                            {
-                                                tempASPlayers.Add(new AdKatsSpecialPlayer()
-                                                {
-                                                    player_game = (int)_serverInfo.GameID,
-                                                    player_server = (int)_serverInfo.ServerID,
+                                    if (_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksTeamKillTrackerWhitelist) {
+                                        lock (_tsPlayers) {
+                                            foreach (AdKatsPlayer aPlayer in _tsPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
+                                                tempASPlayers.Add(new AdKatsSpecialPlayer() {
+                                                    player_game = (int) _serverInfo.GameID,
+                                                    player_server = (int) _serverInfo.ServerID,
+                                                    player_group = asGroup,
+                                                    player_identifier = aPlayer.player_name,
+                                                    player_object = aPlayer,
+                                                    player_effective = UtcDbTime(),
+                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                });
+                                            }
+                                        }
+                                    }
+                                    break;
+                                case "whitelist_ping":
+                                    //Pull players from perk list
+                                    if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksPingWhitelist) {
+                                        lock (_populatorPlayers) {
+                                            foreach (AdKatsPlayer aPlayer in _populatorPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
+                                                tempASPlayers.Add(new AdKatsSpecialPlayer() {
+                                                    player_game = (int) _serverInfo.GameID,
+                                                    player_server = (int) _serverInfo.ServerID,
+                                                    player_group = asGroup,
+                                                    player_identifier = aPlayer.player_name,
+                                                    player_object = aPlayer,
+                                                    player_effective = UtcDbTime(),
+                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                });
+                                            }
+                                        }
+                                    }
+                                    if (_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksPingWhitelist) {
+                                        lock (_tsPlayers) {
+                                            foreach (AdKatsPlayer aPlayer in _tsPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
+                                                tempASPlayers.Add(new AdKatsSpecialPlayer() {
+                                                    player_game = (int) _serverInfo.GameID,
+                                                    player_server = (int) _serverInfo.ServerID,
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
