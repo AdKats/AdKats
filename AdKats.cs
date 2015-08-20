@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.4
+ * Version 6.8.0.5
  * 19-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.4</version_code>
+ * <version_code>6.8.0.5</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.4";
+        private const String PluginVersion = "6.8.0.5";
 
         public enum GameVersion
         {
@@ -35392,6 +35392,16 @@ namespace PRoConEvents
                                 }
                             }
                         }
+                        //Update qualifier lists
+                        if (_BaserapeCausingPlayersMonitor) {
+                            UpdateBaserapeCausingPlayers();
+                        }
+                        if (_PopulatorMonitor) {
+                            UpdatePopulatorPlayers();
+                        }
+                        if (_UseTopPlayerMonitor) {
+                            UpdateTopPlayers();
+                        }
                         //Update the verbose special player cache
                         List<String> validVerboseSpecialPlayers = new List<String>();
                         foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name))
@@ -35749,17 +35759,6 @@ namespace PRoConEvents
             _PlayerProcessingWaitHandle.Set();
 
             start = UtcDbTime();
-            if (_BaserapeCausingPlayersMonitor)
-            {
-                UpdateBaserapeCausingPlayers();
-            }
-            if (_PopulatorMonitor)
-            {
-                UpdatePopulatorPlayers();
-            }
-            if (_UseTopPlayerMonitor) {
-                UpdateTopPlayers();
-            }
             UpdateMULTIBalancerWhitelist();
             UpdateMULTIBalancerDisperseList();
             UpdateTeamKillTrackerWhitelist();
