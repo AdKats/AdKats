@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.7
+ * Version 6.8.0.8
  * 19-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.7</version_code>
+ * <version_code>6.8.0.8</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.7";
+        private const String PluginVersion = "6.8.0.8";
 
         public enum GameVersion
         {
@@ -11448,7 +11448,7 @@ namespace PRoConEvents
         public Boolean PlayerProtected(AdKatsPlayer aPlayer)
         {
             //Pull players from special player cache
-            if (GetMatchingVerboseASPlayersOfGroup("whitelist_hackerchecker", aPlayer).Any())
+            if (GetMatchingASPlayersOfGroup("whitelist_hackerchecker", aPlayer).Any())
             {
                 return true;
             }
