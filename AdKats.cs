@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.6
+ * Version 6.8.0.7
  * 19-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.6</version_code>
+ * <version_code>6.8.0.7</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.6";
+        private const String PluginVersion = "6.8.0.7";
 
         public enum GameVersion
         {
@@ -1454,7 +1454,7 @@ namespace PRoConEvents
                             Boolean anyList = false;
                             foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name)) {
                                 List<String> groupList = new List<String>();
-                                foreach (AdKatsSpecialPlayer asPlayer in GetASPlayersOfGroup(asGroup.group_key)) {
+                                foreach (AdKatsSpecialPlayer asPlayer in GetASPlayersOfGroup(asGroup.group_key).OrderBy(asPlayer => asPlayer.player_object != null ? (asPlayer.player_object.GetVerboseName()) : (asPlayer.player_identifier))) {
                                     String playerIdentifier = null;
                                     if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name)) {
                                         playerIdentifier = asPlayer.player_object.player_name;
