@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.8
- * 19-AUG-2015
+ * Version 6.8.0.9
+ * 23-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.8</version_code>
+ * <version_code>6.8.0.9</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.8";
+        private const String PluginVersion = "6.8.0.9";
 
         public enum GameVersion
         {
@@ -214,6 +214,7 @@ namespace PRoConEvents
         private DateTime _LastGoogleAction = DateTime.UtcNow - TimeSpan.FromSeconds(0.3);
         private readonly TimeSpan _GoogleWaitDuration = TimeSpan.FromSeconds(0.3);
         private DateTime _lastGlitchedPlayerNotification = DateTime.UtcNow;
+        private DateTime _lastInvalidPlayerNameNotification = DateTime.UtcNow;
 
         //Server
         private PopulationState _populationStatus = PopulationState.Unknown;
@@ -1835,7 +1836,7 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Debug Soldier Name").Success)
                 {
-                    if (SoldierNameValid(strValue))
+                    if (IsSoldierNameValid(strValue))
                     {
                         if (strValue != _debugSoldierName)
                         {
@@ -5559,7 +5560,7 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Add User").Success)
                 {
-                    if (SoldierNameValid(strValue))
+                    if (IsSoldierNameValid(strValue))
                     {
                         AdKatsUser aUser = new AdKatsUser
                         {
@@ -7494,13 +7495,20 @@ namespace PRoConEvents
                                         break;
                                     }
                                     //Check for glitched players
-                                    if (String.IsNullOrEmpty(playerInfo.GUID))
-                                    {
-                                        if ((UtcDbTime() - _lastGlitchedPlayerNotification).TotalMinutes > 5)
-                                        {
-                                            OnlineAdminSayMessage(playerInfo.SoldierName + " is glitched in the server. Their soldier is invalid.");
-                                            Log.Warn(playerInfo.SoldierName + " is glitched in the server. Their soldier is invalid.");
+                                    if (String.IsNullOrEmpty(playerInfo.GUID)) {
+                                        if ((UtcDbTime() - _lastGlitchedPlayerNotification).TotalMinutes > 5) {
+                                            OnlineAdminSayMessage(playerInfo.SoldierName + " is glitched in the server, their player has no GUID.");
+                                            Log.Warn(playerInfo.SoldierName + " is glitched in the server, their player has no GUID.");
                                             _lastGlitchedPlayerNotification = UtcDbTime();
+                                        }
+                                        continue;
+                                    }
+                                    //Check for invalid player names
+                                    if (!IsSoldierNameValid(playerInfo.SoldierName)) {
+                                        if ((UtcDbTime() - _lastGlitchedPlayerNotification).TotalMinutes > 5) {
+                                            OnlineAdminSayMessage(playerInfo.SoldierName + " has an invalid player name, unable to process.");
+                                            Log.Warn(playerInfo.SoldierName + " has an invalid player name, unable to process.");
+                                            _lastInvalidPlayerNameNotification = UtcDbTime();
                                         }
                                         continue;
                                     }
@@ -7591,26 +7599,6 @@ namespace PRoConEvents
                                                     if (pingPickedPlayer == null || (aPlayer.player_ping_avg > pingPickedPlayer.player_ping_avg && pingPickedPlayer.player_ping_avg > 0)) {
                                                         pingPickedPlayer = aPlayer;
                                                         acted = true;
-                                                    }
-                                                }
-                                                if (!acted &&
-                                                    _isTestingAuthorized &&
-                                                    ((aPlayer.player_ping_avg >= 200 && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0 && (UtcDbTime() - aPlayer.JoinTime).TotalSeconds > 60)) &&
-                                                    aPlayer.player_pings_full) {
-                                                    if (!aPlayer.TargetedRecords.Any(aRecord =>
-                                                        aRecord.command_type.command_key == "player_log" &&
-                                                        aRecord.record_message == "Code 45")) {
-                                                        QueueRecordForProcessing(new AdKatsRecord {
-                                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                            server_id = _serverInfo.ServerID,
-                                                            command_type = GetCommandByKey("player_log"),
-                                                            command_numeric = 0,
-                                                            target_name = aPlayer.player_name,
-                                                            target_player = aPlayer,
-                                                            source_name = "AutoAdmin",
-                                                            record_message = "Code 45",
-                                                            record_time = UtcDbTime()
-                                                        });
                                                     }
                                                 }
                                             }
@@ -20243,7 +20231,7 @@ namespace PRoConEvents
             aPlayer = null;
             try
             {
-                if (!SoldierNameValid(playerNameInput))
+                if (!IsSoldierNameValid(playerNameInput))
                 {
                     resultMessage = "'" + playerNameInput + "' was an invalid player name.";
                     return false;
@@ -29600,7 +29588,6 @@ namespace PRoConEvents
                         command.Parameters.AddWithValue("@server_id", aStat.server_id);
                         if (aStat.round_id == 0)
                         {
-                            HandleException(new AdKatsException("Statistic round ID was invalid when uploading, unable to continue."));
                             return false;
                         }
                         command.Parameters.AddWithValue("@round_id", aStat.round_id);
@@ -31176,7 +31163,7 @@ namespace PRoConEvents
             try
             {
                 //Attempt to fetch the soldier
-                if (!String.IsNullOrEmpty(soldierName) && SoldierNameValid(soldierName))
+                if (!String.IsNullOrEmpty(soldierName) && IsSoldierNameValid(soldierName))
                 {
                     List<AdKatsPlayer> matchingPlayers;
                     if (FetchMatchingPlayers(soldierName, out matchingPlayers, false))
@@ -36343,7 +36330,7 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            if (SoldierNameValid(asPlayer.player_identifier))
+                            if (IsSoldierNameValid(asPlayer.player_identifier))
                             {
                                 playerIdentifier = asPlayer.player_identifier;
                             }
@@ -36432,7 +36419,7 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            if (SoldierNameValid(asPlayer.player_identifier))
+                            if (IsSoldierNameValid(asPlayer.player_identifier))
                             {
                                 playerIdentifier = asPlayer.player_identifier;
                             }
@@ -36768,7 +36755,6 @@ namespace PRoConEvents
             }
             if (!_firstUserListComplete)
             {
-                Log.Error("Authorized soldier fetch canceled. Authorized soldiers requested before user list fetched.");
                 return;
             }
             //TODO add logging for this
@@ -38810,7 +38796,7 @@ namespace PRoConEvents
             return s.Substring(startIndex, endIndex - startIndex);
         }
 
-        public Boolean SoldierNameValid(String input)
+        public Boolean IsSoldierNameValid(String input)
         {
             try
             {
