@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.9
+ * Version 6.8.0.10
  * 23-AUG-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.9</version_code>
+ * <version_code>6.8.0.10</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.9";
+        private const String PluginVersion = "6.8.0.10";
 
         public enum GameVersion
         {
@@ -7505,13 +7505,15 @@ namespace PRoConEvents
                                     }
                                     //Check for invalid player names
                                     if (!IsSoldierNameValid(playerInfo.SoldierName)) {
-                                        if ((UtcDbTime() - _lastGlitchedPlayerNotification).TotalMinutes > 5) {
-                                            OnlineAdminSayMessage(playerInfo.SoldierName + " has an invalid player name, unable to process.");
+                                        if ((UtcDbTime() - _lastInvalidPlayerNameNotification).TotalMinutes > 5) {
+                                            OnlineAdminSayMessage(playerInfo.SoldierName + " had an invalid player name, unable to process.");
                                             Log.Warn(playerInfo.SoldierName + " has an invalid player name, unable to process.");
+                                            ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerInfo.SoldierName, "Your soldier name " + playerInfo.SoldierName + " is invalid.");
                                             _lastInvalidPlayerNameNotification = UtcDbTime();
                                         }
                                         continue;
                                     }
+
                                     validPlayers.Add(playerInfo.SoldierName);
                                     //Check if the player is already in the player dictionary
                                     AdKatsPlayer aPlayer = null;
