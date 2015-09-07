@@ -141,9 +141,9 @@
 <p>
     When running loadout enforcement for a specific player, the reason, and action if invalid, is first decided. The following are results for specific reasons, in order of priority:
     <ul>
-        <li>If a player was marked, they are set under trigger enforcement, and will be slain for invalid loadout of any kind.</li>
-        <li>If a player is punished, they are set under trigger enforcement, and will be slain for invalid loadout of any kind.</li>
-        <li>If a player was reported, their reputation is negative, and no admins are online, they are set under trigger enforcement and will be slain for invalid loadout of any kind. If they are slain after report, the report is automatically accepted.</li>
+        <li>If a player was marked they are set under trigger enforcement, and will be slain for invalid loadout of any kind.</li>
+        <li>If a player is punished they are set under trigger enforcement, and will be slain for invalid loadout of any kind.</li>
+        <li>If a player was reported, their reputation non-positive, they are set under trigger enforcement and will be slain for invalid loadout of any kind. If they are slain due to a report, the report is automatically accepted.</li>
         <li>If a player has more than X infraction points they are set under trigger enforcement and will be slain for invalid loadout.</li>
     </ul>
 </p>
