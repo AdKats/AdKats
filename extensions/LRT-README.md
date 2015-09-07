@@ -136,16 +136,16 @@
     <b>The gist of it for vehicles: </b>By default, enforcement is on kill with specific vehicles. This is important because not everyone uses vehicles, so only those players using restricted vehicles should have their loadouts enforced for those vehicles. Optionally you can enforce on spawn for vehicle loadouts, regardless, which is not advised but is available as an option.
 </p>
 <p>
-    <b>Details for infantry: </b>Loadouts have several reasons for being checked; A player spawns, gets reported, gets punished, gets marked, or has more than X infraction points. Any of these instances will call a loadout check, and the reason for checking them changes the way the enforcement works.
+    <b>Details for infantry: </b>Loadouts have several reasons for being checked; A player spawns, gets reported, gets punished, gets marked, or has more than X (configurable) infraction points. Any of these instances will call a loadout check, and the reason for checking them changes the way the enforcement works.
 </p>
 <p>
     When running loadout enforcement for a specific player, the reason, and action if invalid, is first decided. The following are results for specific reasons, in order of priority:
     <ul>
-        <li>If a player was marked they are set under trigger enforcement, and will be slain for invalid loadout of any kind.</li>
-        <li>If a player is punished they are set under trigger enforcement, and will be slain for invalid loadout of any kind.</li>
-        <li>If a player was reported, their reputation non-positive, they are set under trigger enforcement and will be slain for invalid loadout of any kind. If they are slain due to a report, the report is automatically accepted.</li>
-        <li>If a player has more than X infraction points they are set under trigger enforcement and will be slain for invalid loadout.</li>
-        <li>If none of the above checks are hit, they are set under spawn enforcement.</li>
+        <li>If a player was marked they are set under trigger enforcement and will be slain for invalid loadout of any kind.</li>
+        <li>If a player is punished they are set under trigger enforcement and will be slain for invalid loadout of any kind.</li>
+        <li>If a player was reported and their reputation is non-positive they are set under trigger enforcement and will be slain for invalid loadout of any kind. If they are slain due to a report that report is automatically accepted.</li>
+        <li>If a player has more than X (configurable) infraction points they are set under trigger enforcement and will be slain for invalid loadout of any kind.</li>
+        <li>If none of the above checks are hit, are not reputable, and are not an admin, they are set under spawn enforcement. Secondary checks are customizable.</li>
     </ul>
 </p>
 <h4>Informing and Acting</h4>
