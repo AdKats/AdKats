@@ -144,8 +144,7 @@
         <li>If a player was marked, they are set under trigger enforcement, and will be slain for invalid loadout of any kind.</li>
         <li>If a player is punished, they are set under trigger enforcement, and will be slain for invalid loadout of any kind.</li>
         <li>If a player was reported, their reputation is negative, and no admins are online, they are set under trigger enforcement and will be slain for invalid loadout of any kind. If they are slain after report, the report is automatically accepted.</li>
-        <li>If a player has more than 5 infraction points, was punished in the last 2 months, their reputation is negative, and no admins are online, they are set under trigger enforcement and will be slain for invalid loadout.</li>
-        <li>If a player joins, or spawns, has less than 15 reputation, and is not an admin, they are set under spawn enforcement, and will be slain for spawn denied items in their loadout.</li>
+        <li>If a player has more than X infraction points they are set under trigger enforcement and will be slain for invalid loadout.</li>
     </ul>
 </p>
 <h4>Informing and Acting</h4>
