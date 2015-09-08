@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.11
- * 1-SEP-2015
+ * Version 6.8.0.12
+ * 7-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.11</version_code>
+ * <version_code>6.8.0.12</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.11";
+        private const String PluginVersion = "6.8.0.12";
 
         public enum GameVersion
         {
@@ -215,6 +215,7 @@ namespace PRoConEvents
         private readonly TimeSpan _GoogleWaitDuration = TimeSpan.FromSeconds(0.3);
         private DateTime _lastGlitchedPlayerNotification = DateTime.UtcNow;
         private DateTime _lastInvalidPlayerNameNotification = DateTime.UtcNow;
+        private DateTime _lastIPAPIError = DateTime.UtcNow;
 
         //Server
         private PopulationState _populationStatus = PopulationState.Unknown;
@@ -896,8 +897,8 @@ namespace PRoConEvents
         public List<CPluginVariable> GetDisplayPluginVariables()
         {
             try {
-                Log.Debug(() => "Updating Setting Page [" + ((String.IsNullOrEmpty(Thread.CurrentThread.Name)) ? ("Main") : (Thread.CurrentThread.Name)) + "]: " + (UtcDbTime() - _lastSettingPageUpdate).TotalSeconds + " seconds since last update.", 4);
-                _lastSettingPageUpdate = UtcDbTime();
+                Log.Debug(() => "Updating Setting Page [" + ((String.IsNullOrEmpty(Thread.CurrentThread.Name)) ? ("Main") : (Thread.CurrentThread.Name)) + "]: " + (UtcNow() - _lastSettingPageUpdate).TotalSeconds + " seconds since last update.", 4);
+                _lastSettingPageUpdate = UtcNow();
                 Stopwatch timer = new Stopwatch();
                 timer.Start();
                 List<CPluginVariable> lstReturn = new List<CPluginVariable>();
@@ -1465,7 +1466,7 @@ namespace PRoConEvents
                                     if (String.IsNullOrEmpty(playerIdentifier)) {
                                         continue;
                                     }
-                                    TimeSpan duration = (asPlayer.player_expiration - UtcDbTime()).Duration();
+                                    TimeSpan duration = (asPlayer.player_expiration - UtcNow()).Duration();
                                     if (duration.TotalDays > 3650) {
                                         playerIdentifier += " | Permanent";
                                     } else {
@@ -1791,7 +1792,7 @@ namespace PRoConEvents
                         record_source = AdKatsRecord.Sources.Settings,
                         record_access = AdKatsRecord.AccessMethod.HiddenExternal,
                         source_name = "SettingsAdmin",
-                        record_time = UtcDbTime()
+                        record_time = UtcNow()
                     };
                     CompleteRecordInformation(record, strValue);
                 }
@@ -5373,9 +5374,9 @@ namespace PRoConEvents
                     {
                         if (spamBotEnable)
                         {
-                            _spamBotSayLastPost = UtcDbTime() - TimeSpan.FromSeconds(10);
-                            _spamBotYellLastPost = UtcDbTime() - TimeSpan.FromSeconds(10);
-                            _spamBotTellLastPost = UtcDbTime() - TimeSpan.FromSeconds(10);
+                            _spamBotSayLastPost = UtcNow() - TimeSpan.FromSeconds(10);
+                            _spamBotYellLastPost = UtcNow() - TimeSpan.FromSeconds(10);
+                            _spamBotTellLastPost = UtcNow() - TimeSpan.FromSeconds(10);
                         }
                         _spamBotEnabled = spamBotEnable;
                         //Once setting has been changed, upload the change to database
@@ -5565,7 +5566,7 @@ namespace PRoConEvents
                         AdKatsUser aUser = new AdKatsUser
                         {
                             user_name = strValue,
-                            user_expiration = UtcDbTime().AddYears(20),
+                            user_expiration = UtcNow().AddYears(20),
                             user_notes = "No Notes"
                         };
                         if (_userCache.Values.Any(iUser => aUser.user_name == iUser.user_name))
@@ -5728,11 +5729,11 @@ namespace PRoConEvents
                             _pluginRebootOnDisableSource = null;
                         }
 
-                        if ((UtcDbTime() - _proconStartTime).TotalSeconds <= 20)
+                        if ((UtcNow() - _proconStartTime).TotalSeconds <= 20)
                         {
                             Log.Write("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
                             //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
-                            for (Int32 index = 20 - (Int32)(UtcDbTime() - _proconStartTime).TotalSeconds; index > 0; index--)
+                            for (Int32 index = 20 - (Int32)(UtcNow() - _proconStartTime).TotalSeconds; index > 0; index--)
                             {
                                 Log.Write(index + "...");
                                 _threadMasterWaitHandle.WaitOne(1000);
@@ -5839,7 +5840,7 @@ namespace PRoConEvents
 
                         //Set the enabled variable
                         _pluginEnabled = true;
-                        _LastVersionTrackingUpdate = UtcDbTime() - TimeSpan.FromHours(1);
+                        _LastVersionTrackingUpdate = UtcNow() - TimeSpan.FromHours(1);
 
                         //Init and start all the threads
                         InitWaitHandles();
@@ -6268,7 +6269,7 @@ namespace PRoConEvents
                     }
                     Log.Debug(() => "Setting desc fetch handle.", 1);
                     _fetchedPluginInformation = true;
-                    _LastPluginDescFetch = UtcDbTime();
+                    _LastPluginDescFetch = UtcNow();
                     _PluginDescriptionWaitHandle.Set();
                     _pluginDescFetchProgress = "Completed";
                 }
@@ -6291,10 +6292,10 @@ namespace PRoConEvents
                 try
                 {
                     Thread.CurrentThread.Name = "StatusMonitor";
-                    DateTime lastShortKeepAliveCheck = UtcDbTime();
-                    DateTime lastLongKeepAliveCheck = UtcDbTime();
+                    DateTime lastShortKeepAliveCheck = UtcNow();
+                    DateTime lastLongKeepAliveCheck = UtcNow();
                     ExecuteCommand("procon.protected.send", "serverInfo");
-                    DateTime lastServerInfoRequest = UtcDbTime();
+                    DateTime lastServerInfoRequest = UtcNow();
                     while (true)
                     {
                         try
@@ -6302,7 +6303,7 @@ namespace PRoConEvents
                             Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
                             if (_isTestingAuthorized)
                             {
-                                if (MBUsed > 750 && (UtcDbTime() - _AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete)
+                                if (MBUsed > 750 && (UtcNow() - _AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete)
                                 {
                                     Log.Warn(MBUsed + "MB estimated memory used.");
                                     QueueRecordForProcessing(new AdKatsRecord
@@ -6314,7 +6315,7 @@ namespace PRoConEvents
                                         target_name = "AdKats",
                                         source_name = "MemoryMonitor",
                                         record_message = MBUsed + "MB estimated memory used",
-                                        record_time = UtcDbTime()
+                                        record_time = UtcNow()
                                     });
                                     Thread.Sleep(TimeSpan.FromSeconds(10));
                                 }
@@ -6326,31 +6327,31 @@ namespace PRoConEvents
                             }
 
                             //Check for unswitcher disable every 20 seconds
-                            if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (UtcDbTime() - _LastPlayerMoveIssued).TotalSeconds > 20)
+                            if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (UtcNow() - _LastPlayerMoveIssued).TotalSeconds > 20)
                             {
                                 Log.Debug(() => "MULTIBalancer Unswitcher Re-Enabled", 3);
                                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
                                 _MULTIBalancerUnswitcherDisabled = false;
                             }
 
-                            if (_isTestingAuthorized && (UtcDbTime() - _proconStartTime).TotalHours > 24) {
+                            if (_isTestingAuthorized && (UtcNow() - _proconStartTime).TotalHours > 24) {
                                 Environment.Exit(4533);
                             }
 
                             //Check for plugin updates at interval
-                            if ((UtcDbTime() - _LastPluginDescFetch).TotalHours > 1 || (_isTestingAuthorized && (UtcDbTime() - _LastPluginDescFetch).TotalMinutes > 10))
+                            if ((UtcNow() - _LastPluginDescFetch).TotalHours > 1 || (_isTestingAuthorized && (UtcNow() - _LastPluginDescFetch).TotalMinutes > 10))
                             {
                                 FetchPluginDocumentation();
                             }
 
                             //Post usage stats at interval
-                            if ((!_versionTrackingDisabled || _pluginVersionStatus == VersionStatus.TestBuild || _isTestingAuthorized) && (UtcDbTime() - _LastVersionTrackingUpdate).TotalHours > 1 && (_threadsReady || (UtcDbTime() - _proconStartTime).TotalSeconds > 30))
+                            if ((!_versionTrackingDisabled || _pluginVersionStatus == VersionStatus.TestBuild || _isTestingAuthorized) && (UtcNow() - _LastVersionTrackingUpdate).TotalHours > 1 && (_threadsReady || (UtcNow() - _proconStartTime).TotalSeconds > 30))
                             {
                                 PostVersionTracking();
                             }
 
                             //Post usage stats at interval
-                            if (((UtcDbTime() - _LastWeaponCodePost).TotalMinutes > 20 || !_PostedWeaponCodes) && _firstPlayerListComplete)
+                            if (((UtcNow() - _LastWeaponCodePost).TotalMinutes > 20 || !_PostedWeaponCodes) && _firstPlayerListComplete)
                             {
                                 PostWeaponCodes();
                             }
@@ -6361,7 +6362,7 @@ namespace PRoConEvents
                                 _firstPlayerListComplete && 
                                 _PlayerDictionary.Any())
                             {
-                                if ((UtcDbTime() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
+                                if ((UtcNow() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotSayQueue.Peek();
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -6373,9 +6374,9 @@ namespace PRoConEvents
                                         }
                                     }
                                     _spamBotSayQueue.Enqueue(_spamBotSayQueue.Dequeue());
-                                    _spamBotSayLastPost = UtcDbTime();
+                                    _spamBotSayLastPost = UtcNow();
                                 }
-                                if ((UtcDbTime() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds && _spamBotYellQueue.Any()) {
+                                if ((UtcNow() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds && _spamBotYellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotYellQueue.Peek();
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -6387,9 +6388,9 @@ namespace PRoConEvents
                                         }
                                     }
                                     _spamBotYellQueue.Enqueue(_spamBotYellQueue.Dequeue());
-                                    _spamBotYellLastPost = UtcDbTime();
+                                    _spamBotYellLastPost = UtcNow();
                                 }
-                                if ((UtcDbTime() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds && _spamBotTellQueue.Any()) {
+                                if ((UtcNow() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds && _spamBotTellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotTellQueue.Peek();
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -6401,15 +6402,15 @@ namespace PRoConEvents
                                         }
                                     }
                                     _spamBotTellQueue.Enqueue(_spamBotTellQueue.Dequeue());
-                                    _spamBotTellLastPost = UtcDbTime();
+                                    _spamBotTellLastPost = UtcNow();
                                 }
                             }
                             //Check for long keep alive every 5 minutes
-                            if ((UtcDbTime() - lastLongKeepAliveCheck).TotalMinutes > 5) {
+                            if ((UtcNow() - lastLongKeepAliveCheck).TotalMinutes > 5) {
                                 //Player listing check
                                 if (_pluginEnabled && 
                                     _firstPlayerListComplete && 
-                                    (UtcDbTime() - _lastSuccessfulPlayerList) > TimeSpan.FromMinutes(5)) {
+                                    (UtcNow() - _lastSuccessfulPlayerList) > TimeSpan.FromMinutes(5)) {
                                     if (_isTestingAuthorized) {
                                         //Create report record
                                         QueueRecordForProcessing(new AdKatsRecord {
@@ -6420,7 +6421,7 @@ namespace PRoConEvents
                                             target_name = "AdKats",
                                             source_name = "AdKats",
                                             record_message = "Player listing offline. Inform ColColonCleaner.",
-                                            record_time = UtcDbTime()
+                                            record_time = UtcNow()
                                         });
                                     }
                                 }
@@ -6458,11 +6459,11 @@ namespace PRoConEvents
                                     }
                                 }
 
-                                lastLongKeepAliveCheck = UtcDbTime();
+                                lastLongKeepAliveCheck = UtcNow();
                             }
 
                             //Check for short keep alive every 30 seconds
-                            if ((UtcDbTime() - lastShortKeepAliveCheck).TotalSeconds > 30) {
+                            if ((UtcNow() - lastShortKeepAliveCheck).TotalSeconds > 30) {
                                 //Auto-assist
                                 AdKatsTeam team1, team2, winningTeam, losingTeam;
                                 if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
@@ -6492,7 +6493,7 @@ namespace PRoConEvents
                                                 target_player = aPlayer,
                                                 source_name = "AUAManager",
                                                 record_message = "Auto-assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
-                                                record_time = UtcDbTime()
+                                                record_time = UtcNow()
                                             });
                                         }
                                     }
@@ -6559,7 +6560,7 @@ namespace PRoConEvents
 
                                 if (_pluginEnabled && _threadsReady && _firstPlayerListComplete)
                                 {
-                                    AdminSayMessage("/AdKatsInstanceCheck " + _instanceKey + " " + Math.Round((UtcDbTime() - _AdKatsRunningTime).TotalSeconds), false);
+                                    AdminSayMessage("/AdKatsInstanceCheck " + _instanceKey + " " + Math.Round((UtcNow() - _AdKatsRunningTime).TotalSeconds), false);
                                 }
 
                                 //Enable if auto-enable wanted
@@ -6591,7 +6592,7 @@ namespace PRoConEvents
                                 if (_AFKManagerEnable && _AFKAutoKickEnable && (_PlayerDictionary.Count > _AFKTriggerMinimumPlayers))
                                 {
                                     //Double list conversion
-                                    List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.ToList().Where(aPlayer => (UtcDbTime() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes && aPlayer.player_type != PlayerType.Spectator && !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
+                                    List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.ToList().Where(aPlayer => (UtcNow() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes && aPlayer.player_type != PlayerType.Spectator && !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
                                     if (_AFKIgnoreUserList)
                                     {
                                         IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
@@ -6603,7 +6604,7 @@ namespace PRoConEvents
                                     }
                                     foreach (AdKatsPlayer aPlayer in afkPlayers)
                                     {
-                                        String afkTime = FormatTimeString(UtcDbTime() - aPlayer.lastAction, 2);
+                                        String afkTime = FormatTimeString(UtcNow() - aPlayer.lastAction, 2);
                                         Log.Debug(() => "Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
                                         AdKatsRecord record = new AdKatsRecord
                                         {
@@ -6615,7 +6616,7 @@ namespace PRoConEvents
                                             target_player = aPlayer,
                                             source_name = "AFKManager",
                                             record_message = "AFK time exceeded [" + afkTime + "/" + GetPlayerTeamKey(aPlayer) + "]. Please rejoin once you return.",
-                                            record_time = UtcDbTime()
+                                            record_time = UtcNow()
                                         };
                                         QueueRecordForProcessing(record);
                                         //Only take one
@@ -6625,14 +6626,14 @@ namespace PRoConEvents
                                     //TODO: Once MULTIBalancer adds registered commands, check for availability
                                 }
 
-                                lastShortKeepAliveCheck = UtcDbTime();
+                                lastShortKeepAliveCheck = UtcNow();
                             }
 
-                            if (_threadsReady && (UtcDbTime() - lastServerInfoRequest).TotalSeconds > 10)
+                            if (_threadsReady && (UtcNow() - lastServerInfoRequest).TotalSeconds > 10)
                             {
                                 ExecuteCommand("procon.protected.send", "serverInfo");
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
-                                lastServerInfoRequest = UtcDbTime();
+                                lastServerInfoRequest = UtcNow();
                             }
 
                             //Sleep 1 second between loops
@@ -7045,10 +7046,10 @@ namespace PRoConEvents
                         {
                             Thread.CurrentThread.Name = "TeamAssignmentConfirmation";
                             Thread.Sleep(TimeSpan.FromSeconds(1));
-                            DateTime starting = UtcDbTime();
+                            DateTime starting = UtcNow();
                             while (true)
                             {
-                                if ((UtcDbTime() - starting).TotalSeconds > 30)
+                                if ((UtcNow() - starting).TotalSeconds > 30)
                                 {
                                     Log.Warn("TeamAssignmentConfirmation took too long.");
                                     break;
@@ -7208,7 +7209,7 @@ namespace PRoConEvents
                 if (cpsSubset.Subset == CPlayerSubset.PlayerSubsetType.All)
                 {
                     //Return if small duration (5 seconds) since last player list
-                    if ((UtcDbTime() - _lastSuccessfulPlayerList) < TimeSpan.FromSeconds(5))
+                    if ((UtcNow() - _lastSuccessfulPlayerList) < TimeSpan.FromSeconds(5))
                     {
                         return;
                     }
@@ -7291,7 +7292,7 @@ namespace PRoConEvents
             {
                 Log.Debug(() => "Starting Player Listing Thread", 1);
                 Thread.CurrentThread.Name = "PlayerListing";
-                DateTime loopStart = UtcDbTime();
+                DateTime loopStart = UtcNow();
                 while (true)
                 {
                     try
@@ -7363,17 +7364,17 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                                 Thread.Sleep(1000);
                             }
-                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                            if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug(() => "Warning. PlayerListing thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. PlayerListing thread processing completed in " + ((int)((UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _PlayerProcessingWaitHandle.Reset();
                             _PlayerProcessingWaitHandle.WaitOne(TimeSpan.FromSeconds(60));
-                            loopStart = UtcDbTime();
+                            loopStart = UtcNow();
                             if (_firstPlayerListComplete)
                             {
                                 //Case where all players are gone after first player list
-                                _lastSuccessfulPlayerList = UtcDbTime();
+                                _lastSuccessfulPlayerList = UtcNow();
                             }
                             continue;
                         }
@@ -7441,7 +7442,7 @@ namespace PRoConEvents
                                                 source_name = aPlayer.player_name,
                                                 source_player = aPlayer,
                                                 record_message = aPlayer.GetVerboseName() + " has left their server. Private conversation closed.",
-                                                record_time = UtcDbTime()
+                                                record_time = UtcNow()
                                             });
                                         }
                                         else
@@ -7465,12 +7466,12 @@ namespace PRoConEvents
                                     aPlayer.ClearPingEntries();
                                     DequeuePlayer(aPlayer);
                                     //Remove all old values
-                                    List<String> removeNames = _PlayerLeftDictionary.Where(pair => (UtcDbTime() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
+                                    List<String> removeNames = _PlayerLeftDictionary.Where(pair => (UtcNow() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
                                     foreach (String removeName in removeNames)
                                     {
                                         _PlayerLeftDictionary.Remove(removeName);
                                     }
-                                    aPlayer.LastUsage = UtcDbTime();
+                                    aPlayer.LastUsage = UtcNow();
                                     _PlayerLeftDictionary[aPlayer.player_name] = aPlayer;
                                 }
                                 RemovePlayerFromDictionary(playerInfo.SoldierName, false);
@@ -7496,20 +7497,20 @@ namespace PRoConEvents
                                     }
                                     //Check for glitched players
                                     if (String.IsNullOrEmpty(playerInfo.GUID)) {
-                                        if ((UtcDbTime() - _lastGlitchedPlayerNotification).TotalMinutes > 5) {
+                                        if ((UtcNow() - _lastGlitchedPlayerNotification).TotalMinutes > 5) {
                                             OnlineAdminSayMessage(playerInfo.SoldierName + " is glitched in the server, their player has no GUID.");
                                             Log.Warn(playerInfo.SoldierName + " is glitched in the server, their player has no GUID.");
-                                            _lastGlitchedPlayerNotification = UtcDbTime();
+                                            _lastGlitchedPlayerNotification = UtcNow();
                                         }
                                         continue;
                                     }
                                     //Check for invalid player names
                                     if (!IsSoldierNameValid(playerInfo.SoldierName)) {
-                                        if ((UtcDbTime() - _lastInvalidPlayerNameNotification).TotalMinutes > 5) {
+                                        if ((UtcNow() - _lastInvalidPlayerNameNotification).TotalMinutes > 5) {
                                             OnlineAdminSayMessage(playerInfo.SoldierName + " had an invalid player name, unable to process.");
                                             Log.Warn(playerInfo.SoldierName + " has an invalid player name, unable to process.");
                                             ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerInfo.SoldierName, "Your soldier name " + playerInfo.SoldierName + " is invalid.");
-                                            _lastInvalidPlayerNameNotification = UtcDbTime();
+                                            _lastInvalidPlayerNameNotification = UtcNow();
                                         }
                                         continue;
                                     }
@@ -7522,7 +7523,7 @@ namespace PRoConEvents
                                         //They are
                                         if (aPlayer.frostbitePlayerInfo.Score != playerInfo.Score || aPlayer.frostbitePlayerInfo.Kills != playerInfo.Kills || aPlayer.frostbitePlayerInfo.Deaths != playerInfo.Deaths)
                                         {
-                                            aPlayer.lastAction = UtcDbTime();
+                                            aPlayer.lastAction = UtcNow();
                                         }
                                         aPlayer.frostbitePlayerInfo = playerInfo;
                                         switch (aPlayer.frostbitePlayerInfo.Type)
@@ -7596,7 +7597,7 @@ namespace PRoConEvents
                                                 }
                                                 Boolean acted = false;
                                                 //Are they over the limit, or missing
-                                                if (((aPlayer.player_ping_avg > currentTriggerMS && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0 && (UtcDbTime() - aPlayer.JoinTime).TotalSeconds > 60)) && aPlayer.player_pings_full) {
+                                                if (((aPlayer.player_ping_avg > currentTriggerMS && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0 && (UtcNow() - aPlayer.JoinTime).TotalSeconds > 60)) && aPlayer.player_pings_full) {
                                                     //Are they worse than the current picked player
                                                     if (pingPickedPlayer == null || (aPlayer.player_ping_avg > pingPickedPlayer.player_ping_avg && pingPickedPlayer.player_ping_avg > 0)) {
                                                         pingPickedPlayer = aPlayer;
@@ -7621,7 +7622,7 @@ namespace PRoConEvents
                                                 target_player = aPlayer,
                                                 source_name = "CMDRManager",
                                                 record_message = "Commanders not allowed until " + _CMDRMinimumPlayers + " active players",
-                                                record_time = UtcDbTime()
+                                                record_time = UtcNow()
                                             };
                                             QueueRecordForProcessing(record);
                                         }
@@ -7651,7 +7652,7 @@ namespace PRoConEvents
                                                     target_player = aPlayer,
                                                     source_name = "AdKats",
                                                     record_message = aPlayer.player_name_previous,
-                                                    record_time = UtcDbTime()
+                                                    record_time = UtcNow()
                                                 };
                                                 QueueRecordForProcessing(record);
                                                 Log.Debug(() => aPlayer.player_name_previous + " changed their name to " + playerInfo.SoldierName + ". Updating the database.", 2);
@@ -7661,7 +7662,7 @@ namespace PRoConEvents
                                                 }
                                                 UpdatePlayer(aPlayer);
                                             }
-                                            if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == "player_kick" && (UtcDbTime() - aRecord.record_time).TotalMinutes < 30) && aPlayer.TargetedRecords.All(aRecord => aRecord.command_action.command_key != "banenforcer_enforce"))
+                                            if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == "player_kick" && (UtcNow() - aRecord.record_time).TotalMinutes < 30) && aPlayer.TargetedRecords.All(aRecord => aRecord.command_action.command_key != "banenforcer_enforce"))
                                             {
                                                 OnlineAdminSayMessage("Kicked player " + aPlayer.GetVerboseName() + " rejoined the server.");
                                             }
@@ -7677,7 +7678,7 @@ namespace PRoConEvents
                                             }
                                         }
                                         aPlayer.player_online = true;
-                                        aPlayer.JoinTime = UtcDbTime();
+                                        aPlayer.JoinTime = UtcNow();
                                         //Fetch their infraction points
                                         FetchPoints(aPlayer, false, true);
                                         if (aPlayer.location == null || aPlayer.location.status != "success" || aPlayer.location.IP != aPlayer.player_ip)
@@ -7755,7 +7756,7 @@ namespace PRoConEvents
                                                     target_player = aPlayer,
                                                     source_name = "SpectatorManager",
                                                     record_message = "You may not spectate the server at this time.",
-                                                    record_time = UtcDbTime()
+                                                    record_time = UtcNow()
                                                 };
                                                 QueueRecordForProcessing(record);
                                             }
@@ -7770,7 +7771,7 @@ namespace PRoConEvents
                                                     target_player = aPlayer,
                                                     source_name = "SpectatorManager",
                                                     record_message = "Whitelist required to spectate this server.",
-                                                    record_time = UtcDbTime()
+                                                    record_time = UtcNow()
                                                 };
                                                 QueueRecordForProcessing(record);
                                             }
@@ -7805,9 +7806,9 @@ namespace PRoConEvents
                                             }
                                         }
                                         //Set their last death/spawn times
-                                        aPlayer.lastDeath = UtcDbTime();
-                                        aPlayer.lastSpawn = UtcDbTime();
-                                        aPlayer.lastAction = UtcDbTime();
+                                        aPlayer.lastDeath = UtcNow();
+                                        aPlayer.lastSpawn = UtcNow();
+                                        aPlayer.lastAction = UtcNow();
                                         //Add them to the dictionary
                                         _PlayerDictionary.Add(playerInfo.SoldierName, aPlayer);
                                         //Update rep
@@ -7835,7 +7836,7 @@ namespace PRoConEvents
                                             target_player = aPlayer,
                                             source_name = "CMDRManager",
                                             record_message = "Commanders not allowed until " + _CMDRMinimumPlayers + " active players",
-                                            record_time = UtcDbTime()
+                                            record_time = UtcNow()
                                         };
                                         QueueRecordForProcessing(record);
                                     }
@@ -7936,7 +7937,7 @@ namespace PRoConEvents
                                                     source_name = aPlayer.player_name,
                                                     source_player = aPlayer,
                                                     record_message = aPlayer.GetVerboseName() + " has left their server. Private conversation closed.",
-                                                    record_time = UtcDbTime()
+                                                    record_time = UtcNow()
                                                 });
                                             }
                                             else
@@ -7956,12 +7957,12 @@ namespace PRoConEvents
                                         aPlayer.LiveKills.Clear();
                                         DequeuePlayer(aPlayer);
                                         //Remove all old values
-                                        List<String> removeNames = _PlayerLeftDictionary.Where(pair => (UtcDbTime() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
+                                        List<String> removeNames = _PlayerLeftDictionary.Where(pair => (UtcNow() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
                                         foreach (String removeName in removeNames)
                                         {
                                             _PlayerLeftDictionary.Remove(removeName);
                                         }
-                                        aPlayer.LastUsage = UtcDbTime();
+                                        aPlayer.LastUsage = UtcNow();
                                         _PlayerLeftDictionary[aPlayer.player_name] = aPlayer;
                                     }
                                     _PlayerDictionary.Remove(playerName);
@@ -7979,7 +7980,7 @@ namespace PRoConEvents
                                         target_player = null,
                                         source_name = "AdKats",
                                         record_message = "Server Crashed (" + dicCount + " Players Lost)",
-                                        record_time = UtcDbTime()
+                                        record_time = UtcNow()
                                     };
                                     //Process the record
                                     QueueRecordForProcessing(record);
@@ -8008,21 +8009,21 @@ namespace PRoConEvents
                                     switch (_populationStatus)
                                     {
                                         case PopulationState.Unknown:
-                                            _populationTransitionTime = UtcDbTime();
+                                            _populationTransitionTime = UtcNow();
                                             OnlineAdminSayMessage("Server in populating mode.");
                                             break;
                                         case PopulationState.Low:
                                             //Current state
-                                            _populationDurations[PopulationState.Low] += (UtcDbTime() - _populationUpdateTime);
+                                            _populationDurations[PopulationState.Low] += (UtcNow() - _populationUpdateTime);
                                             break;
                                         case PopulationState.Medium:
-                                            _populationTransitionTime = UtcDbTime();
-                                            _populationDurations[PopulationState.Medium] += (UtcDbTime() - _populationTransitionTime);
+                                            _populationTransitionTime = UtcNow();
+                                            _populationDurations[PopulationState.Medium] += (UtcNow() - _populationTransitionTime);
                                             OnlineAdminSayMessage("Server now in populating mode, with " + playerCount + " populators.");
                                             break;
                                         case PopulationState.High:
-                                            _populationTransitionTime = UtcDbTime();
-                                            _populationDurations[PopulationState.High] += (UtcDbTime() - _populationTransitionTime);
+                                            _populationTransitionTime = UtcNow();
+                                            _populationDurations[PopulationState.High] += (UtcNow() - _populationTransitionTime);
                                             OnlineAdminSayMessage("Server now in populating mode, with " + playerCount + " populators.");
                                             break;
                                         default:
@@ -8044,19 +8045,19 @@ namespace PRoConEvents
                                     switch (_populationStatus)
                                     {
                                         case PopulationState.Unknown:
-                                            _populationTransitionTime = UtcDbTime();
+                                            _populationTransitionTime = UtcNow();
                                             break;
                                         case PopulationState.Low:
-                                            _populationTransitionTime = UtcDbTime();
-                                            _populationDurations[PopulationState.Low] += (UtcDbTime() - _populationTransitionTime);
+                                            _populationTransitionTime = UtcNow();
+                                            _populationDurations[PopulationState.Low] += (UtcNow() - _populationTransitionTime);
                                             break;
                                         case PopulationState.Medium:
                                             //Current state
-                                            _populationDurations[PopulationState.Medium] += (UtcDbTime() - _populationUpdateTime);
+                                            _populationDurations[PopulationState.Medium] += (UtcNow() - _populationUpdateTime);
                                             break;
                                         case PopulationState.High:
-                                            _populationTransitionTime = UtcDbTime();
-                                            _populationDurations[PopulationState.High] += (UtcDbTime() - _populationTransitionTime);
+                                            _populationTransitionTime = UtcNow();
+                                            _populationDurations[PopulationState.High] += (UtcNow() - _populationTransitionTime);
                                             break;
                                         default:
                                             break;
@@ -8068,19 +8069,19 @@ namespace PRoConEvents
                                     switch (_populationStatus)
                                     {
                                         case PopulationState.Unknown:
-                                            _populationTransitionTime = UtcDbTime();
+                                            _populationTransitionTime = UtcNow();
                                             break;
                                         case PopulationState.Low:
-                                            _populationTransitionTime = UtcDbTime();
-                                            _populationDurations[PopulationState.Low] += (UtcDbTime() - _populationTransitionTime);
+                                            _populationTransitionTime = UtcNow();
+                                            _populationDurations[PopulationState.Low] += (UtcNow() - _populationTransitionTime);
                                             break;
                                         case PopulationState.Medium:
-                                            _populationTransitionTime = UtcDbTime();
-                                            _populationDurations[PopulationState.Medium] += (UtcDbTime() - _populationTransitionTime);
+                                            _populationTransitionTime = UtcNow();
+                                            _populationDurations[PopulationState.Medium] += (UtcNow() - _populationTransitionTime);
                                             break;
                                         case PopulationState.High:
                                             //Current state
-                                            _populationDurations[PopulationState.High] += (UtcDbTime() - _populationUpdateTime);
+                                            _populationDurations[PopulationState.High] += (UtcNow() - _populationUpdateTime);
                                             break;
                                         default:
                                             break;
@@ -8099,7 +8100,7 @@ namespace PRoConEvents
                                                 target_player = popPlayer,
                                                 source_name = "PopulationManager",
                                                 record_message = "Populated Server " + _serverInfo.ServerID,
-                                                record_time = UtcDbTime()
+                                                record_time = UtcNow()
                                             });
                                         }
                                         _populationPopulatingPlayers.Clear();
@@ -8107,7 +8108,7 @@ namespace PRoConEvents
                                     }
                                     _populationStatus = PopulationState.High;
                                 }
-                                _populationUpdateTime = UtcDbTime();
+                                _populationUpdateTime = UtcNow();
                             }
                         }
 
@@ -8123,15 +8124,15 @@ namespace PRoConEvents
                                 target_player = pingPickedPlayer,
                                 source_name = "PingEnforcer",
                                 record_message = _pingEnforcerMessagePrefix + " " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]")),
-                                record_time = UtcDbTime()
+                                record_time = UtcNow()
                             };
                             QueueRecordForProcessing(record);
-                            OnlineAdminSayMessage((++_pingKicksThisRound) + " ping kicks this round. " + Math.Round(++_pingKicksTotal / (UtcDbTime() - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
+                            OnlineAdminSayMessage((++_pingKicksThisRound) + " ping kicks this round. " + Math.Round(++_pingKicksTotal / (UtcNow() - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
                             AdminSayMessage(record.GetTargetNames() + " KICKED for exceeding ping limit. " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]")));
                         }
 
                         //Update last successful player list time
-                        _lastSuccessfulPlayerList = UtcDbTime();
+                        _lastSuccessfulPlayerList = UtcNow();
                         //Set required handles 
                         _PlayerListUpdateWaitHandle.Set();
                         _TeamswapWaitHandle.Set();
@@ -8142,7 +8143,7 @@ namespace PRoConEvents
                         }
                         if (!_firstPlayerListComplete && playerListFetched && _pluginEnabled)
                         {
-                            _AdKatsRunningTime = UtcDbTime();
+                            _AdKatsRunningTime = UtcNow();
                             _firstPlayerListComplete = true;
                             OnlineAdminSayMessage("Player listing complete [" + _PlayerDictionary.Count + " players]. Performing final startup.");
                             Log.Success("Player listing complete [" + _PlayerDictionary.Count + " players].");
@@ -8153,7 +8154,7 @@ namespace PRoConEvents
                             RegisterCommand(_fetchAuthorizedSoldiersMatchCommand);
                             _threadMasterWaitHandle.WaitOne(500);
 
-                            OnlineAdminTellMessage("AdKats startup complete [" + FormatTimeString(UtcDbTime() - _AdKatsStartTime, 3) + "]. Commands are now online.");
+                            OnlineAdminTellMessage("AdKats startup complete [" + FormatTimeString(UtcNow() - _AdKatsStartTime, 3) + "]. Commands are now online.");
                             foreach (String playerName in _PlayersRequestingCommands)
                             {
                                 AdKatsPlayer aPlayer;
@@ -8165,7 +8166,7 @@ namespace PRoConEvents
                                     }
                                 }
                             }
-                            Log.Success("AdKats " + GetPluginVersion() + " startup complete [" + FormatTimeString(UtcDbTime() - _AdKatsStartTime, 3) + "]. Commands are now online.");
+                            Log.Success("AdKats " + GetPluginVersion() + " startup complete [" + FormatTimeString(UtcNow() - _AdKatsStartTime, 3) + "]. Commands are now online.");
 
                             if (_TeamspeakPlayerMonitorEnable)
                             {
@@ -8222,7 +8223,7 @@ namespace PRoConEvents
                                 target_player = aPlayer,
                                 source_name = "AdKats",
                                 record_message = aPlayer.player_ip,
-                                record_time = UtcDbTime()
+                                record_time = UtcNow()
                             };
                             QueueRecordForProcessing(record);
                         }
@@ -8265,16 +8266,16 @@ namespace PRoConEvents
             {
                 lock (_userCache)
                 {
-                    DateTime start = UtcDbTime();
+                    DateTime start = UtcNow();
                     FetchCommands();
-                    Log.Debug(() => "Command fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
-                    start = UtcDbTime();
+                    Log.Debug(() => "Command fetch took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
+                    start = UtcNow();
                     FetchRoles();
-                    Log.Debug(() => "Role fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
-                    start = UtcDbTime();
+                    Log.Debug(() => "Role fetch took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
+                    start = UtcNow();
                     FetchUserList();
-                    Log.Debug(() => "User fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
-                    start = UtcDbTime();
+                    Log.Debug(() => "User fetch took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
+                    start = UtcNow();
                 }
             }
         }
@@ -8285,7 +8286,7 @@ namespace PRoConEvents
             {
                 Log.Debug(() => "Starting Access Fetching Thread", 1);
                 Thread.CurrentThread.Name = "AccessFetching";
-                DateTime loopStart = UtcDbTime();
+                DateTime loopStart = UtcNow();
                 while (true)
                 {
                     try
@@ -8300,13 +8301,13 @@ namespace PRoConEvents
                         FetchAllAccess(false);
 
                         Log.Debug(() => "Access fetch waiting for Input.", 5);
-                        if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                        if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
                         {
-                            Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                            Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                         }
                         _AccessFetchWaitHandle.Reset();
                         _AccessFetchWaitHandle.WaitOne(TimeSpan.FromSeconds(300));
-                        loopStart = UtcDbTime();
+                        loopStart = UtcNow();
                     }
                     catch (Exception e)
                     {
@@ -8604,7 +8605,7 @@ namespace PRoConEvents
                                                 maxFlags = 5;
                                                 break;
                                         }
-                                        if ((UtcDbTime() - _AdKatsRunningTime).TotalMinutes > 2.5 && _firstPlayerListComplete)
+                                        if ((UtcNow() - _AdKatsRunningTime).TotalMinutes > 2.5 && _firstPlayerListComplete)
                                         {
                                             if (winRate > -20 && loseRate > -20)
                                             {
@@ -8675,9 +8676,9 @@ namespace PRoConEvents
                                         flagMessage = " | " + _serverInfo.InfoObject.GameMode;
                                     }
                                 }
-                                if ((UtcDbTime() - _LastTicketRateDisplay).TotalSeconds > 55 || _currentFlagMessage != flagMessage)
+                                if ((UtcNow() - _LastTicketRateDisplay).TotalSeconds > 55 || _currentFlagMessage != flagMessage)
                                 {
-                                    _LastTicketRateDisplay = UtcDbTime();
+                                    _LastTicketRateDisplay = UtcNow();
                                     _currentFlagMessage = flagMessage;
                                     ProconChatWrite(Log.FBold(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
                                 }
@@ -8687,7 +8688,7 @@ namespace PRoConEvents
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                                 _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                             }
-                            if (_surrenderAutoEnable && _roundState == RoundState.Playing && !_endingRound && (UtcDbTime() - _lastAutoSurrenderTriggerTime).TotalSeconds > 9.5 && _serverInfo.GetRoundElapsedTime().TotalSeconds > 60 && (UtcDbTime() - _AdKatsRunningTime).TotalMinutes > 2.5)
+                            if (_surrenderAutoEnable && _roundState == RoundState.Playing && !_endingRound && (UtcNow() - _lastAutoSurrenderTriggerTime).TotalSeconds > 9.5 && _serverInfo.GetRoundElapsedTime().TotalSeconds > 60 && (UtcNow() - _AdKatsRunningTime).TotalMinutes > 2.5)
                             {
                                 int playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
                                 int neededPlayers = _surrenderAutoMinimumPlayers - playerCount;
@@ -8702,7 +8703,7 @@ namespace PRoConEvents
                                     requiredTriggers = ((_PlayersAutoAssistedThisRound) ? (requiredTriggers * 2) : (requiredTriggers));
                                     if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -5))
                                     {
-                                        _lastAutoSurrenderTriggerTime = UtcDbTime();
+                                        _lastAutoSurrenderTriggerTime = UtcNow();
                                         bool resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
                                         if (++_surrenderAutoTriggerCountCurrent >= requiredTriggers)
                                         {
@@ -8799,7 +8800,7 @@ namespace PRoConEvents
                                                         target_player = aPlayer,
                                                         source_name = "BaserapeMonitor",
                                                         record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
-                                                        record_time = UtcDbTime()
+                                                        record_time = UtcNow()
                                                     });
                                                 }
                                             }
@@ -8867,7 +8868,7 @@ namespace PRoConEvents
                                     requiredTriggers = ((_PlayersAutoAssistedThisRound) ? (requiredTriggers * 2) : (requiredTriggers));
                                     if ((losingTeam.TeamAdjustedTicketDifferenceRate < ((_isTestingAuthorized) ? (-45) : (-50)) && winningTeam.TeamAdjustedTicketDifferenceRate > -5))
                                     {
-                                        _lastAutoSurrenderTriggerTime = UtcDbTime();
+                                        _lastAutoSurrenderTriggerTime = UtcNow();
                                         bool resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
                                         if (++_surrenderAutoTriggerCountCurrent >= requiredTriggers)
                                         {
@@ -8958,7 +8959,7 @@ namespace PRoConEvents
                                                         target_player = aPlayer,
                                                         source_name = "BaserapeMonitor",
                                                         record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
-                                                        record_time = UtcDbTime()
+                                                        record_time = UtcNow()
                                                     });
                                                 }
                                             }
@@ -9024,7 +9025,7 @@ namespace PRoConEvents
                                         {
                                             if (winningTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoWinningRateMax && winningTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoWinningRateMin && losingTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoLosingRateMax && losingTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoLosingRateMin)
                                             {
-                                                _lastAutoSurrenderTriggerTime = UtcDbTime();
+                                                _lastAutoSurrenderTriggerTime = UtcNow();
                                                 bool resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
                                                 if (++_surrenderAutoTriggerCountCurrent >= ((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender)))
                                                 {
@@ -9115,7 +9116,7 @@ namespace PRoConEvents
                                                                 target_player = aPlayer,
                                                                 source_name = "BaserapeMonitor",
                                                                 record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
-                                                                record_time = UtcDbTime()
+                                                                record_time = UtcNow()
                                                             });
                                                         }
                                                     }
@@ -9177,7 +9178,7 @@ namespace PRoConEvents
                                         {
                                             if (winningTeam.TeamTicketDifferenceRate < _surrenderAutoWinningRateMax && winningTeam.TeamTicketDifferenceRate > _surrenderAutoWinningRateMin && losingTeam.TeamTicketDifferenceRate < _surrenderAutoLosingRateMax && losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin)
                                             {
-                                                _lastAutoSurrenderTriggerTime = UtcDbTime();
+                                                _lastAutoSurrenderTriggerTime = UtcNow();
                                                 bool resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
                                                 if (++_surrenderAutoTriggerCountCurrent >= ((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender)))
                                                 {
@@ -9269,7 +9270,7 @@ namespace PRoConEvents
                                                                 target_player = aPlayer,
                                                                 source_name = "BaserapeMonitor",
                                                                 record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
-                                                                record_time = UtcDbTime()
+                                                                record_time = UtcNow()
                                                             });
                                                         }
                                                     }
@@ -9359,7 +9360,7 @@ namespace PRoConEvents
                                             target_name = baserapingTeam.TeamName,
                                             source_name = "RoundManager",
                                             record_message = autoNukeMessage,
-                                            record_time = UtcDbTime()
+                                            record_time = UtcNow()
                                         });
                                     }
                                     else if (_surrenderAutoTriggerVote)
@@ -9373,7 +9374,7 @@ namespace PRoConEvents
                                             target_name = "RoundManager",
                                             source_name = "RoundManager",
                                             record_message = "Auto-Starting Surrender Vote",
-                                            record_time = UtcDbTime()
+                                            record_time = UtcNow()
                                         });
                                     }
                                     else if (!_endingRound)
@@ -9402,7 +9403,7 @@ namespace PRoConEvents
                                                     target_name = baserapingTeam.TeamName,
                                                     source_name = "RoundManager",
                                                     record_message = "Auto-Surrender (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")",
-                                                    record_time = UtcDbTime()
+                                                    record_time = UtcNow()
                                                 };
                                                 QueueRecordForProcessing(repRecord);
                                             }
@@ -9507,7 +9508,7 @@ namespace PRoConEvents
                             target_name = mapName,
                             stat_value = _mapDetrimentIndex,
                             stat_comment = _mapDetrimentIndex + " players left because of " + mapName,
-                            stat_time = UtcDbTime()
+                            stat_time = UtcNow()
                         });
                         QueueStatisticForProcessing(new AdKatsStatistic()
                         {
@@ -9517,7 +9518,7 @@ namespace PRoConEvents
                             target_name = mapName,
                             stat_value = _mapBenefitIndex,
                             stat_comment = _mapBenefitIndex + " players joined because of " + mapName,
-                            stat_time = UtcDbTime()
+                            stat_time = UtcNow()
                         });
                     }
                 }
@@ -9550,7 +9551,7 @@ namespace PRoConEvents
                         target_player = aPlayer,
                         stat_value = aPlayer.frostbitePlayerInfo.SquadID,
                         stat_comment = aPlayer.player_name + " won",
-                        stat_time = UtcDbTime()
+                        stat_time = UtcNow()
                     });
                 }
                 foreach (AdKatsPlayer aPlayer in LosingPlayers)
@@ -9564,7 +9565,7 @@ namespace PRoConEvents
                         target_player = aPlayer,
                         stat_value = aPlayer.frostbitePlayerInfo.SquadID,
                         stat_comment = aPlayer.player_name + " lost",
-                        stat_time = UtcDbTime()
+                        stat_time = UtcNow()
                     });
                 }
                 var TopOrdered = OrderedPlayers.Take((Int32) (OrderedPlayers.Count / 3.75)).ToList();
@@ -9577,7 +9578,7 @@ namespace PRoConEvents
                         target_player = aPlayer,
                         stat_value = aPlayer.frostbitePlayerInfo.SquadID,
                         stat_comment = aPlayer.player_name + " top player in position " + (WinningPlayers.IndexOf(aPlayer) + 1),
-                        stat_time = UtcDbTime()
+                        stat_time = UtcNow()
                     });
                 }
                 if (_surrenderAutoTriggerCountCurrent > 0 && winningTeam.TeamTicketDifferenceRate > losingTeam.TeamTicketDifferenceRate)
@@ -9593,7 +9594,7 @@ namespace PRoConEvents
                             target_player = aPlayer,
                             stat_value = aPlayer.frostbitePlayerInfo.SquadID,
                             stat_comment = aPlayer.player_name + " baseraped from " + GetPlayerTeamKey(aPlayer) + " in position " + (WinningPlayers.IndexOf(aPlayer) + 1),
-                            stat_time = UtcDbTime()
+                            stat_time = UtcNow()
                         });
                     }
                 }
@@ -9712,7 +9713,7 @@ namespace PRoConEvents
                             target_name = _serverInfo.InfoObject.Map,
                             stat_value = quality,
                             stat_comment = "Quality level " + quality + " (" + winningTeam.TeamTicketCount + "|" + losingTeam.TeamTicketCount + ")",
-                            stat_time = UtcDbTime()
+                            stat_time = UtcNow()
                         });
                     } else if (_serverInfo.ServerID == 1) {
                         Int32 quality = 4;
@@ -9732,7 +9733,7 @@ namespace PRoConEvents
                             target_name = _serverInfo.InfoObject.Map,
                             stat_value = quality,
                             stat_comment = "Quality level " + quality + " (" + winningTeam.TeamTicketCount + "|" + losingTeam.TeamTicketCount + ")",
-                            stat_time = UtcDbTime()
+                            stat_time = UtcNow()
                         });
                     } else if (_serverInfo.ServerID == 7 || _serverInfo.ServerID == 12) {
                         Int32 quality = 4;
@@ -9752,7 +9753,7 @@ namespace PRoConEvents
                             target_name = _serverInfo.InfoObject.Map,
                             stat_value = quality,
                             stat_comment = "Quality level " + quality + " (" + winningTeam.TeamTicketCount + "|" + losingTeam.TeamTicketCount + ")",
-                            stat_time = UtcDbTime()
+                            stat_time = UtcNow()
                         });
                     }
                 }
@@ -9760,8 +9761,8 @@ namespace PRoConEvents
                     PostRoundStatistics(winningTeam, losingTeam);
                 }
                 //Wait for round over players to be fired, if not already
-                var start = UtcDbTime();
-                while (_roundOverPlayers == null && (UtcDbTime() - start).TotalSeconds < 10) {
+                var start = UtcNow();
+                while (_roundOverPlayers == null && (UtcNow() - start).TotalSeconds < 10) {
                     Thread.Sleep(100);
                 }
                 if (_roundOverPlayers != null) {
@@ -9961,10 +9962,10 @@ namespace PRoConEvents
             {
                 Log.Debug(() => "Starting Kill Processing Thread", 1);
                 Thread.CurrentThread.Name = "KillProcessing";
-                DateTime loopStart = UtcDbTime();
+                DateTime loopStart = UtcNow();
                 while (true)
                 {
-                    loopStart = UtcDbTime();
+                    loopStart = UtcNow();
                     try
                     {
                         Log.Debug(() => "Entering Kill Processing Thread Loop", 7);
@@ -9992,13 +9993,13 @@ namespace PRoConEvents
                         {
                             Log.Debug(() => "No inbound player kills. Waiting for Input.", 6);
                             //Wait for input
-                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                            if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _KillProcessingWaitHandle.Reset();
                             _KillProcessingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
-                            loopStart = UtcDbTime();
+                            loopStart = UtcNow();
                             continue;
                         }
 
@@ -10087,8 +10088,8 @@ namespace PRoConEvents
         {
             try
             {
-                aKill.victim.lastAction = UtcDbTime();
-                aKill.killer.lastAction = UtcDbTime();
+                aKill.victim.lastAction = UtcNow();
+                aKill.killer.lastAction = UtcNow();
 
                 //Add the unmatched unique round death
                 if (!_unmatchedRoundDeaths.Contains(aKill.victim.player_name))
@@ -10108,7 +10109,7 @@ namespace PRoConEvents
                 Boolean gKillHandled = false;
                 //Update player death information
                 Log.Debug(() => "Setting " + aKill.victim.GetVerboseName() + " time of death to " + aKill.timestamp, 7);
-                aKill.victim.lastDeath = UtcDbTime();
+                aKill.victim.lastDeath = UtcNow();
 
                 //Add the kill
                 aKill.killer.LiveKills.Add(aKill);
@@ -10137,7 +10138,7 @@ namespace PRoConEvents
                             target_player = aKill.killer,
                             source_name = "AutoAdmin",
                             record_message = _HackerCheckerKPMBanMessage + " [LIVE][5-" + countRecent + "]",
-                            record_time = UtcDbTime()
+                            record_time = UtcNow()
                         });
                         return;
                     }
@@ -10176,14 +10177,14 @@ namespace PRoConEvents
                                 target_player = aKill.killer,
                                 source_name = "AutoAdmin",
                                 record_message = actionMessage,
-                                record_time = UtcDbTime()
+                                record_time = UtcNow()
                             });
                             return;
                         }
                         if (highKillHSKP >= 75 &&
                             !aKill.killer.TargetedRecords.Any(aRecord =>
                                 aRecord.record_message.Contains("non-sniper HSKP") &&
-                                (UtcDbTime() - aRecord.record_time).TotalMinutes <= 30) &&
+                                (UtcNow() - aRecord.record_time).TotalMinutes <= 30) &&
                             !PlayerProtected(aKill.killer)) {
                             //Create report record
                             QueueRecordForProcessing(new AdKatsRecord {
@@ -10195,7 +10196,7 @@ namespace PRoConEvents
                                 target_player = aKill.killer,
                                 source_name = "AutoAdmin",
                                 record_message = Math.Round(highKillHSKP) + "% non-sniper HSKP",
-                                record_time = UtcDbTime()
+                                record_time = UtcNow()
                             });
                         }
                     }
@@ -10245,7 +10246,7 @@ namespace PRoConEvents
                                 target_player = aKill.killer,
                                 source_name = "AutoAdmin",
                                 record_message = "Code 8-" + actedCode + ": Dispute Requested",
-                                record_time = UtcDbTime()
+                                record_time = UtcNow()
                             });
                             return;
                         }
@@ -10283,7 +10284,7 @@ namespace PRoConEvents
                                 target_player = aKill.killer,
                                 source_name = "AutoAdmin",
                                 record_message = "Code 8-" + actedCode + ": Dispute Requested",
-                                record_time = UtcDbTime()
+                                record_time = UtcNow()
                             });
                             return;
                         }
@@ -10350,9 +10351,9 @@ namespace PRoConEvents
                                             Log.Debug(() => cookerKill.victim.GetVerboseName() + " in " + aKill.killer.GetVerboseName() + "'s recent kills has a " + probability + "% cooking probability.", 2);
                                             gKillHandled = true;
                                             //Code to avoid spam
-                                            if (aKill.killer.lastKill.AddSeconds(2) < UtcDbTime())
+                                            if (aKill.killer.lastKill.AddSeconds(2) < UtcNow())
                                             {
-                                                aKill.killer.lastKill = UtcDbTime();
+                                                aKill.killer.lastKill = UtcNow();
                                             }
                                             else
                                             {
@@ -10385,7 +10386,7 @@ namespace PRoConEvents
                                                     target_player = cookerKill.victim,
                                                     source_name = "AutoAdmin",
                                                     record_message = "Rules: Cooking Grenades [" + probString + "-X] [Victim " + aKill.killer.GetVerboseName() + " Protected]",
-                                                    record_time = UtcDbTime()
+                                                    record_time = UtcNow()
                                                 };
                                                 //Process the record
                                                 QueueRecordForProcessing(record);
@@ -10427,7 +10428,7 @@ namespace PRoConEvents
                                             target_player = player,
                                             source_name = "AutoAdmin",
                                             record_message = "Rules: Cooking Grenades [" + probString + "] [Victim " + aKill.killer.GetVerboseName() + " Protected]",
-                                            record_time = UtcDbTime()
+                                            record_time = UtcNow()
                                         };
                                         //Process the record
                                         QueueRecordForProcessing(record);
@@ -10453,7 +10454,7 @@ namespace PRoConEvents
                                                 target_player = player,
                                                 source_name = "AutoAdmin",
                                                 record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + aKill.killer.GetVerboseName() + " Protected]",
-                                                record_time = UtcDbTime()
+                                                record_time = UtcNow()
                                             };
                                             //Process the record
                                             QueueRecordForProcessing(record);
@@ -10474,7 +10475,7 @@ namespace PRoConEvents
                                                 target_player = player,
                                                 source_name = "AutoAdmin",
                                                 record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + aKill.killer.GetVerboseName() + " Protected]",
-                                                record_time = UtcDbTime()
+                                                record_time = UtcNow()
                                             };
                                             //Process the record
                                             QueueRecordForProcessing(record);
@@ -10512,7 +10513,7 @@ namespace PRoConEvents
                                 target_player = aKill.killer,
                                 source_name = "AutoAdmin",
                                 record_message = "Teamkilling " + aKill.victim.GetVerboseName(),
-                                record_time = UtcDbTime()
+                                record_time = UtcNow()
                             };
                             QueueRecordForProcessing(aRecord);
                             //Inform the victim
@@ -10532,8 +10533,8 @@ namespace PRoConEvents
                                 {
                                     //Get player from the dictionary
                                     if (aKill.killer != null) {
-                                        var killSpam = (aKill.killer.lastKill.AddSeconds(2) > UtcDbTime());
-                                        aKill.killer.lastKill = UtcDbTime();
+                                        var killSpam = (aKill.killer.lastKill.AddSeconds(2) > UtcNow());
+                                        aKill.killer.lastKill = UtcNow();
 
                                         const string removeWeapon = "Weapons/";
                                         const string removeGadgets = "Gadgets/";
@@ -10557,7 +10558,7 @@ namespace PRoConEvents
                                             target_player = aKill.victim,
                                             source_name = "RepManager",
                                             record_message = "Player killed by restricted weapon " + weapon,
-                                            record_time = UtcDbTime()
+                                            record_time = UtcNow()
                                         };
                                         QueueRecordForProcessing(repRecord);
 
@@ -10573,7 +10574,7 @@ namespace PRoConEvents
                                                 target_name = aKill.killer.player_name,
                                                 target_player = aKill.killer,
                                                 source_name = "AutoAdmin",
-                                                record_time = UtcDbTime()
+                                                record_time = UtcNow()
                                             };
                                             if (weapon == "RoadKill")
                                             {
@@ -10681,8 +10682,8 @@ namespace PRoConEvents
                     {
                         //Handle TeamSwap notifications
                         String command = GetCommandByKey("self_teamswap").command_text;
-                        aPlayer.lastSpawn = UtcDbTime();
-                        aPlayer.lastAction = UtcDbTime();
+                        aPlayer.lastSpawn = UtcNow();
+                        aPlayer.lastAction = UtcNow();
 
                         //Add matched spawn count
                         AdKatsTeam aTeam;
@@ -10821,8 +10822,8 @@ namespace PRoConEvents
                         aPlayer.player_reputation >= 0 && 
                         aPlayer.player_infractionPoints > 0 && 
                         aPlayer.LastPunishment != null && 
-                        (UtcDbTime() - aPlayer.LastPunishment.record_time).TotalDays > _AutomaticForgiveLastPunishDays && 
-                        (aPlayer.LastForgive == null || (UtcDbTime() - aPlayer.LastForgive.record_time).TotalDays > _AutomaticForgiveLastForgiveDays))
+                        (UtcNow() - aPlayer.LastPunishment.record_time).TotalDays > _AutomaticForgiveLastPunishDays && 
+                        (aPlayer.LastForgive == null || (UtcNow() - aPlayer.LastForgive.record_time).TotalDays > _AutomaticForgiveLastForgiveDays))
                     {
                         QueueRecordForProcessing(new AdKatsRecord
                         {
@@ -10834,7 +10835,7 @@ namespace PRoConEvents
                             target_player = aPlayer,
                             source_name = "InfractionManager",
                             record_message = "Auto-Forgiven for Clean Play",
-                            record_time = UtcDbTime()
+                            record_time = UtcNow()
                         });
                     }
                 }
@@ -11024,7 +11025,7 @@ namespace PRoConEvents
             {
                 Log.Debug(() => "Starting Ban Enforcer Thread", 1);
                 Thread.CurrentThread.Name = "BanEnforcer";
-                DateTime loopStart = UtcDbTime();
+                DateTime loopStart = UtcNow();
                 while (true)
                 {
                     try
@@ -11060,13 +11061,13 @@ namespace PRoConEvents
                         {
                             Log.Debug(() => "No inbound ban checks. Waiting for Input.", 6);
                             //Wait for input
-                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                            if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _BanEnforcerWaitHandle.Reset();
                             _BanEnforcerWaitHandle.WaitOne(TimeSpan.FromSeconds(60));
-                            loopStart = UtcDbTime();
+                            loopStart = UtcNow();
                             continue;
                         }
 
@@ -11103,7 +11104,7 @@ namespace PRoConEvents
                                             command_type = GetCommandByKey("banenforcer_enforce"),
                                             command_numeric = (int)playerBan.ban_id,
                                             record_message = playerBan.ban_record.record_message,
-                                            record_time = UtcDbTime()
+                                            record_time = UtcNow()
                                         });
                                     }
                                     else
@@ -11129,7 +11130,7 @@ namespace PRoConEvents
                                                 command_type = GetCommandByKey("banenforcer_enforce"),
                                                 command_numeric = (int)playerBan.ban_id,
                                                 record_message = playerBan.ban_record.record_message + " [LINKED ACCOUNT " + strIDs + "]",
-                                                record_time = UtcDbTime()
+                                                record_time = UtcNow()
                                             });
                                         }
                                         else
@@ -11160,7 +11161,7 @@ namespace PRoConEvents
                                                 target_player = aPlayer,
                                                 source_name = "AutoAdmin",
                                                 record_message = "Multihack",
-                                                record_time = UtcDbTime()
+                                                record_time = UtcNow()
                                             });
                                             continue;
                                         }
@@ -11210,7 +11211,7 @@ namespace PRoConEvents
             try
             {
                 //Return if small duration (0.5 seconds) since last ban list, or if there is already a ban list going on
-                if ((UtcDbTime() - _lastSuccessfulBanList) < TimeSpan.FromSeconds(0.5))
+                if ((UtcNow() - _lastSuccessfulBanList) < TimeSpan.FromSeconds(0.5))
                 {
                     Log.Debug(() => "Banlist being called quickly.", 4);
                     return;
@@ -11220,7 +11221,7 @@ namespace PRoConEvents
                     Log.Error("Attempted banlist call rejected. Processing already in progress.");
                     return;
                 }
-                DateTime startTime = UtcDbTime();
+                DateTime startTime = UtcNow();
                 _lastSuccessfulBanList = startTime;
                 if (!_pluginEnabled)
                 {
@@ -11242,7 +11243,7 @@ namespace PRoConEvents
                                     Log.Debug(() => "Queuing Ban.", 7);
                                     _CBanProcessingQueue.Enqueue(cBan);
                                     _BansQueuing = true;
-                                    if (UtcDbTime() - startTime > TimeSpan.FromSeconds(50))
+                                    if (UtcNow() - startTime > TimeSpan.FromSeconds(50))
                                     {
                                         HandleException(new AdKatsException("OnBanList took longer than 50 seconds, exiting so procon doesn't panic."));
                                         _BansQueuing = false;
@@ -11483,7 +11484,7 @@ namespace PRoConEvents
                 Thread.CurrentThread.Name = "HackerChecker";
 
                 Queue<AdKatsPlayer> playerCheckingQueue = new Queue<AdKatsPlayer>();
-                DateTime loopStart = UtcDbTime();
+                DateTime loopStart = UtcNow();
                 while (true)
                 {
                     try
@@ -11515,14 +11516,14 @@ namespace PRoConEvents
                             {
                                 Log.Debug(() => "No inbound hacker checks. Waiting 10 seconds or for input.", 4);
                                 //Wait for input
-                                if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
                                 {
-                                    Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                    Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                                 }
                                 _HackerCheckerWaitHandle.Reset();
                                 //Either loop when handle is set, or after 3 minutes
                                 _HackerCheckerWaitHandle.WaitOne(TimeSpan.FromMinutes(3));
-                                loopStart = UtcDbTime();
+                                loopStart = UtcNow();
                                 continue;
                             }
                         }
@@ -11606,7 +11607,7 @@ namespace PRoConEvents
                     aPlayer.RoundStats.ContainsKey(_roundID) &&
                     //AdKats has been running long enough to collect kill codes
                     _previousRoundDuration.TotalSeconds > 0 &&
-                    (UtcDbTime() - _AdKatsRunningTime).TotalSeconds > _previousRoundDuration.TotalSeconds * 1.5) {
+                    (UtcNow() - _AdKatsRunningTime).TotalSeconds > _previousRoundDuration.TotalSeconds * 1.5) {
                     AdKatsPlayerStats previousStats;
                     AdKatsPlayerStats currentStats;
                     if (aPlayer.RoundStats.TryGetValue(_roundID, out currentStats) &&
@@ -11661,7 +11662,7 @@ namespace PRoConEvents
                                             target_player = aPlayer,
                                             source_name = "AutoAdmin",
                                             record_message = "Magic Bullet [LIVE][7-" + killDiscrepancy + "-" + hitDiscrepancy + "]",
-                                            record_time = UtcDbTime()
+                                            record_time = UtcNow()
                                         });
                                         acted = true;
                                     }
@@ -11670,9 +11671,9 @@ namespace PRoConEvents
                                     //Kills were not loaded. Why?
                                     if (_isTestingAuthorized) {
                                         Log.Warn(aPlayer.GetVerboseName() +
-                                            " Kills Not Loaded. (Join-" + FormatNowDiff(aPlayer.JoinTime, 2) + ")" +
-                                            "(Action-" + FormatNowDiff(aPlayer.lastAction, 2) + ")" +
-                                            "(Usage-" + FormatNowDiff(aPlayer.LastUsage, 2) + ")" +
+                                            " Kills Not Loaded. (Join-" + FormatNowDuration(aPlayer.JoinTime, 2) + ")" +
+                                            "(Action-" + FormatNowDuration(aPlayer.lastAction, 2) + ")" +
+                                            "(Usage-" + FormatNowDuration(aPlayer.LastUsage, 2) + ")" +
                                             "(Online-" + aPlayer.player_online + ")" +
                                             "(Spawned-" + aPlayer.player_spawnedOnce + ") " +
                                             (_roundID + 1) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID + 1) + " | " +
@@ -11799,7 +11800,7 @@ namespace PRoConEvents
                                     previousStats.WeaponStats != null) {
                                     AdKatsWeaponStat previousWeaponStat;
                                     if (previousStats.WeaponStats.TryGetValue(weaponStat.ID, out previousWeaponStat)) {
-                                        if (weaponStat.Kills > previousWeaponStat.Kills && killStatsValid) {
+                                        if (weaponStat.Kills > previousWeaponStat.Kills && (killStatsValid || _isTestingAuthorized)) {
                                             //Handle servers with different health amounts
                                             Double weaponHitsToKill = (_soldierHealth / weapon.DamageMax);
                                             Double killDiff = weaponStat.Kills - previousWeaponStat.Kills;
@@ -11841,8 +11842,8 @@ namespace PRoConEvents
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
                                                         source_name = "AutoAdmin",
-                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE][" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]",
-                                                        record_time = UtcDbTime()
+                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE]" + (killStatsValid ? "" : "[CAUTION]") + "[" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]",
+                                                        record_time = UtcNow()
                                                     });
                                                 }
                                                 return true;
@@ -11904,10 +11905,10 @@ namespace PRoConEvents
                                 try
                                 {
                                     Thread.CurrentThread.Name = "BanDelay";
-                                    DateTime start = UtcDbTime();
+                                    DateTime start = UtcNow();
                                     Log.Info(banPlayer.GetVerboseName() + " will be DPS banned. Waiting for starting case.");
                                     OnlineAdminTellMessage(banPlayer.GetVerboseName() + " will be DPS banned. Waiting for starting case.");
-                                    while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcDbTime() - start).TotalSeconds < 300)
+                                    while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcNow() - start).TotalSeconds < 300)
                                     {
                                         if (!_pluginEnabled)
                                         {
@@ -11938,7 +11939,7 @@ namespace PRoConEvents
                                             target_player = aPlayer,
                                             source_name = "AutoAdmin",
                                             record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
-                                            record_time = UtcDbTime()
+                                            record_time = UtcNow()
                                         };
                                         //Process the record
                                         QueueRecordForProcessing(record);
@@ -11972,7 +11973,7 @@ namespace PRoConEvents
                                 target_player = aPlayer,
                                 source_name = "AutoAdmin",
                                 record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
-                                record_time = UtcDbTime()
+                                record_time = UtcNow()
                             };
                             //Process the record
                             QueueRecordForProcessing(record);
@@ -12087,10 +12088,10 @@ namespace PRoConEvents
                                 try
                                 {
                                     Thread.CurrentThread.Name = "BanDelay";
-                                    DateTime start = UtcDbTime();
+                                    DateTime start = UtcNow();
                                     Log.Info(banPlayer.GetVerboseName() + " will be HSK banned. Waiting for starting case.");
                                     OnlineAdminTellMessage(banPlayer.GetVerboseName() + " will be HSK banned. Waiting for starting case.");
-                                    while (_roundState == RoundState.Playing && banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcDbTime() - start).TotalSeconds < 300)
+                                    while (_roundState == RoundState.Playing && banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcNow() - start).TotalSeconds < 300)
                                     {
                                         if (!_pluginEnabled)
                                         {
@@ -12124,7 +12125,7 @@ namespace PRoConEvents
                                             target_player = banPlayer,
                                             source_name = "AutoAdmin",
                                             record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
-                                            record_time = UtcDbTime()
+                                            record_time = UtcNow()
                                         };
                                         //Process the record
                                         QueueRecordForProcessing(record);
@@ -12158,7 +12159,7 @@ namespace PRoConEvents
                                 target_player = aPlayer,
                                 source_name = "AutoAdmin",
                                 record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
-                                record_time = UtcDbTime()
+                                record_time = UtcNow()
                             };
                             //Process the record
                             QueueRecordForProcessing(record);
@@ -12275,7 +12276,7 @@ namespace PRoConEvents
                             target_player = aPlayer,
                             source_name = "AutoAdmin",
                             record_message = _HackerCheckerKPMBanMessage + " [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
-                            record_time = UtcDbTime()
+                            record_time = UtcNow()
                         };
                         //Process the record
                         QueueRecordForProcessing(record);
@@ -12383,7 +12384,7 @@ namespace PRoConEvents
                     //Performance testing area
                     if (messageObject.Speaker == _debugSoldierName)
                     {
-                        _commandStartTime = UtcDbTime();
+                        _commandStartTime = UtcNow();
                     }
                     //If message contains comorose just return and ignore
                     if (messageObject.Message.Contains("ComoRose:"))
@@ -12943,7 +12944,7 @@ namespace PRoConEvents
             {
                 Log.Debug(() => "Starting Messaging Thread", 1);
                 Thread.CurrentThread.Name = "Messaging";
-                DateTime loopStart = UtcDbTime();
+                DateTime loopStart = UtcNow();
                 while (true)
                 {
                     try
@@ -12973,13 +12974,13 @@ namespace PRoConEvents
                         {
                             Log.Debug(() => "No inbound messages. Waiting for Input.", 6);
                             //Wait for input
-                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                            if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _MessageParsingWaitHandle.Reset();
                             _MessageParsingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
-                            loopStart = UtcDbTime();
+                            loopStart = UtcNow();
                             continue;
                         }
 
@@ -13004,7 +13005,7 @@ namespace PRoConEvents
                                 if (!_AFKIgnoreChat)
                                 {
                                     //Update player last action
-                                    aPlayer.lastAction = UtcDbTime();
+                                    aPlayer.lastAction = UtcNow();
                                 }
                             }
 
@@ -13043,7 +13044,7 @@ namespace PRoConEvents
                                         Int32 onlineDurationInt;
                                         if (Int32.TryParse(onlineDurationString, out onlineDurationInt))
                                         {
-                                            if (onlineDurationInt > Math.Round((UtcDbTime() - _AdKatsRunningTime).TotalSeconds))
+                                            if (onlineDurationInt > Math.Round((UtcNow() - _AdKatsRunningTime).TotalSeconds))
                                             {
                                                 //Other instance has been online longer, disable this instance
                                                 OnlineAdminSayMessage("Shutting down this AdKats instance, another instance is already online.");
@@ -13091,7 +13092,7 @@ namespace PRoConEvents
                                             _RoundMutedPlayers[messageObject.Speaker] = _RoundMutedPlayers[messageObject.Speaker] + 1;
                                             //Create record
                                             AdKatsRecord record = new AdKatsRecord();
-                                            record.record_time = UtcDbTime();
+                                            record.record_time = UtcNow();
                                             record.record_source = AdKatsRecord.Sources.InternalAutomated;
                                             record.server_id = _serverInfo.ServerID;
                                             record.source_name = "PlayerMuteSystem";
@@ -13243,7 +13244,7 @@ namespace PRoConEvents
             {
                 Log.Debug(() => "Starting TeamSwap Thread", 1);
                 Thread.CurrentThread.Name = "TeamSwap";
-                DateTime loopStart = UtcDbTime();
+                DateTime loopStart = UtcNow();
                 while (true)
                 {
                     try
@@ -13405,7 +13406,7 @@ namespace PRoConEvents
                                             }
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "1", "1", "true");
                                             dicPlayer.RequiredTeam = team1;
-                                            _LastPlayerMoveIssued = UtcDbTime();
+                                            _LastPlayerMoveIssued = UtcNow();
                                             team1.TeamPlayerCount++;
                                             team2.TeamPlayerCount--;
                                         }
@@ -13447,7 +13448,7 @@ namespace PRoConEvents
                                             }
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "2", "1", "true");
                                             dicPlayer.RequiredTeam = team2;
-                                            _LastPlayerMoveIssued = UtcDbTime();
+                                            _LastPlayerMoveIssued = UtcNow();
                                             team2.TeamPlayerCount++;
                                             team1.TeamPlayerCount--;
                                         }
@@ -13459,13 +13460,13 @@ namespace PRoConEvents
                         {
                             Log.Debug(() => "No players to swap. Waiting for Input.", 6);
                             //There are no players to swap, wait.
-                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                            if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _TeamswapWaitHandle.Reset();
                             _TeamswapWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
-                            loopStart = UtcDbTime();
+                            loopStart = UtcNow();
                             continue;
                         }
                     }
@@ -13580,7 +13581,7 @@ namespace PRoConEvents
                         if (record.target_player != null && !record.TargetPlayersLocal.Any())
                         {
                             //Cancel call if record is on timeout for single player
-                            if (record.target_player.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > UtcDbTime()))
+                            if (record.target_player.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > UtcNow()))
                             {
                                 SendMessageToSource(record, record.command_type.command_name + " on timeout for " + record.GetTargetNames());
                                 FinalizeRecord(record);
@@ -13592,7 +13593,7 @@ namespace PRoConEvents
                             //Cancel call if record is on timeout for any targeted players
                             foreach (AdKatsPlayer aPlayer in record.TargetPlayersLocal)
                             {
-                                if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > UtcDbTime()))
+                                if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > UtcNow()))
                                 {
                                     SendMessageToSource(record, record.command_type.command_name + " on timeout for " + aPlayer.GetVerboseName());
                                     FinalizeRecord(record);
@@ -13601,7 +13602,7 @@ namespace PRoConEvents
                             }
                         }
                     }
-                    if (record.target_player != null && (record.command_type.command_key == "player_report" || record.command_type.command_key == "player_calladmin") && record.target_player.TargetedRecords.Any(targetedRecord => (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kill_lowpop" || targetedRecord.command_action.command_key == "player_kill_repeat" || targetedRecord.command_action.command_key == "player_kill_force" || targetedRecord.command_action.command_key == "player_kick" || targetedRecord.command_action.command_key == "player_ban_temp" || targetedRecord.command_action.command_key == "player_ban_perm" || targetedRecord.command_action.command_key == "player_ban_perm_future" || targetedRecord.command_action.command_key == "player_punish" || targetedRecord.command_action.command_key == "player_mute" || targetedRecord.command_action.command_key == "player_say" || targetedRecord.command_action.command_key == "player_yell" || targetedRecord.command_action.command_key == "player_tell") && (UtcDbTime() - targetedRecord.record_time).TotalSeconds < 60))
+                    if (record.target_player != null && (record.command_type.command_key == "player_report" || record.command_type.command_key == "player_calladmin") && record.target_player.TargetedRecords.Any(targetedRecord => (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kill_lowpop" || targetedRecord.command_action.command_key == "player_kill_repeat" || targetedRecord.command_action.command_key == "player_kill_force" || targetedRecord.command_action.command_key == "player_kick" || targetedRecord.command_action.command_key == "player_ban_temp" || targetedRecord.command_action.command_key == "player_ban_perm" || targetedRecord.command_action.command_key == "player_ban_perm_future" || targetedRecord.command_action.command_key == "player_punish" || targetedRecord.command_action.command_key == "player_mute" || targetedRecord.command_action.command_key == "player_say" || targetedRecord.command_action.command_key == "player_yell" || targetedRecord.command_action.command_key == "player_tell") && (UtcNow() - targetedRecord.record_time).TotalSeconds < 60))
                     {
                         OnlineAdminSayMessage("Report on " + record.GetTargetNames() + " blocked. Player already acted on.");
                         SendMessageToSource(record, "Report on " + record.GetTargetNames() + " blocked. Player already acted on.");
@@ -13650,7 +13651,7 @@ namespace PRoConEvents
                         case "player_report":
                         case "player_calladmin":
                             {
-                                if (record.target_player != null && !record.target_player.player_online && record.target_player.TargetedRecords.Any(aRecord => (aRecord.command_action.command_key == "player_kick" || aRecord.command_action.command_key == "player_ban_temp" || aRecord.command_action.command_key == "player_ban_perm") && (UtcDbTime() - aRecord.record_time).TotalSeconds < 300))
+                                if (record.target_player != null && !record.target_player.player_online && record.target_player.TargetedRecords.Any(aRecord => (aRecord.command_action.command_key == "player_kick" || aRecord.command_action.command_key == "player_ban_temp" || aRecord.command_action.command_key == "player_ban_perm") && (UtcNow() - aRecord.record_time).TotalSeconds < 300))
                                 {
                                     SendMessageToSource(record, record.GetTargetNames() + " has already been removed from the server by an admin.");
                                     FinalizeRecord(record);
@@ -14255,7 +14256,7 @@ namespace PRoConEvents
             {
                 Log.Debug(() => "Starting Command Parsing Thread", 1);
                 Thread.CurrentThread.Name = "Command";
-                DateTime loopStart = UtcDbTime();
+                DateTime loopStart = UtcNow();
                 while (true)
                 {
                     try
@@ -14303,7 +14304,7 @@ namespace PRoConEvents
                                         record_source = AdKatsRecord.Sources.ServerCommand,
                                         record_access = AdKatsRecord.AccessMethod.HiddenExternal,
                                         source_name = "ProconAdmin",
-                                        record_time = UtcDbTime()
+                                        record_time = UtcNow()
                                     };
                                 }
                                 else
@@ -14312,7 +14313,7 @@ namespace PRoConEvents
                                     {
                                         record_source = AdKatsRecord.Sources.InGame,
                                         source_name = commandMessage.Speaker,
-                                        record_time = UtcDbTime()
+                                        record_time = UtcNow()
                                     };
                                     //Assign access method
                                     if (commandMessage.Hidden)
@@ -14355,13 +14356,13 @@ namespace PRoConEvents
                         {
                             Log.Debug(() => "No inbound commands, ready.", 7);
                             //No commands to parse, ready.
-                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                            if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _CommandParsingWaitHandle.Reset();
                             _CommandParsingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
-                            loopStart = UtcDbTime();
+                            loopStart = UtcNow();
                         }
                     }
                     catch (Exception e)
@@ -14402,7 +14403,7 @@ namespace PRoConEvents
                 String remainingMessage = message.TrimStart(splitMessage[0].ToCharArray()).Trim();
 
                 record.server_id = _serverInfo.ServerID;
-                record.record_time = UtcDbTime();
+                record.record_time = UtcNow();
 
                 //GATE 1: Add Command
                 AdKatsCommand commandType = null;
@@ -14439,11 +14440,11 @@ namespace PRoConEvents
                     }
                     if (!_firstUserListComplete)
                     {
-                        SendMessageToSource(record, "Command startup in progress, 1/3 complete, " + FormatTimeString(UtcDbTime() - _AdKatsStartTime, 3) + " elapsed.");
+                        SendMessageToSource(record, "Command startup in progress, 1/3 complete, " + FormatTimeString(UtcNow() - _AdKatsStartTime, 3) + " elapsed.");
                     }
                     else
                     {
-                        SendMessageToSource(record, "Command startup in progress, 2/3 complete, " + FormatTimeString(UtcDbTime() - _AdKatsStartTime, 3) + " elapsed.");
+                        SendMessageToSource(record, "Command startup in progress, 2/3 complete, " + FormatTimeString(UtcNow() - _AdKatsStartTime, 3) + " elapsed.");
                     }
                     FinalizeRecord(record);
                     return;
@@ -14762,7 +14763,7 @@ namespace PRoConEvents
                                 (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 200))
                             {
                                 //15 second timeout
-                                Double timeout = (60 - (UtcDbTime() - _commandUsageTimes["self_assist"]).TotalSeconds);
+                                Double timeout = (60 - (UtcNow() - _commandUsageTimes["self_assist"]).TotalSeconds);
                                 if (timeout > 0)
                                 {
                                     SendMessageToSource(record, "Assist recently used. Please wait " + (int)timeout + " seconds before using it. Thank you. " + debug);
@@ -20102,7 +20103,7 @@ namespace PRoConEvents
                 //Performance testing area
                 if (record.source_name == _debugSoldierName)
                 {
-                    SendMessageToSource(record, "Duration: " + ((int)UtcDbTime().Subtract(_commandStartTime).TotalMilliseconds) + "ms");
+                    SendMessageToSource(record, "Duration: " + ((int)UtcNow().Subtract(_commandStartTime).TotalMilliseconds) + "ms");
                 }
                 if (record.record_source == AdKatsRecord.Sources.InGame || record.record_source == AdKatsRecord.Sources.InternalAutomated)
                 {
@@ -20241,12 +20242,12 @@ namespace PRoConEvents
                 //Check for an exact match
                 if (_PlayerDictionary.TryGetValue(playerNameInput, out aPlayer))
                 {
-                    aPlayer.LastUsage = UtcDbTime();
+                    aPlayer.LastUsage = UtcNow();
                     return true;
                 }
                 if (includeLeftPlayers && _PlayerLeftDictionary.TryGetValue(playerNameInput, out aPlayer))
                 {
-                    aPlayer.LastUsage = UtcDbTime();
+                    aPlayer.LastUsage = UtcNow();
                     return true;
                 }
                 //Check online players for substring match
@@ -20260,7 +20261,7 @@ namespace PRoConEvents
                     //Only one subString match, call processing without confirmation if able
                     if (_PlayerDictionary.TryGetValue(subStringMatches[0], out aPlayer))
                     {
-                        aPlayer.LastUsage = UtcDbTime();
+                        aPlayer.LastUsage = UtcNow();
                         resultMessage = "Player match found for '" + playerNameInput + "'";
                         return true;
                     }
@@ -20318,7 +20319,7 @@ namespace PRoConEvents
                     {
                         resultMessage = msg;
                         confirmNeeded = true;
-                        aPlayer.LastUsage = UtcDbTime();
+                        aPlayer.LastUsage = UtcNow();
                         return true;
                     }
                     Log.Error("Substring match fetch failed.");
@@ -20338,7 +20339,7 @@ namespace PRoConEvents
                         {
                             resultMessage = "OFFLINE player match found for '" + playerNameInput + "'";
                             confirmNeeded = true;
-                            aPlayer.LastUsage = UtcDbTime();
+                            aPlayer.LastUsage = UtcNow();
                             return true;
                         }
                         Log.Error("Error fetching player for substring match.");
@@ -20395,7 +20396,7 @@ namespace PRoConEvents
                         {
                             resultMessage = msg;
                             confirmNeeded = true;
-                            aPlayer.LastUsage = UtcDbTime();
+                            aPlayer.LastUsage = UtcNow();
                             return true;
                         }
                         Log.Error("Substring match fetch failed.");
@@ -20418,7 +20419,7 @@ namespace PRoConEvents
                         aPlayer.LiveKills.Clear();
                         aPlayer.player_server = null;
                         confirmNeeded = true;
-                        aPlayer.LastUsage = UtcDbTime();
+                        aPlayer.LastUsage = UtcNow();
                         return true;
                     }
                 }
@@ -20429,7 +20430,7 @@ namespace PRoConEvents
                     if (aPlayer != null) {
                         resultMessage = "Online player found in '" + aPlayer.player_server.ServerName.Substring(0, 20) + "'.";
                         confirmNeeded = true;
-                        aPlayer.LastUsage = UtcDbTime();
+                        aPlayer.LastUsage = UtcNow();
                         return true;
                     }
                 }
@@ -20459,7 +20460,7 @@ namespace PRoConEvents
                     {
                         resultMessage = "Fuzzy player match found for '" + playerNameInput + "'";
                         confirmNeeded = true;
-                        aPlayer.LastUsage = UtcDbTime();
+                        aPlayer.LastUsage = UtcNow();
                         return true;
                     }
                     Log.Error("Player suggestion found matching player, but it could not be fetched.");
@@ -20492,7 +20493,7 @@ namespace PRoConEvents
                     {
                         resultMessage = "Fuzzy player match found for '" + playerNameInput + "'";
                         confirmNeeded = true;
-                        aPlayer.LastUsage = UtcDbTime();
+                        aPlayer.LastUsage = UtcNow();
                         return true;
                     }
                     Log.Error("Player suggestion found matching player, but it could not be fetched.");
@@ -20678,9 +20679,9 @@ namespace PRoConEvents
                     {
                         return false;
                     }
-                    if ((UtcDbTime() - reportedRecord.record_time).TotalSeconds < _MinimumReportHandleSeconds)
+                    if ((UtcNow() - reportedRecord.record_time).TotalSeconds < _MinimumReportHandleSeconds)
                     {
-                        SendMessageToSource(record, "Report [" + record.target_name + "] cannot be acted on. " + FormatTimeString(TimeSpan.FromSeconds(_MinimumReportHandleSeconds - (UtcDbTime() - reportedRecord.record_time).TotalSeconds), 2) + " remaining.");
+                        SendMessageToSource(record, "Report [" + record.target_name + "] cannot be acted on. " + FormatTimeString(TimeSpan.FromSeconds(_MinimumReportHandleSeconds - (UtcNow() - reportedRecord.record_time).TotalSeconds), 2) + " remaining.");
                         return true;
                     }
                     if (_RoundReports.Remove(record.target_name))
@@ -20782,7 +20783,7 @@ namespace PRoConEvents
             {
                 Log.Debug(() => "Starting IP API Comm Thread", 1);
                 Thread.CurrentThread.Name = "IPAPIComm";
-                DateTime loopStart = UtcDbTime();
+                DateTime loopStart = UtcNow();
                 while (true)
                 {
                     try
@@ -20826,13 +20827,13 @@ namespace PRoConEvents
                         {
                             Log.Debug(() => "No inbound players. Waiting.", 6);
                             //Wait for new actions
-                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                            if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _IPInfoWaitHandle.Reset();
                             _IPInfoWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
-                            loopStart = UtcDbTime();
+                            loopStart = UtcNow();
                         }
                     }
                     catch (Exception e)
@@ -20880,7 +20881,7 @@ namespace PRoConEvents
             {
                 Log.Debug(() => "Starting Battlelog Comm Thread", 1);
                 Thread.CurrentThread.Name = "BattlelogComm";
-                DateTime loopStart = UtcDbTime();
+                DateTime loopStart = UtcNow();
                 while (true)
                 {
                     try
@@ -20940,13 +20941,13 @@ namespace PRoConEvents
                         {
                             Log.Debug(() => "No inbound players. Waiting.", 6);
                             //Wait for new actions
-                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                            if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _BattlelogCommWaitHandle.Reset();
                             _BattlelogCommWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
-                            loopStart = UtcDbTime();
+                            loopStart = UtcNow();
                         }
                     }
                     catch (Exception e)
@@ -20995,7 +20996,7 @@ namespace PRoConEvents
             {
                 Log.Debug(() => "Starting Action Thread", 1);
                 Thread.CurrentThread.Name = "ActionHandling";
-                DateTime loopStart = UtcDbTime();
+                DateTime loopStart = UtcNow();
                 while (true)
                 {
                     try
@@ -21049,13 +21050,13 @@ namespace PRoConEvents
                         {
                             Log.Debug(() => "No inbound actions. Waiting.", 6);
                             //Wait for new actions
-                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                            if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _ActionHandlingWaitHandle.Reset();
                             _ActionHandlingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
-                            loopStart = UtcDbTime();
+                            loopStart = UtcNow();
                         }
                     }
                     catch (Exception e)
@@ -21412,8 +21413,8 @@ namespace PRoConEvents
                         FinalizeRecord(record);
                         break;
                 }
-                Log.Debug(() => record.command_type.command_key + " last used " + FormatTimeString(UtcDbTime() - _commandUsageTimes[record.command_type.command_key], 10) + " ago.", 3);
-                _commandUsageTimes[record.command_type.command_key] = UtcDbTime();
+                Log.Debug(() => record.command_type.command_key + " last used " + FormatTimeString(UtcNow() - _commandUsageTimes[record.command_type.command_key], 10) + " ago.", 3);
+                _commandUsageTimes[record.command_type.command_key] = UtcNow();
             }
             catch (Exception e)
             {
@@ -21589,7 +21590,7 @@ namespace PRoConEvents
                                     AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                                 }
                             }
-                            int seconds = (int)UtcDbTime().Subtract(record.target_player.lastDeath).TotalSeconds;
+                            int seconds = (int)UtcNow().Subtract(record.target_player.lastDeath).TotalSeconds;
                             Log.Debug(() => "Killing player. Player last died " + seconds + " seconds ago.", 3);
                             if (seconds < 6 && record.command_action.command_key != "player_kill_repeat")
                             {
@@ -22110,7 +22111,7 @@ namespace PRoConEvents
 
                 //Perform Actions
                 ExecuteCommand("procon.protected.send", "admin.kickPlayer", aBan.ban_record.target_player.player_name, generatedBanReason);
-                if (_PlayerDictionary.ContainsKey(aBan.ban_record.target_player.player_name) && aBan.ban_startTime < UtcDbTime())
+                if (_PlayerDictionary.ContainsKey(aBan.ban_record.target_player.player_name) && aBan.ban_startTime < UtcNow())
                 {
                     //Inform the server of the enforced ban
                     if (verbose)
@@ -23188,7 +23189,7 @@ namespace PRoConEvents
                         target_player = record.target_player,
                         source_name = "SpectatorManager",
                         record_message = "You may not spectate the server at this time.",
-                        record_time = UtcDbTime()
+                        record_time = UtcNow()
                     });
                 }
             }
@@ -24486,7 +24487,7 @@ namespace PRoConEvents
                 AdKatsPlayer sourcePlayer = null;
                 if (_PlayerDictionary.TryGetValue(record.source_name, out sourcePlayer))
                 {
-                    sourcePlayer.LastUsage = UtcDbTime();
+                    sourcePlayer.LastUsage = UtcNow();
                     //If the source has access to move players, then the squad will be unlocked for their entry
                     if (HasAccess(record.source_player, GetCommandByKey("player_move")))
                     {
@@ -24510,7 +24511,7 @@ namespace PRoConEvents
                         AdKatsTeam targetTeam;
                         if (GetTeamByID(record.target_player.frostbitePlayerInfo.TeamID, out targetTeam)) {
                             record.target_player.RequiredTeam = targetTeam;
-                            _LastPlayerMoveIssued = UtcDbTime();
+                            _LastPlayerMoveIssued = UtcNow();
                             SendMessageToSource(record, "Attempting to join " + record.GetTargetNames());
                             ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_name, record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "true");
                         }
@@ -24547,7 +24548,7 @@ namespace PRoConEvents
                 AdKatsTeam targetTeam;
                 if (GetTeamByID(record.source_player.frostbitePlayerInfo.TeamID, out targetTeam)) {
                     record.source_player.RequiredTeam = targetTeam;
-                    _LastPlayerMoveIssued = UtcDbTime();
+                    _LastPlayerMoveIssued = UtcNow();
                     SendMessageToSource(record, "Attempting to pull " + record.GetTargetNames());
                     ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_name, record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "true");
                 }
@@ -24699,7 +24700,7 @@ namespace PRoConEvents
                         target_player = record.source_player,
                         source_name = "RepManager",
                         record_message = "Player reported from Spectator Mode",
-                        record_time = UtcDbTime()
+                        record_time = UtcNow()
                     };
                     UploadRecord(repRecord);
                 }
@@ -24891,7 +24892,7 @@ namespace PRoConEvents
                                 target_player = reportedRecord.target_player,
                                 source_name = "ProconAdmin",
                                 record_message = reportedRecord.record_message,
-                                record_time = UtcDbTime()
+                                record_time = UtcNow()
                             };
                             //Inform the reporter that they helped the admins
                             SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been acted on. Thank you.");
@@ -25254,7 +25255,7 @@ namespace PRoConEvents
                             source_name = sender.player_name,
                             source_player = sender,
                             record_message = sender.GetVerboseName() + " has left the private conversation.",
-                            record_time = UtcDbTime()
+                            record_time = UtcNow()
                         });
                     }
                     else
@@ -25282,7 +25283,7 @@ namespace PRoConEvents
                         source_name = sender.player_name,
                         source_player = sender,
                         record_message = record.record_message,
-                        record_time = UtcDbTime()
+                        record_time = UtcNow()
                     });
                 }
                 else
@@ -25327,7 +25328,7 @@ namespace PRoConEvents
                                     source_name = sender.player_name,
                                     source_player = sender,
                                     record_message = partner.GetVerboseName() + " has left the private conversation.",
-                                    record_time = UtcDbTime()
+                                    record_time = UtcNow()
                                 });
                             }
                             else
@@ -25384,7 +25385,7 @@ namespace PRoConEvents
                         source_name = sender.player_name,
                         source_player = sender,
                         record_message = record.record_message,
-                        record_time = UtcDbTime()
+                        record_time = UtcNow()
                     });
                 }
                 else
@@ -25461,7 +25462,7 @@ namespace PRoConEvents
                                 source_name = sender.player_name,
                                 source_player = sender,
                                 record_message = partner.GetVerboseName() + " has left the private conversation.",
-                                record_time = UtcDbTime()
+                                record_time = UtcNow()
                             });
                         }
                         else
@@ -25550,7 +25551,7 @@ namespace PRoConEvents
                             source_name = partner.player_name,
                             source_player = partner,
                             record_message = partner.GetVerboseName() + " is not in a private conversation with you.",
-                            record_time = UtcDbTime()
+                            record_time = UtcNow()
                         });
                     }
                     else
@@ -25867,7 +25868,7 @@ namespace PRoConEvents
 
                     _surrenderVoteActive = true;
                     voteEnabled = true;
-                    _surrenderVoteStartTime = UtcDbTime();
+                    _surrenderVoteStartTime = UtcNow();
                     if (_surrenderVoteTimeoutEnable)
                     {
                         Thread surrenderTimingThread = new Thread(new ThreadStart(delegate
@@ -25875,7 +25876,7 @@ namespace PRoConEvents
                             Log.Debug(() => "Starting a surrender timing thread.", 5);
                             try
                             {
-                                while (_pluginEnabled && (UtcDbTime() - _surrenderVoteStartTime).TotalMinutes < _surrenderVoteTimeoutMinutes && !_surrenderVoteSucceeded && _surrenderVoteActive)
+                                while (_pluginEnabled && (UtcNow() - _surrenderVoteStartTime).TotalMinutes < _surrenderVoteTimeoutMinutes && !_surrenderVoteSucceeded && _surrenderVoteActive)
                                 {
                                     _threadMasterWaitHandle.WaitOne(500);
                                 }
@@ -25931,7 +25932,7 @@ namespace PRoConEvents
                                     target_name = winningTeam.TeamName,
                                     source_name = "RoundManager",
                                     record_message = "Surrender Vote (" + winningTeam.TeamKey + " Win)(" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + ")",
-                                    record_time = UtcDbTime()
+                                    record_time = UtcNow()
                                 };
                                 QueueRecordForProcessing(repRecord);
                             }
@@ -26142,7 +26143,7 @@ namespace PRoConEvents
                         }
                     }
                     if (points > 0 && _AutomaticForgives) {
-                        var forgiveTime = UtcDbTime();
+                        var forgiveTime = UtcNow();
                         if (record.target_player.LastForgive != null) {
                             var forgiveDiff = record.target_player.LastForgive.record_time.AddDays(_AutomaticForgiveLastForgiveDays);
                             if (forgiveDiff > forgiveTime) {
@@ -26155,7 +26156,7 @@ namespace PRoConEvents
                                 forgiveTime = punishDiff;
                             }
                         }
-                        repMessage += Environment.NewLine + "Next auto-forgive after you spawn " + FormatNowDiff(forgiveTime, 2) + " from now.";
+                        repMessage += Environment.NewLine + "Next auto-forgive after you spawn " + FormatNowDuration(forgiveTime, 2) + " from now.";
                     }
                     SendMessageToSource(record, repMessage);
                 }
@@ -26222,13 +26223,13 @@ namespace PRoConEvents
                         Thread.CurrentThread.Name = "UptimePrinter";
                         SendMessageToSource(record, "Server: " + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.InfoObject.ServerUptime), 10));
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "Procon: " + FormatTimeString(UtcDbTime() - _proconStartTime, 10));
+                        SendMessageToSource(record, "Procon: " + FormatTimeString(UtcNow() - _proconStartTime, 10));
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "AdKats " + PluginVersion + ": " + FormatTimeString(UtcDbTime() - _AdKatsRunningTime, 10));
+                        SendMessageToSource(record, "AdKats " + PluginVersion + ": " + FormatTimeString(UtcNow() - _AdKatsRunningTime, 10));
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "Last Player List: " + FormatTimeString(UtcDbTime() - _lastSuccessfulPlayerList, 10) + " ago");
+                        SendMessageToSource(record, "Last Player List: " + FormatTimeString(UtcNow() - _lastSuccessfulPlayerList, 10) + " ago");
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "Server has been in " + _populationStatus.ToString().ToLower() + " population for " + FormatTimeString(UtcDbTime() - _populationTransitionTime, 3));
+                        SendMessageToSource(record, "Server has been in " + _populationStatus.ToString().ToLower() + " population for " + FormatTimeString(UtcNow() - _populationTransitionTime, 3));
                         Double totalPopulationDuration = _populationDurations[PopulationState.Low].TotalSeconds + _populationDurations[PopulationState.Medium].TotalSeconds + _populationDurations[PopulationState.High].TotalSeconds;
                         if (totalPopulationDuration > 0)
                         {
@@ -26278,7 +26279,7 @@ namespace PRoConEvents
                     {
                         location = "OFFLINE";
                     }
-                    SendMessageToSource(record, "(" + rRecord.command_numeric + ")(" + FormatTimeString(UtcDbTime() - rRecord.record_time, 2) + ")(" + rRecord.GetTargetNames() + "/" + location + "):" + rRecord.record_message);
+                    SendMessageToSource(record, "(" + rRecord.command_numeric + ")(" + FormatTimeString(UtcNow() - rRecord.record_time, 2) + ")(" + rRecord.GetTargetNames() + "/" + location + "):" + rRecord.record_message);
                     Thread.Sleep(30);
                     listed = true;
                 }
@@ -26393,7 +26394,7 @@ namespace PRoConEvents
                         }
                         SendMessageToSource(record, playerInfo);
                         _threadMasterWaitHandle.WaitOne(2000);
-                        SendMessageToSource(record, "First seen: " + FormatTimeString(UtcDbTime() - record.target_player.player_firstseen, 3) + " ago.");
+                        SendMessageToSource(record, "First seen: " + FormatTimeString(UtcNow() - record.target_player.player_firstseen, 3) + " ago.");
                         _threadMasterWaitHandle.WaitOne(2000);
                         SendMessageToSource(record, "Time on server: " + FormatTimeString(record.target_player.player_serverplaytime, 3) + " + current session.");
                         _threadMasterWaitHandle.WaitOne(2000);
@@ -26462,7 +26463,7 @@ namespace PRoConEvents
                         if (punishments.Any())
                         {
                             AdKatsRecord lastPunish = punishments[0];
-                            lastPunishText = FormatTimeString(UtcDbTime() - lastPunish.record_time, 2) + " ago by " + lastPunish.GetSourceName() + ": " + lastPunish.record_message;
+                            lastPunishText = FormatTimeString(UtcNow() - lastPunish.record_time, 2) + " ago by " + lastPunish.GetSourceName() + ": " + lastPunish.record_message;
                         }
                         SendMessageToSource(record, "Last Punishment: " + lastPunishText);
                         _threadMasterWaitHandle.WaitOne(2000);
@@ -26472,7 +26473,7 @@ namespace PRoConEvents
                         if (forgives.Any())
                         {
                             AdKatsRecord lastForgive = forgives[0];
-                            lastForgiveText = FormatTimeString(UtcDbTime() - lastForgive.record_time, 2) + " ago by " + lastForgive.GetSourceName() + ": " + lastForgive.record_message;
+                            lastForgiveText = FormatTimeString(UtcNow() - lastForgive.record_time, 2) + " ago by " + lastForgive.GetSourceName() + ": " + lastForgive.record_message;
                         }
                         SendMessageToSource(record, "Last Forgive: " + lastForgiveText);
                         _threadMasterWaitHandle.WaitOne(2000);
@@ -26482,7 +26483,7 @@ namespace PRoConEvents
                         if (rulesRequests.Any(innerRecord => innerRecord.source_player != null && innerRecord.source_player.player_id == record.target_player.player_id))
                         {
                             AdKatsRecord lastRulesRequest = rulesRequests[0];
-                            rulesRequestsText = FormatTimeString(UtcDbTime() - lastRulesRequest.record_time, 2) + " ago.";
+                            rulesRequestsText = FormatTimeString(UtcNow() - lastRulesRequest.record_time, 2) + " ago.";
                         }
                         SendMessageToSource(record, "Last Rules Request: " + rulesRequestsText);
                         _threadMasterWaitHandle.WaitOne(2000);
@@ -26748,7 +26749,7 @@ namespace PRoConEvents
                 {
                     SendMessageToSource(record, "Server contains less than " + _AFKTriggerMinimumPlayers + ", unable to kick AFK players.");
                 }
-                List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(aPlayer => (UtcDbTime() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes && aPlayer.player_type != PlayerType.Spectator && !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
+                List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(aPlayer => (UtcNow() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes && aPlayer.player_type != PlayerType.Spectator && !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
                 if (_AFKIgnoreUserList)
                 {
                     IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
@@ -26762,7 +26763,7 @@ namespace PRoConEvents
                 {
                     foreach (AdKatsPlayer aPlayer in afkPlayers)
                     {
-                        string afkTime = FormatTimeString(UtcDbTime() - aPlayer.lastAction, 2);
+                        string afkTime = FormatTimeString(UtcNow() - aPlayer.lastAction, 2);
                         Log.Debug(() => "Kicking " + aPlayer.GetVerboseName() + " for being AFK " + afkTime + ".", 3);
                         AdKatsRecord kickRecord = new AdKatsRecord
                         {
@@ -26774,7 +26775,7 @@ namespace PRoConEvents
                             target_player = aPlayer,
                             source_name = "AFKManager",
                             record_message = "AFK time exceeded [" + afkTime + "/" + GetPlayerTeamKey(aPlayer) + "]. Please rejoin once you return.",
-                            record_time = UtcDbTime()
+                            record_time = UtcNow()
                         };
                         QueueRecordForProcessing(kickRecord);
                     }
@@ -26929,7 +26930,7 @@ namespace PRoConEvents
                 Stopwatch counter = new Stopwatch();
                 while (true)
                 {
-                    loopStart = UtcDbTime();
+                    loopStart = UtcNow();
                     try
                     {
                         Log.Debug(() => "Entering Database Comm Thread Loop", 7);
@@ -27010,7 +27011,7 @@ namespace PRoConEvents
                         }
 
                         //Check if settings need sync
-                        if (firstRun || _settingImportID != _serverInfo.ServerID || _lastDbSettingFetch.AddSeconds(DbSettingFetchFrequency) < UtcDbTime())
+                        if (firstRun || _settingImportID != _serverInfo.ServerID || _lastDbSettingFetch.AddSeconds(DbSettingFetchFrequency) < UtcNow())
                         {
                             Log.Debug(() => "Preparing to fetch settings from server " + _serverInfo.ServerID, 6);
                             //Fetch new settings from the database
@@ -27077,7 +27078,7 @@ namespace PRoConEvents
                         counter.Reset();
                         counter.Start();
                         //Check for new actions from the database at given interval
-                        if (_fetchActionsFromDb && (UtcDbTime() > _lastDbActionFetch.AddSeconds(DbActionFetchFrequency)))
+                        if (_fetchActionsFromDb && (UtcNow() > _lastDbActionFetch.AddSeconds(DbActionFetchFrequency)))
                         {
                             RunActionsFromDB();
                         }
@@ -27094,7 +27095,7 @@ namespace PRoConEvents
                         if (firstRun)
                         {
                             //Set the start time
-                            _AdKatsStartTime = UtcDbTime();
+                            _AdKatsStartTime = UtcNow();
 
                             //Import round ID
                             FetchRoundID(false);
@@ -27181,9 +27182,9 @@ namespace PRoConEvents
                             }
                             counter.Stop();
                             //Log.Write("UnprocessedRecords took " + counter.ElapsedMilliseconds + "ms");
-                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                            if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                         }
                         else
@@ -27192,9 +27193,9 @@ namespace PRoConEvents
                             counter.Start();
                             Log.Debug(() => "No unprocessed records. Waiting for input", 7);
                             _DbCommunicationWaitHandle.Reset();
-                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                            if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
                             {
-                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _DbCommunicationWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             counter.Stop();
@@ -27224,7 +27225,7 @@ namespace PRoConEvents
         {
             Log.Debug(() => "FeedStatLoggerSettings starting!", 6);
             //Every 60 minutes feed stat logger settings
-            if (_lastStatLoggerStatusUpdateTime.AddMinutes(60) < UtcDbTime())
+            if (_lastStatLoggerStatusUpdateTime.AddMinutes(60) < UtcNow())
             {
                 if (_aliveThreads.Values.Any(aThread => aThread.Name == "StatLoggerSettingsFeeder"))
                 {
@@ -27241,7 +27242,7 @@ namespace PRoConEvents
                         Thread.CurrentThread.Name = "StatLoggerSettingsFeeder";
                         Thread.Sleep(250);
                         Log.Debug(() => "Starting a stat logger setting feeder thread.", 5);
-                        _lastStatLoggerStatusUpdateTime = UtcDbTime();
+                        _lastStatLoggerStatusUpdateTime = UtcNow();
                         if (_isTestingAuthorized)
                         {
                             _FeedStatLoggerSettings = true;
@@ -27259,7 +27260,7 @@ namespace PRoConEvents
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Session ON?", "Yes");
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Save Sessiondata to DB?", "Yes");
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Log playerdata only (no playerstats)?", "No");
-                                Double slOffset = UtcDbTime().Subtract(DateTime.Now).TotalHours;
+                                Double slOffset = UtcNow().Subtract(DateTime.Now).TotalHours;
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Servertime Offset", slOffset + "");
                             }
                             if (_PostStatLoggerChatManually)
@@ -27285,7 +27286,7 @@ namespace PRoConEvents
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Session ON?", "Yes");
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Save Sessiondata to DB?", "Yes");
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Log playerdata only (no playerstats)?", "No");
-                                Double slOffset = UtcDbTime().Subtract(DateTime.Now).TotalHours;
+                                Double slOffset = UtcNow().Subtract(DateTime.Now).TotalHours;
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Servertime Offset", slOffset + "");
                             }
                             if (_PostStatLoggerChatManually)
@@ -27586,7 +27587,7 @@ namespace PRoConEvents
                     }
                     FetchAllAccess(true);
                 }
-                else if (UtcDbTime() > _lastUserFetch.AddSeconds(DbUserFetchFrequency) || !_firstUserListComplete)
+                else if (UtcNow() > _lastUserFetch.AddSeconds(DbUserFetchFrequency) || !_firstUserListComplete)
                 {
                     FetchAllAccess(true);
                 }
@@ -27606,9 +27607,9 @@ namespace PRoConEvents
             try
             {
                 //Call banlist at set interval (20 seconds)
-                if (_UseBanEnforcerPreviousState && (UtcDbTime() > _lastBanListCall.AddSeconds(20)))
+                if (_UseBanEnforcerPreviousState && (UtcNow() > _lastBanListCall.AddSeconds(20)))
                 {
-                    _lastBanListCall = UtcDbTime();
+                    _lastBanListCall = UtcNow();
                     Log.Debug(() => "banlist.list called at interval.", 6);
                     ExecuteCommand("procon.protected.send", "banList.list");
 
@@ -27616,7 +27617,7 @@ namespace PRoConEvents
                     FetchGUIDBanCount();
                     FetchIPBanCount();
                 }
-                if (!_UseBanEnforcerPreviousState || (UtcDbTime() > _lastDbBanFetch.AddSeconds(DbBanFetchFrequency)))
+                if (!_UseBanEnforcerPreviousState || (UtcNow() > _lastDbBanFetch.AddSeconds(DbBanFetchFrequency)))
                 {
                     //Load all bans on startup
                     if (!_UseBanEnforcerPreviousState)
@@ -27699,7 +27700,7 @@ namespace PRoConEvents
                     Double totalCBans = 0;
                     Double bansImported = 0;
                     Boolean earlyExit = false;
-                    DateTime startTime = UtcDbTime();
+                    DateTime startTime = UtcNow();
                     Queue<CBanInfo> inboundCBans;
                     lock (_CBanProcessingQueue)
                     {
@@ -27728,7 +27729,7 @@ namespace PRoConEvents
 
                         //Create the record
                         AdKatsRecord record = new AdKatsRecord();
-                        record.record_time = UtcDbTime();
+                        record.record_time = UtcNow();
                         record.record_source = AdKatsRecord.Sources.InternalAutomated;
                         //Permabans and Temp bans longer than 1 year will be defaulted to permaban
                         switch (cBan.BanLength.Subset)
@@ -27812,7 +27813,7 @@ namespace PRoConEvents
 
                         if (!_UseBanEnforcerPreviousState && (++bansImported % 25 == 0))
                         {
-                            Log.Write(Math.Round(100 * bansImported / totalCBans, 2) + "% of bans uploaded. AVG " + Math.Round(bansImported / ((UtcDbTime() - startTime).TotalSeconds), 2) + " uploads/sec.");
+                            Log.Write(Math.Round(100 * bansImported / totalCBans, 2) + "% of bans uploaded. AVG " + Math.Round(bansImported / ((UtcNow() - startTime).TotalSeconds), 2) + " uploads/sec.");
                         }
                     }
                     if (bansFound && !earlyExit)
@@ -28368,7 +28369,7 @@ namespace PRoConEvents
                                 {
                                     user_name = reader.GetString("player_name"),
                                     user_role = _RoleKeyDictionary["guest_default"],
-                                    user_expiration = UtcDbTime().AddYears(20),
+                                    user_expiration = UtcNow().AddYears(20),
                                     user_notes = "No Notes"
                                 });
                             }
@@ -28423,7 +28424,7 @@ namespace PRoConEvents
                 Double totalBans = 0;
                 Double bansDownloaded = 0;
                 Double bansUpdated = 0;
-                DateTime startTime = UtcDbTime();
+                DateTime startTime = UtcNow();
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
@@ -28547,7 +28548,7 @@ namespace PRoConEvents
 
                                 if (++bansDownloaded % 100 == 0)
                                 {
-                                    Log.Write(Math.Round(100 * bansDownloaded / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansDownloaded / ((UtcDbTime() - startTime).TotalSeconds), 2) + " downloads/sec.");
+                                    Log.Write(Math.Round(100 * bansDownloaded / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansDownloaded / ((UtcNow() - startTime).TotalSeconds), 2) + " downloads/sec.");
                                 }
                             }
                         }
@@ -28555,14 +28556,14 @@ namespace PRoConEvents
                         {
                             Log.Info(importedBans.Count + " bans downloaded, beginning update to 4.0 spec.");
                         }
-                        startTime = UtcDbTime();
+                        startTime = UtcNow();
                         //Upload all of those bans to the new database
                         foreach (AdKatsBan aBan in importedBans)
                         {
                             UploadBan(aBan);
                             if (++bansUpdated % 15 == 0)
                             {
-                                Log.Write(Math.Round(100 * bansUpdated / totalBans, 2) + "% of bans updated. AVG " + Math.Round(bansUpdated / ((UtcDbTime() - startTime).TotalSeconds), 2) + " updates/sec.");
+                                Log.Write(Math.Round(100 * bansUpdated / totalBans, 2) + "% of bans updated. AVG " + Math.Round(bansUpdated / ((UtcNow() - startTime).TotalSeconds), 2) + " updates/sec.");
                             }
                         }
                         Log.Success("All AdKats Enforced bans updated to 4.0 spec.");
@@ -29018,7 +29019,7 @@ namespace PRoConEvents
                             }
                             if (success)
                             {
-                                _lastDbSettingFetch = UtcDbTime();
+                                _lastDbSettingFetch = UtcNow();
                                 if (_isTestingAuthorized) {
                                     Log.Info("28816");
                                 }
@@ -29720,7 +29721,7 @@ namespace PRoConEvents
                         AdKatsPlayer aPlayer = null;
                         if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer))
                         {
-                            aPlayer.LastUsage = UtcDbTime();
+                            aPlayer.LastUsage = UtcNow();
                             Log.Debug(() => "Player found for chat log upload.", 5);
                         }
 
@@ -29807,7 +29808,7 @@ namespace PRoConEvents
                 List<AdKatsRecord> recentPunishments = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_punish").command_id, 10000, 10000, true, false);
                 foreach (AdKatsRecord punishment in recentPunishments)
                 {
-                    TimeSpan timeSince = UtcDbTime() - punishment.record_time;
+                    TimeSpan timeSince = UtcNow() - punishment.record_time;
                     if (timeSince.TotalDays < 50)
                     {
                         pointReputation -= 20 * ((50 - timeSince.TotalDays) / 50);
@@ -29816,7 +29817,7 @@ namespace PRoConEvents
                 List<AdKatsRecord> recentForgives = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_forgive").command_id, 10000, 10000, true, false);
                 foreach (AdKatsRecord forgive in recentForgives)
                 {
-                    TimeSpan timeSince = UtcDbTime() - forgive.record_time;
+                    TimeSpan timeSince = UtcNow() - forgive.record_time;
                     if (timeSince.TotalDays < 50)
                     {
                         pointReputation += 20 * ((50 - timeSince.TotalDays) / 50);
@@ -30431,7 +30432,7 @@ namespace PRoConEvents
                                     AdKatsPlayer tPlayer;
                                     if ((_PlayerDictionary.TryGetValue(record.target_name, out tPlayer) || _PlayerLeftDictionary.TryGetValue(record.target_name, out tPlayer)) && tPlayer.player_id == targetID)
                                     {
-                                        tPlayer.LastUsage = UtcDbTime();
+                                        tPlayer.LastUsage = UtcNow();
                                         Log.Debug(() => "Target player fetched from memory.", 7);
                                     }
                                     else
@@ -30447,7 +30448,7 @@ namespace PRoConEvents
                                     AdKatsPlayer sPlayer;
                                     if ((_PlayerDictionary.TryGetValue(record.target_name, out sPlayer) || _PlayerLeftDictionary.TryGetValue(record.target_name, out sPlayer)) && sPlayer.player_id == targetID)
                                     {
-                                        sPlayer.LastUsage = UtcDbTime();
+                                        sPlayer.LastUsage = UtcNow();
                                         Log.Debug(() => "Target player fetched from memory.", 7);
                                     }
                                     else
@@ -30547,7 +30548,7 @@ namespace PRoConEvents
                                     AdKatsPlayer currentPlayer = null;
                                     if (!String.IsNullOrEmpty(importedPlayer.player_name) && _PlayerDictionary.TryGetValue(importedPlayer.player_name, out currentPlayer))
                                     {
-                                        currentPlayer.LastUsage = UtcDbTime();
+                                        currentPlayer.LastUsage = UtcNow();
                                         Log.Debug(() => "External player is currently in the server, using existing data.", 5);
                                         record.target_player = currentPlayer;
                                     }
@@ -30800,11 +30801,11 @@ namespace PRoConEvents
             {
                 return 0;
             }
-            if (_NameBanCount >= 0 && (UtcDbTime() - _lastNameBanCountFetch).TotalSeconds < 30)
+            if (_NameBanCount >= 0 && (UtcNow() - _lastNameBanCountFetch).TotalSeconds < 30)
             {
                 return _NameBanCount;
             }
-            _lastNameBanCountFetch = UtcDbTime();
+            _lastNameBanCountFetch = UtcNow();
             try
             {
                 using (MySqlConnection connection = GetDatabaseConnection())
@@ -30850,11 +30851,11 @@ namespace PRoConEvents
             {
                 return 0;
             }
-            if (_GUIDBanCount >= 0 && (UtcDbTime() - _lastGUIDBanCountFetch).TotalSeconds < 30)
+            if (_GUIDBanCount >= 0 && (UtcNow() - _lastGUIDBanCountFetch).TotalSeconds < 30)
             {
                 return _GUIDBanCount;
             }
-            _lastGUIDBanCountFetch = UtcDbTime();
+            _lastGUIDBanCountFetch = UtcNow();
             try
             {
                 using (MySqlConnection connection = GetDatabaseConnection())
@@ -30900,11 +30901,11 @@ namespace PRoConEvents
             {
                 return 0;
             }
-            if (_IPBanCount >= 0 && (UtcDbTime() - _lastIPBanCountFetch).TotalSeconds < 30)
+            if (_IPBanCount >= 0 && (UtcNow() - _lastIPBanCountFetch).TotalSeconds < 30)
             {
                 return _IPBanCount;
             }
-            _lastIPBanCountFetch = UtcDbTime();
+            _lastIPBanCountFetch = UtcNow();
             try
             {
                 using (MySqlConnection connection = GetDatabaseConnection())
@@ -31179,7 +31180,7 @@ namespace PRoConEvents
                             }
                             foreach (AdKatsPlayer matchingPlayer in matchingPlayers)
                             {
-                                matchingPlayer.LastUsage = UtcDbTime();
+                                matchingPlayer.LastUsage = UtcNow();
                                 bool playerDuplicate = false;
                                 //Make sure the player is not already assigned to another user
                                 lock (_userCache)
@@ -31452,7 +31453,7 @@ namespace PRoConEvents
                             //Handle permaban case
                             if (aBan.ban_record.command_action.command_key.Contains("player_ban_perm"))
                             {
-                                command.Parameters.AddWithValue("@ban_durationMinutes", (Int32)UtcDbTime().AddYears(20).Subtract(UtcDbTime()).TotalMinutes);
+                                command.Parameters.AddWithValue("@ban_durationMinutes", (Int32)UtcNow().AddYears(20).Subtract(UtcNow()).TotalMinutes);
                             }
                             else
                             {
@@ -31597,7 +31598,7 @@ namespace PRoConEvents
                     player_name = playerName,
                     player_guid = playerGUID,
                     player_ip = playerIP,
-                    LastUsage = UtcDbTime()
+                    LastUsage = UtcNow()
                 };
                 AssignPlayerRole(aPlayer);
                 return aPlayer;
@@ -31618,7 +31619,7 @@ namespace PRoConEvents
                             if (_FetchedPlayers.TryGetValue(playerID, out aPlayer))
                             {
                                 Log.Debug(() => "Player " + playerID + " successfully fetched from pre-fetch list.", 6);
-                                aPlayer.LastUsage = UtcDbTime();
+                                aPlayer.LastUsage = UtcNow();
                                 return aPlayer;
                             }
                         }
@@ -31820,7 +31821,7 @@ namespace PRoConEvents
                                     target_player = aPlayer,
                                     source_name = "AdKats",
                                     record_message = aPlayer.player_name_previous,
-                                    record_time = UtcDbTime()
+                                    record_time = UtcNow()
                                 };
                                 QueueRecordForProcessing(record);
                                 Log.Debug(() => aPlayer.player_name_previous + " changed their name to " + playerName + ". Updating the database.", 2);
@@ -31866,7 +31867,7 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        aPlayer.player_firstseen = UtcDbTime();
+                                        aPlayer.player_firstseen = UtcNow();
                                         Log.Debug(() => "No stats found to fetch first seen time.", 5);
                                     }
                                 }
@@ -31905,14 +31906,14 @@ namespace PRoConEvents
                     }
                     if (aPlayer != null && aPlayer.player_id > 0)
                     {
-                        aPlayer.LastUsage = UtcDbTime();
+                        aPlayer.LastUsage = UtcNow();
                         //Remove all old values
-                        List<Int64> removeIDs = _FetchedPlayers.Where(pair => (UtcDbTime() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
+                        List<Int64> removeIDs = _FetchedPlayers.Where(pair => (UtcNow() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
                         foreach (Int64 removeID in removeIDs)
                         {
                             _FetchedPlayers.Remove(removeID);
                         }
-                        aPlayer.LastUsage = UtcDbTime();
+                        aPlayer.LastUsage = UtcNow();
                         _FetchedPlayers[aPlayer.player_id] = aPlayer;
                     }
                 }
@@ -31924,7 +31925,7 @@ namespace PRoConEvents
             Log.Debug(() => "fetchPlayer finished!", 6);
             if (aPlayer != null)
             {
-                aPlayer.LastUsage = UtcDbTime();
+                aPlayer.LastUsage = UtcNow();
             }
             return aPlayer;
         }
@@ -32524,7 +32525,7 @@ namespace PRoConEvents
                                     ban_enforceIP = (reader.GetString("ban_enforceIP") == "Y"),
                                     ban_record = FetchRecordByID(reader.GetInt64("latest_record_id"), false)
                                 };
-                                if (aBan.ban_endTime.Subtract(UtcDbTime()).TotalSeconds < 0)
+                                if (aBan.ban_endTime.Subtract(UtcNow()).TotalSeconds < 0)
                                 {
                                     aBan.ban_status = "Expired";
                                     UpdateBanStatus(aBan);
@@ -32693,7 +32694,7 @@ namespace PRoConEvents
                                     ban_enforceIP = (reader.GetString("ban_enforceIP") == "Y"),
                                     ban_record = FetchRecordByID(reader.GetInt64("latest_record_id"), false)
                                 };
-                                if (aBan.ban_endTime.Subtract(UtcDbTime()).TotalSeconds < 0)
+                                if (aBan.ban_endTime.Subtract(UtcNow()).TotalSeconds < 0)
                                 {
                                     aBan.ban_status = "Expired";
                                     UpdateBanStatus(aBan);
@@ -32710,11 +32711,11 @@ namespace PRoConEvents
                                         target_player = player,
                                         source_name = "BanEnforcer",
                                         record_message = "Name-Banned player has changed their name. (" + player.player_name_previous + " -> " + player.player_name + ")",
-                                        record_time = UtcDbTime()
+                                        record_time = UtcNow()
                                     };
                                     QueueRecordForProcessing(record);
                                 }
-                                else if (_serverInfo.ServerGroup == FetchServerGroup(aBan.ban_record.server_id) && aBan.ban_startTime < UtcDbTime())
+                                else if (_serverInfo.ServerGroup == FetchServerGroup(aBan.ban_record.server_id) && aBan.ban_startTime < UtcNow())
                                 {
                                     aBanList.Add(aBan);
                                 }
@@ -32812,7 +32813,7 @@ namespace PRoConEvents
             Double bansDownloaded = 0;
             Double bansRepopulated = 0;
             Boolean earlyExit = false;
-            DateTime startTime = UtcDbTime();
+            DateTime startTime = UtcNow();
 
             try
             {
@@ -32893,7 +32894,7 @@ namespace PRoConEvents
                                         target_player = FetchPlayer(false, true, false, null, aBan.player_id, null, null, null),
                                         source_name = "AdKats",
                                         record_message = "Ban Reason Expunged",
-                                        record_time = UtcDbTime()
+                                        record_time = UtcNow()
                                     };
                                     aBan.ban_record.target_name = aBan.ban_record.target_player.player_name;
                                 }
@@ -32906,7 +32907,7 @@ namespace PRoConEvents
                                     importedBans.Add(aBan);
                                     if (++bansDownloaded % 15 == 0)
                                     {
-                                        Log.Write(Math.Round(100 * bansDownloaded / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansDownloaded / ((UtcDbTime() - startTime).TotalSeconds), 2) + " downloads/sec.");
+                                        Log.Write(Math.Round(100 * bansDownloaded / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansDownloaded / ((UtcNow() - startTime).TotalSeconds), 2) + " downloads/sec.");
                                     }
                                 }
                             }
@@ -32915,11 +32916,11 @@ namespace PRoConEvents
                         {
                             Log.Info(importedBans.Count + " bans downloaded, beginning repopulation to ban list.");
                         }
-                        startTime = UtcDbTime();
+                        startTime = UtcNow();
                         foreach (AdKatsBan aBan in importedBans)
                         {
                             //Get the record information
-                            long totalBanSeconds = (long)aBan.ban_endTime.Subtract(UtcDbTime()).TotalSeconds;
+                            long totalBanSeconds = (long)aBan.ban_endTime.Subtract(UtcNow()).TotalSeconds;
                             if (totalBanSeconds > 0)
                             {
                                 Log.Debug(() => "Re-ProconBanning: " + aBan.ban_record.GetTargetNames() + " for " + totalBanSeconds + "sec for " + aBan.ban_record.record_message, 4);
@@ -32972,7 +32973,7 @@ namespace PRoConEvents
 
                             if (++bansRepopulated % 15 == 0)
                             {
-                                Log.Write(Math.Round(100 * bansRepopulated / totalBans, 2) + "% of bans repopulated. AVG " + Math.Round(bansRepopulated / ((UtcDbTime() - startTime).TotalSeconds), 2) + " downloads/sec.");
+                                Log.Write(Math.Round(100 * bansRepopulated / totalBans, 2) + "% of bans repopulated. AVG " + Math.Round(bansRepopulated / ((UtcNow() - startTime).TotalSeconds), 2) + " downloads/sec.");
                             }
                         }
                         ExecuteCommand("procon.protected.send", "banList.save");
@@ -32983,7 +32984,7 @@ namespace PRoConEvents
                         }
 
                         //Update the last db ban fetch time
-                        _lastDbBanFetch = UtcDbTime();
+                        _lastDbBanFetch = UtcNow();
                     }
                 }
             }
@@ -33097,7 +33098,7 @@ namespace PRoConEvents
             Double totalBans = 0;
             Double bansImported = 0;
             Queue<BBM5108Ban> inboundBBMBans = new Queue<BBM5108Ban>();
-            DateTime startTime = UtcDbTime();
+            DateTime startTime = UtcNow();
             try
             {
                 using (MySqlConnection connection = GetDatabaseConnection())
@@ -33163,7 +33164,7 @@ namespace PRoConEvents
 
                     //Create the record
                     AdKatsRecord record = new AdKatsRecord();
-                    record.record_time = UtcDbTime();
+                    record.record_time = UtcNow();
                     //Fetch the player
                     record.target_player = FetchPlayer(true, true, false, null, -1, bbmBan.soldiername, bbmBan.eaguid, null);
 
@@ -33180,7 +33181,7 @@ namespace PRoConEvents
                         Log.Debug(() => "Ban is temporary", 4);
                         record.command_type = GetCommandByKey("player_ban_temp");
                         record.command_action = GetCommandByKey("player_ban_temp");
-                        record.command_numeric = (Int32)(bbmBan.ban_duration - UtcDbTime()).TotalMinutes;
+                        record.command_numeric = (Int32)(bbmBan.ban_duration - UtcNow()).TotalMinutes;
                     }
                     else
                     {
@@ -33224,7 +33225,7 @@ namespace PRoConEvents
 
                     if (++bansImported % 25 == 0)
                     {
-                        Log.Write(Math.Round(100 * bansImported / totalBans, 2) + "% of Ban Manager bans uploaded. AVG " + Math.Round(bansImported / ((UtcDbTime() - startTime).TotalSeconds), 2) + " uploads/sec.");
+                        Log.Write(Math.Round(100 * bansImported / totalBans, 2) + "% of Ban Manager bans uploaded. AVG " + Math.Round(bansImported / ((UtcNow() - startTime).TotalSeconds), 2) + " uploads/sec.");
                     }
                 }
             }
@@ -33249,7 +33250,7 @@ namespace PRoConEvents
                 return false;
             }
             //TODO: Add check for multiple targets
-            if (record.target_player != null && record.target_player.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_punish" && (UtcDbTime() - aRecord.record_time).TotalSeconds < duration && aRecord.record_action_executed == true))
+            if (record.target_player != null && record.target_player.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_punish" && (UtcNow() - aRecord.record_time).TotalSeconds < duration && aRecord.record_action_executed == true))
             {
                 return false;
             }
@@ -33307,7 +33308,7 @@ namespace PRoConEvents
             try
             {
                 //TODO: Add check for multiple targets
-                if (record.target_player != null && record.target_player.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_punish" && (UtcDbTime() - aRecord.record_time).TotalSeconds < _IROTimeout && aRecord.record_action_executed == true))
+                if (record.target_player != null && record.target_player.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_punish" && (UtcNow() - aRecord.record_time).TotalSeconds < _IROTimeout && aRecord.record_action_executed == true))
                 {
                     return true;
                 }
@@ -33375,7 +33376,7 @@ namespace PRoConEvents
                     QueueRecordForActionHandling(record);
                 }
                 //Update the last time this was fetched
-                _lastDbActionFetch = UtcDbTime();
+                _lastDbActionFetch = UtcNow();
             }
             catch (Exception e)
             {
@@ -33662,7 +33663,7 @@ namespace PRoConEvents
                                     _CommandTextDictionary.Add(currentCommand.command_text, currentCommand);
                                     if (!_commandUsageTimes.ContainsKey(currentCommand.command_key))
                                     {
-                                        _commandUsageTimes[currentCommand.command_key] = UtcDbTime();
+                                        _commandUsageTimes[currentCommand.command_key] = UtcNow();
                                     }
                                     //Handle mandatory defaults
                                     Boolean changed = false;
@@ -34988,7 +34989,7 @@ namespace PRoConEvents
             {
                 return;
             }
-            DateTime start = UtcDbTime();
+            DateTime start = UtcNow();
             try
             {
                 if (!_firstUserListComplete)
@@ -35005,7 +35006,7 @@ namespace PRoConEvents
                 {
                     SendNonQuery("Adding user notes.", "ALTER TABLE `adkats_users` ADD COLUMN `user_notes` VARCHAR(1000) NOT NULL DEFAULT 'No Notes' AFTER `user_expiration`", true);
                 }
-                start = UtcDbTime();
+                start = UtcNow();
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
@@ -35057,10 +35058,10 @@ namespace PRoConEvents
                                     AdKatsUser aUser;
                                     if (_userCache.TryGetValue(userID, out aUser))
                                     {
-                                        if (expirationTime < UtcDbTime())
+                                        if (expirationTime < UtcNow())
                                         {
                                             userRole = _RoleKeyDictionary["guest_default"];
-                                            expirationTime = UtcDbTime().AddYears(20);
+                                            expirationTime = UtcNow().AddYears(20);
                                             QueueUserForUpload(aUser);
                                         }
                                         aUser.user_name = userName;
@@ -35082,10 +35083,10 @@ namespace PRoConEvents
                                             user_expiration = expirationTime,
                                             user_notes = userNotes
                                         };
-                                        if (expirationTime < UtcDbTime())
+                                        if (expirationTime < UtcNow())
                                         {
                                             userRole = _RoleKeyDictionary["guest_default"];
-                                            expirationTime = UtcDbTime().AddYears(20);
+                                            expirationTime = UtcNow().AddYears(20);
                                             QueueUserForUpload(aUser);
                                         }
                                         _userCache.Add(aUser.user_id, aUser);
@@ -35103,8 +35104,8 @@ namespace PRoConEvents
                             }
                         }
                     }
-                    Log.Debug(() => "User fetch (Users) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
-                    start = UtcDbTime();
+                    Log.Debug(() => "User fetch (Users) took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
+                    start = UtcNow();
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         if (_serverInfo.GameID > 0)
@@ -35209,7 +35210,7 @@ namespace PRoConEvents
                                             aPlayer.player_name = playerName;
                                             aPlayer.player_guid = playerGUID;
                                             aPlayer.player_ip = playerIP;
-                                            aPlayer.LastUsage = UtcDbTime();
+                                            aPlayer.LastUsage = UtcNow();
                                         }
                                         else
                                         {
@@ -35221,7 +35222,7 @@ namespace PRoConEvents
                                                 player_name = playerName,
                                                 player_guid = playerGUID,
                                                 player_ip = playerIP,
-                                                LastUsage = UtcDbTime()
+                                                LastUsage = UtcNow()
                                             };
                                             aUser.soldierDictionary.Add(playerID, aPlayer);
                                         }
@@ -35236,7 +35237,7 @@ namespace PRoConEvents
                                 }
                                 foreach (AdKatsUser aUser in _userCache.Values)
                                 {
-                                    foreach (AdKatsPlayer aPlayer in aUser.soldierDictionary.Values.Where(aPlayer => !aPlayer.update_playerUpdated))
+                                    foreach (AdKatsPlayer aPlayer in aUser.soldierDictionary.Values.ToList().Where(dPlayer => !dPlayer.update_playerUpdated))
                                     {
                                         aUser.soldierDictionary.Remove(aPlayer.player_id);
                                     }
@@ -35244,8 +35245,8 @@ namespace PRoConEvents
                             }
                         }
                     }
-                    Log.Debug(() => "User fetch (User Soldiers) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
-                    start = UtcDbTime();
+                    Log.Debug(() => "User fetch (User Soldiers) took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
+                    start = UtcNow();
                     lock (_baseSpecialPlayerCache)
                     {
                         SendNonQuery("Deleting expired special players", "DELETE FROM `adkats_specialplayers` WHERE `player_expiration` < UTC_TIMESTAMP()", false);
@@ -35426,7 +35427,7 @@ namespace PRoConEvents
                                             player_group = asGroup,
                                             player_identifier = aPlayer.player_name,
                                             player_object = aPlayer,
-                                            player_effective = UtcDbTime(),
+                                            player_effective = UtcNow(),
                                             player_expiration = aUser.user_expiration
                                         });
                                     }
@@ -35448,8 +35449,8 @@ namespace PRoConEvents
                                                 player_group = asGroup,
                                                 player_identifier = aPlayer.player_name,
                                                 player_object = aPlayer,
-                                                player_effective = UtcDbTime(),
-                                                player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                player_effective = UtcNow(),
+                                                player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                             });
                                         }
                                     }
@@ -35467,8 +35468,8 @@ namespace PRoConEvents
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
-                                                    player_effective = UtcDbTime(),
-                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                    player_effective = UtcNow(),
+                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                                 });
                                             }
                                         }
@@ -35486,8 +35487,8 @@ namespace PRoConEvents
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
-                                                    player_effective = UtcDbTime(),
-                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                    player_effective = UtcNow(),
+                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                                 });
                                             }
                                         }
@@ -35506,8 +35507,8 @@ namespace PRoConEvents
                                                 player_group = asGroup,
                                                 player_identifier = aPlayer.player_name,
                                                 player_object = aPlayer,
-                                                player_effective = UtcDbTime(),
-                                                player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                player_effective = UtcNow(),
+                                                player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                             });
                                         }
                                     }
@@ -35525,8 +35526,8 @@ namespace PRoConEvents
                                                 player_group = asGroup,
                                                 player_identifier = aPlayer.player_name,
                                                 player_object = aPlayer,
-                                                player_effective = UtcDbTime(),
-                                                player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                player_effective = UtcNow(),
+                                                player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                             });
                                         }
                                     }
@@ -35544,8 +35545,8 @@ namespace PRoConEvents
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
-                                                    player_effective = UtcDbTime(),
-                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                    player_effective = UtcNow(),
+                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                                 });
                                             }
                                         }
@@ -35563,8 +35564,8 @@ namespace PRoConEvents
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
-                                                    player_effective = UtcDbTime(),
-                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                    player_effective = UtcNow(),
+                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                                 });
                                             }
                                         }
@@ -35582,8 +35583,8 @@ namespace PRoConEvents
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
-                                                    player_effective = UtcDbTime(),
-                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                    player_effective = UtcNow(),
+                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                                 });
                                             }
                                         }
@@ -35603,8 +35604,8 @@ namespace PRoConEvents
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
-                                                    player_effective = UtcDbTime(),
-                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                    player_effective = UtcNow(),
+                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                                 });
                                             }
                                         }
@@ -35620,8 +35621,8 @@ namespace PRoConEvents
                                                 player_group = asGroup,
                                                 player_identifier = aPlayer.player_name,
                                                 player_object = aPlayer,
-                                                player_effective = UtcDbTime(),
-                                                player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                player_effective = UtcNow(),
+                                                player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                             });
                                         }
                                     }
@@ -35635,8 +35636,8 @@ namespace PRoConEvents
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
-                                                    player_effective = UtcDbTime(),
-                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                    player_effective = UtcNow(),
+                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                                 });
                                             }
                                         }
@@ -35650,8 +35651,8 @@ namespace PRoConEvents
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
-                                                    player_effective = UtcDbTime(),
-                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                    player_effective = UtcNow(),
+                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                                 });
                                             }
                                         }
@@ -35668,8 +35669,8 @@ namespace PRoConEvents
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
-                                                    player_effective = UtcDbTime(),
-                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                    player_effective = UtcNow(),
+                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                                 });
                                             }
                                         }
@@ -35683,8 +35684,8 @@ namespace PRoConEvents
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
-                                                    player_effective = UtcDbTime(),
-                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                    player_effective = UtcNow(),
+                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                                 });
                                             }
                                         }
@@ -35735,7 +35736,7 @@ namespace PRoConEvents
                             }
                             _verboseSpecialPlayerCache.Remove(removeKey);
                         }
-                        Log.Debug(() => "User fetch (Special Player Fetch) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+                        Log.Debug(() => "User fetch (Special Player Fetch) took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
                     }
                 }
             }
@@ -35747,7 +35748,7 @@ namespace PRoConEvents
             _PlayerRoleRefetch = true;
             _PlayerProcessingWaitHandle.Set();
 
-            start = UtcDbTime();
+            start = UtcNow();
             UpdateMULTIBalancerWhitelist();
             UpdateMULTIBalancerDisperseList();
             UpdateTeamKillTrackerWhitelist();
@@ -35757,9 +35758,9 @@ namespace PRoConEvents
             ExecuteCommand("procon.protected.send", "spectatorList.list");
             Thread.Sleep(50);
             UpdateSpectatorList();
-            Log.Debug(() => "User fetch (Orchestration) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
-            start = UtcDbTime();
-            _lastUserFetch = UtcDbTime();
+            Log.Debug(() => "User fetch (Orchestration) took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
+            start = UtcNow();
+            _lastUserFetch = UtcNow();
             if (!_firstUserListComplete)
             {
                 _firstUserListComplete = true;
@@ -36020,7 +36021,7 @@ namespace PRoConEvents
 
             Boolean active = true;
 
-            DateTime startTime = UtcDbTime();
+            DateTime startTime = UtcNow();
             try
             {
                 using (MySqlConnection connection = GetDatabaseConnection())
@@ -36049,7 +36050,7 @@ namespace PRoConEvents
             {
                 active = false;
             }
-            if ((UtcDbTime() - startTime).TotalSeconds > 10)
+            if ((UtcNow() - startTime).TotalSeconds > 10)
             {
                 //If the connection took longer than 10 seconds also say the database is disconnected
                 active = false;
@@ -36060,7 +36061,7 @@ namespace PRoConEvents
 
         public Boolean GetGlobalUTCTimestamp(out DateTime globalUTCTime)
         {
-            globalUTCTime = UtcDbTime();
+            globalUTCTime = UtcNow();
             using (WebClient client = new WebClient())
             {
                 try
@@ -36088,7 +36089,7 @@ namespace PRoConEvents
             diffGlobalUTC = TimeSpan.Zero;
             if (GetGlobalUTCTimestamp(out globalUTC))
             {
-                DateTime curUTC = UtcDbTime();
+                DateTime curUTC = UtcNow();
                 diffGlobalUTC = globalUTC - curUTC;
                 if (verbose)
                 {
@@ -36120,7 +36121,7 @@ namespace PRoConEvents
 
         private Boolean GetDatabaseUTCTimestamp(out DateTime dbUTC)
         {
-            dbUTC = UtcDbTime();
+            dbUTC = UtcNow();
             try
             {
                 using (MySqlConnection connection = GetDatabaseConnection())
@@ -36152,7 +36153,7 @@ namespace PRoConEvents
             DateTime dbUTC;
             if (GetDatabaseUTCTimestamp(out dbUTC))
             {
-                DateTime curUTC = UtcDbTime();
+                DateTime curUTC = UtcNow();
                 diffDBUTC = dbUTC - curUTC;
                 if (verbose)
                 {
@@ -36555,7 +36556,7 @@ namespace PRoConEvents
                     record_source = AdKatsRecord.Sources.ExternalPlugin,
                     record_access = AdKatsRecord.AccessMethod.HiddenExternal,
                     server_id = _serverInfo.ServerID,
-                    record_time = UtcDbTime()
+                    record_time = UtcNow()
                 };
 
                 //Parse information into a record
@@ -36722,7 +36723,7 @@ namespace PRoConEvents
                 _PlayerDictionary.TryGetValue(record.source_name, out record.source_player);
                 if (record.source_player != null)
                 {
-                    record.source_player.LastUsage = UtcDbTime();
+                    record.source_player.LastUsage = UtcNow();
                 }
                 if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player) && record.command_type.command_key.StartsWith("player_"))
                 {
@@ -36735,7 +36736,7 @@ namespace PRoConEvents
                 }
                 if (record.target_player != null)
                 {
-                    record.target_player.LastUsage = UtcDbTime();
+                    record.target_player.LastUsage = UtcNow();
                 }
                 QueueRecordForProcessing(record);
             }
@@ -36777,7 +36778,7 @@ namespace PRoConEvents
                 {
                     record_source = AdKatsRecord.Sources.ExternalPlugin,
                     record_access = AdKatsRecord.AccessMethod.HiddenExternal,
-                    record_time = UtcDbTime()
+                    record_time = UtcNow()
                 };
 
                 //Parse information into a record
@@ -37109,7 +37110,7 @@ namespace PRoConEvents
                     aPlayer.loadout_spawnValid = loadoutSpawnValid;
                     aPlayer.loadout_items = loadoutItems;
                     aPlayer.loadout_deniedItems = loadoutDeniedItems;
-                    aPlayer.LastUsage = UtcDbTime();
+                    aPlayer.LastUsage = UtcNow();
                 }
             }
             catch (Exception e)
@@ -37275,7 +37276,7 @@ namespace PRoConEvents
                     tPlayer["player_marked"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_mark");
                     if (aPlayer.LastPunishment != null)
                     {
-                        tPlayer["player_lastPunishment"] = Math.Round((UtcDbTime() - aPlayer.LastPunishment.record_time).TotalSeconds);
+                        tPlayer["player_lastPunishment"] = Math.Round((UtcNow() - aPlayer.LastPunishment.record_time).TotalSeconds);
                     }
                     else
                     {
@@ -37283,13 +37284,13 @@ namespace PRoConEvents
                     }
                     if (aPlayer.LastForgive != null)
                     {
-                        tPlayer["player_lastForgive"] = Math.Round((UtcDbTime() - aPlayer.LastForgive.record_time).TotalSeconds);
+                        tPlayer["player_lastForgive"] = Math.Round((UtcNow() - aPlayer.LastForgive.record_time).TotalSeconds);
                     }
                     else
                     {
                         tPlayer["player_lastForgive"] = 0;
                     }
-                    tPlayer["player_lastAction"] = Math.Round((UtcDbTime() - aPlayer.lastAction).TotalSeconds);
+                    tPlayer["player_lastAction"] = Math.Round((UtcNow() - aPlayer.lastAction).TotalSeconds);
                     tPlayer["player_spawnedOnce"] = aPlayer.player_spawnedOnce;
                     tPlayer["player_conversationPartner"] = ((aPlayer.conversationPartner == null) ? ("") : (aPlayer.conversationPartner.player_name));
                     tPlayer["player_kills"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.Kills);
@@ -37409,7 +37410,7 @@ namespace PRoConEvents
                         {
                             if (e is WebException) {
                                 Log.Warn("Issue connecting to battlelog.");
-                                _LastBattlelogAction = UtcDbTime().AddSeconds(30);
+                                _LastBattlelogAction = UtcNow().AddSeconds(30);
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -37466,7 +37467,7 @@ namespace PRoConEvents
                         catch (Exception e) {
                             if (e is WebException) {
                                 Log.Warn("Issue connecting to battlelog.");
-                                _LastBattlelogAction = UtcDbTime().AddSeconds(30);
+                                _LastBattlelogAction = UtcNow().AddSeconds(30);
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -37532,7 +37533,7 @@ namespace PRoConEvents
                         catch (Exception e) {
                             if (e is WebException) {
                                 Log.Warn("Issue connecting to battlelog.");
-                                _LastBattlelogAction = UtcDbTime().AddSeconds(30);
+                                _LastBattlelogAction = UtcNow().AddSeconds(30);
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -37558,7 +37559,7 @@ namespace PRoConEvents
                     target_player = aPlayer,
                     source_name = "AutoAdmin",
                     record_message = "Banned Tag [" + aPlayer.player_clanTag + "]",
-                    record_time = UtcDbTime()
+                    record_time = UtcNow()
                 });
             }
             return true;
@@ -37703,7 +37704,7 @@ namespace PRoConEvents
                     } catch (Exception e) {
                         if (e is WebException) {
                             Log.Warn("Issue connecting to battlelog.");
-                            _LastBattlelogAction = UtcDbTime().AddSeconds(30);
+                            _LastBattlelogAction = UtcNow().AddSeconds(30);
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -37869,7 +37870,7 @@ namespace PRoConEvents
                     } catch (Exception e) {
                         if (e is WebException) {
                             Log.Warn("Issue connecting to battlelog.");
-                            _LastBattlelogAction = UtcDbTime().AddSeconds(30);
+                            _LastBattlelogAction = UtcNow().AddSeconds(30);
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -37952,7 +37953,7 @@ namespace PRoConEvents
                     } catch (Exception e) {
                         if (e is WebException) {
                             Log.Warn("Issue connecting to battlelog.");
-                            _LastBattlelogAction = UtcDbTime().AddSeconds(30);
+                            _LastBattlelogAction = UtcNow().AddSeconds(30);
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -37978,7 +37979,7 @@ namespace PRoConEvents
                         {"server_name", _serverInfo.ServerName},
                         {"adkats_version_current", PluginVersion},
                         {"adkats_enabled", _pluginEnabled.ToString().ToLower()},
-                        {"adkats_uptime", (_threadsReady) ? (Math.Round((UtcDbTime() - _AdKatsStartTime).TotalSeconds).ToString()) : ("0")},
+                        {"adkats_uptime", (_threadsReady) ? (Math.Round((UtcNow() - _AdKatsStartTime).TotalSeconds).ToString()) : ("0")},
                         {"updates_disabled", _versionTrackingDisabled.ToString().ToLower()}
                     };
                     byte[] response = client.UploadValues("http://api.gamerethos.net/adkats/usage", data);
@@ -37988,7 +37989,7 @@ namespace PRoConEvents
             {
                 //Do nothing
             }
-            _LastVersionTrackingUpdate = UtcDbTime();
+            _LastVersionTrackingUpdate = UtcNow();
         }
 
         private void PostWeaponCodes()
@@ -38018,7 +38019,7 @@ namespace PRoConEvents
             {
             }
             _PostedWeaponCodes = true;
-            _LastWeaponCodePost = UtcDbTime();
+            _LastWeaponCodePost = UtcNow();
         }
 
         private Boolean PopulateCommandReputationDictionaries()
@@ -38828,8 +38829,12 @@ namespace PRoConEvents
             }
         }
 
-        public String FormatNowDiff(DateTime diff, Int32 maxComponents) {
-            return FormatTimeString((UtcDbTime() - diff).Duration(), maxComponents);
+        public TimeSpan NowDuration(DateTime diff) {
+            return (UtcNow() - diff).Duration();
+        }
+
+        public String FormatNowDuration(DateTime diff, Int32 maxComponents) {
+            return FormatTimeString(NowDuration(), maxComponents);
         }
 
         public String FormatTimeString(TimeSpan timeSpan, Int32 maxComponents)
@@ -38980,7 +38985,7 @@ namespace PRoConEvents
 
         private TimeSpan GetRemainingBanTime(AdKatsBan aBan)
         {
-            return aBan.ban_endTime.Subtract(UtcDbTime());
+            return aBan.ban_endTime.Subtract(UtcNow());
         }
 
         private String GetPingLimitStatus() {
@@ -39031,7 +39036,7 @@ namespace PRoConEvents
             return currentTriggerMS;
         }
 
-        public DateTime UtcDbTime()
+        public DateTime UtcNow()
         {
             return DateTime.UtcNow + _dbTimingOffset;
         }
@@ -39991,7 +39996,7 @@ namespace PRoConEvents
                         target_player = null,
                         source_name = "AdKats",
                         record_message = aException.ToString(),
-                        record_time = UtcDbTime()
+                        record_time = UtcNow()
                     };
                     //Process the record
                     QueueRecordForProcessing(record);
@@ -40135,7 +40140,7 @@ namespace PRoConEvents
             {
                 if (_databaseTimeouts == 0)
                 {
-                    _lastDatabaseTimeout = UtcDbTime();
+                    _lastDatabaseTimeout = UtcNow();
                 }
                 ++_databaseTimeouts;
                 if (_databaseTimeouts >= 5)
@@ -40143,7 +40148,7 @@ namespace PRoConEvents
                     Log.Warn("Database connection issue detected. Trigger " + _databaseTimeouts + "/" + DatabaseTimeoutThreshold + ".");
                 }
                 //Check for critical state (timeouts > threshold, and last issue less than 1 minute ago)
-                if ((UtcDbTime() - _lastDatabaseTimeout).TotalSeconds < 60)
+                if ((UtcNow() - _lastDatabaseTimeout).TotalSeconds < 60)
                 {
                     if (_databaseTimeouts >= DatabaseTimeoutThreshold)
                     {
@@ -40226,7 +40231,7 @@ namespace PRoConEvents
                                         target_player = null,
                                         source_name = "AdKats",
                                         record_message = "Critical Database Disconnect Handled (" + String.Format("{0:0.00}", disconnectTimer.Elapsed.TotalMinutes) + " minutes). AdKats on server " + _serverInfo.ServerID + " functioning normally again.",
-                                        record_time = UtcDbTime()
+                                        record_time = UtcNow()
                                     };
                                     //Process the record
                                     QueueRecordForProcessing(record);
@@ -40253,7 +40258,7 @@ namespace PRoConEvents
                     //Reset the current timout count
                     _databaseTimeouts = 0;
                 }
-                _lastDatabaseTimeout = UtcDbTime();
+                _lastDatabaseTimeout = UtcNow();
             }
             else
             {
@@ -40387,8 +40392,8 @@ namespace PRoConEvents
 
         private void DoBattlelogWait()
         {
-            if ((UtcDbTime() - _LastBattlelogAction) < _BattlelogWaitDuration) {
-                var waitTime = _BattlelogWaitDuration - (UtcDbTime() - _LastBattlelogAction);
+            if ((UtcNow() - _LastBattlelogAction) < _BattlelogWaitDuration) {
+                var waitTime = _BattlelogWaitDuration - (UtcNow() - _LastBattlelogAction);
                 Log.Debug(() => "Waiting " + ((int)waitTime.TotalMilliseconds) + "ms to query battlelog.", 7);
                 if (waitTime.TotalSeconds > 60) {
                     Log.Warn("Wait time excessive for battlelog.");
@@ -40396,13 +40401,13 @@ namespace PRoConEvents
                 }
                 _threadMasterWaitHandle.WaitOne(waitTime);
             }
-            _LastBattlelogAction = UtcDbTime();
+            _LastBattlelogAction = UtcNow();
         }
 
         private void DoIPAPIWait()
         {
-            if ((UtcDbTime() - _LastIPAPIAction) < _IPAPIWaitDuration) {
-                var waitTime = _IPAPIWaitDuration - (UtcDbTime() - _LastIPAPIAction);
+            if ((UtcNow() - _LastIPAPIAction) < _IPAPIWaitDuration) {
+                var waitTime = _IPAPIWaitDuration - (UtcNow() - _LastIPAPIAction);
                 Log.Debug(() => "Waiting " + ((int) waitTime.TotalMilliseconds) + "ms to query IPAPI.", 7);
                 if (waitTime > _IPAPIWaitDuration) {
                     Log.Warn("Wait time excessive for IPAPI.");
@@ -40410,16 +40415,16 @@ namespace PRoConEvents
                 }
                 _threadMasterWaitHandle.WaitOne(waitTime);
             }
-            _LastIPAPIAction = UtcDbTime();
+            _LastIPAPIAction = UtcNow();
         }
 
         private void DoGoogleWait()
         {
-            if ((UtcDbTime() - _LastGoogleAction) < _GoogleWaitDuration)
+            if ((UtcNow() - _LastGoogleAction) < _GoogleWaitDuration)
             {
-                Thread.Sleep(_GoogleWaitDuration - (UtcDbTime() - _LastGoogleAction));
+                Thread.Sleep(_GoogleWaitDuration - (UtcNow() - _LastGoogleAction));
             }
-            _LastGoogleAction = UtcDbTime();
+            _LastGoogleAction = UtcNow();
         }
 
         public Int64 ConvertVersionInt(String version) {
@@ -40463,7 +40468,10 @@ namespace PRoConEvents
                     }
                     catch (Exception e)
                     {
-                        Log.Error("ip-api failed to respond with player location information, your layer may be IP banned. (" + e.Message + ")");
+                        if (NowDuration(_lastIPAPIError).TotalMinutes > 5) {
+                            Log.Error("ip-api failed to respond with player location information, your layer may be IP banned. (" + e.Message + ")");
+                            _lastIPAPIError = UtcNow();
+                        }
                         return;
                     }
                     loc.status = (String)response["status"];
@@ -40711,7 +40719,7 @@ namespace PRoConEvents
 
             public TimeSpan GetIdleTime()
             {
-                return Plugin.UtcDbTime() - lastAction;
+                return Plugin.UtcNow() - lastAction;
             }
 
             public void ClearPingEntries()
@@ -40724,7 +40732,7 @@ namespace PRoConEvents
 
             public void AddPingEntry(Double newPingValue) {
                 //Get rounded time (floor)
-                DateTime newPingTime = Plugin.UtcDbTime();
+                DateTime newPingTime = Plugin.UtcNow();
                 newPingTime = newPingTime.AddTicks(-(newPingTime.Ticks % TimeSpan.TicksPerSecond));
                 if (!player_ping_added)
                 {
@@ -40755,7 +40763,7 @@ namespace PRoConEvents
                 do
                 {
                     removed = false;
-                    if (player_pings.Any() && (Plugin.UtcDbTime() - player_pings.Peek().Value).TotalSeconds > Plugin._pingMovingAverageDurationSeconds)
+                    if (player_pings.Any() && (Plugin.UtcNow() - player_pings.Peek().Value).TotalSeconds > Plugin._pingMovingAverageDurationSeconds)
                     {
                         player_pings.Dequeue();
                         player_pings_full = true;
@@ -40771,7 +40779,7 @@ namespace PRoConEvents
 
             public Boolean IsLocked()
             {
-                if (player_locked && player_locked_start + player_locked_duration < Plugin.UtcDbTime())
+                if (player_locked && player_locked_start + player_locked_duration < Plugin.UtcNow())
                 {
                     //Unlock the player
                     player_locked = false;
@@ -40797,7 +40805,7 @@ namespace PRoConEvents
                 }
                 player_locked = true;
                 player_locked_duration = duration;
-                player_locked_start = Plugin.UtcDbTime();
+                player_locked_start = Plugin.UtcNow();
                 player_locked_source = locker;
                 return true;
             }
@@ -40811,7 +40819,7 @@ namespace PRoConEvents
             {
                 if (IsLocked())
                 {
-                    return (player_locked_start + player_locked_duration) - Plugin.UtcDbTime();
+                    return (player_locked_start + player_locked_duration) - Plugin.UtcNow();
                 }
                 return TimeSpan.Zero;
             }
@@ -40844,13 +40852,13 @@ namespace PRoConEvents
             public void EnableSubscription()
             {
                 SubscriptionEnabled = true;
-                SubscriptionTime = Plugin.UtcDbTime();
+                SubscriptionTime = Plugin.UtcNow();
             }
 
             public void DisableSubscription()
             {
                 SubscriptionEnabled = false;
-                SubscriptionTime = Plugin.UtcDbTime();
+                SubscriptionTime = Plugin.UtcNow();
             }
         }
 
@@ -40882,7 +40890,7 @@ namespace PRoConEvents
             {
                 InfoObject = infoObject;
                 ServerName = infoObject.ServerName;
-                infoObjectTime = Plugin.UtcDbTime();
+                infoObjectTime = Plugin.UtcNow();
             }
 
             public TimeSpan GetRoundElapsedTime()
@@ -40891,7 +40899,7 @@ namespace PRoConEvents
                 {
                     return TimeSpan.Zero;
                 }
-                return TimeSpan.FromSeconds(InfoObject.RoundTime) + (Plugin.UtcDbTime() - infoObjectTime);
+                return TimeSpan.FromSeconds(InfoObject.RoundTime) + (Plugin.UtcNow() - infoObjectTime);
             }
         }
 
@@ -41199,7 +41207,7 @@ namespace PRoConEvents
                 {
                     UpdateAdjustedTicketCount(newTicketCount);
                     //Get rounded time (floor)
-                    DateTime newTicketTime = Plugin.UtcDbTime();
+                    DateTime newTicketTime = Plugin.UtcNow();
                     newTicketTime = newTicketTime.AddTicks(-(newTicketTime.Ticks % TimeSpan.TicksPerSecond));
                     if (!TeamTicketsAdded)
                     {
@@ -41230,7 +41238,7 @@ namespace PRoConEvents
                     do
                     {
                         removed = false;
-                        if (TeamTicketCounts.Any() && (Plugin.UtcDbTime() - TeamTicketCounts.Peek().Value).TotalSeconds > 60)
+                        if (TeamTicketCounts.Any() && (Plugin.UtcNow() - TeamTicketCounts.Peek().Value).TotalSeconds > 60)
                         {
                             TeamTicketCounts.Dequeue();
                             TeamTicketCountsFull = true;
@@ -41269,7 +41277,7 @@ namespace PRoConEvents
                     //Calculate adjusted ticket count
                     Double newAdjustedTicketCount = newRealTicketCount + TeamTicketAdjustment;
                     //Get rounded time (floor)
-                    DateTime newAdjustedTicketTime = Plugin.UtcDbTime();
+                    DateTime newAdjustedTicketTime = Plugin.UtcNow();
                     newAdjustedTicketTime = newAdjustedTicketTime.AddTicks(-(newAdjustedTicketTime.Ticks % TimeSpan.TicksPerSecond));
                     if (!TeamAdjustedTicketsAdded)
                     {
@@ -41287,13 +41295,13 @@ namespace PRoConEvents
                     do
                     {
                         removed = false;
-                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 45)
+                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcNow() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 45)
                         {
                             TeamAdjustedTicketCounts.Dequeue();
                             TeamAdjustedTicketCountsFull = true;
                             removed = true;
                         }
-                        if (TeamAdjustedTicketDifferenceRates.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketDifferenceRates.Peek().Value).TotalSeconds > 45)
+                        if (TeamAdjustedTicketDifferenceRates.Any() && (Plugin.UtcNow() - TeamAdjustedTicketDifferenceRates.Peek().Value).TotalSeconds > 45)
                         {
                             TeamAdjustedTicketDifferenceRates.Dequeue();
                             TeamAdjustedTicketDifferenceRatesFull = true;
@@ -41364,7 +41372,7 @@ namespace PRoConEvents
                 try
                 {
                     //Get rounded time (floor)
-                    DateTime newScoreTime = Plugin.UtcDbTime();
+                    DateTime newScoreTime = Plugin.UtcNow();
                     newScoreTime = newScoreTime.AddTicks(-(newScoreTime.Ticks % TimeSpan.TicksPerSecond));
                     if (!TeamTotalScoresAdded)
                     {
@@ -41395,7 +41403,7 @@ namespace PRoConEvents
                     do
                     {
                         removed = false;
-                        if (TeamTotalScores.Any() && (Plugin.UtcDbTime() - TeamTotalScores.Peek().Value).TotalSeconds > 60)
+                        if (TeamTotalScores.Any() && (Plugin.UtcNow() - TeamTotalScores.Peek().Value).TotalSeconds > 60)
                         {
                             TeamTotalScores.Dequeue();
                             TeamTotalScoresFull = true;
@@ -41825,7 +41833,7 @@ namespace PRoConEvents
                 {
                     Plugin.Log.Debug(() => "Starting Email Handling Thread", 1);
                     Thread.CurrentThread.Name = "EmailProcessing";
-                    DateTime loopStart = Plugin.UtcDbTime();
+                    DateTime loopStart = Plugin.UtcNow();
                     while (true)
                     {
                         try
@@ -41855,13 +41863,13 @@ namespace PRoConEvents
                             {
                                 Plugin.Log.Debug(() => "No inbound mail. Waiting for Input.", 6);
                                 //Wait for input
-                                if ((Plugin.UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                if ((Plugin.UtcNow() - loopStart).TotalMilliseconds > 1000)
                                 {
-                                    Plugin.Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((Plugin.UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                    Plugin.Log.Debug(() => "Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((Plugin.UtcNow() - loopStart).TotalMilliseconds)) + "ms", 4);
                                 }
                                 _EmailProcessingWaitHandle.Reset();
                                 _EmailProcessingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
-                                loopStart = Plugin.UtcDbTime();
+                                loopStart = Plugin.UtcNow();
                                 continue;
                             }
 
