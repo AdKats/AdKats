@@ -38834,7 +38834,7 @@ namespace PRoConEvents
         }
 
         public String FormatNowDuration(DateTime diff, Int32 maxComponents) {
-            return FormatTimeString(NowDuration(), maxComponents);
+            return FormatTimeString(NowDuration(diff), maxComponents);
         }
 
         public String FormatTimeString(TimeSpan timeSpan, Int32 maxComponents)
