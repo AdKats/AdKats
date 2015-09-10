@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.12
- * 7-SEP-2015
+ * Version 6.8.0.13
+ * 10-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.12</version_code>
+ * <version_code>6.8.0.13</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.12";
+        private const String PluginVersion = "6.8.0.13";
 
         public enum GameVersion
         {
@@ -457,6 +457,7 @@ namespace PRoConEvents
         private Boolean _useMetabans;
         private String _metabansAPIKey = "";
         private String _metabansUsername = "";
+        private String[] _metabansFilterStrings = { };
 
         //Reports
         public String[] _AutoReportHandleStrings = { };
@@ -1098,6 +1099,7 @@ namespace PRoConEvents
                             if (_useMetabans) {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + sept + "Metabans Username", typeof(String), _metabansUsername));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + sept + "Metabans API Key", typeof(String), _metabansAPIKey));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + sept + "Metabans Filter Strings", typeof(String[]), _metabansFilterStrings));
                             }
                         }
                     }
@@ -5174,6 +5176,12 @@ namespace PRoConEvents
                             SetExternalPluginSetting("Metabans", "Username", _metabansUsername);
                         }
                     }
+                } 
+                else if (Regex.Match(strVariable, @"Metabans Filter Strings").Success) 
+                {
+                    _metabansFilterStrings = CPluginVariable.DecodeStringArray(strValue);
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"Metabans Filter Strings", typeof(String), CPluginVariable.EncodeStringArray(_metabansFilterStrings)));
                 }
                 else if (Regex.Match(strVariable, @"On-Player-Muted Message").Success)
                 {
@@ -11806,8 +11814,8 @@ namespace PRoConEvents
                                             Double killDiff = weaponStat.Kills - previousWeaponStat.Kills;
                                             Double hitDiff = weaponStat.Hits - previousWeaponStat.Hits;
                                             Double HSDiff = weaponStat.Headshots - previousWeaponStat.Headshots;
-                                            //Reject processing of bad data returned from battlelog
-                                            if (killDiff < 0 || hitDiff < 0 || HSDiff < 0) {
+                                            //Reject processing of invalid data returned from battlelog
+                                            if (killDiff <= 0 || hitDiff <= 0 || HSDiff < 0) {
                                                 continue;
                                             }
                                             Double liveDPS = (killDiff / hitDiff) * _soldierHealth;
@@ -13680,7 +13688,7 @@ namespace PRoConEvents
                                 }
                                 if (record.target_player != null && GetMatchingVerboseASPlayersOfGroup("whitelist_report", record.target_player).Any())
                                 {
-                                    SendMessageToSource(record, record.GetTargetNames() + " is whitelisted from reports.");
+                                    SendMessageToSource(record, record.GetTargetNames() + " is whitelisted from reports. Please contact an admin directly if this is urgent.");
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -27838,6 +27846,13 @@ namespace PRoConEvents
 
         private void SubmitToMetabans(AdKatsBan aBan, AssessmentTypes type)
         {
+            //Reject submitting the ban if the ban message does not contain trigger words
+            var banReasonLower = aBan.ban_record.record_message.ToLowerInvariant();
+            if (_metabansFilterStrings.Length > 0 && !_metabansFilterStrings.Any(fString => banReasonLower.Contains(fString.ToLowerInvariant()))) {
+                Log.Debug(() => "Rejecting submission of " + aBan.ban_record.target_player.GetVerboseName() + "'s ban to metabans, ban reason not in filter strings.", 3);
+                return;
+            }
+
             Log.Debug(() => "^4Metabans (SubmitAssessment): Submitting assessment of GUID " + aBan.ban_record.target_player.player_guid, 3);
 
             MetabansAPI api = new MetabansAPI(_metabansUsername, _metabansAPIKey, enumBoolOnOff.On);
@@ -28827,6 +28842,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Use Metabans?", typeof(Boolean), _useMetabans));
                 QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof(String), _metabansAPIKey));
                 QueueSettingForUpload(new CPluginVariable(@"Metabans Username", typeof(String), _metabansUsername));
+                QueueSettingForUpload(new CPluginVariable(@"Metabans Filter Strings", typeof(String), CPluginVariable.EncodeStringArray(_metabansFilterStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Muted Message", typeof(String), _MutedPlayerMuteMessage));
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Killed Message", typeof(String), _MutedPlayerKillMessage));
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Kicked Message", typeof(String), _MutedPlayerKickMessage));
