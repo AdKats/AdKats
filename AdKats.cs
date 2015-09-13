@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.13
- * 10-SEP-2015
+ * Version 6.8.0.14
+ * 13-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.13</version_code>
+ * <version_code>6.8.0.14</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.13";
+        private const String PluginVersion = "6.8.0.14";
 
         public enum GameVersion
         {
@@ -10132,12 +10132,12 @@ namespace PRoConEvents
                 if ((_isTestingAuthorized || _serverInfo.ServerName.Contains("FPSG")) && _serverInfo.ServerType != "OFFICIAL")
                 {
                     //KPM check
-                    Int32 countRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
-                    int countBan = ((_gameVersion == GameVersion.BF3) ? (25) : (20));
-                    if (countRecent >= countBan && !PlayerProtected(aKill.killer))
-                    {
-                        QueueRecordForProcessing(new AdKatsRecord
-                        {
+                    Int32 lowCountRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
+                    int lowCountBan = 
+                        ((_gameVersion == GameVersion.BF3) ? (25) : (20)) -
+                        ((aKill.killer.frostbitePlayerInfo.Rank <= 15) ? (6) : (0));
+                    if (lowCountRecent >= lowCountBan && !PlayerProtected(aKill.killer)) {
+                        QueueRecordForProcessing(new AdKatsRecord {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
                             server_id = _serverInfo.ServerID,
                             command_type = GetCommandByKey("player_ban_perm"),
@@ -10145,11 +10145,31 @@ namespace PRoConEvents
                             target_name = aKill.killer.player_name,
                             target_player = aKill.killer,
                             source_name = "AutoAdmin",
-                            record_message = _HackerCheckerKPMBanMessage + " [LIVE][5-" + countRecent + "]",
+                            record_message = _HackerCheckerKPMBanMessage + " [LIVE][5-L-" + lowCountRecent + "]",
                             record_time = UtcNow()
                         });
                         return;
                     }
+                    Int32 highCountRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 120);
+                    int highCountBan = 
+                        ((_gameVersion == GameVersion.BF3) ? (40) : (32)) -
+                        ((aKill.killer.frostbitePlayerInfo.Rank <= 15) ? (8) : (0));
+                    if (lowCountRecent >= highCountBan && !PlayerProtected(aKill.killer)) {
+                        QueueRecordForProcessing(new AdKatsRecord {
+                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                            server_id = _serverInfo.ServerID,
+                            command_type = GetCommandByKey("player_ban_perm"),
+                            command_numeric = 0,
+                            target_name = aKill.killer.player_name,
+                            target_player = aKill.killer,
+                            source_name = "AutoAdmin",
+                            record_message = _HackerCheckerKPMBanMessage + " [LIVE][5-H-" + highCountRecent + "]",
+                            record_time = UtcNow()
+                        });
+                        return;
+                    }
+
+                    //HSK Check
                     Int32 lowKillCount = 20;
                     Double lowKillTriggerHSKP = 90;
                     Int32 highKillCount = 45;
@@ -35800,9 +35820,6 @@ namespace PRoConEvents
                 {
                     Log.Warn("No users have been added. Add a new user with 'Add User'.");
                 }
-            }
-            if (_isTestingAuthorized) {
-                Log.Info("35528");
             }
             UpdateSettingPage();
             Log.Debug(() => "fetchUserList finished!", 6);
