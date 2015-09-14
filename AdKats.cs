@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.14
+ * Version 6.8.0.15
  * 13-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.14</version_code>
+ * <version_code>6.8.0.15</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.14";
+        private const String PluginVersion = "6.8.0.15";
 
         public enum GameVersion
         {
@@ -13685,27 +13685,6 @@ namespace PRoConEvents
                                     FinalizeRecord(record);
                                     return;
                                 }
-                                if (_isTestingAuthorized) {
-                                    string lowerM = " " + record.record_message.ToLower() + " ";
-                                    if (lowerM.Contains("bipod"))
-                                    {
-                                        SendMessageToSource(record, "Bipod related actions are not bannable.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                    if (lowerM.Contains("headgl") || lowerM.Contains("head gl"))
-                                    {
-                                        SendMessageToSource(record, "'Head Glitching' related actions are not bannable.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                    if (lowerM.Contains(" ping") || lowerM.Contains(" pings"))
-                                    {
-                                        SendMessageToSource(record, "Automatic system handles ping, do not report for it.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                }
                                 if (record.target_player != null && GetMatchingVerboseASPlayersOfGroup("whitelist_report", record.target_player).Any())
                                 {
                                     SendMessageToSource(record, record.GetTargetNames() + " is whitelisted from reports. Please contact an admin directly if this is urgent.");
@@ -13721,6 +13700,72 @@ namespace PRoConEvents
                                     SendMessageToSource(record, "You may not report yourself.");
                                     FinalizeRecord(record);
                                     return;
+                                }
+                                if (_isTestingAuthorized) {
+                                    string lowerM = " " + record.record_message.ToLower() + " ";
+                                    if (lowerM.Contains("bipod")) {
+                                        SendMessageToSource(record, "Bipod related actions are not bannable.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    if (lowerM.Contains("headgl") || lowerM.Contains("head gl")) {
+                                        SendMessageToSource(record, "'Head Glitching' related actions are not bannable.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    if (lowerM.Contains(" ping") || lowerM.Contains(" pings")) {
+                                        SendMessageToSource(record, "Automatic system handles ping, do not report for it.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    //Block reports for false reports
+                                    if (lowerM.Contains(" false r")) {
+                                        SendMessageToSource(record, "Do not report for false reports, use !contest.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    //Block report wars
+                                    if (record.target_player != null &&
+                                        record.target_player.TargetedRecords.Count(aRecord =>
+                                            aRecord.source_name == record.source_name &&
+                                            (aRecord.command_type.command_key == "player_report" ||
+                                                aRecord.command_type.command_key == "player_calladmin") &&
+                                            NowDuration(aRecord.record_time).TotalMinutes < 5 &&
+                                            aRecord.command_action.command_key != "player_report_confirm") >= 1 &&
+                                        record.source_player != null &&
+                                        record.source_player.TargetedRecords.Count(aRecord =>
+                                            aRecord.target_name == record.target_name &&
+                                            (aRecord.command_type.command_key == "player_report" ||
+                                                aRecord.command_type.command_key == "player_calladmin") &&
+                                            NowDuration(aRecord.record_time).TotalMinutes < 5 &&
+                                            aRecord.command_action.command_key != "player_report_confirm") >= 1) {
+                                        SendMessageToSource(record, "Do not have report wars. If this is urgent please contact an admin in teamspeak; @ts for the address.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    //Block multiple reports of the same player from one source
+                                    if (record.target_player != null &&
+                                        record.target_player.TargetedRecords.Count(aRecord =>
+                                            aRecord.source_name == record.source_name &&
+                                            (aRecord.command_type.command_key == "player_report" ||
+                                                aRecord.command_type.command_key == "player_calladmin") &&
+                                            NowDuration(aRecord.record_time).TotalMinutes < 5 &&
+                                            aRecord.command_action.command_key != "player_report_confirm") >= 2) {
+                                        SendMessageToSource(record, "You already reported " + record.target_player.GetVerboseName() + ". If this is urgent please contact an admin in teamspeak; @ts for the address.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    //Block multiple reports of the same player from multiple sources
+                                    if (record.target_player != null &&
+                                        record.target_player.TargetedRecords.Count(aRecord =>
+                                            (aRecord.command_type.command_key == "player_report" ||
+                                                aRecord.command_type.command_key == "player_calladmin") &&
+                                            NowDuration(aRecord.record_time).TotalMinutes < 5 &&
+                                            aRecord.command_action.command_key != "player_report_confirm") >= 3) {
+                                        SendMessageToSource(record, record.target_player.GetVerboseName() + " has already been reported. If this is urgent please contact an admin in teamspeak; @ts for the address.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
                                 }
                             }
                             break;
