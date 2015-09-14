@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.15
- * 13-SEP-2015
+ * Version 6.8.0.16
+ * 14-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.15</version_code>
+ * <version_code>6.8.0.16</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.15";
+        private const String PluginVersion = "6.8.0.16";
 
         public enum GameVersion
         {
@@ -13734,12 +13734,23 @@ namespace PRoConEvents
                                             aRecord.command_action.command_key != "player_report_confirm") >= 1 &&
                                         record.source_player != null &&
                                         record.source_player.TargetedRecords.Count(aRecord =>
-                                            aRecord.target_name == record.target_name &&
+                                            aRecord.source_name == record.target_name &&
                                             (aRecord.command_type.command_key == "player_report" ||
                                                 aRecord.command_type.command_key == "player_calladmin") &&
                                             NowDuration(aRecord.record_time).TotalMinutes < 5 &&
                                             aRecord.command_action.command_key != "player_report_confirm") >= 1) {
                                         SendMessageToSource(record, "Do not have report wars. If this is urgent please contact an admin in teamspeak; @ts for the address.");
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("player_log"),
+                                            command_numeric = 0,
+                                            target_name = record.source_name,
+                                            target_player = record.source_player,
+                                            source_name = "AutoAdmin",
+                                            record_message = "Report war blocked bwetween " + record.GetSourceName() + " and " + record.GetTargetNames(),
+                                            record_time = UtcNow()
+                                        });
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -13752,6 +13763,17 @@ namespace PRoConEvents
                                             NowDuration(aRecord.record_time).TotalMinutes < 5 &&
                                             aRecord.command_action.command_key != "player_report_confirm") >= 2) {
                                         SendMessageToSource(record, "You already reported " + record.target_player.GetVerboseName() + ". If this is urgent please contact an admin in teamspeak; @ts for the address.");
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("player_log"),
+                                            command_numeric = 0,
+                                            target_name = record.source_name,
+                                            target_player = record.source_player,
+                                            source_name = "AutoAdmin",
+                                            record_message = "Report spam blocked on " + record.GetTargetNames(),
+                                            record_time = UtcNow()
+                                        });
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -13763,6 +13785,17 @@ namespace PRoConEvents
                                             NowDuration(aRecord.record_time).TotalMinutes < 5 &&
                                             aRecord.command_action.command_key != "player_report_confirm") >= 3) {
                                         SendMessageToSource(record, record.target_player.GetVerboseName() + " has already been reported. If this is urgent please contact an admin in teamspeak; @ts for the address.");
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("player_log"),
+                                            command_numeric = 0,
+                                            target_name = record.source_name,
+                                            target_player = record.source_player,
+                                            source_name = "AutoAdmin",
+                                            record_message = "Report spam blocked on " + record.GetTargetNames(),
+                                            record_time = UtcNow()
+                                        });
                                         FinalizeRecord(record);
                                         return;
                                     }
