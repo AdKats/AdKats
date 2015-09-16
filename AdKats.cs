@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.16
- * 14-SEP-2015
+ * Version 6.8.0.17
+ * 15-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.16</version_code>
+ * <version_code>6.8.0.17</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.16";
+        private const String PluginVersion = "6.8.0.17";
 
         public enum GameVersion
         {
@@ -6372,6 +6372,10 @@ namespace PRoConEvents
                             {
                                 if ((UtcNow() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotSayQueue.Peek();
+                                    if (message.Contains("%Round20KDate%")) {
+                                        var futureDate = FetchFutureRoundDate(20000);
+                                        message = message.Replace("%Round20KDate%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
+                                    }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
                                             OnlineNonWhitelistSayMessage(message);
@@ -6386,6 +6390,10 @@ namespace PRoConEvents
                                 }
                                 if ((UtcNow() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds && _spamBotYellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotYellQueue.Peek();
+                                    if (message.Contains("%Round20KDate%")) {
+                                        var futureDate = FetchFutureRoundDate(20000);
+                                        message = message.Replace("%Round20KDate%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
+                                    }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
                                             OnlineNonWhitelistYellMessage(message);
@@ -6400,6 +6408,10 @@ namespace PRoConEvents
                                 }
                                 if ((UtcNow() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds && _spamBotTellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotTellQueue.Peek();
+                                    if (message.Contains("%Round20KDate%")) {
+                                        var futureDate = FetchFutureRoundDate(20000);
+                                        message = message.Replace("%Round20KDate%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
+                                    }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
                                             OnlineNonWhitelistTellMessage(message);
@@ -9724,6 +9736,57 @@ namespace PRoConEvents
                             stat_time = UtcNow()
                         });
                     } else if (_serverInfo.ServerID == 1) {
+                        var nRound = _roundID + 1;
+                        if (nRound >= 20000 && nRound <= 20009) {
+                            _pingEnforcerEnable = false;
+                            _surrenderVoteEnable = false;
+                            _surrenderAutoEnable = false;
+                            ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "False");
+                            ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                            ExecuteCommand("procon.protected.send", "vars.friendlyFire", "true");
+                            ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                            ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "63");
+                            ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
+                            for (int i = 0; i < 8; i++) {
+                                switch (nRound) {
+                                    case 20000:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! DOMINATION!");
+                                        break;
+                                    case 20001:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! DEFIBS ONLY!");
+                                        break;
+                                    case 20002:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! REPAIR TOOL/EOD BOT ONLY!");
+                                        break;
+                                    case 20003:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! MARE'S LEG ONLY!");
+                                        break;
+                                    case 20004:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! ALL WEAPONS ALLOWED!");
+                                        break;
+                                    default:
+                                        AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro");
+                                        break;
+                                }
+                            }
+                        } else if (nRound > 15004) {
+                            _pingEnforcerEnable = true;
+                            _surrenderVoteEnable = true;
+                            _surrenderAutoEnable = true;
+                            ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
+                            ExecuteCommand("procon.protected.send", "vars.idleTimeout", "300");
+                            ExecuteCommand("procon.protected.send", "vars.friendlyFire", "false");
+                            ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "100");
+                            ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "100");
+                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "125");
+                            ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "300");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "5");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "3");
+                        }
                         Int32 quality = 4;
                         if (winningTeam.TeamTicketCount >= 900) {
                             quality = 0;
