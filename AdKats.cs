@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.17
- * 15-SEP-2015
+ * Version 6.8.0.18
+ * 17-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.17</version_code>
+ * <version_code>6.8.0.18</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.17";
+        private const String PluginVersion = "6.8.0.18";
 
         public enum GameVersion
         {
@@ -6363,7 +6363,7 @@ namespace PRoConEvents
                             {
                                 PostWeaponCodes();
                             }
-
+                            
                             //Run SpamBot
                             if (_pluginEnabled && 
                                 _spamBotEnabled && 
@@ -10751,7 +10751,7 @@ namespace PRoConEvents
                                 StartAndLogThread(new Thread(new ThreadStart(delegate {
                                     Thread.CurrentThread.Name = "RoundWelcome";
                                     Thread.Sleep(TimeSpan.FromSeconds(17));
-                                    AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro");
+                                    AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro" + (_roundID < 20000 ? ". " + FormatNowDuration(FetchFutureRoundDate(20000), 2) + " until round 20,000 event!" : ""));
                                     LogThreadExit();
                                 })));
                             } else if (_serverInfo.ServerName.Contains("#6")) {
