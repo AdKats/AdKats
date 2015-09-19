@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.20
+ * Version 6.8.0.21
  * 19-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.20</version_code>
+ * <version_code>6.8.0.21</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.20";
+        private const String PluginVersion = "6.8.0.21";
 
         public enum GameVersion
         {
@@ -9795,8 +9795,8 @@ namespace PRoConEvents
                                         ExecuteCommand("procon.protected.send", "mapList.save");
                                         ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
                                         ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
-                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
-                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
                                         ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "63");
                                         ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
                                         ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
@@ -9812,8 +9812,8 @@ namespace PRoConEvents
                                         ExecuteCommand("procon.protected.send", "mapList.save");
                                         ExecuteCommand("procon.protected.send", "vars.preset", "HARDCORE", "false");
                                         ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
-                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
-                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
                                         ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "167");
                                         ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
                                         ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
@@ -9829,8 +9829,8 @@ namespace PRoConEvents
                                         ExecuteCommand("procon.protected.send", "mapList.save");
                                         ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
                                         ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
-                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
-                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
                                         ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "300");
                                         ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
                                         ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
@@ -9846,8 +9846,8 @@ namespace PRoConEvents
                                         ExecuteCommand("procon.protected.send", "mapList.save");
                                         ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
                                         ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
-                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
-                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
                                         ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "63");
                                         ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
                                         ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
@@ -9863,8 +9863,8 @@ namespace PRoConEvents
                                         ExecuteCommand("procon.protected.send", "mapList.save");
                                         ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
                                         ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
-                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
-                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
                                         ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "167");
                                         ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
                                         ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
@@ -9880,8 +9880,8 @@ namespace PRoConEvents
                                         ExecuteCommand("procon.protected.send", "mapList.save");
                                         ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
                                         ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
-                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
-                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
                                         ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "300");
                                         ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
                                         ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
@@ -9897,8 +9897,8 @@ namespace PRoConEvents
                                         ExecuteCommand("procon.protected.send", "mapList.save");
                                         ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
                                         ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
-                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
-                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
                                         ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "300");
                                         ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
                                         ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
@@ -9914,8 +9914,8 @@ namespace PRoConEvents
                                         ExecuteCommand("procon.protected.send", "mapList.save");
                                         ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
                                         ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
-                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
-                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
                                         ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "250");
                                         ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
                                         ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
@@ -9931,8 +9931,8 @@ namespace PRoConEvents
                                         ExecuteCommand("procon.protected.send", "mapList.save");
                                         ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
                                         ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
-                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
-                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
                                         ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "400");
                                         ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
                                         ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
@@ -9948,8 +9948,8 @@ namespace PRoConEvents
                                         ExecuteCommand("procon.protected.send", "mapList.save");
                                         ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
                                         ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
-                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
-                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        //ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
                                         ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "500");
                                         ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
                                         ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
@@ -9961,15 +9961,33 @@ namespace PRoConEvents
                                         break;
                                 }
                             }
-                        } else if (nRound > 20009) {
+                        } else if (nRound == 19991) {
+                            ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                            ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                            ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                            ExecuteCommand("procon.protected.send", "mapList.save");
+                            ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
+                            ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                            //ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                            //ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "167");
+                            ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
+                        } else {
                             _pingEnforcerEnable = true;
                             _surrenderVoteEnable = true;
                             _surrenderAutoEnable = true;
+                            ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                            ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                            ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                            ExecuteCommand("procon.protected.send", "mapList.save");
                             ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
                             ExecuteCommand("procon.protected.send", "vars.idleTimeout", "300");
                             ExecuteCommand("procon.protected.send", "vars.friendlyFire", "false");
-                            ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "100");
-                            ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "100");
+                            //ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "100");
+                            //ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "100");
                             ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "150");
                             ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "300");
                             ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "5");
@@ -22243,7 +22261,7 @@ namespace PRoConEvents
                     ExecuteCommand("procon.protected.send", "admin.killPlayer", record.target_player.player_name);
                     if (record.source_name != record.target_name || record.command_type.command_key == "player_punish")
                     {
-                        PlayerTellMessage(record.target_name, "Killed by admin for " + record.record_message);
+                        PlayerTellMessage(record.target_name, "Killed by " + (record.source_name == "AutoAdmin" ? "AutoAdmin" : "admin") + " for " + record.record_message);
                         SendMessageToSource(record, "You KILLED " + record.GetTargetNames() + " for " + record.record_message);
                     }
                     else
@@ -22278,7 +22296,7 @@ namespace PRoConEvents
                     ExecuteCommand("procon.protected.send", "admin.killPlayer", record.target_player.player_name);
                     if (record.source_name != record.target_name)
                     {
-                        PlayerTellMessage(record.target_name, "Killed by admin for " + record.record_message);
+                        PlayerTellMessage(record.target_name, "Killed by " + (record.source_name == "AutoAdmin" ? "AutoAdmin" : "admin") + " for " + record.record_message);
                         SendMessageToSource(record, "You KILLED " + record.GetTargetNames() + " for " + record.record_message);
                     }
                     else
