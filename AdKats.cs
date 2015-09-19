@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.18
- * 17-SEP-2015
+ * Version 6.8.0.19
+ * 19-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.18</version_code>
+ * <version_code>6.8.0.19</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.18";
+        private const String PluginVersion = "6.8.0.19";
 
         public enum GameVersion
         {
@@ -6484,6 +6484,48 @@ namespace PRoConEvents
 
                             //Check for short keep alive every 30 seconds
                             if ((UtcNow() - lastShortKeepAliveCheck).TotalSeconds > 30) {
+                                if (_isTestingAuthorized && _serverInfo.ServerID == 1 && _roundID > 0) {
+                                    if (_roundID >= 20010) {
+                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | ADKGamers.com");
+                                    } else if (_roundID >= 20000) {
+                                        String result = "";
+                                        switch (_roundID) {
+                                            case 20000:
+                                                result = " KNIVES!";
+                                                break;
+                                            case 20001:
+                                                result = " HC BOLT!";
+                                                break;
+                                            case 20002:
+                                                result = " MARES LEG!";
+                                                break;
+                                            case 20003:
+                                                result = " DEFIBS!";
+                                                break;
+                                            case 20004:
+                                                result = " BOW/KNIVES!";
+                                                break;
+                                            case 20005:
+                                                result = " REPAIR TOOLS!";
+                                                break;
+                                            case 20006:
+                                                result = " PISTOLS!";
+                                                break;
+                                            case 20007:
+                                                result = " ALL WEAPONS!";
+                                                break;
+                                            case 20008:
+                                                result = " ALL WEAPONS!";
+                                                break;
+                                            case 20009:
+                                                result = " ALL WEAPONS!";
+                                                break;
+                                        }
+                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Metro | ROUND 20,000 EVENT!" + result);
+                                    } else {
+                                        this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | Round " + String.Format("{0:n0}", _roundID));
+                                    }
+                                }
                                 //Auto-assist
                                 AdKatsTeam team1, team2, winningTeam, losingTeam;
                                 if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
@@ -9742,38 +9784,184 @@ namespace PRoConEvents
                             _surrenderVoteEnable = false;
                             _surrenderAutoEnable = false;
                             ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "False");
-                            ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
-                            ExecuteCommand("procon.protected.send", "vars.friendlyFire", "true");
-                            ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
-                            ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
-                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "63");
-                            ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
-                            ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
-                            ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
-                            ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
                             for (int i = 0; i < 8; i++) {
                                 switch (nRound) {
                                     case 20000:
-                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! DOMINATION!");
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! KNIVES ONLY!");
+                                        //20,000 - Conquest 500 Knives Only
+                                        ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                                        ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.save");
+                                        ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
+                                        ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "63");
+                                        ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
                                         break;
                                     case 20001:
-                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! DEFIBS ONLY!");
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! HARDCORE BOLT ACTIONS!");
+                                        //20,001 - Domination 500 Hardcore Bolt Action Only
+                                        ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                                        ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.save");
+                                        ExecuteCommand("procon.protected.send", "vars.preset", "HARDCORE", "false");
+                                        ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "167");
+                                        ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
                                         break;
                                     case 20002:
-                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! REPAIR TOOL/EOD BOT ONLY!");
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! MARE'S LEG ONLY!");
+                                        //20,002 - TDM 300 Mare's Leg Only
+                                        ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
+                                        ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.save");
+                                        ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
+                                        ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "300");
+                                        ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
                                         break;
                                     case 20003:
-                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! MARE'S LEG ONLY!");
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! DEFIBS ONLY!");
+                                        //20,003 - Conquest 500 Defibs Only
+                                        ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                                        ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.save");
+                                        ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
+                                        ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "63");
+                                        ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
                                         break;
                                     case 20004:
-                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! ALL WEAPONS ALLOWED!");
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! PHANTOM BOW AND KNIVES ONLY!");
+                                        //20,004 - Domination 500 Phantom Bow/Knives Only
+                                        ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                                        ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.save");
+                                        ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
+                                        ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "167");
+                                        ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
+                                        break;
+                                    case 20005:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! REPAIR TOOL AND EOD BOT ONLY!");
+                                        //20,005 - Rush 300 Repair Tools/EOD Only
+                                        ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
+                                        ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.save");
+                                        ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
+                                        ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "300");
+                                        ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
+                                        break;
+                                    case 20006:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! PISTOLS ONLY!");
+                                        //20,006 - TDM 300 Pistols Only
+                                        ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
+                                        ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.save");
+                                        ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
+                                        ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "300");
+                                        ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
+                                        break;
+                                    case 20007:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! CONQUEST ALL WEAPONS ALLOWED!");
+                                        //20,007 - Conquest 2000 All Weapons
+                                        ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                                        ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.save");
+                                        ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
+                                        ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "250");
+                                        ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
+                                        break;
+                                    case 20008:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! DOMINATION ALL WEAPONS ALLOWED!");
+                                        //20,008 - Domination 1100 All Weapons
+                                        ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                                        ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.save");
+                                        ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
+                                        ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "400");
+                                        ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
+                                        break;
+                                    case 20009:
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! TDM ALL WEAPONS ALLOWED!");
+                                        //20,009 - TDM 500 All Weapons
+                                        ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
+                                        ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                                        ExecuteCommand("procon.protected.send", "mapList.save");
+                                        ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
+                                        ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                                        ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "500");
+                                        ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                                        ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
                                         break;
                                     default:
                                         AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro");
                                         break;
                                 }
                             }
-                        } else if (nRound > 15004) {
+                        } else if (nRound > 20009) {
                             _pingEnforcerEnable = true;
                             _surrenderVoteEnable = true;
                             _surrenderAutoEnable = true;
@@ -9782,7 +9970,7 @@ namespace PRoConEvents
                             ExecuteCommand("procon.protected.send", "vars.friendlyFire", "false");
                             ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "100");
                             ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "100");
-                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "125");
+                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "150");
                             ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "300");
                             ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "5");
                             ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "3");
@@ -10585,7 +10773,148 @@ namespace PRoConEvents
 
                 try
                 {
-                    if (_isTestingAuthorized && 
+                    if (_isTestingAuthorized &&
+                        _serverInfo.ServerID == 1 &&
+                        _roundID >= 20000 &&
+                        _roundID <= 20009) {
+                        if (aKill.killerCPI.TeamID != aKill.victimCPI.TeamID) {
+                            var killSpam = (aKill.killer.lastKill.AddSeconds(2) > UtcNow());
+                            aKill.killer.lastKill = UtcNow();
+                            switch (_roundID) {
+                                case 20000:
+                                    //Only 5 knife codes known, fuzzy match for unknown knife types
+                                    if (!aKill.weaponCode.ToLower().Contains("knife") &&
+                                        !aKill.weaponCode.ToLower().Contains("melee") &&
+                                        aKill.weaponCode != "DamageArea" &&
+                                        !killSpam) {
+                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
+                                        if (_populationStatus == PopulationState.High &&
+                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
+                                            (targetedRecord.command_numeric == _roundID) &&
+                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
+                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
+                                            aCommand = GetCommandByKey("player_kick");
+                                        }
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = aCommand,
+                                            command_numeric = _roundID,
+                                            target_name = aKill.killer.player_name,
+                                            target_player = aKill.killer,
+                                            source_name = "AutoAdmin",
+                                            record_time = UtcNow(),
+                                            record_message = "ROUND 20000 EVENT (PT 1): KNIFE ONLY"
+                                        });
+                                    }
+                                    break;
+                                case 20001:
+                                    if (aKill.weaponCategory != DamageTypes.SniperRifle &&
+                                        !killSpam) {
+                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
+                                        if (_populationStatus == PopulationState.High &&
+                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
+                                            (targetedRecord.command_numeric == _roundID) &&
+                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
+                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
+                                            aCommand = GetCommandByKey("player_kick");
+                                        }
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = aCommand,
+                                            command_numeric = _roundID,
+                                            target_name = aKill.killer.player_name,
+                                            target_player = aKill.killer,
+                                            source_name = "AutoAdmin",
+                                            record_time = UtcNow(),
+                                            record_message = "ROUND 20000 EVENT (PT 2): DEFIB ONLY"
+                                        });
+                                    }
+                                    break;
+                                case 15001:
+                                    if (aKill.weaponCode != "U_Defib" &&
+                                        aKill.weaponCode != "DamageArea" &&
+                                        !killSpam) {
+                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
+                                        if (_populationStatus == PopulationState.High &&
+                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
+                                            (targetedRecord.command_numeric == _roundID) &&
+                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
+                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
+                                            aCommand = GetCommandByKey("player_kick");
+                                        }
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = aCommand,
+                                            command_numeric = _roundID,
+                                            target_name = aKill.killer.player_name,
+                                            target_player = aKill.killer,
+                                            source_name = "AutoAdmin",
+                                            record_time = UtcNow(),
+                                            record_message = "ROUND 20000 EVENT (PT 2): DEFIB ONLY"
+                                        });
+                                    }
+                                    break;
+                                case 15002:
+                                    if (aKill.weaponCode != "U_Repairtool" &&
+                                        aKill.weaponCode != "EODBot" &&
+                                        aKill.weaponCode != "Death" &&
+                                        aKill.weaponCode != "DamageArea" &&
+                                        !killSpam) {
+                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
+                                        if (_populationStatus == PopulationState.High &&
+                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
+                                            (targetedRecord.command_numeric == _roundID) &&
+                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
+                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
+                                            aCommand = GetCommandByKey("player_kick");
+                                        }
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = aCommand,
+                                            command_numeric = _roundID,
+                                            target_name = aKill.killer.player_name,
+                                            target_player = aKill.killer,
+                                            source_name = "AutoAdmin",
+                                            record_time = UtcNow(),
+                                            record_message = "ROUND 20000 EVENT (PT 3): REPAIR TOOL/EOD ONLY"
+                                        });
+                                    }
+                                    break;
+                                case 15003:
+                                    if (aKill.weaponCode != "U_SaddlegunSnp" &&
+                                        aKill.weaponCode != "DamageArea" &&
+                                        !killSpam) {
+                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
+                                        if (_populationStatus == PopulationState.High &&
+                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
+                                            (targetedRecord.command_numeric == _roundID) &&
+                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
+                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
+                                            aCommand = GetCommandByKey("player_kick");
+                                        }
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = aCommand,
+                                            command_numeric = _roundID,
+                                            target_name = aKill.killer.player_name,
+                                            target_player = aKill.killer,
+                                            source_name = "AutoAdmin",
+                                            record_time = UtcNow(),
+                                            record_message = "ROUND 20000 EVENT (PT 4): MARE'S LEG ONLY"
+                                        });
+                                    }
+                                    break;
+                                case 15004:
+                                    //All weapons allowed
+                                    break;
+                            }
+                        }
+                    } else if (_isTestingAuthorized && 
                         _gameVersion == GameVersion.BF4 && 
                         aKill.killerCPI.TeamID == aKill.victimCPI.TeamID && 
                         !aKill.IsSuicide)
@@ -10751,7 +11080,41 @@ namespace PRoConEvents
                                 StartAndLogThread(new Thread(new ThreadStart(delegate {
                                     Thread.CurrentThread.Name = "RoundWelcome";
                                     Thread.Sleep(TimeSpan.FromSeconds(17));
-                                    AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro" + (_roundID < 20000 ? ". " + FormatNowDuration(FetchFutureRoundDate(20000), 2) + " until round 20,000 event!" : ""));
+                                    switch (_roundID) {
+                                        case 20000:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! KNIVES ONLY!");
+                                            break;
+                                        case 20001:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! HARDCORE BOLT ACTIONS!");
+                                            break;
+                                        case 20002:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! MARE'S LEG ONLY!");
+                                            break;
+                                        case 20003:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! DEFIBS ONLY!");
+                                            break;
+                                        case 20004:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! PHANTOM BOW AND KNIVES ONLY!");
+                                            break;
+                                        case 20005:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! REPAIR TOOL AND EOD BOT ONLY!");
+                                            break;
+                                        case 20006:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! PISTOLS ONLY!");
+                                            break;
+                                        case 20007:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! ALL WEAPONS ALLOWED!");
+                                            break;
+                                        case 20008:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! ALL WEAPONS ALLOWED!");
+                                            break;
+                                        case 20009:
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! ALL WEAPONS ALLOWED!");
+                                            break;
+                                        default:
+                                            AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro" + (_roundID < 20000 ? ". Round 20,000 event today!" : ""));
+                                            break;
+                                    }
                                     LogThreadExit();
                                 })));
                             } else if (_serverInfo.ServerName.Contains("#6")) {
@@ -13765,6 +14128,11 @@ namespace PRoConEvents
                                     return;
                                 }
                                 if (_isTestingAuthorized) {
+                                    if (_serverInfo.ServerID == 1 && _roundID >= 20000 && _roundID <= 20009) {
+                                        SendMessageToSource(record, "ROUND 20,000 EVENT. REPORT DISABLED.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
                                     string lowerM = " " + record.record_message.ToLower() + " ";
                                     if (lowerM.Contains("bipod")) {
                                         SendMessageToSource(record, "Bipod related actions are not bannable.");
@@ -20405,7 +20773,7 @@ namespace PRoConEvents
             {
                 if (!IsSoldierNameValid(playerNameInput))
                 {
-                    resultMessage = "'" + playerNameInput + "' was an invalid player name.";
+                    resultMessage = "'" + playerNameInput + "' is an invalid player name.";
                     return false;
                 }
                 //Check for an exact match
@@ -31387,7 +31755,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    Log.Error("'" + soldierName + "' was an invalid soldier name. Unable to assign to user.");
+                    Log.Error("'" + soldierName + "' is an invalid player name. Unable to assign to user.");
                 }
             }
             catch (Exception e)
