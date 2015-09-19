@@ -9988,7 +9988,7 @@ namespace PRoConEvents
                             ExecuteCommand("procon.protected.send", "vars.friendlyFire", "false");
                             ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "100");
                             ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "100");
-                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "125");
+                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "150");
                             ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "300");
                             ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "5");
                             ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "3");
