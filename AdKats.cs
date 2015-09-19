@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.19
+ * Version 6.8.0.20
  * 19-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.19</version_code>
+ * <version_code>6.8.0.20</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.19";
+        private const String PluginVersion = "6.8.0.20";
 
         public enum GameVersion
         {
@@ -10804,12 +10804,13 @@ namespace PRoConEvents
                                             target_player = aKill.killer,
                                             source_name = "AutoAdmin",
                                             record_time = UtcNow(),
-                                            record_message = "ROUND 20000 EVENT (PT 1): KNIFE ONLY"
+                                            record_message = "KNIFE ONLY! ROUND 20000 EVENT (PT 1)"
                                         });
                                     }
                                     break;
                                 case 20001:
                                     if (aKill.weaponCategory != DamageTypes.SniperRifle &&
+                                        aKill.weaponCode != "DamageArea" &&
                                         !killSpam) {
                                         AdKatsCommand aCommand = GetCommandByKey("player_kill");
                                         if (_populationStatus == PopulationState.High &&
@@ -10828,11 +10829,36 @@ namespace PRoConEvents
                                             target_player = aKill.killer,
                                             source_name = "AutoAdmin",
                                             record_time = UtcNow(),
-                                            record_message = "ROUND 20000 EVENT (PT 2): DEFIB ONLY"
+                                            record_message = "BOLT ACTIONS ONLY! ROUND 20000 EVENT (PT 2)"
                                         });
                                     }
                                     break;
-                                case 15001:
+                                case 20002:
+                                    if (aKill.weaponCode != "U_SaddlegunSnp" &&
+                                        aKill.weaponCode != "DamageArea" &&
+                                        !killSpam) {
+                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
+                                        if (_populationStatus == PopulationState.High &&
+                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
+                                            (targetedRecord.command_numeric == _roundID) &&
+                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
+                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
+                                            aCommand = GetCommandByKey("player_kick");
+                                        }
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = aCommand,
+                                            command_numeric = _roundID,
+                                            target_name = aKill.killer.player_name,
+                                            target_player = aKill.killer,
+                                            source_name = "AutoAdmin",
+                                            record_time = UtcNow(),
+                                            record_message = "MARE'S LEG ONLY! ROUND 20000 EVENT (PT 3)"
+                                        });
+                                    }
+                                    break;
+                                case 20003:
                                     if (aKill.weaponCode != "U_Defib" &&
                                         aKill.weaponCode != "DamageArea" &&
                                         !killSpam) {
@@ -10853,11 +10879,38 @@ namespace PRoConEvents
                                             target_player = aKill.killer,
                                             source_name = "AutoAdmin",
                                             record_time = UtcNow(),
-                                            record_message = "ROUND 20000 EVENT (PT 2): DEFIB ONLY"
+                                            record_message = "DEFIBS ONLY! ROUND 20000 EVENT (PT 4)"
                                         });
                                     }
                                     break;
-                                case 15002:
+                                case 20004:
+                                    if (!aKill.weaponCode.ToLower().Contains("knife") &&
+                                        !aKill.weaponCode.ToLower().Contains("melee") &&
+                                        aKill.weaponCode != "dlSHTR" &&
+                                        aKill.weaponCode != "DamageArea" &&
+                                        !killSpam) {
+                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
+                                        if (_populationStatus == PopulationState.High &&
+                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
+                                            (targetedRecord.command_numeric == _roundID) &&
+                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
+                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
+                                            aCommand = GetCommandByKey("player_kick");
+                                        }
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = aCommand,
+                                            command_numeric = _roundID,
+                                            target_name = aKill.killer.player_name,
+                                            target_player = aKill.killer,
+                                            source_name = "AutoAdmin",
+                                            record_time = UtcNow(),
+                                            record_message = "PHANTOM BOW AND KNIVES ONLY! ROUND 20000 EVENT (PT 5)"
+                                        });
+                                    }
+                                    break;
+                                case 20005:
                                     if (aKill.weaponCode != "U_Repairtool" &&
                                         aKill.weaponCode != "EODBot" &&
                                         aKill.weaponCode != "Death" &&
@@ -10880,12 +10933,12 @@ namespace PRoConEvents
                                             target_player = aKill.killer,
                                             source_name = "AutoAdmin",
                                             record_time = UtcNow(),
-                                            record_message = "ROUND 20000 EVENT (PT 3): REPAIR TOOL/EOD ONLY"
+                                            record_message = "REPAIR TOOL/EOD ONLY! ROUND 20000 EVENT (PT 6)"
                                         });
                                     }
                                     break;
-                                case 15003:
-                                    if (aKill.weaponCode != "U_SaddlegunSnp" &&
+                                case 20006:
+                                    if (aKill.weaponCategory != DamageTypes.Handgun &&
                                         aKill.weaponCode != "DamageArea" &&
                                         !killSpam) {
                                         AdKatsCommand aCommand = GetCommandByKey("player_kill");
@@ -10905,11 +10958,17 @@ namespace PRoConEvents
                                             target_player = aKill.killer,
                                             source_name = "AutoAdmin",
                                             record_time = UtcNow(),
-                                            record_message = "ROUND 20000 EVENT (PT 4): MARE'S LEG ONLY"
+                                            record_message = "PISTOLS ONLY! ROUND 20000 EVENT (PT 7)"
                                         });
                                     }
                                     break;
-                                case 15004:
+                                case 20007:
+                                    //All weapons allowed
+                                    break;
+                                case 20008:
+                                    //All weapons allowed
+                                    break;
+                                case 20009:
                                     //All weapons allowed
                                     break;
                             }
