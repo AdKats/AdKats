@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.23
- * 19-SEP-2015
+ * Version 6.8.0.24
+ * 21-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.23</version_code>
+ * <version_code>6.8.0.24</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.23";
+        private const String PluginVersion = "6.8.0.24";
 
         public enum GameVersion
         {
@@ -210,7 +210,7 @@ namespace PRoConEvents
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
         private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(3);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private readonly TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(5);
+        private readonly TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(6);
         private DateTime _LastGoogleAction = DateTime.UtcNow - TimeSpan.FromSeconds(0.3);
         private readonly TimeSpan _GoogleWaitDuration = TimeSpan.FromSeconds(0.3);
         private DateTime _lastGlitchedPlayerNotification = DateTime.UtcNow;
@@ -41012,11 +41012,15 @@ namespace PRoConEvents
         private void DoBattlelogWait()
         {
             if ((UtcNow() - _LastBattlelogAction) < _BattlelogWaitDuration) {
-                var waitTime = _BattlelogWaitDuration - (UtcNow() - _LastBattlelogAction);
+                var waitTime = (_BattlelogWaitDuration - (UtcNow() - _LastBattlelogAction)).Duration();
                 Log.Debug(() => "Waiting " + ((int)waitTime.TotalMilliseconds) + "ms to query battlelog.", 7);
-                if (waitTime.TotalSeconds > 60) {
+                if (waitTime.TotalSeconds > _BattlelogWaitDuration) {
                     Log.Warn("Wait time excessive for battlelog.");
                     waitTime = _BattlelogWaitDuration;
+                }
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled)) {
+                    //Double the wait duration if LRT is subscribed
+                    waitTime.Add(_BattlelogWaitDuration);
                 }
                 _threadMasterWaitHandle.WaitOne(waitTime);
             }
@@ -41026,7 +41030,7 @@ namespace PRoConEvents
         private void DoIPAPIWait()
         {
             if ((UtcNow() - _LastIPAPIAction) < _IPAPIWaitDuration) {
-                var waitTime = _IPAPIWaitDuration - (UtcNow() - _LastIPAPIAction);
+                var waitTime = (_IPAPIWaitDuration - (UtcNow() - _LastIPAPIAction)).Duration();
                 Log.Debug(() => "Waiting " + ((int) waitTime.TotalMilliseconds) + "ms to query IPAPI.", 7);
                 if (waitTime > _IPAPIWaitDuration) {
                     Log.Warn("Wait time excessive for IPAPI.");
