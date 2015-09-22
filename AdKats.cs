@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.24
+ * Version 6.8.0.25
  * 21-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.24</version_code>
+ * <version_code>6.8.0.25</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.24";
+        private const String PluginVersion = "6.8.0.25";
 
         public enum GameVersion
         {
@@ -41012,10 +41012,12 @@ namespace PRoConEvents
         private void DoBattlelogWait()
         {
             if ((UtcNow() - _LastBattlelogAction) < _BattlelogWaitDuration) {
-                var waitTime = (_BattlelogWaitDuration - (UtcNow() - _LastBattlelogAction)).Duration();
+                var waitTime = _BattlelogWaitDuration - NowDuration(_LastBattlelogAction);
                 Log.Debug(() => "Waiting " + ((int)waitTime.TotalMilliseconds) + "ms to query battlelog.", 7);
                 if (waitTime.TotalSeconds > _BattlelogWaitDuration.TotalSeconds) {
-                    Log.Warn("Wait time excessive for battlelog.");
+                    if (_isTestingAuthorized) {
+                        Log.Warn("Wait time excessive for battlelog.");
+                    }
                     waitTime = _BattlelogWaitDuration;
                 }
                 if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled)) {
@@ -41030,10 +41032,12 @@ namespace PRoConEvents
         private void DoIPAPIWait()
         {
             if ((UtcNow() - _LastIPAPIAction) < _IPAPIWaitDuration) {
-                var waitTime = (_IPAPIWaitDuration - (UtcNow() - _LastIPAPIAction)).Duration();
+                var waitTime = _IPAPIWaitDuration - NowDuration(_LastIPAPIAction);
                 Log.Debug(() => "Waiting " + ((int) waitTime.TotalMilliseconds) + "ms to query IPAPI.", 7);
                 if (waitTime > _IPAPIWaitDuration) {
-                    Log.Warn("Wait time excessive for IPAPI.");
+                    if (_isTestingAuthorized) {
+                        Log.Warn("Wait time excessive for IPAPI.");
+                    }
                     waitTime = _IPAPIWaitDuration;
                 }
                 _threadMasterWaitHandle.WaitOne(waitTime);
