@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.25
+ * Version 6.8.0.26
  * 21-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.25</version_code>
+ * <version_code>6.8.0.26</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.25";
+        private const String PluginVersion = "6.8.0.26";
 
         public enum GameVersion
         {
@@ -9976,22 +9976,22 @@ namespace PRoConEvents
                             ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
                             ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
                         } else {
-                            _pingEnforcerEnable = true;
-                            _surrenderVoteEnable = true;
-                            _surrenderAutoEnable = true;
-                            ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
-                            ExecuteCommand("procon.protected.send", "mapList.remove", "0");
-                            ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
-                            ExecuteCommand("procon.protected.send", "mapList.save");
-                            ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
-                            ExecuteCommand("procon.protected.send", "vars.idleTimeout", "300");
-                            ExecuteCommand("procon.protected.send", "vars.friendlyFire", "false");
-                            ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "100");
-                            ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "100");
-                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "150");
-                            ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "300");
-                            ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "5");
-                            ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "3");
+//                            _pingEnforcerEnable = true;
+//                            _surrenderVoteEnable = true;
+//                            _surrenderAutoEnable = true;
+//                            ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+//                            ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+//                            ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+//                            ExecuteCommand("procon.protected.send", "mapList.save");
+//                            ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
+//                            ExecuteCommand("procon.protected.send", "vars.idleTimeout", "300");
+//                            ExecuteCommand("procon.protected.send", "vars.friendlyFire", "false");
+//                            ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "100");
+//                            ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "100");
+//                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "150");
+//                            ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "300");
+//                            ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "5");
+//                            ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "3");
                         }
                         Int32 quality = 4;
                         if (winningTeam.TeamTicketCount >= 900) {
