@@ -41014,7 +41014,7 @@ namespace PRoConEvents
             if ((UtcNow() - _LastBattlelogAction) < _BattlelogWaitDuration) {
                 var waitTime = (_BattlelogWaitDuration - (UtcNow() - _LastBattlelogAction)).Duration();
                 Log.Debug(() => "Waiting " + ((int)waitTime.TotalMilliseconds) + "ms to query battlelog.", 7);
-                if (waitTime.TotalSeconds > _BattlelogWaitDuration) {
+                if (waitTime.TotalSeconds > _BattlelogWaitDuration.TotalSeconds) {
                     Log.Warn("Wait time excessive for battlelog.");
                     waitTime = _BattlelogWaitDuration;
                 }
