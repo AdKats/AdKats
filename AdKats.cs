@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.26
- * 21-SEP-2015
+ * Version 6.8.0.27
+ * 22-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.26</version_code>
+ * <version_code>6.8.0.27</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.26";
+        private const String PluginVersion = "6.8.0.27";
 
         public enum GameVersion
         {
@@ -41011,38 +41011,48 @@ namespace PRoConEvents
 
         private void DoBattlelogWait()
         {
-            if ((UtcNow() - _LastBattlelogAction) < _BattlelogWaitDuration) {
-                var waitTime = _BattlelogWaitDuration - NowDuration(_LastBattlelogAction);
-                Log.Debug(() => "Waiting " + ((int)waitTime.TotalMilliseconds) + "ms to query battlelog.", 7);
-                if (waitTime.TotalSeconds > _BattlelogWaitDuration.TotalSeconds) {
-                    if (_isTestingAuthorized) {
-                        Log.Warn("Wait time excessive for battlelog.");
+            try {
+                if ((UtcNow() - _LastBattlelogAction) < _BattlelogWaitDuration) {
+                    var waitTime = _BattlelogWaitDuration - NowDuration(_LastBattlelogAction);
+                    Log.Debug(() => "Waiting " + ((int) waitTime.TotalMilliseconds) + "ms to query battlelog.", 7);
+                    if (waitTime.TotalSeconds > _BattlelogWaitDuration.TotalSeconds) {
+                        if (_isTestingAuthorized) {
+                            Log.Warn("Wait time excessive for battlelog.");
+                        }
+                        waitTime = _BattlelogWaitDuration;
                     }
-                    waitTime = _BattlelogWaitDuration;
+                    if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled)) {
+                        //Double the wait duration if LRT is subscribed
+                        waitTime.Add(_BattlelogWaitDuration);
+                    }
+                    _threadMasterWaitHandle.WaitOne(waitTime);
                 }
-                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled)) {
-                    //Double the wait duration if LRT is subscribed
-                    waitTime.Add(_BattlelogWaitDuration);
-                }
-                _threadMasterWaitHandle.WaitOne(waitTime);
+                _LastBattlelogAction = UtcNow();
             }
-            _LastBattlelogAction = UtcNow();
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error performing battlelog wait.", e));
+                _threadMasterWaitHandle.WaitOne(_BattlelogWaitDuration);
+            }
         }
 
-        private void DoIPAPIWait()
-        {
-            if ((UtcNow() - _LastIPAPIAction) < _IPAPIWaitDuration) {
-                var waitTime = _IPAPIWaitDuration - NowDuration(_LastIPAPIAction);
-                Log.Debug(() => "Waiting " + ((int) waitTime.TotalMilliseconds) + "ms to query IPAPI.", 7);
-                if (waitTime > _IPAPIWaitDuration) {
-                    if (_isTestingAuthorized) {
-                        Log.Warn("Wait time excessive for IPAPI.");
+        private void DoIPAPIWait() {
+            try {
+                if ((UtcNow() - _LastIPAPIAction) < _IPAPIWaitDuration) {
+                    var waitTime = _IPAPIWaitDuration - NowDuration(_LastIPAPIAction);
+                    Log.Debug(() => "Waiting " + ((int) waitTime.TotalMilliseconds) + "ms to query IPAPI.", 7);
+                    if (waitTime > _IPAPIWaitDuration) {
+                        if (_isTestingAuthorized) {
+                            Log.Warn("Wait time excessive for IPAPI.");
+                        }
+                        waitTime = _IPAPIWaitDuration;
                     }
-                    waitTime = _IPAPIWaitDuration;
+                    _threadMasterWaitHandle.WaitOne(waitTime);
                 }
-                _threadMasterWaitHandle.WaitOne(waitTime);
+                _LastIPAPIAction = UtcNow();
+            } catch (Exception e) {
+                HandleException(new AdKatsException("Error performing IPAPI wait.", e));
+                _threadMasterWaitHandle.WaitOne(_BattlelogWaitDuration);
             }
-            _LastIPAPIAction = UtcNow();
         }
 
         private void DoGoogleWait()
