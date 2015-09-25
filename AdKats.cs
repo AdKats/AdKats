@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.28
- * 23-SEP-2015
+ * Version 6.8.0.29
+ * 24-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.28</version_code>
+ * <version_code>6.8.0.29</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.28";
+        private const String PluginVersion = "6.8.0.29";
 
         public enum GameVersion
         {
@@ -216,6 +216,8 @@ namespace PRoConEvents
         private DateTime _lastGlitchedPlayerNotification = DateTime.UtcNow;
         private DateTime _lastInvalidPlayerNameNotification = DateTime.UtcNow;
         private DateTime _lastIPAPIError = DateTime.UtcNow;
+        private DateTime _lastBattlelogDurationMessage = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private Queue<KeyValuePair<Double, DateTime>> _battlelogActionDurations = new Queue<KeyValuePair<Double, DateTime>>();
 
         //Server
         private PopulationState _populationStatus = PopulationState.Unknown;
@@ -41012,6 +41014,18 @@ namespace PRoConEvents
         private void DoBattlelogWait()
         {
             try {
+                var now = UtcNow();
+                var timeSinceLast = (now - _LastBattlelogAction).TotalSeconds;
+                _battlelogActionDurations.Enqueue(new KeyValuePair<double, DateTime>(timeSinceLast, now));
+                while ((now - _battlelogActionDurations.Peek().Value).TotalMinutes > 10) {
+                    _battlelogActionDurations.Dequeue();
+                }
+                if ((now - _lastBattlelogDurationMessage).TotalSeconds > 30) {
+                    if (_isTestingAuthorized) {
+                        Log.Info("Average battlelog request frequency (" + _battlelogActionDurations.Count() + "): " + Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2) + "s");
+                    }
+                    _lastBattlelogDurationMessage = now;
+                }
                 if ((UtcNow() - _LastBattlelogAction) < _BattlelogWaitDuration) {
                     var waitTime = _BattlelogWaitDuration - NowDuration(_LastBattlelogAction);
                     Log.Debug(() => "Waiting " + ((int) waitTime.TotalMilliseconds) + "ms to query battlelog.", 7);
