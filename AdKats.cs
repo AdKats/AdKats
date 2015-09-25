@@ -39929,6 +39929,8 @@ namespace PRoConEvents
                             Thread.CurrentThread.Name = "PluginUpdater";
                             _pluginUpdateProgress = "Started";
 
+                            String dllPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
+
                             //Other plugins
                             //1 - MULTIBalancer - With ColColonCleaner balance mods
                             if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
@@ -40163,7 +40165,6 @@ namespace PRoConEvents
                                 Log.Info("Preparing test compile on updated plugin source.");
                             }
                             String pluginFileName = "AdKats.cs";
-                            String dllPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
                             String pluginPath = Path.Combine(dllPath.Trim(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), pluginFileName);
                             CompilerResults compileResults = CompilePluginSource(pluginSource);
                             if (compileResults.Errors.HasErrors)
