@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.30
+ * Version 6.8.0.31
  * 24-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.30</version_code>
+ * <version_code>6.8.0.31</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.30";
+        private const String PluginVersion = "6.8.0.31";
 
         public enum GameVersion
         {
@@ -40974,8 +40974,22 @@ namespace PRoConEvents
             try {
                 lock (_battlelogLocker) {
                     var now = UtcNow();
-                    var timeSinceLast = (now - _LastBattlelogAction).TotalSeconds;
-                    _battlelogActionDurations.Enqueue(new KeyValuePair<double, DateTime>(timeSinceLast, now));
+                    var timeSinceLast = (now - _LastBattlelogAction);
+                    var requiredWait = _BattlelogWaitDuration;
+                    if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled)) {
+                        //Double the wait duration if LRT is subscribed
+                        requiredWait.Add(_BattlelogWaitDuration);
+                    }
+                    //Wait between battlelog actions
+                    if (timeSinceLast < requiredWait) {
+                        var remainingWait = requiredWait - timeSinceLast;
+                        Log.Debug(() => "Waiting " + ((int) remainingWait.TotalMilliseconds) + "ms to query battlelog.", 6);
+                        Thread.Sleep(remainingWait);
+                    }
+                    //Log the request frequency
+                    now = UtcNow();
+                    timeSinceLast = (now - _LastBattlelogAction);
+                    _battlelogActionDurations.Enqueue(new KeyValuePair<double, DateTime>(timeSinceLast.TotalSeconds, now));
                     while ((now - _battlelogActionDurations.Peek().Value).TotalMinutes > 10) {
                         _battlelogActionDurations.Dequeue();
                     }
@@ -40984,23 +40998,6 @@ namespace PRoConEvents
                             Log.Info("Average battlelog request frequency (" + _battlelogActionDurations.Count() + "): " + Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2) + "s");
                         }
                         _lastBattlelogDurationMessage = now;
-                    }
-                    if ((UtcNow() - _LastBattlelogAction) < _BattlelogWaitDuration) {
-                        var waitTime = _BattlelogWaitDuration - NowDuration(_LastBattlelogAction);
-                        Log.Debug(() => "Waiting " + ((int) waitTime.TotalMilliseconds) + "ms to query battlelog.", 6);
-                        if (waitTime.TotalSeconds > _BattlelogWaitDuration.TotalSeconds) {
-                            if (_isTestingAuthorized) {
-                                Log.Warn("Wait time excessive for battlelog.");
-                            }
-                            waitTime = _BattlelogWaitDuration;
-                        }
-                        if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled)) {
-                            //Double the wait duration if LRT is subscribed
-                            waitTime.Add(_BattlelogWaitDuration);
-                        }
-                        if (waitTime.TotalSeconds > 0) {
-                            _threadMasterWaitHandle.WaitOne(waitTime);
-                        }
                     }
                     _LastBattlelogAction = UtcNow();
                 }
@@ -41014,18 +41011,14 @@ namespace PRoConEvents
         private void DoIPAPIWait() {
             try {
                 lock (_IPAPILocker) {
-                    if ((UtcNow() - _LastIPAPIAction) < _IPAPIWaitDuration) {
-                        var waitTime = _IPAPIWaitDuration - NowDuration(_LastIPAPIAction);
-                        Log.Debug(() => "Waiting " + ((int) waitTime.TotalMilliseconds) + "ms to query IPAPI.", 7);
-                        if (waitTime > _IPAPIWaitDuration) {
-                            if (_isTestingAuthorized) {
-                                Log.Warn("Wait time excessive for IPAPI.");
-                            }
-                            waitTime = _IPAPIWaitDuration;
-                        }
-                        if (waitTime.TotalSeconds > 0) {
-                            _threadMasterWaitHandle.WaitOne(waitTime);
-                        }
+                    var now = UtcNow();
+                    var timeSinceLast = (now - _LastBattlelogAction);
+                    var requiredWait = _IPAPIWaitDuration;
+                    //Wait between battlelog actions
+                    if (timeSinceLast < requiredWait) {
+                        var remainingWait = requiredWait - timeSinceLast;
+                        Log.Debug(() => "Waiting " + ((int) remainingWait.TotalMilliseconds) + "ms to query IPAPI.", 6);
+                        _threadMasterWaitHandle.WaitOne(remainingWait);
                     }
                     _LastIPAPIAction = UtcNow();
                 }
