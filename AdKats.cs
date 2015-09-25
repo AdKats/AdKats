@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.31
+ * Version 6.8.0.32
  * 24-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.31</version_code>
+ * <version_code>6.8.0.32</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.31";
+        private const String PluginVersion = "6.8.0.32";
 
         public enum GameVersion
         {
@@ -209,7 +209,7 @@ namespace PRoConEvents
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
         private Object _battlelogLocker = new Object();
-        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(3);
+        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(4);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private readonly TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(6);
         private Object _IPAPILocker = new Object();
@@ -40976,9 +40976,12 @@ namespace PRoConEvents
                     var now = UtcNow();
                     var timeSinceLast = (now - _LastBattlelogAction);
                     var requiredWait = _BattlelogWaitDuration;
-                    if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled)) {
-                        //Double the wait duration if LRT is subscribed
-                        requiredWait.Add(_BattlelogWaitDuration);
+                    //Reduce required wait time based on how many players are in queue
+                    if (_HackerCheckerQueue.Count() >= 10) {
+                        requiredWait -= TimeSpan.FromSeconds(1.0);
+                    }
+                    if (_BattlelogFetchQueue.Count() >= 10) {
+                        requiredWait -= TimeSpan.FromSeconds(1.0);
                     }
                     //Wait between battlelog actions
                     if (timeSinceLast < requiredWait) {
