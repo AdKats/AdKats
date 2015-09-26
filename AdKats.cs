@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.32
- * 24-SEP-2015
+ * Version 6.8.0.33
+ * 26-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.32</version_code>
+ * <version_code>6.8.0.33</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.32";
+        private const String PluginVersion = "6.8.0.33";
 
         public enum GameVersion
         {
@@ -40996,9 +40996,19 @@ namespace PRoConEvents
                     while ((now - _battlelogActionDurations.Peek().Value).TotalMinutes > 10) {
                         _battlelogActionDurations.Dequeue();
                     }
-                    if ((now - _lastBattlelogDurationMessage).TotalSeconds > 30) {
+                    if ((now - _lastBattlelogDurationMessage).TotalSeconds > 60) {
                         if (_isTestingAuthorized) {
-                            Log.Info("Average battlelog request frequency (" + _battlelogActionDurations.Count() + "): " + Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2) + "s");
+                            Log.Info("Average battlelog request frequency: " + Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2) + "s");
+
+                            QueueStatisticForProcessing(new AdKatsStatistic() {
+                                stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
+                                server_id = _serverInfo.ServerID,
+                                round_id = _roundID,
+                                target_name = _serverInfo.InfoObject.Map,
+                                stat_value = Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2),
+                                stat_comment = "",
+                                stat_time = UtcNow()
+                            });
                         }
                         _lastBattlelogDurationMessage = now;
                     }
@@ -41676,7 +41686,8 @@ namespace PRoConEvents
                 player_loss,
                 player_baserape,
                 player_top,
-                round_quality
+                round_quality,
+                battlelog_requestfreq
             }
 
             public Int64 stat_id;
