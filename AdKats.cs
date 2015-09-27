@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.37
+ * Version 6.8.0.38
  * 27-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.37</version_code>
+ * <version_code>6.8.0.38</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.37";
+        private const String PluginVersion = "6.8.0.38";
 
         public enum GameVersion
         {
@@ -219,8 +219,8 @@ namespace PRoConEvents
         private DateTime _lastGlitchedPlayerNotification = DateTime.UtcNow;
         private DateTime _lastInvalidPlayerNameNotification = DateTime.UtcNow;
         private DateTime _lastIPAPIError = DateTime.UtcNow;
-        private DateTime _lastBattlelogDurationMessage = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private Queue<KeyValuePair<Double, DateTime>> _battlelogActionDurations = new Queue<KeyValuePair<Double, DateTime>>();
+        private DateTime _lastBattlelogFrequencyMessage = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private Queue<DateTime> _BattlelogActionTimes = new Queue<DateTime>();
 
         //Server
         private PopulationState _populationStatus = PopulationState.Unknown;
@@ -6339,23 +6339,24 @@ namespace PRoConEvents
                                 }
                             }
 
-                            //Post battlelog action durations
-                            if (_battlelogActionDurations.Any() && NowDuration(_lastBattlelogDurationMessage).TotalSeconds > 30) {
+                            //Post battlelog acttion times
+                            if (_BattlelogActionTimes.Any() && NowDuration(_lastBattlelogFrequencyMessage).TotalSeconds > 30) {
                                 if (_isTestingAuthorized) {
-                                    lock (_battlelogActionDurations) {
-                                        Log.Info("Average battlelog request frequency: " + Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2) + "s");
+                                    lock (_BattlelogActionTimes) {
+                                        var frequency = Math.Round(_BattlelogActionTimes.Count(time => NowDuration(time).TotalMinutes <= 5) / 5.0, 2);
+                                        Log.Info("Average battlelog request frequency: " + frequency + " r/m");
                                         QueueStatisticForProcessing(new AdKatsStatistic() {
                                             stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
                                             server_id = _serverInfo.ServerID,
                                             round_id = _roundID,
                                             target_name = _serverInfo.InfoObject.Map,
-                                            stat_value = ((NowDuration(_LastBattlelogIssue).TotalMinutes < 4) ? (-1.00) : (Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2))),
-                                            stat_comment = "HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
+                                            stat_value = ((NowDuration(_LastBattlelogIssue).TotalMinutes < 4) ? (0.00) : (frequency)),
+                                            stat_comment = frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
                                             stat_time = UtcNow()
                                         });
                                     }
                                 }
-                                _lastBattlelogDurationMessage = UtcNow();
+                                _lastBattlelogFrequencyMessage = UtcNow();
                             }
 
                             //Check for unswitcher disable every 20 seconds
@@ -38028,7 +38029,6 @@ namespace PRoConEvents
                                 Log.Warn("Issue connecting to battlelog.");
                                 _LastBattlelogAction = UtcNow().AddSeconds(30);
                                 _LastBattlelogIssue = UtcNow();
-                                _battlelogActionDurations.Clear();
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -38087,7 +38087,6 @@ namespace PRoConEvents
                                 Log.Warn("Issue connecting to battlelog.");
                                 _LastBattlelogAction = UtcNow().AddSeconds(30);
                                 _LastBattlelogIssue = UtcNow();
-                                _battlelogActionDurations.Clear();
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -38155,7 +38154,6 @@ namespace PRoConEvents
                                 Log.Warn("Issue connecting to battlelog.");
                                 _LastBattlelogAction = UtcNow().AddSeconds(30);
                                 _LastBattlelogIssue = UtcNow();
-                                _battlelogActionDurations.Clear();
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -38328,7 +38326,6 @@ namespace PRoConEvents
                             Log.Warn("Issue connecting to battlelog.");
                             _LastBattlelogAction = UtcNow().AddSeconds(30);
                             _LastBattlelogIssue = UtcNow();
-                            _battlelogActionDurations.Clear();
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -38496,7 +38493,6 @@ namespace PRoConEvents
                             Log.Warn("Issue connecting to battlelog.");
                             _LastBattlelogAction = UtcNow().AddSeconds(30);
                             _LastBattlelogIssue = UtcNow();
-                            _battlelogActionDurations.Clear();
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -38581,7 +38577,6 @@ namespace PRoConEvents
                             Log.Warn("Issue connecting to battlelog.");
                             _LastBattlelogAction = UtcNow().AddSeconds(30);
                             _LastBattlelogIssue = UtcNow();
-                            _battlelogActionDurations.Clear();
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -41002,9 +40997,9 @@ namespace PRoConEvents
                     //Log the request frequency
                     now = UtcNow();
                     timeSinceLast = (now - _LastBattlelogAction);
-                    _battlelogActionDurations.Enqueue(new KeyValuePair<double, DateTime>(timeSinceLast.TotalSeconds, now));
-                    while ((now - _battlelogActionDurations.Peek().Value).TotalMinutes > 10) {
-                        _battlelogActionDurations.Dequeue();
+                    _BattlelogActionTimes.Enqueue(now);
+                    while (_BattlelogActionTimes.Count() > 1000) {
+                        _BattlelogActionTimes.Dequeue();
                     }
                     _LastBattlelogAction = UtcNow();
                 }
