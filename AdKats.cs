@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.35
+ * Version 6.8.0.36
  * 27-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.35</version_code>
+ * <version_code>6.8.0.36</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.35";
+        private const String PluginVersion = "6.8.0.36";
 
         public enum GameVersion
         {
@@ -6340,18 +6340,20 @@ namespace PRoConEvents
                             }
 
                             //Post battlelog action durations
-                            if (NowDuration(_lastBattlelogDurationMessage).TotalSeconds > 30) {
+                            if (_battlelogActionDurations.Any() && NowDuration(_lastBattlelogDurationMessage).TotalSeconds > 30) {
                                 if (_isTestingAuthorized) {
-                                    Log.Info("Average battlelog request frequency: " + Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2) + "s");
-                                    QueueStatisticForProcessing(new AdKatsStatistic() {
-                                        stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
-                                        server_id = _serverInfo.ServerID,
-                                        round_id = _roundID,
-                                        target_name = _serverInfo.InfoObject.Map,
-                                        stat_value = ((NowDuration(_LastBattlelogIssue).TotalMinutes < 4) ? (-1.00) : (Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2))),
-                                        stat_comment = "HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
-                                        stat_time = UtcNow()
-                                    });
+                                    lock (_battlelogActionDurations) {
+                                        Log.Info("Average battlelog request frequency: " + Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2) + "s");
+                                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                                            stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
+                                            server_id = _serverInfo.ServerID,
+                                            round_id = _roundID,
+                                            target_name = _serverInfo.InfoObject.Map,
+                                            stat_value = ((NowDuration(_LastBattlelogIssue).TotalMinutes < 4) ? (-1.00) : (Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2))),
+                                            stat_comment = "HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
+                                            stat_time = UtcNow()
+                                        });
+                                    }
                                 }
                                 _lastBattlelogDurationMessage = UtcNow();
                             }
