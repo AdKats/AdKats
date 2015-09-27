@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.36
+ * Version 6.8.0.37
  * 27-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.36</version_code>
+ * <version_code>6.8.0.37</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.36";
+        private const String PluginVersion = "6.8.0.37";
 
         public enum GameVersion
         {
@@ -40985,11 +40985,12 @@ namespace PRoConEvents
                     if (NowDuration(_LastBattlelogIssue).TotalMinutes < 3) {
                         _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(30));
                     }
+                    var queueLength = _HackerCheckerQueue.Count() + _BattlelogFetchQueue.Count();
                     //Reduce required wait time based on how many players are in queue
-                    if (_HackerCheckerQueue.Count() >= 10) {
+                    if (queueLength >= 10) {
                         requiredWait -= TimeSpan.FromSeconds(1.5);
                     }
-                    if (_BattlelogFetchQueue.Count() >= 10) {
+                    if (queueLength >= 20) {
                         requiredWait -= TimeSpan.FromSeconds(1.5);
                     }
                     //Wait between battlelog actions
