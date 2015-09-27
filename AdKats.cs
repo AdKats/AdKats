@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.34
- * 26-SEP-2015
+ * Version 6.8.0.35
+ * 27-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.34</version_code>
+ * <version_code>6.8.0.35</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.34";
+        private const String PluginVersion = "6.8.0.35";
 
         public enum GameVersion
         {
@@ -6339,6 +6339,23 @@ namespace PRoConEvents
                                 }
                             }
 
+                            //Post battlelog action durations
+                            if (NowDuration(_lastBattlelogDurationMessage).TotalSeconds > 30) {
+                                if (_isTestingAuthorized) {
+                                    Log.Info("Average battlelog request frequency: " + Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2) + "s");
+                                    QueueStatisticForProcessing(new AdKatsStatistic() {
+                                        stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
+                                        server_id = _serverInfo.ServerID,
+                                        round_id = _roundID,
+                                        target_name = _serverInfo.InfoObject.Map,
+                                        stat_value = ((NowDuration(_LastBattlelogIssue).TotalMinutes < 4) ? (-1.00) : (Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2))),
+                                        stat_comment = "HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
+                                        stat_time = UtcNow()
+                                    });
+                                }
+                                _lastBattlelogDurationMessage = UtcNow();
+                            }
+
                             //Check for unswitcher disable every 20 seconds
                             if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (UtcNow() - _LastPlayerMoveIssued).TotalSeconds > 20)
                             {
@@ -12019,7 +12036,9 @@ namespace PRoConEvents
                 Log.Debug(() => "Starting Hacker Checker Thread", 1);
                 Thread.CurrentThread.Name = "HackerChecker";
 
-                Queue<AdKatsPlayer> playerCheckingQueue = new Queue<AdKatsPlayer>();
+                //Current player being checked
+                AdKatsPlayer aPlayer = null;
+
                 DateTime loopStart = UtcNow();
                 while (true)
                 {
@@ -12028,7 +12047,6 @@ namespace PRoConEvents
                         Log.Debug(() => "Entering Hacker Checker Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            playerCheckingQueue.Clear();
                             Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
@@ -12038,14 +12056,9 @@ namespace PRoConEvents
                             //Get all unchecked players
                             if (_HackerCheckerQueue.Count > 0)
                             {
-                                Log.Debug(() => "Preparing to lock HackerCheckerQueue to retrive new players", 6);
                                 lock (_HackerCheckerQueue)
                                 {
-                                    Log.Debug(() => "Inbound players found. Grabbing.", 5);
-                                    //Grab all players in the queue
-                                    playerCheckingQueue = new Queue<AdKatsPlayer>(_HackerCheckerQueue.ToArray());
-                                    //Clear the queue for next run  
-                                    _HackerCheckerQueue.Clear();
+                                    aPlayer = _HackerCheckerQueue.Dequeue();
                                 }
                             }
                             else
@@ -12068,34 +12081,20 @@ namespace PRoConEvents
                             HandleException(new AdKatsException("Error while fetching new players to check.", e));
                         }
 
-                        //Current player being checked
-                        AdKatsPlayer aPlayer = null;
-
-                        //Get all checks in order that they came in
-                        while (playerCheckingQueue.Count > 0)
-                        {
-                            if (!_pluginEnabled)
-                            {
-                                break;
-                            }
-                            //Grab first/next player
-                            aPlayer = playerCheckingQueue.Dequeue();
-                            if (aPlayer != null)
-                            {
-                                Log.Debug(() => "begin reading " + aPlayer.GetVerboseName() + " for hacker-checker", 5);
-                                if (!PlayerProtected(aPlayer)) {
-                                    _hackerCheckedPlayers.Add(aPlayer.player_guid);
-                                    if (!String.IsNullOrEmpty(aPlayer.player_name) && 
-                                        !String.IsNullOrEmpty(aPlayer.player_personaID) &&
-                                        FetchPlayerStatInformation(aPlayer)) {
-                                        RunStatSiteHackCheck(aPlayer, false);
-                                        _hackerCheckedPlayersStats.Add(aPlayer.player_guid);
-                                        Log.Debug(() => aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double) _hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players checked)", 4);
-                                    } else {
-                                        //No stats found, requeue them for checking
-                                        Thread.Sleep(TimeSpan.FromSeconds(0.50));
-                                        QueuePlayerForHackerCheck(aPlayer);
-                                    }
+                        if (aPlayer != null) {
+                            Log.Debug(() => "begin reading " + aPlayer.GetVerboseName() + " for hacker-checker", 5);
+                            if (!PlayerProtected(aPlayer)) {
+                                _hackerCheckedPlayers.Add(aPlayer.player_guid);
+                                if (!String.IsNullOrEmpty(aPlayer.player_name) &&
+                                    !String.IsNullOrEmpty(aPlayer.player_personaID) &&
+                                    FetchPlayerStatInformation(aPlayer)) {
+                                    RunStatSiteHackCheck(aPlayer, false);
+                                    _hackerCheckedPlayersStats.Add(aPlayer.player_guid);
+                                    Log.Debug(() => aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double) _hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players checked)", 4);
+                                } else {
+                                    //No stats found, requeue them for checking
+                                    Thread.Sleep(TimeSpan.FromSeconds(1.0));
+                                    QueuePlayerForHackerCheck(aPlayer);
                                 }
                             }
                         }
@@ -21515,45 +21514,36 @@ namespace PRoConEvents
                         _threadMasterWaitHandle.WaitOne(10);
 
                         //Handle Inbound player fetches
-                        if (_BattlelogFetchQueue.Count > 0)
+                        if (_BattlelogFetchQueue.Count > 0) 
                         {
-                            Queue<AdKatsPlayer> unprocessedBattlelogFetchPlayers;
+                            AdKatsPlayer aPlayer;
+
                             lock (_BattlelogFetchQueue)
                             {
-                                Log.Debug(() => "Inbound players found. Grabbing.", 6);
-                                //Grab all items in the queue
-                                unprocessedBattlelogFetchPlayers = new Queue<AdKatsPlayer>(_BattlelogFetchQueue.ToArray());
-                                //Clear the queue for next run
-                                _BattlelogFetchQueue.Clear();
-                            }
-                            //Loop through all players in order that they came in
-                            while (unprocessedBattlelogFetchPlayers.Count > 0)
-                            {
-                                if (!_pluginEnabled)
-                                {
-                                    break;
-                                }
-                                Log.Debug(() => "Preparing to fetch battlelog info for player", 6);
                                 //Dequeue the record
-                                AdKatsPlayer aPlayer = unprocessedBattlelogFetchPlayers.Dequeue();
-                                if (aPlayer.blInfoFetched) {
-                                    continue;
-                                }
-                                //Old Tag
-                                String oldTag = aPlayer.player_clanTag;
-                                //Run the appropriate action
-                                if (!FetchPlayerBattlelogInformation(aPlayer)) {
-                                    //No info found/error, requeue them for fetching
-                                    Log.Debug(() => "Battlelog info fetch for " + aPlayer.GetVerboseName() + " failed. Requeueing.", 6);
-                                    Thread.Sleep(TimeSpan.FromSeconds(0.50));
-                                    QueuePlayerForBattlelogInfoFetch(aPlayer);
-                                }
-                                Log.Debug(() => "Battlelog info fetched for " + aPlayer.GetVerboseName() + ".", 6);
-                                //Update database with clan tag
-                                if (!String.IsNullOrEmpty(aPlayer.player_clanTag) && (String.IsNullOrEmpty(oldTag) || aPlayer.player_clanTag != oldTag))
-                                {
-                                    UpdatePlayer(aPlayer);
-                                }
+                                aPlayer = _BattlelogFetchQueue.Dequeue();
+                            }
+
+                            Log.Debug(() => "Preparing to fetch battlelog info for player", 6);
+
+                            if (aPlayer.blInfoFetched) {
+                                continue;
+                            }
+
+                            //Old Tag
+                            String oldTag = aPlayer.player_clanTag;
+                            //Run the appropriate action
+                            if (!FetchPlayerBattlelogInformation(aPlayer)) {
+                                //No info found/error, requeue them for fetching
+                                Log.Debug(() => "Battlelog info fetch for " + aPlayer.GetVerboseName() + " failed. Requeueing.", 6);
+                                Thread.Sleep(TimeSpan.FromSeconds(1.0));
+                                QueuePlayerForBattlelogInfoFetch(aPlayer);
+                            }
+
+                            Log.Debug(() => "Battlelog info fetched for " + aPlayer.GetVerboseName() + ".", 6);
+                            //Update database with clan tag
+                            if (!String.IsNullOrEmpty(aPlayer.player_clanTag) && (String.IsNullOrEmpty(oldTag) || aPlayer.player_clanTag != oldTag)) {
+                                UpdatePlayer(aPlayer);
                             }
                         }
                         else
@@ -38036,6 +38026,7 @@ namespace PRoConEvents
                                 Log.Warn("Issue connecting to battlelog.");
                                 _LastBattlelogAction = UtcNow().AddSeconds(30);
                                 _LastBattlelogIssue = UtcNow();
+                                _battlelogActionDurations.Clear();
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -38094,6 +38085,7 @@ namespace PRoConEvents
                                 Log.Warn("Issue connecting to battlelog.");
                                 _LastBattlelogAction = UtcNow().AddSeconds(30);
                                 _LastBattlelogIssue = UtcNow();
+                                _battlelogActionDurations.Clear();
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -38161,6 +38153,7 @@ namespace PRoConEvents
                                 Log.Warn("Issue connecting to battlelog.");
                                 _LastBattlelogAction = UtcNow().AddSeconds(30);
                                 _LastBattlelogIssue = UtcNow();
+                                _battlelogActionDurations.Clear();
                                 return true;
                             }
                             HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
@@ -38333,6 +38326,7 @@ namespace PRoConEvents
                             Log.Warn("Issue connecting to battlelog.");
                             _LastBattlelogAction = UtcNow().AddSeconds(30);
                             _LastBattlelogIssue = UtcNow();
+                            _battlelogActionDurations.Clear();
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -38500,6 +38494,7 @@ namespace PRoConEvents
                             Log.Warn("Issue connecting to battlelog.");
                             _LastBattlelogAction = UtcNow().AddSeconds(30);
                             _LastBattlelogIssue = UtcNow();
+                            _battlelogActionDurations.Clear();
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -38584,6 +38579,7 @@ namespace PRoConEvents
                             Log.Warn("Issue connecting to battlelog.");
                             _LastBattlelogAction = UtcNow().AddSeconds(30);
                             _LastBattlelogIssue = UtcNow();
+                            _battlelogActionDurations.Clear();
                             return false;
                         }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -40989,10 +40985,10 @@ namespace PRoConEvents
                     }
                     //Reduce required wait time based on how many players are in queue
                     if (_HackerCheckerQueue.Count() >= 10) {
-                        requiredWait -= TimeSpan.FromSeconds(1.0);
+                        requiredWait -= TimeSpan.FromSeconds(1.5);
                     }
                     if (_BattlelogFetchQueue.Count() >= 10) {
-                        requiredWait -= TimeSpan.FromSeconds(1.0);
+                        requiredWait -= TimeSpan.FromSeconds(1.5);
                     }
                     //Wait between battlelog actions
                     if (timeSinceLast < requiredWait) {
@@ -41006,21 +41002,6 @@ namespace PRoConEvents
                     _battlelogActionDurations.Enqueue(new KeyValuePair<double, DateTime>(timeSinceLast.TotalSeconds, now));
                     while ((now - _battlelogActionDurations.Peek().Value).TotalMinutes > 10) {
                         _battlelogActionDurations.Dequeue();
-                    }
-                    if ((now - _lastBattlelogDurationMessage).TotalSeconds > 60) {
-                        if (_isTestingAuthorized) {
-                            Log.Info("Average battlelog request frequency: " + Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2) + "s");
-                            QueueStatisticForProcessing(new AdKatsStatistic() {
-                                stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
-                                server_id = _serverInfo.ServerID,
-                                round_id = _roundID,
-                                target_name = _serverInfo.InfoObject.Map,
-                                stat_value = ((NowDuration(_LastBattlelogIssue).TotalMinutes < 5) ? (0.00) : (Math.Round(_battlelogActionDurations.Select(entry => entry.Key).Average(), 2))),
-                                stat_comment = "",
-                                stat_time = UtcNow()
-                            });
-                        }
-                        _lastBattlelogDurationMessage = now;
                     }
                     _LastBattlelogAction = UtcNow();
                 }
