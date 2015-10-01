@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.39
- * 27-SEP-2015
+ * Version 6.8.0.41
+ * 30-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.39</version_code>
+ * <version_code>6.8.0.41</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.39";
+        private const String PluginVersion = "6.8.0.41";
 
         public enum GameVersion
         {
@@ -6340,23 +6340,25 @@ namespace PRoConEvents
                             }
 
                             //Post battlelog acttion times
-                            if (_BattlelogActionTimes.Any() && NowDuration(_lastBattlelogFrequencyMessage).TotalSeconds > 30) {
-                                if (_isTestingAuthorized) {
-                                    lock (_BattlelogActionTimes) {
-                                        var frequency = Math.Round(_BattlelogActionTimes.Count(time => NowDuration(time).TotalMinutes <= 1) / 1.0, 2);
-                                        Log.Info("Average battlelog request frequency: " + frequency + " r/m");
-                                        QueueStatisticForProcessing(new AdKatsStatistic() {
-                                            stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
-                                            server_id = _serverInfo.ServerID,
-                                            round_id = _roundID,
-                                            target_name = _serverInfo.InfoObject.Map,
-                                            stat_value = ((NowDuration(_LastBattlelogIssue).TotalMinutes < 4) ? (0.00) : (frequency)),
-                                            stat_comment = frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
-                                            stat_time = UtcNow()
-                                        });
+                            lock (_BattlelogActionTimes) {
+                                if (_BattlelogActionTimes.Any() && NowDuration(_lastBattlelogFrequencyMessage).TotalSeconds > 30) {
+                                    if (_isTestingAuthorized) {
+                                        lock (_BattlelogActionTimes) {
+                                            var frequency = Math.Round(_BattlelogActionTimes.Count(time => NowDuration(time).TotalMinutes <= 1) / 1.0, 2);
+                                            Log.Info("Average battlelog request frequency: " + frequency + " r/m");
+                                            QueueStatisticForProcessing(new AdKatsStatistic() {
+                                                stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
+                                                server_id = _serverInfo.ServerID,
+                                                round_id = _roundID,
+                                                target_name = _serverInfo.InfoObject.Map,
+                                                stat_value = ((NowDuration(_LastBattlelogIssue).TotalMinutes < 4) ? (0.00) : (frequency)),
+                                                stat_comment = frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
+                                                stat_time = UtcNow()
+                                            });
+                                        }
                                     }
+                                    _lastBattlelogFrequencyMessage = UtcNow();
                                 }
-                                _lastBattlelogFrequencyMessage = UtcNow();
                             }
 
                             //Check for unswitcher disable every 20 seconds
@@ -6566,7 +6568,8 @@ namespace PRoConEvents
                                         Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 && 
                                         winningTeam.TeamTicketDifferenceRate > losingTeam.TeamTicketDifferenceRate &&
                                         !_Team1MoveQueue.Any() &&
-                                        !_Team2MoveQueue.Any()) {
+                                        !_Team2MoveQueue.Any() &&
+                                        (!_isTestingAuthorized || (_serverInfo.ServerID != 1 || losingTeam.TeamTicketCount > 400))) {
                                         foreach (var aPlayer in GetOnlinePlayerDictionaryOfGroup("blacklist_autoassist").Values
                                             .Where(dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) {
                                             Thread.Sleep(2000);
@@ -40997,9 +41000,11 @@ namespace PRoConEvents
                     //Log the request frequency
                     now = UtcNow();
                     timeSinceLast = (now - _LastBattlelogAction);
-                    _BattlelogActionTimes.Enqueue(now);
-                    while (_BattlelogActionTimes.Count() > 1000) {
-                        _BattlelogActionTimes.Dequeue();
+                    lock (_BattlelogActionTimes) {
+                        _BattlelogActionTimes.Enqueue(now);
+                        while (_BattlelogActionTimes.Count() > 1000) {
+                            _BattlelogActionTimes.Dequeue();
+                        }
                     }
                     _LastBattlelogAction = UtcNow();
                 }
