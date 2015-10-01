@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.41
+ * Version 6.8.0.42
  * 30-SEP-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.41</version_code>
+ * <version_code>6.8.0.42</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.41";
+        private const String PluginVersion = "6.8.0.42";
 
         public enum GameVersion
         {
@@ -10121,6 +10121,15 @@ namespace PRoConEvents
                 foreach (AdKatsPlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
                     aPlayer.RequiredTeam = null;
                 }
+                if (_isTestingAuthorized && _serverInfo.ServerID == 1 && _PlayerDictionary.Count() > 30) {
+                    StartAndLogThread(new Thread(new ThreadStart(delegate {
+                        Thread.CurrentThread.Name = "SkillBasedKiller";
+                        Thread.Sleep(TimeSpan.FromSeconds(20));
+                        ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "false");
+                        Log.Info("Skill based disabled.");
+                        LogThreadExit();
+                    })));
+                }
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error running round over teamscores.", e));
@@ -11166,6 +11175,10 @@ namespace PRoConEvents
                     if (_roundState == RoundState.Loaded)
                     {
                         _roundState = RoundState.Playing;
+                        if (_isTestingAuthorized && _serverInfo.ServerID == 1) {
+                            ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "true");
+                            Log.Info("Skill based enabled.");
+                        }
                         if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
                             if (_serverInfo.ServerName.Contains("EU #5")) {
                                 StartAndLogThread(new Thread(new ThreadStart(delegate {
