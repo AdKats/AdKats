@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.42
- * 30-SEP-2015
+ * Version 6.8.0.43
+ * 3-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.42</version_code>
+ * <version_code>6.8.0.43</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.42";
+        private const String PluginVersion = "6.8.0.43";
 
         public enum GameVersion
         {
@@ -6339,23 +6339,21 @@ namespace PRoConEvents
                                 }
                             }
 
-                            //Post battlelog acttion times
+                            //Post battlelog action times
                             lock (_BattlelogActionTimes) {
                                 if (_BattlelogActionTimes.Any() && NowDuration(_lastBattlelogFrequencyMessage).TotalSeconds > 30) {
                                     if (_isTestingAuthorized) {
-                                        lock (_BattlelogActionTimes) {
-                                            var frequency = Math.Round(_BattlelogActionTimes.Count(time => NowDuration(time).TotalMinutes <= 1) / 1.0, 2);
-                                            Log.Info("Average battlelog request frequency: " + frequency + " r/m");
-                                            QueueStatisticForProcessing(new AdKatsStatistic() {
-                                                stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
-                                                server_id = _serverInfo.ServerID,
-                                                round_id = _roundID,
-                                                target_name = _serverInfo.InfoObject.Map,
-                                                stat_value = ((NowDuration(_LastBattlelogIssue).TotalMinutes < 4) ? (0.00) : (frequency)),
-                                                stat_comment = frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
-                                                stat_time = UtcNow()
-                                            });
-                                        }
+                                        var frequency = Math.Round(_BattlelogActionTimes.Count(time => NowDuration(time).TotalMinutes <= 1) / 1.0, 2);
+                                        Log.Info("Average battlelog request frequency: " + frequency + " r/m");
+                                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                                            stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
+                                            server_id = _serverInfo.ServerID,
+                                            round_id = _roundID,
+                                            target_name = _serverInfo.InfoObject.Map,
+                                            stat_value = ((NowDuration(_LastBattlelogIssue).TotalMinutes < 4) ? (0.00) : (frequency)),
+                                            stat_comment = frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
+                                            stat_time = UtcNow()
+                                        });
                                     }
                                     _lastBattlelogFrequencyMessage = UtcNow();
                                 }
@@ -41010,9 +41008,7 @@ namespace PRoConEvents
                         Log.Debug(() => "Waiting " + ((int) remainingWait.TotalMilliseconds) + "ms to query battlelog.", 6);
                         _threadMasterWaitHandle.WaitOne(remainingWait);
                     }
-                    //Log the request frequency
                     now = UtcNow();
-                    timeSinceLast = (now - _LastBattlelogAction);
                     lock (_BattlelogActionTimes) {
                         _BattlelogActionTimes.Enqueue(now);
                         while (_BattlelogActionTimes.Count() > 1000) {
