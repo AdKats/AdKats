@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.43
+ * Version 6.8.0.44
  * 3-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.43</version_code>
+ * <version_code>6.8.0.44</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.43";
+        private const String PluginVersion = "6.8.0.44";
 
         public enum GameVersion
         {
@@ -210,7 +210,7 @@ namespace PRoConEvents
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
         private DateTime _LastBattlelogIssue = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private Object _battlelogLocker = new Object();
-        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(4);
+        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(7);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private readonly TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(6);
         private Object _IPAPILocker = new Object();
@@ -40996,11 +40996,11 @@ namespace PRoConEvents
                     }
                     var queueLength = _HackerCheckerQueue.Count() + _BattlelogFetchQueue.Count();
                     //Reduce required wait time based on how many players are in queue
-                    if (queueLength >= 10) {
-                        requiredWait -= TimeSpan.FromSeconds(1.5);
+                    if (queueLength >= 15) {
+                        requiredWait -= TimeSpan.FromSeconds(2);
                     }
-                    if (queueLength >= 20) {
-                        requiredWait -= TimeSpan.FromSeconds(1.5);
+                    if (queueLength >= 30) {
+                        requiredWait -= TimeSpan.FromSeconds(2);
                     }
                     //Wait between battlelog actions
                     if (timeSinceLast < requiredWait) {
