@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.44
- * 3-OCT-2015
+ * Version 6.8.0.45
+ * 4-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.44</version_code>
+ * <version_code>6.8.0.45</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.44";
+        private const String PluginVersion = "6.8.0.45";
 
         public enum GameVersion
         {
@@ -210,7 +210,7 @@ namespace PRoConEvents
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
         private DateTime _LastBattlelogIssue = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private Object _battlelogLocker = new Object();
-        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(7);
+        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(3);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private readonly TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(6);
         private Object _IPAPILocker = new Object();
@@ -6343,8 +6343,8 @@ namespace PRoConEvents
                             lock (_BattlelogActionTimes) {
                                 if (_BattlelogActionTimes.Any() && NowDuration(_lastBattlelogFrequencyMessage).TotalSeconds > 30) {
                                     if (_isTestingAuthorized) {
-                                        var frequency = Math.Round(_BattlelogActionTimes.Count(time => NowDuration(time).TotalMinutes <= 1) / 1.0, 2);
-                                        Log.Info("Average battlelog request frequency: " + frequency + " r/m");
+                                        var frequency = Math.Round(_BattlelogActionTimes.Count(time => NowDuration(time).TotalMinutes <= 2) / 2.0, 2);
+                                        Log.Info("Average battlelog request frequency: " + frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count());
                                         QueueStatisticForProcessing(new AdKatsStatistic() {
                                             stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
                                             server_id = _serverInfo.ServerID,
@@ -12070,6 +12070,11 @@ namespace PRoConEvents
 
                         try
                         {
+                            if (_BattlelogFetchQueue.Count() >= 5) {
+                                Log.Debug(() => "Hacker-checker waiting on battlelog fetches to complete.", 4);
+                                _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(10));
+                                continue;
+                            }
                             //Get all unchecked players
                             if (_HackerCheckerQueue.Count > 0)
                             {
@@ -12099,8 +12104,8 @@ namespace PRoConEvents
                         }
 
                         if (aPlayer != null) {
-                            Log.Debug(() => "begin reading " + aPlayer.GetVerboseName() + " for hacker-checker", 5);
                             if (!PlayerProtected(aPlayer)) {
+                                Log.Debug(() => "Reading " + aPlayer.GetVerboseName() + " for hacker-checker", 5);
                                 _hackerCheckedPlayers.Add(aPlayer.player_guid);
                                 if (!String.IsNullOrEmpty(aPlayer.player_name) &&
                                     !String.IsNullOrEmpty(aPlayer.player_personaID) &&
@@ -12108,7 +12113,7 @@ namespace PRoConEvents
                                     RunStatSiteHackCheck(aPlayer, false);
                                     _hackerCheckedPlayersStats.Add(aPlayer.player_guid);
                                     Log.Debug(() => aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double) _hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players checked)", 4);
-                                } else {
+                                } else if (aPlayer.player_online && _PlayerDictionary.ContainsKey(aPlayer.player_name)) {
                                     //No stats found, requeue them for checking
                                     Thread.Sleep(TimeSpan.FromSeconds(1.0));
                                     QueuePlayerForHackerCheck(aPlayer);
@@ -40993,14 +40998,6 @@ namespace PRoConEvents
                     // Preliminary wait increase when battlelog disconnect is detected
                     if (NowDuration(_LastBattlelogIssue).TotalMinutes < 3) {
                         _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(30));
-                    }
-                    var queueLength = _HackerCheckerQueue.Count() + _BattlelogFetchQueue.Count();
-                    //Reduce required wait time based on how many players are in queue
-                    if (queueLength >= 15) {
-                        requiredWait -= TimeSpan.FromSeconds(2);
-                    }
-                    if (queueLength >= 30) {
-                        requiredWait -= TimeSpan.FromSeconds(2);
                     }
                     //Wait between battlelog actions
                     if (timeSinceLast < requiredWait) {
