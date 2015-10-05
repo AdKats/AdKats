@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.45
- * 4-OCT-2015
+ * Version 6.8.0.46
+ * 5-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.45</version_code>
+ * <version_code>6.8.0.46</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.45";
+        private const String PluginVersion = "6.8.0.46";
 
         public enum GameVersion
         {
@@ -210,7 +210,7 @@ namespace PRoConEvents
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
         private DateTime _LastBattlelogIssue = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private Object _battlelogLocker = new Object();
-        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(3);
+        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(2.5);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private readonly TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(6);
         private Object _IPAPILocker = new Object();
@@ -6341,9 +6341,12 @@ namespace PRoConEvents
 
                             //Post battlelog action times
                             lock (_BattlelogActionTimes) {
+                                while (NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 5) {
+                                    _BattlelogActionTimes.Dequeue();
+                                }
                                 if (_BattlelogActionTimes.Any() && NowDuration(_lastBattlelogFrequencyMessage).TotalSeconds > 30) {
                                     if (_isTestingAuthorized) {
-                                        var frequency = Math.Round(_BattlelogActionTimes.Count(time => NowDuration(time).TotalMinutes <= 2) / 2.0, 2);
+                                        var frequency = Math.Round(_BattlelogActionTimes.Count() / NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes, 2);
                                         Log.Info("Average battlelog request frequency: " + frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count());
                                         QueueStatisticForProcessing(new AdKatsStatistic() {
                                             stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
@@ -12075,6 +12078,7 @@ namespace PRoConEvents
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(10));
                                 continue;
                             }
+
                             //Get all unchecked players
                             if (_HackerCheckerQueue.Count > 0)
                             {
@@ -41008,9 +41012,6 @@ namespace PRoConEvents
                     now = UtcNow();
                     lock (_BattlelogActionTimes) {
                         _BattlelogActionTimes.Enqueue(now);
-                        while (_BattlelogActionTimes.Count() > 1000) {
-                            _BattlelogActionTimes.Dequeue();
-                        }
                     }
                     _LastBattlelogAction = UtcNow();
                 }
