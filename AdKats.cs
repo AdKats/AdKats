@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.46
+ * Version 6.8.0.47
  * 5-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.46</version_code>
+ * <version_code>6.8.0.47</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.46";
+        private const String PluginVersion = "6.8.0.47";
 
         public enum GameVersion
         {
@@ -6341,10 +6341,10 @@ namespace PRoConEvents
 
                             //Post battlelog action times
                             lock (_BattlelogActionTimes) {
-                                while (NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 5) {
-                                    _BattlelogActionTimes.Dequeue();
-                                }
                                 if (_BattlelogActionTimes.Any() && NowDuration(_lastBattlelogFrequencyMessage).TotalSeconds > 30) {
+                                    while (NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 5) {
+                                        _BattlelogActionTimes.Dequeue();
+                                    }
                                     if (_isTestingAuthorized) {
                                         var frequency = Math.Round(_BattlelogActionTimes.Count() / NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes, 2);
                                         Log.Info("Average battlelog request frequency: " + frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count());
