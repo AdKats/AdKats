@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.47
+ * Version 6.8.0.48
  * 5-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.47</version_code>
+ * <version_code>6.8.0.48</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.47";
+        private const String PluginVersion = "6.8.0.48";
 
         public enum GameVersion
         {
@@ -6342,18 +6342,18 @@ namespace PRoConEvents
                             //Post battlelog action times
                             lock (_BattlelogActionTimes) {
                                 if (_BattlelogActionTimes.Any() && NowDuration(_lastBattlelogFrequencyMessage).TotalSeconds > 30) {
-                                    while (NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 5) {
+                                    while (NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 4) {
                                         _BattlelogActionTimes.Dequeue();
                                     }
                                     if (_isTestingAuthorized) {
-                                        var frequency = Math.Round(_BattlelogActionTimes.Count() / NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes, 2);
+                                        var frequency = Math.Round(_BattlelogActionTimes.Count() / 4.0, 2);
                                         Log.Info("Average battlelog request frequency: " + frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count());
                                         QueueStatisticForProcessing(new AdKatsStatistic() {
                                             stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
                                             server_id = _serverInfo.ServerID,
                                             round_id = _roundID,
                                             target_name = _serverInfo.InfoObject.Map,
-                                            stat_value = ((NowDuration(_LastBattlelogIssue).TotalMinutes < 4) ? (0.00) : (frequency)),
+                                            stat_value = frequency,
                                             stat_comment = frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
                                             stat_time = UtcNow()
                                         });
