@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.48
- * 5-OCT-2015
+ * Version 6.8.0.49
+ * 7-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.48</version_code>
+ * <version_code>6.8.0.49</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.48";
+        private const String PluginVersion = "6.8.0.49";
 
         public enum GameVersion
         {
@@ -6342,7 +6342,7 @@ namespace PRoConEvents
                             //Post battlelog action times
                             lock (_BattlelogActionTimes) {
                                 if (_BattlelogActionTimes.Any() && NowDuration(_lastBattlelogFrequencyMessage).TotalSeconds > 30) {
-                                    while (NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 4) {
+                                    while (_BattlelogActionTimes.Any() && NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 4) {
                                         _BattlelogActionTimes.Dequeue();
                                     }
                                     if (_isTestingAuthorized) {
@@ -6370,7 +6370,9 @@ namespace PRoConEvents
                                 _MULTIBalancerUnswitcherDisabled = false;
                             }
 
-                            if (_isTestingAuthorized && (UtcNow() - _proconStartTime).TotalHours > 24) {
+                            if (_isTestingAuthorized && 
+                                (UtcNow() - _proconStartTime).TotalHours > 24 && 
+                                !_databaseConnectionCriticalState) {
                                 Environment.Exit(4533);
                             }
 
