@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.49
- * 7-OCT-2015
+ * Version 6.8.0.50
+ * 12-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.49</version_code>
+ * <version_code>6.8.0.50</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.49";
+        private const String PluginVersion = "6.8.0.50";
 
         public enum GameVersion
         {
@@ -6556,7 +6556,8 @@ namespace PRoConEvents
                                         this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | Round " + String.Format("{0:n0}", _roundID));
                                     }
                                 }
-                                //Auto-assist
+
+                                //Team operations
                                 AdKatsTeam team1, team2, winningTeam, losingTeam;
                                 if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
                                     if (team1.TeamTicketCount > team2.TeamTicketCount) {
@@ -6566,6 +6567,22 @@ namespace PRoConEvents
                                         winningTeam = team2;
                                         losingTeam = team1;
                                     }
+
+                                    //Skill based balancer
+                                    if (_isTestingAuthorized &&
+                                        _serverInfo.ServerID == 1 &&
+                                        _PlayerDictionary.Count() > 30 &&
+                                        losingTeam.TeamTicketCount <= 100) {
+                                        StartAndLogThread(new Thread(new ThreadStart(delegate {
+                                            Thread.CurrentThread.Name = "SkillBasedKiller";
+                                            Thread.Sleep(TimeSpan.FromSeconds(20));
+                                            ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "false");
+                                            Log.Info("Skill based disabled.");
+                                            LogThreadExit();
+                                        })));
+                                    }
+
+                                    //Auto-assist
                                     if (_roundState == RoundState.Playing &&
                                         _serverInfo.GetRoundElapsedTime().TotalMinutes > 5 && 
                                         Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 && 
@@ -10124,15 +10141,6 @@ namespace PRoConEvents
                 foreach (AdKatsPlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
                     aPlayer.RequiredTeam = null;
                 }
-                if (_isTestingAuthorized && _serverInfo.ServerID == 1 && _PlayerDictionary.Count() > 30) {
-                    StartAndLogThread(new Thread(new ThreadStart(delegate {
-                        Thread.CurrentThread.Name = "SkillBasedKiller";
-                        Thread.Sleep(TimeSpan.FromSeconds(20));
-                        ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "false");
-                        Log.Info("Skill based disabled.");
-                        LogThreadExit();
-                    })));
-                }
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error running round over teamscores.", e));
@@ -13588,6 +13596,12 @@ namespace PRoConEvents
                             {
                                 messageObject.Message = messageObject.Message.Substring(1);
                                 isCommand = true;
+                            }
+
+                            if (messageObject.Message == "skilldisable" && 
+                                messageObject.Speaker == _debugSoldierName) {
+                                ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "false");
+                                PlayerTellMessage(messageObject.Speaker, "Skill based disabled");
                             }
 
                             if (isCommand && _threadsReady && _firstPlayerListComplete)
@@ -35979,6 +35993,13 @@ namespace PRoConEvents
                                         }
                                         DateTime playerEffective = reader.GetDateTime("player_effective"); //6
                                         DateTime playerExpiration = reader.GetDateTime("player_expiration"); //7
+
+                                        //TODO: Finish this
+                                        //Check for existing special player object
+//                                        AdKatsSpecialPlayer oldASPlayer;
+//                                        if (_baseSpecialPlayerCache.TryGetValue(specialPlayerID, out oldASPlayer)) {
+//                                            if(_specialPlayerGroupKeyDictionary[playerGroup])
+//                                        }
 
                                         //Build new Special Player Object
                                         asPlayer = new AdKatsSpecialPlayer();
