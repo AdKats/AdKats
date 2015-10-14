@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.52
+ * Version 6.8.0.53
  * 13-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.52</version_code>
+ * <version_code>6.8.0.53</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.52";
+        private const String PluginVersion = "6.8.0.53";
 
         public enum GameVersion
         {
@@ -6559,13 +6559,7 @@ namespace PRoConEvents
 
                                 //Skill based balancer
                                 if (_isTestingAuthorized && _serverInfo.ServerID == 1) {
-                                    if (_populationStatus == PopulationState.High) {
-                                        ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "false");
-                                        Log.Info("Skill based disabled.");
-                                    } else {
-                                        ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "true");
-                                        Log.Info("Skill based enabled.");
-                                    }
+                                    ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "true");
                                 }
 
                                 //Team operations
