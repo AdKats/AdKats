@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.51
- * 12-OCT-2015
+ * Version 6.8.0.52
+ * 13-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.51</version_code>
+ * <version_code>6.8.0.52</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.51";
+        private const String PluginVersion = "6.8.0.52";
 
         public enum GameVersion
         {
@@ -6557,6 +6557,17 @@ namespace PRoConEvents
                                     }
                                 }
 
+                                //Skill based balancer
+                                if (_isTestingAuthorized && _serverInfo.ServerID == 1) {
+                                    if (_populationStatus == PopulationState.High) {
+                                        ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "false");
+                                        Log.Info("Skill based disabled.");
+                                    } else {
+                                        ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "true");
+                                        Log.Info("Skill based enabled.");
+                                    }
+                                }
+
                                 //Team operations
                                 AdKatsTeam team1, team2, winningTeam, losingTeam;
                                 if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
@@ -6566,22 +6577,6 @@ namespace PRoConEvents
                                     } else {
                                         winningTeam = team2;
                                         losingTeam = team1;
-                                    }
-
-                                    //Skill based balancer
-                                    if (_isTestingAuthorized && _serverInfo.ServerID == 1) {
-                                        if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 4 && 
-                                            _roundState == RoundState.Playing && 
-                                            _PlayerDictionary.Count() > 30 && 
-                                            losingTeam.TeamTicketCount <= 100) {
-                                            StartAndLogThread(new Thread(new ThreadStart(delegate {
-                                                Thread.CurrentThread.Name = "SkillBasedKiller";
-                                                Thread.Sleep(TimeSpan.FromSeconds(20));
-                                                ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "false");
-                                                Log.Info("Skill based disabled.");
-                                                LogThreadExit();
-                                            })));
-                                        }
                                     }
 
                                     //Auto-assist
@@ -11188,10 +11183,6 @@ namespace PRoConEvents
                     if (_roundState == RoundState.Loaded)
                     {
                         _roundState = RoundState.Playing;
-                        if (_isTestingAuthorized && _serverInfo.ServerID == 1) {
-                            ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "true");
-                            Log.Info("Skill based enabled.");
-                        }
                         if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
                             if (_serverInfo.ServerName.Contains("EU #5")) {
                                 StartAndLogThread(new Thread(new ThreadStart(delegate {
@@ -13598,16 +13589,6 @@ namespace PRoConEvents
                             {
                                 messageObject.Message = messageObject.Message.Substring(1);
                                 isCommand = true;
-                            }
-
-                            if (messageObject.Message == "skilldisable" && 
-                                (messageObject.Speaker == _debugSoldierName || messageObject.Speaker == "Server")) {
-                                ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "false");
-                                PlayerTellMessage(messageObject.Speaker, "Skill based disabled");
-                            } else if (messageObject.Message == "skillenable" &&
-                                (messageObject.Speaker == _debugSoldierName || messageObject.Speaker == "Server")) {
-                                ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "true");
-                                PlayerTellMessage(messageObject.Speaker, "Skill based enabled.");
                             }
 
                             if (isCommand && _threadsReady && _firstPlayerListComplete)
