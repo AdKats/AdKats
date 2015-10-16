@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.53
- * 13-OCT-2015
+ * Version 6.8.0.54
+ * 15-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.53</version_code>
+ * <version_code>6.8.0.54</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.53";
+        private const String PluginVersion = "6.8.0.54";
 
         public enum GameVersion
         {
@@ -7155,7 +7155,11 @@ namespace PRoConEvents
                                     Log.Warn("TeamAssignmentConfirmation took too long.");
                                     break;
                                 }
-                                if (!_teamDictionary.ContainsKey(1) || !_teamDictionary.ContainsKey(2) || !_teamDictionary.ContainsKey(3) || !_teamDictionary.ContainsKey(4))
+                                if (NowDuration(starting).TotalSeconds <= 10 ||
+                                    !_teamDictionary.ContainsKey(1) || 
+                                    !_teamDictionary.ContainsKey(2) || 
+                                    !_teamDictionary.ContainsKey(3) || 
+                                    !_teamDictionary.ContainsKey(4))
                                 {
                                     Thread.Sleep(TimeSpan.FromSeconds(1));
                                     continue;
@@ -7192,6 +7196,9 @@ namespace PRoConEvents
                                             aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
                                             Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                            if (aPlayer.player_name == _debugSoldierName) {
+                                                PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                            }
                                             team1Set = !team1Set;
                                         }
                                     }
@@ -7965,35 +7972,26 @@ namespace PRoConEvents
                                         if (_firstPlayerListComplete &&
                                             _UseTopPlayerMonitor &&
                                             aPlayer.player_type == PlayerType.Player &&
-                                            aPlayer.RequiredTeam == null &&
                                             _topPlayers.ContainsKey(aPlayer.player_name)) {
-                                            AdKatsTeam t1, t2;
-                                            if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
-                                                var team1TopCount = _PlayerDictionary.Values.Count(
-                                                    dPlayer =>
-                                                        dPlayer.player_type == PlayerType.Player &&
-                                                        _topPlayers.ContainsKey(dPlayer.player_name) &&
-                                                        (dPlayer.frostbitePlayerInfo.TeamID == t1.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == t1.TeamID)));
-                                                var team2TopCount = _PlayerDictionary.Values.Count(
-                                                    dPlayer =>
-                                                        dPlayer.player_type == PlayerType.Player &&
-                                                        _topPlayers.ContainsKey(dPlayer.player_name) &&
-                                                        (dPlayer.frostbitePlayerInfo.TeamID == t2.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == t2.TeamID)));
-                                                if (team1TopCount > team2TopCount) {
-                                                    aPlayer.RequiredTeam = t2;
-                                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
-                                                } 
-                                                else if (team2TopCount > team1TopCount || aPlayer.frostbitePlayerInfo.TeamID == 0) {
-                                                    aPlayer.RequiredTeam = t1;
-                                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
+                                            AdKatsTeam t1, t2, current;
+                                            if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2) && GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out current)) {
+                                                if (aPlayer.RequiredTeam == null) {
+                                                    var team1TopCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player && _topPlayers.ContainsKey(dPlayer.player_name) && (dPlayer.frostbitePlayerInfo.TeamID == t1.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == t1.TeamID)));
+                                                    var team2TopCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player && _topPlayers.ContainsKey(dPlayer.player_name) && (dPlayer.frostbitePlayerInfo.TeamID == t2.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == t2.TeamID)));
+                                                    if (team1TopCount > team2TopCount) {
+                                                        aPlayer.RequiredTeam = t2;
+                                                    } else if (team2TopCount > team1TopCount || aPlayer.frostbitePlayerInfo.TeamID == 0) {
+                                                        aPlayer.RequiredTeam = t1;
+                                                    } else {
+                                                        GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out aPlayer.RequiredTeam);
+                                                    }
+                                                    Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                                 }
-                                                else {
-                                                    GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out aPlayer.RequiredTeam);
-                                                }
-                                                Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                            } else {
-                                                if (_roundState == RoundState.Playing) {
-                                                    Log.Error("Teams not loaded when they should be.");
+                                                if (aPlayer.frostbitePlayerInfo.TeamID != aPlayer.RequiredTeam.TeamID) {
+                                                    if (_isTestingAuthorized) {
+                                                        Log.Warn(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " but on " + current.TeamKey + ", attempting to move.");
+                                                    }
+                                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
                                                 }
                                             }
                                         }
