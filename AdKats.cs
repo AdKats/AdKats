@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.55
- * 15-OCT-2015
+ * Version 6.8.0.56
+ * 19-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.55</version_code>
+ * <version_code>6.8.0.56</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.55";
+        private const String PluginVersion = "6.8.0.56";
 
         public enum GameVersion
         {
@@ -7155,8 +7155,7 @@ namespace PRoConEvents
                                     Log.Warn("TeamAssignmentConfirmation took too long.");
                                     break;
                                 }
-                                if (NowDuration(starting).TotalSeconds <= 10 ||
-                                    !_teamDictionary.ContainsKey(1) || 
+                                if (!_teamDictionary.ContainsKey(1) || 
                                     !_teamDictionary.ContainsKey(2) || 
                                     !_teamDictionary.ContainsKey(3) || 
                                     !_teamDictionary.ContainsKey(4))
@@ -7972,7 +7971,8 @@ namespace PRoConEvents
                                         if (_firstPlayerListComplete &&
                                             _UseTopPlayerMonitor &&
                                             aPlayer.player_type == PlayerType.Player &&
-                                            _topPlayers.ContainsKey(aPlayer.player_name)) {
+                                            _topPlayers.ContainsKey(aPlayer.player_name) && 
+                                            _roundState == RoundState.Playing) {
                                             AdKatsTeam t1, t2, current;
                                             if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2) && GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out current)) {
                                                 if (aPlayer.RequiredTeam == null) {
