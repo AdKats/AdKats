@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.58
- * 22-OCT-2015
+ * Version 6.8.0.59
+ * 23-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.58</version_code>
+ * <version_code>6.8.0.59</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.58";
+        private const String PluginVersion = "6.8.0.59";
 
         public enum GameVersion
         {
@@ -7203,10 +7203,14 @@ namespace PRoConEvents
                                         }
                                         //Confirm they remain on the team they were assigned, yay DICE's mandatory balancer
                                         var start = UtcNow();
-                                        while (NowDuration(start).TotalSeconds < 10 && _pluginEnabled) {
+                                        while (NowDuration(start).TotalSeconds < 120 && _pluginEnabled && _roundState != RoundState.Playing) {
                                             foreach (AdKatsPlayer aPlayer in orderedTopPlayers) {
+                                                if (_roundState == RoundState.Playing) {
+                                                    break;
+                                                }
                                                 if (aPlayer.RequiredTeam != null) {
                                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
+                                                    Thread.Sleep(TimeSpan.FromMilliseconds(50));
                                                 }
                                             }
                                             Thread.Sleep(TimeSpan.FromSeconds(1));
