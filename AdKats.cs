@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.57
+ * Version 6.8.0.58
  * 22-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.57</version_code>
+ * <version_code>6.8.0.58</version_code>
  */
 
 using System;
@@ -50,6 +50,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
+using System.Windows.Forms.VisualStyles;
 using Microsoft.CSharp;
 using MySql.Data.MySqlClient;
 using PRoCon.Core;
@@ -64,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.57";
+        private const String PluginVersion = "6.8.0.58";
 
         public enum GameVersion
         {
@@ -7200,6 +7201,17 @@ namespace PRoConEvents
                                             }
                                             team1Set = !team1Set;
                                         }
+                                        //Confirm they remain on the team they were assigned, yay DICE's mandatory balancer
+                                        var start = UtcNow();
+                                        while (NowDuration(start).TotalSeconds < 10 && _pluginEnabled) {
+                                            foreach (AdKatsPlayer aPlayer in orderedTopPlayers) {
+                                                if (aPlayer.RequiredTeam != null) {
+                                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
+                                                }
+                                            }
+                                            Thread.Sleep(TimeSpan.FromSeconds(1));
+                                        }
+
                                     }
                                     else
                                     {
