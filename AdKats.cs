@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.59
- * 23-OCT-2015
+ * Version 6.8.0.60
+ * 24-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.59</version_code>
+ * <version_code>6.8.0.60</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.59";
+        private const String PluginVersion = "6.8.0.60";
 
         public enum GameVersion
         {
@@ -8004,7 +8004,7 @@ namespace PRoConEvents
                                                     Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                                 }
                                                 if (aPlayer.frostbitePlayerInfo.TeamID != aPlayer.RequiredTeam.TeamID && 
-                                                    _serverInfo.GetRoundElapsedTime().TotalMinutes <= 5) {
+                                                    _serverInfo.GetRoundElapsedTime().TotalMinutes <= 2) {
                                                     if (_isTestingAuthorized) {
                                                         Log.Warn(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " but on " + current.TeamKey + ", attempting to move.");
                                                     }
@@ -15404,7 +15404,7 @@ namespace PRoConEvents
                             String debug = (PlayerIsAdmin(record.source_player)) ? ("[" + friendlyTeam.TeamKey + ":" + friendlyTeam.TeamTicketCount + ":" + (int)friendlyTeam.TeamTicketDifferenceRate + "][" + enemyTeam.TeamKey + ":" + enemyTeam.TeamTicketCount + ":" + (int)enemyTeam.TeamTicketDifferenceRate + "]") : ("");
 
                             record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]";
-                            var teamFlux = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) <= 60;
+                            var teamFlux = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) <= (_isTestingAuthorized && _serverInfo.ServerID == 1 ? 250 : 60);
                             Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID || teamFlux);
                             Boolean enemyStrong = true;
                             if (record.target_player.frostbitePlayerInfo.TeamID == team1.TeamID)
@@ -15416,9 +15416,9 @@ namespace PRoConEvents
                                 enemyStrong = Math.Abs(team1.TeamTicketDifferenceRate) < Math.Abs(team2.TeamTicketDifferenceRate);
                             }
                             if ((!enemyWinning && !enemyStrong) || 
-                                (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 200))
+                                (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 250))
                             {
-                                //15 second timeout
+                                //60 second timeout
                                 Double timeout = (60 - (UtcNow() - _commandUsageTimes["self_assist"]).TotalSeconds);
                                 if (timeout > 0)
                                 {
@@ -41112,7 +41112,7 @@ namespace PRoConEvents
                     catch (Exception e)
                     {
                         if (NowDuration(_lastIPAPIError).TotalMinutes > 5) {
-                            Log.Error("ip-api failed to respond with player location information, your layer may be IP banned. (" + e.Message + ")");
+                            Log.Debug(() => "ip-api failed to respond with player location information, your layer may be IP banned. (" + e.Message + ")", 4);
                             _lastIPAPIError = UtcNow();
                         }
                         return;
