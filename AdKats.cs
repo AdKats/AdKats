@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.60
- * 24-OCT-2015
+ * Version 6.8.0.61
+ * 25-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.60</version_code>
+ * <version_code>6.8.0.61</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.60";
+        private const String PluginVersion = "6.8.0.61";
 
         public enum GameVersion
         {
@@ -7205,12 +7205,12 @@ namespace PRoConEvents
                                         var start = UtcNow();
                                         while (NowDuration(start).TotalSeconds < 120 && _pluginEnabled && _roundState != RoundState.Playing) {
                                             foreach (AdKatsPlayer aPlayer in orderedTopPlayers) {
+                                                Thread.Sleep(TimeSpan.FromMilliseconds(50));
                                                 if (_roundState == RoundState.Playing) {
                                                     break;
                                                 }
                                                 if (aPlayer.RequiredTeam != null) {
                                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
-                                                    Thread.Sleep(TimeSpan.FromMilliseconds(50));
                                                 }
                                             }
                                             Thread.Sleep(TimeSpan.FromSeconds(1));
@@ -7985,6 +7985,7 @@ namespace PRoConEvents
                                     try {
                                         //Top player processing
                                         if (_firstPlayerListComplete &&
+                                            _previousRoundDuration != TimeSpan.Zero &&
                                             _UseTopPlayerMonitor &&
                                             aPlayer.player_type == PlayerType.Player &&
                                             _topPlayers.ContainsKey(aPlayer.player_name) && 
@@ -8003,8 +8004,7 @@ namespace PRoConEvents
                                                     }
                                                     Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                                 }
-                                                if (aPlayer.frostbitePlayerInfo.TeamID != aPlayer.RequiredTeam.TeamID && 
-                                                    _serverInfo.GetRoundElapsedTime().TotalMinutes <= 2) {
+                                                if (aPlayer.frostbitePlayerInfo.TeamID != aPlayer.RequiredTeam.TeamID) {
                                                     if (_isTestingAuthorized) {
                                                         Log.Warn(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " but on " + current.TeamKey + ", attempting to move.");
                                                     }
@@ -39944,6 +39944,186 @@ namespace PRoConEvents
             return fullMessage;
         }
 
+        public void UpdateOtherPlugins(String dllPath) {
+
+            //Other plugins
+            //1 - MULTIBalancer - With ColColonCleaner balance mods
+            if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
+                String externalPluginSource;
+                using (WebClient client = new WebClient()) {
+                    try {
+                        externalPluginSource = ClientDownloadTimer(client, "https://raw.githubusercontent.com/ColColonCleaner/multi-balancer/master/MULTIbalancer.cs" + "?cacherand=" + Environment.TickCount);
+                    } catch (Exception e) {
+                        if (_pluginUpdateCaller != null) {
+                            SendMessageToSource(_pluginUpdateCaller, "Unable to install/update MULTIBalancer.");
+                        }
+                        Log.Error("Unable to install/update MULTIBalancer.");
+                        _pluginUpdateCaller = null;
+                        LogThreadExit();
+                        return;
+                    }
+                }
+                if (String.IsNullOrEmpty(externalPluginSource)) {
+                    if (_pluginUpdateCaller != null) {
+                        SendMessageToSource(_pluginUpdateCaller, "Downloaded MULTIBalancer source was empty. Unable to install/update MULTIBalancer.");
+                    }
+                    Log.Error("Downloaded MULTIBalancer source was empty. Unable to install/update MULTIBalancer.");
+                    _pluginUpdateCaller = null;
+                    LogThreadExit();
+                    return;
+                }
+                String externalPluginFileName = "MULTIbalancer.cs";
+                String externalPluginPath = Path.Combine(dllPath.Trim(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), externalPluginFileName);
+                CompilerResults externalPluginCompileResults = CompilePluginSource(externalPluginSource);
+                if (externalPluginCompileResults.Errors.HasErrors) {
+                    foreach (CompilerError errComp in externalPluginCompileResults.Errors) {
+                        if (String.Compare(errComp.ErrorNumber, "CS0016", StringComparison.Ordinal) != 0 && errComp.IsWarning == false) {
+                            Log.Error(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { externalPluginFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
+                        }
+                    }
+                    if (_pluginUpdateCaller != null) {
+                        SendMessageToSource(_pluginUpdateCaller, "Updated MULTIBalancer source could not compile. Unable to install/update MULTIBalancer.");
+                    }
+                    Log.Error("Updated MULTIBalancer source could not compile. Unable to install/update MULTIBalancer.");
+                    _pluginUpdateCaller = null;
+                    LogThreadExit();
+                    return;
+                }
+                Int64 patchedPluginSizeKb = 0;
+                Boolean externalPluginFileWriteFailed = false;
+                Int32 externalPluginWriteAttempts = 0;
+                do {
+                    using (FileStream stream = File.Open(externalPluginPath, FileMode.Create)) {
+                        if (!stream.CanWrite) {
+                            if (_pluginUpdateCaller != null) {
+                                SendMessageToSource(_pluginUpdateCaller, "Cannot write updates to MULTIBalancer source file. Unable to install/update MULTIBalancer.");
+                            }
+                            Log.Error("Cannot write updates to MULTIBalancer source file. Unable to install/update MULTIBalancer.");
+                            _pluginUpdateCaller = null;
+                            LogThreadExit();
+                            return;
+                        }
+                        Byte[] info = new UTF8Encoding(true).GetBytes(externalPluginSource);
+                        stream.Write(info, 0, info.Length);
+                    }
+                    patchedPluginSizeKb = new FileInfo(externalPluginPath).Length / 1024;
+                    //There is no way the valid plugin can be less than 1 Kb
+                    if (patchedPluginSizeKb < 1) {
+                        if (_pluginUpdateCaller != null) {
+                            SendMessageToSource(_pluginUpdateCaller, "Write failure on MULTIBalancer update. Attempting write again.");
+                        }
+                        Log.Error("Write failure on MULTIBalancer update. Attempting write again.");
+                        externalPluginFileWriteFailed = true;
+                    } else {
+                        externalPluginFileWriteFailed = false;
+                    }
+                    if (++externalPluginWriteAttempts > 5) {
+                        if (_pluginUpdateCaller != null) {
+                            SendMessageToSource(_pluginUpdateCaller, "Constant failure to write MULTIBalancer update to file. Unable to install/update MULTIBalancer.");
+                        }
+                        Log.Error("Constant failure to write MULTIBalancer update to file. Unable to install/update MULTIBalancer.");
+                        _pluginUpdateCaller = null;
+                        LogThreadExit();
+                        return;
+                    }
+                } while (externalPluginFileWriteFailed);
+                if (_pluginUpdateCaller != null) {
+                    SendMessageToSource(_pluginUpdateCaller, "MULTIBalancer installed/updated. Plugin size " + patchedPluginSizeKb + "KB");
+                }
+                Log.Success("MULTIBalancer installed/updated. Plugin size " + patchedPluginSizeKb + "KB");
+            }
+        }
+
+        public void UpdateExtensions(String dllPath) {
+
+            //Extensions
+            //1 - AdKatsLRT - Private Extension - Token Required
+            if (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken)) {
+                String extensionSource;
+                using (WebClient client = new WebClient()) {
+                    try {
+                        extensionSource = ClientDownloadTimer(client, "https://raw.githubusercontent.com/AdKats/AdKats-LRT/master/AdKatsLRT.cs?token=" + _AdKatsLRTExtensionToken + "&cacherand=" + Environment.TickCount);
+                    } catch (Exception e) {
+                        if (_pluginUpdateCaller != null) {
+                            SendMessageToSource(_pluginUpdateCaller, "Unable to install/update AdKatsLRT Extension. Connection error, or invalid token.");
+                        }
+                        Log.Error("Unable to install/update AdKatsLRT Extension. Connection error, or invalid token.");
+                        _pluginUpdateCaller = null;
+                        LogThreadExit();
+                        return;
+                    }
+                }
+                if (String.IsNullOrEmpty(extensionSource)) {
+                    if (_pluginUpdateCaller != null) {
+                        SendMessageToSource(_pluginUpdateCaller, "Downloaded AdKatsLRT Extension source was empty. Unable to install/update AdKatsLRT Extension.");
+                    }
+                    Log.Error("Downloaded AdKatsLRT Extension source was empty. Unable to install/update AdKatsLRT Extension.");
+                    _pluginUpdateCaller = null;
+                    LogThreadExit();
+                    return;
+                }
+                String extensionFileName = "AdKatsLRT.cs";
+                String extensionPath = Path.Combine(dllPath.Trim(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), extensionFileName);
+                CompilerResults extensionCompileResults = CompilePluginSource(extensionSource);
+                if (extensionCompileResults.Errors.HasErrors) {
+                    foreach (CompilerError errComp in extensionCompileResults.Errors) {
+                        if (String.Compare(errComp.ErrorNumber, "CS0016", StringComparison.Ordinal) != 0 && errComp.IsWarning == false) {
+                            Log.Error(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { extensionFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
+                        }
+                    }
+                    if (_pluginUpdateCaller != null) {
+                        SendMessageToSource(_pluginUpdateCaller, "Updated AdKatsLRT Extension source could not compile. Unable to install/update AdKatsLRT Extension.");
+                    }
+                    Log.Error("Updated AdKatsLRT Extension source could not compile. Unable to install/update AdKatsLRT Extension.");
+                    _pluginUpdateCaller = null;
+                    LogThreadExit();
+                    return;
+                }
+                Int64 patchedExtensionSizeKb = 0;
+                Boolean extensionFileWriteFailed = false;
+                Int32 extensionWriteAttempts = 0;
+                do {
+                    using (FileStream stream = File.Open(extensionPath, FileMode.Create)) {
+                        if (!stream.CanWrite) {
+                            if (_pluginUpdateCaller != null) {
+                                SendMessageToSource(_pluginUpdateCaller, "Cannot write updates to AdKatsLRT Extension source file. Unable to install/update AdKatsLRT Extension.");
+                            }
+                            Log.Error("Cannot write updates to AdKatsLRT Extension source file. Unable to install/update AdKatsLRT Extension.");
+                            _pluginUpdateCaller = null;
+                            LogThreadExit();
+                            return;
+                        }
+                        Byte[] info = new UTF8Encoding(true).GetBytes(extensionSource);
+                        stream.Write(info, 0, info.Length);
+                    }
+                    patchedExtensionSizeKb = new FileInfo(extensionPath).Length / 1024;
+                    //There is no way the valid extension can be less than 1 Kb
+                    if (patchedExtensionSizeKb < 1) {
+                        if (_pluginUpdateCaller != null) {
+                            SendMessageToSource(_pluginUpdateCaller, "Write failure on AdKatsLRT Extension update. Attempting write again.");
+                        }
+                        Log.Error("Write failure on AdKatsLRT Extension update. Attempting write again.");
+                        extensionFileWriteFailed = true;
+                    } else {
+                        extensionFileWriteFailed = false;
+                    }
+                    if (++extensionWriteAttempts > 5) {
+                        if (_pluginUpdateCaller != null) {
+                            SendMessageToSource(_pluginUpdateCaller, "Constant failure to write AdKatsLRT Extension update to file. Unable to install/update AdKatsLRT Extension.");
+                        }
+                        Log.Error("Constant failure to write AdKatsLRT Extension update to file. Unable to install/update AdKatsLRT Extension.");
+                        _pluginUpdateCaller = null;
+                        LogThreadExit();
+                        return;
+                    }
+                } while (extensionFileWriteFailed);
+                if (_pluginUpdateCaller != null) {
+                    SendMessageToSource(_pluginUpdateCaller, "AdKatsLRT Extension installed/updated. Extension size " + patchedExtensionSizeKb + "KB");
+                }
+                Log.Success("AdKatsLRT Extension installed/updated. Extension size " + patchedExtensionSizeKb + "KB");
+            }
+        }
+
         public void CheckForPluginUpdates(Boolean manual)
         {
             try
@@ -39974,178 +40154,10 @@ namespace PRoConEvents
                             String dllPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
 
                             //Other plugins
-                            //1 - MULTIBalancer - With ColColonCleaner balance mods
-                            if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
-                                String externalPluginSource;
-                                using (WebClient client = new WebClient()) {
-                                    try {
-                                        externalPluginSource = ClientDownloadTimer(client, "https://raw.githubusercontent.com/ColColonCleaner/multi-balancer/master/MULTIbalancer.cs" + "?cacherand=" + Environment.TickCount);
-                                    } catch (Exception e) {
-                                        if (_pluginUpdateCaller != null) {
-                                            SendMessageToSource(_pluginUpdateCaller, "Unable to install/update MULTIBalancer.");
-                                        }
-                                        Log.Error("Unable to install/update MULTIBalancer.");
-                                        _pluginUpdateCaller = null;
-                                        LogThreadExit();
-                                        return;
-                                    }
-                                }
-                                if (String.IsNullOrEmpty(externalPluginSource)) {
-                                    if (_pluginUpdateCaller != null) {
-                                        SendMessageToSource(_pluginUpdateCaller, "Downloaded MULTIBalancer source was empty. Unable to install/update MULTIBalancer.");
-                                    }
-                                    Log.Error("Downloaded MULTIBalancer source was empty. Unable to install/update MULTIBalancer.");
-                                    _pluginUpdateCaller = null;
-                                    LogThreadExit();
-                                    return;
-                                }
-                                String externalPluginFileName = "MULTIbalancer.cs";
-                                String externalPluginPath = Path.Combine(dllPath.Trim(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), externalPluginFileName);
-                                CompilerResults externalPluginCompileResults = CompilePluginSource(externalPluginSource);
-                                if (externalPluginCompileResults.Errors.HasErrors) {
-                                    foreach (CompilerError errComp in externalPluginCompileResults.Errors) {
-                                        if (String.Compare(errComp.ErrorNumber, "CS0016", StringComparison.Ordinal) != 0 && errComp.IsWarning == false) {
-                                            Log.Error(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { externalPluginFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
-                                        }
-                                    }
-                                    if (_pluginUpdateCaller != null) {
-                                        SendMessageToSource(_pluginUpdateCaller, "Updated MULTIBalancer source could not compile. Unable to install/update MULTIBalancer.");
-                                    }
-                                    Log.Error("Updated MULTIBalancer source could not compile. Unable to install/update MULTIBalancer.");
-                                    _pluginUpdateCaller = null;
-                                    LogThreadExit();
-                                    return;
-                                }
-                                Int64 patchedPluginSizeKb = 0;
-                                Boolean externalPluginFileWriteFailed = false;
-                                Int32 externalPluginWriteAttempts = 0;
-                                do {
-                                    using (FileStream stream = File.Open(externalPluginPath, FileMode.Create)) {
-                                        if (!stream.CanWrite) {
-                                            if (_pluginUpdateCaller != null) {
-                                                SendMessageToSource(_pluginUpdateCaller, "Cannot write updates to MULTIBalancer source file. Unable to install/update MULTIBalancer.");
-                                            }
-                                            Log.Error("Cannot write updates to MULTIBalancer source file. Unable to install/update MULTIBalancer.");
-                                            _pluginUpdateCaller = null;
-                                            LogThreadExit();
-                                            return;
-                                        }
-                                        Byte[] info = new UTF8Encoding(true).GetBytes(externalPluginSource);
-                                        stream.Write(info, 0, info.Length);
-                                    }
-                                    patchedPluginSizeKb = new FileInfo(externalPluginPath).Length / 1024;
-                                    //There is no way the valid plugin can be less than 1 Kb
-                                    if (patchedPluginSizeKb < 1) {
-                                        if (_pluginUpdateCaller != null) {
-                                            SendMessageToSource(_pluginUpdateCaller, "Write failure on MULTIBalancer update. Attempting write again.");
-                                        }
-                                        Log.Error("Write failure on MULTIBalancer update. Attempting write again.");
-                                        externalPluginFileWriteFailed = true;
-                                    } else {
-                                        externalPluginFileWriteFailed = false;
-                                    }
-                                    if (++externalPluginWriteAttempts > 5) {
-                                        if (_pluginUpdateCaller != null) {
-                                            SendMessageToSource(_pluginUpdateCaller, "Constant failure to write MULTIBalancer update to file. Unable to install/update MULTIBalancer.");
-                                        }
-                                        Log.Error("Constant failure to write MULTIBalancer update to file. Unable to install/update MULTIBalancer.");
-                                        _pluginUpdateCaller = null;
-                                        LogThreadExit();
-                                        return;
-                                    }
-                                } while (externalPluginFileWriteFailed);
-                                if (_pluginUpdateCaller != null) {
-                                    SendMessageToSource(_pluginUpdateCaller, "MULTIBalancer installed/updated. Plugin size " + patchedPluginSizeKb + "KB");
-                                }
-                                Log.Success("MULTIBalancer installed/updated. Plugin size " + patchedPluginSizeKb + "KB");
-                            }
+                            UpdateOtherPlugins(dllPath);
 
-                            //Extensions
-                            //1 - AdKatsLRT - Private Extension - Token Required
-                            if (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken)) {
-                                String extensionSource;
-                                using (WebClient client = new WebClient()) {
-                                    try {
-                                        extensionSource = ClientDownloadTimer(client, "https://raw.githubusercontent.com/AdKats/AdKats-LRT/master/AdKatsLRT.cs?token=" + _AdKatsLRTExtensionToken + "&cacherand=" + Environment.TickCount);
-                                    } catch (Exception e) {
-                                        if (_pluginUpdateCaller != null) {
-                                            SendMessageToSource(_pluginUpdateCaller, "Unable to install/update AdKatsLRT Extension. Connection error, or invalid token.");
-                                        }
-                                        Log.Error("Unable to install/update AdKatsLRT Extension. Connection error, or invalid token.");
-                                        _pluginUpdateCaller = null;
-                                        LogThreadExit();
-                                        return;
-                                    }
-                                }
-                                if (String.IsNullOrEmpty(extensionSource)) {
-                                    if (_pluginUpdateCaller != null) {
-                                        SendMessageToSource(_pluginUpdateCaller, "Downloaded AdKatsLRT Extension source was empty. Unable to install/update AdKatsLRT Extension.");
-                                    }
-                                    Log.Error("Downloaded AdKatsLRT Extension source was empty. Unable to install/update AdKatsLRT Extension.");
-                                    _pluginUpdateCaller = null;
-                                    LogThreadExit();
-                                    return;
-                                }
-                                String extensionFileName = "AdKatsLRT.cs";
-                                String extensionPath = Path.Combine(dllPath.Trim(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), extensionFileName);
-                                CompilerResults extensionCompileResults = CompilePluginSource(extensionSource);
-                                if (extensionCompileResults.Errors.HasErrors) {
-                                    foreach (CompilerError errComp in extensionCompileResults.Errors) {
-                                        if (String.Compare(errComp.ErrorNumber, "CS0016", StringComparison.Ordinal) != 0 && errComp.IsWarning == false) {
-                                            Log.Error(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { extensionFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
-                                        }
-                                    }
-                                    if (_pluginUpdateCaller != null) {
-                                        SendMessageToSource(_pluginUpdateCaller, "Updated AdKatsLRT Extension source could not compile. Unable to install/update AdKatsLRT Extension.");
-                                    }
-                                    Log.Error("Updated AdKatsLRT Extension source could not compile. Unable to install/update AdKatsLRT Extension.");
-                                    _pluginUpdateCaller = null;
-                                    LogThreadExit();
-                                    return;
-                                }
-                                Int64 patchedExtensionSizeKb = 0;
-                                Boolean extensionFileWriteFailed = false;
-                                Int32 extensionWriteAttempts = 0;
-                                do {
-                                    using (FileStream stream = File.Open(extensionPath, FileMode.Create)) {
-                                        if (!stream.CanWrite) {
-                                            if (_pluginUpdateCaller != null) {
-                                                SendMessageToSource(_pluginUpdateCaller, "Cannot write updates to AdKatsLRT Extension source file. Unable to install/update AdKatsLRT Extension.");
-                                            }
-                                            Log.Error("Cannot write updates to AdKatsLRT Extension source file. Unable to install/update AdKatsLRT Extension.");
-                                            _pluginUpdateCaller = null;
-                                            LogThreadExit();
-                                            return;
-                                        }
-                                        Byte[] info = new UTF8Encoding(true).GetBytes(extensionSource);
-                                        stream.Write(info, 0, info.Length);
-                                    }
-                                    patchedExtensionSizeKb = new FileInfo(extensionPath).Length / 1024;
-                                    //There is no way the valid extension can be less than 1 Kb
-                                    if (patchedExtensionSizeKb < 1) {
-                                        if (_pluginUpdateCaller != null) {
-                                            SendMessageToSource(_pluginUpdateCaller, "Write failure on AdKatsLRT Extension update. Attempting write again.");
-                                        }
-                                        Log.Error("Write failure on AdKatsLRT Extension update. Attempting write again.");
-                                        extensionFileWriteFailed = true;
-                                    } else {
-                                        extensionFileWriteFailed = false;
-                                    }
-                                    if (++extensionWriteAttempts > 5) {
-                                        if (_pluginUpdateCaller != null) {
-                                            SendMessageToSource(_pluginUpdateCaller, "Constant failure to write AdKatsLRT Extension update to file. Unable to install/update AdKatsLRT Extension.");
-                                        }
-                                        Log.Error("Constant failure to write AdKatsLRT Extension update to file. Unable to install/update AdKatsLRT Extension.");
-                                        _pluginUpdateCaller = null;
-                                        LogThreadExit();
-                                        return;
-                                    }
-                                } while (extensionFileWriteFailed);
-                                if (_pluginUpdateCaller != null) {
-                                    SendMessageToSource(_pluginUpdateCaller, "AdKatsLRT Extension installed/updated. Extension size " + patchedExtensionSizeKb + "KB");
-                                }
-                                Log.Success("AdKatsLRT Extension installed/updated. Extension size " + patchedExtensionSizeKb + "KB");
-                            }
+                            //AdKats Extensions
+                            UpdateExtensions(dllPath);
 
                             if (_pluginUpdateCaller != null)
                             {
