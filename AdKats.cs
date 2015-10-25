@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.62
+ * Version 6.8.0.63
  * 25-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.62</version_code>
+ * <version_code>6.8.0.63</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.62";
+        private const String PluginVersion = "6.8.0.63";
 
         public enum GameVersion
         {
@@ -8014,7 +8014,7 @@ namespace PRoConEvents
                                                 }
                                                 if (current != aPlayer.RequiredTeam) {
                                                     //The player is not on the team they should be. But are they?
-                                                    if (enemyTopCount >= friendlyTopCount) {
+                                                    if (enemyTopCount >= friendlyTopCount && current.TeamKey != "Neutral") {
                                                         if (_isTestingAuthorized) {
                                                             Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + current.TeamKey + ", enemy already has " + enemyTopCount + " top.");
                                                         }
