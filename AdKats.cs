@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.61
+ * Version 6.8.0.62
  * 25-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.61</version_code>
+ * <version_code>6.8.0.62</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.61";
+        private const String PluginVersion = "6.8.0.62";
 
         public enum GameVersion
         {
@@ -7992,9 +7992,17 @@ namespace PRoConEvents
                                             _roundState == RoundState.Playing) {
                                             AdKatsTeam t1, t2, current;
                                             if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2) && GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out current)) {
+                                                Int32 team1TopCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player && _topPlayers.ContainsKey(dPlayer.player_name) && (dPlayer.frostbitePlayerInfo.TeamID == t1.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == t1.TeamID)));
+                                                Int32 team2TopCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player && _topPlayers.ContainsKey(dPlayer.player_name) && (dPlayer.frostbitePlayerInfo.TeamID == t2.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == t2.TeamID)));
+                                                Int32 friendlyTopCount, enemyTopCount;
+                                                if (t1 == current) {
+                                                    friendlyTopCount = team1TopCount;
+                                                    enemyTopCount = team2TopCount;
+                                                } else {
+                                                    friendlyTopCount = team2TopCount;
+                                                    enemyTopCount = team1TopCount;
+                                                }
                                                 if (aPlayer.RequiredTeam == null) {
-                                                    var team1TopCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player && _topPlayers.ContainsKey(dPlayer.player_name) && (dPlayer.frostbitePlayerInfo.TeamID == t1.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == t1.TeamID)));
-                                                    var team2TopCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player && _topPlayers.ContainsKey(dPlayer.player_name) && (dPlayer.frostbitePlayerInfo.TeamID == t2.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == t2.TeamID)));
                                                     if (team1TopCount > team2TopCount) {
                                                         aPlayer.RequiredTeam = t2;
                                                     } else if (team2TopCount > team1TopCount || aPlayer.frostbitePlayerInfo.TeamID == 0) {
@@ -8004,11 +8012,19 @@ namespace PRoConEvents
                                                     }
                                                     Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                                 }
-                                                if (aPlayer.frostbitePlayerInfo.TeamID != aPlayer.RequiredTeam.TeamID) {
-                                                    if (_isTestingAuthorized) {
-                                                        Log.Warn(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " but on " + current.TeamKey + ", attempting to move.");
+                                                if (current != aPlayer.RequiredTeam) {
+                                                    //The player is not on the team they should be. But are they?
+                                                    if (enemyTopCount >= friendlyTopCount) {
+                                                        if (_isTestingAuthorized) {
+                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + current.TeamKey + ", enemy already has " + enemyTopCount + " top.");
+                                                        }
+                                                        aPlayer.RequiredTeam = current;
+                                                    } else {
+                                                        if (_isTestingAuthorized) {
+                                                            Log.Warn(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " but on " + current.TeamKey + ", attempting to move.");
+                                                        }
+                                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
                                                     }
-                                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
                                                 }
                                             }
                                         }
