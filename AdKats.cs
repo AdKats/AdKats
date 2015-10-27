@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.65
+ * Version 6.8.0.66
  * 26-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.65</version_code>
+ * <version_code>6.8.0.66</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.65";
+        private const String PluginVersion = "6.8.0.66";
 
         public enum GameVersion
         {
@@ -1385,7 +1385,7 @@ namespace PRoConEvents
                                 teamPower = t1.TeamKey + ": (" + Math.Round(t1Power, 2) + ") / " + t2.TeamKey + ": (" + Math.Round(t2Power, 2) + ")";
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Team Power (Display)", typeof(String), teamPower));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPlayers.ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPLayerListing.ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values
                                 .Select(aPlayer =>
                                     ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(-) ")) + "(" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
