@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.64
- * 25-OCT-2015
+ * Version 6.8.0.65
+ * 26-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.64</version_code>
+ * <version_code>6.8.0.65</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.64";
+        private const String PluginVersion = "6.8.0.65";
 
         public enum GameVersion
         {
@@ -1371,10 +1371,20 @@ namespace PRoConEvents
                         if (_UseTopPlayerMonitor) {
                             var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                                 .Where(aPlayer =>
-                                    _topPlayers.ContainsKey(aPlayer.player_name))
-                                .Select(aPlayer =>
+                                    _topPlayers.ContainsKey(aPlayer.player_name));
+                            var onlineTopPLayerListing = onlineTopPlayers.Select(aPlayer =>
                                     ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(+) ")) + "(" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
                                 .OrderByDescending(item => item);
+                            AdKatsTeam t1, t2;
+                            String teamPower = "Unknown";
+                            if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
+                                Double t1Power = onlineTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == t1.TeamID).Select(aPlayer =>
+                                    (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? aPlayer.TopStats.TopRoundRatio : 0.50).Sum();
+                                Double t2Power = onlineTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == t2.TeamID).Select(aPlayer =>
+                                    (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? aPlayer.TopStats.TopRoundRatio : 0.50).Sum();
+                                teamPower = t1.TeamKey + ": (" + Math.Round(t1Power, 2) + ") / " + t2.TeamKey + ": (" + Math.Round(t2Power, 2) + ")";
+                            }
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Team Power (Display)", typeof(String), teamPower));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPlayers.ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values
                                 .Select(aPlayer =>
@@ -6507,6 +6517,22 @@ namespace PRoConEvents
                                                 topPlayer.frostbitePlayerInfo.SquadID.ToString(), 
                                                 topPlayer.player_name);
                                         }
+                                    }
+                                }
+
+                                if (_UseTopPlayerMonitor && _isTestingAuthorized && _firstPlayerListComplete) {
+                                    var onlineTopPlayers = _PlayerDictionary.Values.ToList()
+                                        .Where(aPlayer =>
+                                            _topPlayers.ContainsKey(aPlayer.player_name));
+                                    AdKatsTeam t1, t2;
+                                    String teamPower = "Unknown";
+                                    if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
+                                        Double t1Power = onlineTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == t1.TeamID).Select(aPlayer =>
+                                            (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? aPlayer.TopStats.TopRoundRatio : 0.50).Sum();
+                                        Double t2Power = onlineTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == t2.TeamID).Select(aPlayer =>
+                                            (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? aPlayer.TopStats.TopRoundRatio : 0.50).Sum();
+                                        teamPower = t1.TeamKey + ": (" + Math.Round(t1Power, 2) + ") / " + t2.TeamKey + ": (" + Math.Round(t2Power, 2) + ")";
+                                        OnlineAdminSayMessage(teamPower);
                                     }
                                 }
 
@@ -15207,6 +15233,12 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
+                            if (_isTestingAuthorized && _serverInfo.ServerID == 1) {
+                                SendMessageToSource(record, "Moves may not be performed at this time.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
                                 SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
@@ -15248,6 +15280,12 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
+
+                            if (_isTestingAuthorized && _serverInfo.ServerID == 1) {
+                                SendMessageToSource(record, "Moves may not be performed at this time.");
+                                FinalizeRecord(record);
+                                return;
+                            }
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
