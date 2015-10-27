@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.66
+ * Version 6.8.0.68
  * 26-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.66</version_code>
+ * <version_code>6.8.0.68</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.66";
+        private const String PluginVersion = "6.8.0.68";
 
         public enum GameVersion
         {
@@ -1379,9 +1379,9 @@ namespace PRoConEvents
                             String teamPower = "Unknown";
                             if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
                                 Double t1Power = onlineTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == t1.TeamID).Select(aPlayer =>
-                                    (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? aPlayer.TopStats.TopRoundRatio : 0.50).Sum();
+                                    (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2) : 1.0).Sum();
                                 Double t2Power = onlineTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == t2.TeamID).Select(aPlayer =>
-                                    (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? aPlayer.TopStats.TopRoundRatio : 0.50).Sum();
+                                    (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2) : 1.0).Sum();
                                 teamPower = t1.TeamKey + ": (" + Math.Round(t1Power, 2) + ") / " + t2.TeamKey + ": (" + Math.Round(t2Power, 2) + ")";
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Team Power (Display)", typeof(String), teamPower));
@@ -6528,10 +6528,10 @@ namespace PRoConEvents
                                     String teamPower = "Unknown";
                                     if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
                                         Double t1Power = onlineTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == t1.TeamID).Select(aPlayer =>
-                                            (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? aPlayer.TopStats.TopRoundRatio : 0.50).Sum();
+                                            (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2) : 1.0).Sum();
                                         Double t2Power = onlineTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == t2.TeamID).Select(aPlayer =>
-                                            (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? aPlayer.TopStats.TopRoundRatio : 0.50).Sum();
-                                        teamPower = t1.TeamKey + ": (" + Math.Round(t1Power, 2) + ") / " + t2.TeamKey + ": (" + Math.Round(t2Power, 2) + ")";
+                                            (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2) : 1.0).Sum();
+                                        teamPower = "TeamPower: " + t1.TeamKey + "(" + Math.Round(t1Power, 2) + ") / " + t2.TeamKey + "(" + Math.Round(t2Power, 2) + ")";
                                         OnlineAdminSayMessage(teamPower);
                                     }
                                 }
