@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.69
+ * Version 6.8.0.70
  * 28-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.69</version_code>
+ * <version_code>6.8.0.70</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.69";
+        private const String PluginVersion = "6.8.0.70";
 
         public enum GameVersion
         {
@@ -12231,7 +12231,8 @@ namespace PRoConEvents
                     Log.Debug(() => "Preparing to KPM check " + aPlayer.GetVerboseName(), 5);
                     acted = KPMHackCheck(aPlayer, verbose);
                 }
-                if (//Only on BF4
+                if (_useHackerCheckerLIVESystem &&
+                    //Only on BF4
                     _gameVersion == GameVersion.BF4 && 
                     //Stats are available
                     aPlayer.RoundStats.ContainsKey(_roundID - 1) &&
@@ -12342,7 +12343,8 @@ namespace PRoConEvents
                 var killStatsValid = false;
                 Int32 serverKillDiff = 0;
                 Int32 statKillDiff = 0;
-                if (previousStats != null &&
+                if (_useHackerCheckerLIVESystem &&
+                    previousStats != null &&
                     previousStats.LiveStats != null &&
                     previousStats.WeaponStats != null &&
                     previousStats.VehicleStats != null &&
@@ -12358,7 +12360,7 @@ namespace PRoConEvents
                     statKillDiff = currentWeaponKillCount - previousWeaponKillCount;
                     killStatsValid = serverKillDiff >= statKillDiff - 1;
                 }
-                if (_isTestingAuthorized) {
+                if (_isTestingAuthorized && _useHackerCheckerLIVESystem) {
                     if (killStatsValid) {
                         Log.Success(aPlayer.GetVerboseName() + " kill stats valid. " + serverKillDiff + "|" + statKillDiff);
                     } else if (previousStats != null) {
@@ -12427,7 +12429,8 @@ namespace PRoConEvents
                             //Only handle weapons that do < 50 max dps
                             if (weapon.DamageMax < 50) {
                                 //For live stat check, look for previous round stat difference and valid stat difference
-                                if (previousStats != null && 
+                                if (_useHackerCheckerLIVESystem && 
+                                    previousStats != null && 
                                     previousStats.WeaponStats != null) {
                                     AdKatsWeaponStat previousWeaponStat;
                                     if (previousStats.WeaponStats.TryGetValue(weaponStat.ID, out previousWeaponStat)) {
@@ -38375,61 +38378,63 @@ namespace PRoConEvents
                             Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                         }
 
-                        //Fetch vehicle stats
-                        DoBattlelogWait();
-                        String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/vehiclesPopulateStats/" + aPlayer.player_personaID + "/1/");
-                        Hashtable vehicleResponseData = (Hashtable) JSON.JsonDecode(vehicleResponse);
+                        if (_useHackerCheckerLIVESystem) {
+                            //Fetch vehicle stats
+                            DoBattlelogWait();
+                            String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/vehiclesPopulateStats/" + aPlayer.player_personaID + "/1/");
+                            Hashtable vehicleResponseData = (Hashtable) JSON.JsonDecode(vehicleResponse);
 
-                        if (vehicleResponseData.ContainsKey("type") &&
-                            (String) vehicleResponseData["type"] == "success" &&
-                            vehicleResponseData.ContainsKey("message") &&
-                            (String) vehicleResponseData["message"] == "OK" &&
-                            vehicleResponseData.ContainsKey("data")) {
-                            Hashtable statsData = (Hashtable) vehicleResponseData["data"];
-                            if (statsData != null && statsData.ContainsKey("mainVehicleStats")) {
-                                ArrayList vehicleData = (ArrayList) statsData["mainVehicleStats"];
-                                try {
-                                    //Get Vehicles
-                                    if (vehicleData != null && vehicleData.Count > 0) {
-                                        stats.VehicleStats = new Dictionary<String, AdKatsVehicleStat>();
-                                        foreach (Hashtable currentWeapon in vehicleData) {
-                                            //Create new construct
-                                            AdKatsVehicleStat vehicle = new AdKatsVehicleStat();
+                            if (vehicleResponseData.ContainsKey("type") &&
+                                (String) vehicleResponseData["type"] == "success" &&
+                                vehicleResponseData.ContainsKey("message") &&
+                                (String) vehicleResponseData["message"] == "OK" &&
+                                vehicleResponseData.ContainsKey("data")) {
+                                Hashtable statsData = (Hashtable) vehicleResponseData["data"];
+                                if (statsData != null && statsData.ContainsKey("mainVehicleStats")) {
+                                    ArrayList vehicleData = (ArrayList) statsData["mainVehicleStats"];
+                                    try {
+                                        //Get Vehicles
+                                        if (vehicleData != null && vehicleData.Count > 0) {
+                                            stats.VehicleStats = new Dictionary<String, AdKatsVehicleStat>();
+                                            foreach (Hashtable currentWeapon in vehicleData) {
+                                                //Create new construct
+                                                AdKatsVehicleStat vehicle = new AdKatsVehicleStat();
 
-                                            //serviceStars
-                                            vehicle.ServiceStars = (Double) currentWeapon["serviceStars"];
-                                            //serviceStarsProgress
-                                            vehicle.ServiceStarsProgress = (Double) currentWeapon["serviceStarsProgress"];
-                                            //category
-                                            vehicle.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_').Replace('-', '_');
-                                            //slug
-                                            vehicle.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_').Replace('-', '_');
-                                            //name
-                                            vehicle.WarsawID = (String) currentWeapon["name"];
-                                            //kills
-                                            vehicle.Kills = (Double) currentWeapon["kills"];
-                                            //timeIn
-                                            vehicle.TimeIn = TimeSpan.FromSeconds((Double) currentWeapon["timeIn"]);
+                                                //serviceStars
+                                                vehicle.ServiceStars = (Double) currentWeapon["serviceStars"];
+                                                //serviceStarsProgress
+                                                vehicle.ServiceStarsProgress = (Double) currentWeapon["serviceStarsProgress"];
+                                                //category
+                                                vehicle.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_').Replace('-', '_');
+                                                //slug
+                                                vehicle.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_').Replace('-', '_');
+                                                //name
+                                                vehicle.WarsawID = (String) currentWeapon["name"];
+                                                //kills
+                                                vehicle.Kills = (Double) currentWeapon["kills"];
+                                                //timeIn
+                                                vehicle.TimeIn = TimeSpan.FromSeconds((Double) currentWeapon["timeIn"]);
 
-                                            //Calculate values
-                                            if (vehicle.TimeIn.TotalMinutes > 0) {
-                                                vehicle.KPM = vehicle.Kills / vehicle.TimeIn.TotalMinutes;
+                                                //Calculate values
+                                                if (vehicle.TimeIn.TotalMinutes > 0) {
+                                                    vehicle.KPM = vehicle.Kills / vehicle.TimeIn.TotalMinutes;
+                                                }
+
+                                                //Assign the construct
+                                                stats.VehicleStats.Add(vehicle.ID, vehicle);
                                             }
-
-                                            //Assign the construct
-                                            stats.VehicleStats.Add(vehicle.ID, vehicle);
+                                        } else {
+                                            Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats data.");
                                         }
-                                    } else {
-                                        Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats data.");
+                                    } catch (Exception e) {
+                                        HandleException(new AdKatsException("Error while parsing player vehicle data.", e));
                                     }
-                                } catch (Exception e) {
-                                    HandleException(new AdKatsException("Error while parsing player vehicle data.", e));
+                                } else {
+                                    Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats construct.");
                                 }
                             } else {
-                                Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats construct.");
+                                Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                             }
-                        } else {
-                            Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                         }
 
                         aPlayer.RoundStats[_roundID] = stats;
@@ -38451,25 +38456,27 @@ namespace PRoConEvents
                         //Fetch stats
                         AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
 
-                        //Handle overview stats
-                        DoBattlelogWait();
-                        String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawdetailedstatspopulate/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount);
-                        Hashtable json = (Hashtable) JSON.JsonDecode(overviewResponse);
-                        Hashtable data = (Hashtable) json["data"];
-                        Hashtable overviewStatsTable = null;
-                        if (data.ContainsKey("generalStats") && (overviewStatsTable = (Hashtable) data["generalStats"]) != null) {
-                            stats.Skill = Int32.Parse(overviewStatsTable["skill"].ToString());
-                            stats.Revives = Int32.Parse(overviewStatsTable["revives"].ToString());
-                            stats.Rank = Int32.Parse(overviewStatsTable["rank"].ToString());
-                            stats.Kills = Int32.Parse(overviewStatsTable["kills"].ToString());
-                            stats.Accuracy = (Double) overviewStatsTable["accuracy"];
-                            stats.Shots = Int32.Parse(overviewStatsTable["shotsFired"].ToString());
-                            stats.Score = Int32.Parse(overviewStatsTable["score"].ToString());
-                            stats.Hits = Int32.Parse(overviewStatsTable["shotsHit"].ToString());
-                            stats.Rank = Int32.Parse(overviewStatsTable["rank"].ToString());
-                            stats.Heals = Int32.Parse(overviewStatsTable["heals"].ToString());
-                            stats.Deaths = Int32.Parse(overviewStatsTable["deaths"].ToString());
-                            stats.Headshots = Int32.Parse(overviewStatsTable["headshots"].ToString());
+                        if (_useHackerCheckerLIVESystem) {
+                            //Handle overview stats
+                            DoBattlelogWait();
+                            String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawdetailedstatspopulate/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount);
+                            Hashtable json = (Hashtable) JSON.JsonDecode(overviewResponse);
+                            Hashtable data = (Hashtable) json["data"];
+                            Hashtable overviewStatsTable = null;
+                            if (data.ContainsKey("generalStats") && (overviewStatsTable = (Hashtable) data["generalStats"]) != null) {
+                                stats.Skill = Int32.Parse(overviewStatsTable["skill"].ToString());
+                                stats.Revives = Int32.Parse(overviewStatsTable["revives"].ToString());
+                                stats.Rank = Int32.Parse(overviewStatsTable["rank"].ToString());
+                                stats.Kills = Int32.Parse(overviewStatsTable["kills"].ToString());
+                                stats.Accuracy = (Double) overviewStatsTable["accuracy"];
+                                stats.Shots = Int32.Parse(overviewStatsTable["shotsFired"].ToString());
+                                stats.Score = Int32.Parse(overviewStatsTable["score"].ToString());
+                                stats.Hits = Int32.Parse(overviewStatsTable["shotsHit"].ToString());
+                                stats.Rank = Int32.Parse(overviewStatsTable["rank"].ToString());
+                                stats.Heals = Int32.Parse(overviewStatsTable["heals"].ToString());
+                                stats.Deaths = Int32.Parse(overviewStatsTable["deaths"].ToString());
+                                stats.Headshots = Int32.Parse(overviewStatsTable["headshots"].ToString());
+                            }
                         }
 
                         //Handle specific weapon stats
@@ -38542,61 +38549,63 @@ namespace PRoConEvents
                             Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                         }
 
-                        //Fetch vehicle stats
-                        DoBattlelogWait();
-                        String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/en/warsawvehiclesPopulateStats/" + aPlayer.player_personaID + "/1/stats/");
-                        Hashtable vehicleResponseData = (Hashtable) JSON.JsonDecode(vehicleResponse);
+                        if (_useHackerCheckerLIVESystem) {
+                            //Fetch vehicle stats
+                            DoBattlelogWait();
+                            String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/en/warsawvehiclesPopulateStats/" + aPlayer.player_personaID + "/1/stats/");
+                            Hashtable vehicleResponseData = (Hashtable) JSON.JsonDecode(vehicleResponse);
 
-                        if (vehicleResponseData.ContainsKey("type") &&
-                            (String) vehicleResponseData["type"] == "success" &&
-                            vehicleResponseData.ContainsKey("message") &&
-                            (String) vehicleResponseData["message"] == "OK" &&
-                            vehicleResponseData.ContainsKey("data")) {
-                            Hashtable statsData = (Hashtable) vehicleResponseData["data"];
-                            if (statsData != null && statsData.ContainsKey("mainVehicleStats")) {
-                                ArrayList vehicleData = (ArrayList) statsData["mainVehicleStats"];
-                                try {
-                                    //Get Vehicles
-                                    if (vehicleData != null && vehicleData.Count > 0) {
-                                        stats.VehicleStats = new Dictionary<String, AdKatsVehicleStat>();
-                                        foreach (Hashtable currentWeapon in vehicleData) {
-                                            //Create new construct
-                                            AdKatsVehicleStat vehicle = new AdKatsVehicleStat();
+                            if (vehicleResponseData.ContainsKey("type") &&
+                                (String) vehicleResponseData["type"] == "success" &&
+                                vehicleResponseData.ContainsKey("message") &&
+                                (String) vehicleResponseData["message"] == "OK" &&
+                                vehicleResponseData.ContainsKey("data")) {
+                                Hashtable statsData = (Hashtable) vehicleResponseData["data"];
+                                if (statsData != null && statsData.ContainsKey("mainVehicleStats")) {
+                                    ArrayList vehicleData = (ArrayList) statsData["mainVehicleStats"];
+                                    try {
+                                        //Get Vehicles
+                                        if (vehicleData != null && vehicleData.Count > 0) {
+                                            stats.VehicleStats = new Dictionary<String, AdKatsVehicleStat>();
+                                            foreach (Hashtable currentWeapon in vehicleData) {
+                                                //Create new construct
+                                                AdKatsVehicleStat vehicle = new AdKatsVehicleStat();
 
-                                            //serviceStars
-                                            vehicle.ServiceStars = (Double) currentWeapon["serviceStars"];
-                                            //serviceStarsProgress
-                                            vehicle.ServiceStarsProgress = (Double) currentWeapon["serviceStarsProgress"];
-                                            //category
-                                            vehicle.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_').Replace('-', '_');
-                                            //slug
-                                            vehicle.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_').Replace('-', '_');
-                                            //name
-                                            vehicle.WarsawID = (String) currentWeapon["name"];
-                                            //kills
-                                            vehicle.Kills = (Double) currentWeapon["kills"];
-                                            //timeIn
-                                            vehicle.TimeIn = TimeSpan.FromSeconds((Double) currentWeapon["timeIn"]);
+                                                //serviceStars
+                                                vehicle.ServiceStars = (Double) currentWeapon["serviceStars"];
+                                                //serviceStarsProgress
+                                                vehicle.ServiceStarsProgress = (Double) currentWeapon["serviceStarsProgress"];
+                                                //category
+                                                vehicle.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_').Replace('-', '_');
+                                                //slug
+                                                vehicle.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_').Replace('-', '_');
+                                                //name
+                                                vehicle.WarsawID = (String) currentWeapon["name"];
+                                                //kills
+                                                vehicle.Kills = (Double) currentWeapon["kills"];
+                                                //timeIn
+                                                vehicle.TimeIn = TimeSpan.FromSeconds((Double) currentWeapon["timeIn"]);
 
-                                            //Calculate values
-                                            if (vehicle.TimeIn.TotalMinutes > 0) {
-                                                vehicle.KPM = vehicle.Kills / vehicle.TimeIn.TotalMinutes;
+                                                //Calculate values
+                                                if (vehicle.TimeIn.TotalMinutes > 0) {
+                                                    vehicle.KPM = vehicle.Kills / vehicle.TimeIn.TotalMinutes;
+                                                }
+
+                                                //Assign the construct
+                                                stats.VehicleStats.Add(vehicle.ID, vehicle);
                                             }
-
-                                            //Assign the construct
-                                            stats.VehicleStats.Add(vehicle.ID, vehicle);
+                                        } else {
+                                            Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats data.");
                                         }
-                                    } else {
-                                        Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats data.");
+                                    } catch (Exception e) {
+                                        HandleException(new AdKatsException("Error while parsing player vehicle data.", e));
                                     }
-                                } catch (Exception e) {
-                                    HandleException(new AdKatsException("Error while parsing player vehicle data.", e));
+                                } else {
+                                    Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats construct.");
                                 }
                             } else {
-                                Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats construct.");
+                                Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                             }
-                        } else {
-                            Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                         }
 
                         aPlayer.RoundStats[_roundID] = stats;
