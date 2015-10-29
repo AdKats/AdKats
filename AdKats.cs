@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.70
+ * Version 6.8.0.71
  * 28-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.70</version_code>
+ * <version_code>6.8.0.71</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.70";
+        private const String PluginVersion = "6.8.0.71";
 
         public enum GameVersion
         {
@@ -8034,31 +8034,33 @@ namespace PRoConEvents
                                             _roundState == RoundState.Playing) {
                                             AdKatsTeam t1, t2, current;
                                             if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2) && GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out current)) {
-                                                Int32 team1TopCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player && _topPlayers.ContainsKey(dPlayer.player_name) && (dPlayer.frostbitePlayerInfo.TeamID == t1.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == t1.TeamID)));
-                                                Int32 team2TopCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player && _topPlayers.ContainsKey(dPlayer.player_name) && (dPlayer.frostbitePlayerInfo.TeamID == t2.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == t2.TeamID)));
-                                                Int32 friendlyTopCount, enemyTopCount;
+                                                var onlineTopPlayers = _PlayerDictionary.Values.ToList()
+                                                    .Where(tPlayer => _topPlayers.ContainsKey(tPlayer.player_name));
+                                                Double t1Power = onlineTopPlayers.Where(tPlayer => aPlayer.frostbitePlayerInfo.TeamID == t1.TeamID).Select(tPlayer =>
+                                                    (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2) : 1.0).Sum();
+                                                Double t2Power = onlineTopPlayers.Where(tPlayer => aPlayer.frostbitePlayerInfo.TeamID == t2.TeamID).Select(tPlayer =>
+                                                    (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2) : 1.0).Sum();
+                                                Double friendlyPower, enemyPower;
                                                 if (t1 == current) {
-                                                    friendlyTopCount = team1TopCount;
-                                                    enemyTopCount = team2TopCount;
+                                                    friendlyPower = t1Power;
+                                                    enemyPower = t2Power;
                                                 } else {
-                                                    friendlyTopCount = team2TopCount;
-                                                    enemyTopCount = team1TopCount;
+                                                    friendlyPower = t2Power;
+                                                    enemyPower = t1Power;
                                                 }
                                                 if (aPlayer.RequiredTeam == null) {
-                                                    if (team1TopCount > team2TopCount) {
+                                                    if (t1Power > t2Power) {
                                                         aPlayer.RequiredTeam = t2;
-                                                    } else if (team2TopCount > team1TopCount || aPlayer.frostbitePlayerInfo.TeamID == 0) {
-                                                        aPlayer.RequiredTeam = t1;
                                                     } else {
-                                                        GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out aPlayer.RequiredTeam);
+                                                        aPlayer.RequiredTeam = t1;
                                                     }
                                                     Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                                 }
                                                 if (current != aPlayer.RequiredTeam) {
                                                     //The player is not on the team they should be. But are they?
-                                                    if (enemyTopCount >= friendlyTopCount && current.TeamKey != "Neutral") {
+                                                    if (enemyPower >= friendlyPower && current.TeamKey != "Neutral") {
                                                         if (_isTestingAuthorized) {
-                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + current.TeamKey + ", enemy already has " + enemyTopCount + " top.");
+                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + current.TeamKey + ", enemy already has " + enemyPower + ".");
                                                         }
                                                         aPlayer.RequiredTeam = current;
                                                     } else {
