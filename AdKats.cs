@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.68
- * 26-OCT-2015
+ * Version 6.8.0.69
+ * 28-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.68</version_code>
+ * <version_code>6.8.0.69</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.68";
+        private const String PluginVersion = "6.8.0.69";
 
         public enum GameVersion
         {
@@ -584,6 +584,7 @@ namespace PRoConEvents
 
 
         //Hacker-checker
+        private Boolean _useHackerCheckerLIVESystem = true;
         private Boolean _UseHskChecker;
         private Boolean _UseKpmChecker;
         private Double _HskTriggerLevel = 60.0;
@@ -1160,6 +1161,7 @@ namespace PRoConEvents
                     }
 
                     if (IsActiveSettingSection("A18")) {
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: Use LIVE Anti Cheat System", typeof(String), _useHackerCheckerLIVESystem));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
                         if (_UseHskChecker) {
@@ -3915,6 +3917,20 @@ namespace PRoConEvents
                     //_HackerCheckerWhitelist = CPluginVariable.DecodeStringArray(strValue);
                     //Once setting has been changed, upload the change to database
                     //QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Whitelist", typeof (String), CPluginVariable.EncodeStringArray(_HackerCheckerWhitelist)));
+                } else if (Regex.Match(strVariable, @"HackerChecker: Use LIVE Anti Cheat System").Success) {
+                    Boolean useLIVESystem = Boolean.Parse(strValue);
+                    if (useLIVESystem != _useHackerCheckerLIVESystem) {
+                        _useHackerCheckerLIVESystem = useLIVESystem;
+                        if (_useHackerCheckerLIVESystem) {
+                            if (_threadsReady) {
+                                Log.Info("HackerChecker now using the LIVE Anti-Cheat System.");
+                            }
+                        } else {
+                            Log.Info("HackerChecker LIVE Anti-Cheat system disabled. This should ONLY be disabled if you are seeing 'Issue connecting to Battlelog' warnings.");
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Use LIVE Anti Cheat System", typeof(Boolean), _useHackerCheckerLIVESystem));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"HackerChecker: DPS Checker: Ban Message").Success)
                 {
@@ -10159,7 +10175,7 @@ namespace PRoConEvents
                 //Stat refresh
                 List<AdKatsPlayer> roundPlayerObjects;
                 HashSet<Int64> roundPlayers;
-                if (_roundID > 0 && _RoundPlayerIDs.TryGetValue(_roundID, out roundPlayers)) {
+                if (_roundID > 0 && _RoundPlayerIDs.TryGetValue(_roundID, out roundPlayers) && _useHackerCheckerLIVESystem) {
                     //Get players who where online this round
                     roundPlayerObjects = _FetchedPlayers.Values.Where(dPlayer => roundPlayers.Contains(dPlayer.player_id)).ToList();
                     if (_isTestingAuthorized) {
@@ -29493,6 +29509,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
+                QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Use LIVE Anti Cheat System", typeof(Boolean), _useHackerCheckerLIVESystem));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Trigger Level", typeof(Double), _HskTriggerLevel));
@@ -41086,7 +41103,7 @@ namespace PRoConEvents
                     var requiredWait = _BattlelogWaitDuration;
                     // Preliminary wait increase when battlelog disconnect is detected
                     if (NowDuration(_LastBattlelogIssue).TotalMinutes < 3) {
-                        _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(30));
+                        _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(20));
                     }
                     //Wait between battlelog actions
                     if (timeSinceLast < requiredWait) {
