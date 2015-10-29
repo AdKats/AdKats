@@ -1161,7 +1161,7 @@ namespace PRoConEvents
                     }
 
                     if (IsActiveSettingSection("A18")) {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: Use LIVE Anti Cheat System", typeof(String), _useHackerCheckerLIVESystem));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: Use LIVE Anti Cheat System", typeof(Boolean), _useHackerCheckerLIVESystem));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
                         if (_UseHskChecker) {
