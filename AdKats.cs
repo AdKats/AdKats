@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.71
- * 28-OCT-2015
+ * Version 6.8.0.72
+ * 29-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.71</version_code>
+ * <version_code>6.8.0.72</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.71";
+        private const String PluginVersion = "6.8.0.72";
 
         public enum GameVersion
         {
@@ -1380,11 +1380,7 @@ namespace PRoConEvents
                             AdKatsTeam t1, t2;
                             String teamPower = "Unknown";
                             if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
-                                Double t1Power = onlineTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == t1.TeamID).Select(aPlayer =>
-                                    (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2) : 1.0).Sum();
-                                Double t2Power = onlineTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == t2.TeamID).Select(aPlayer =>
-                                    (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2) : 1.0).Sum();
-                                teamPower = t1.TeamKey + ": (" + Math.Round(t1Power, 2) + ") / " + t2.TeamKey + ": (" + Math.Round(t2Power, 2) + ")";
+                                teamPower = t1.TeamKey + ": (" + t1.getTeamTopPower() + ") / " + t2.TeamKey + ": (" + t2.getTeamTopPower() + ")";
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Team Power (Display)", typeof(String), teamPower));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPLayerListing.ToArray()));
@@ -6541,14 +6537,8 @@ namespace PRoConEvents
                                         .Where(aPlayer =>
                                             _topPlayers.ContainsKey(aPlayer.player_name));
                                     AdKatsTeam t1, t2;
-                                    String teamPower = "Unknown";
                                     if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
-                                        Double t1Power = onlineTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == t1.TeamID).Select(aPlayer =>
-                                            (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2) : 1.0).Sum();
-                                        Double t2Power = onlineTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == t2.TeamID).Select(aPlayer =>
-                                            (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2) : 1.0).Sum();
-                                        teamPower = "TeamPower: " + t1.TeamKey + "(" + Math.Round(t1Power, 2) + ") / " + t2.TeamKey + "(" + Math.Round(t2Power, 2) + ")";
-                                        OnlineAdminSayMessage(teamPower);
+                                        OnlineAdminSayMessage("TeamPower: " + t1.TeamKey + ": (" + t1.getTeamTopPower() + ") / " + t2.TeamKey + ": (" + t2.getTeamTopPower() + ")");
                                     }
                                 }
 
@@ -8032,19 +8022,19 @@ namespace PRoConEvents
                                             aPlayer.player_type == PlayerType.Player &&
                                             _topPlayers.ContainsKey(aPlayer.player_name) && 
                                             _roundState == RoundState.Playing) {
-                                            AdKatsTeam t1, t2, current;
-                                            if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2) && GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out current)) {
-                                                var onlineTopPlayers = _PlayerDictionary.Values.ToList()
-                                                    .Where(tPlayer => _topPlayers.ContainsKey(tPlayer.player_name));
-                                                Double t1Power = onlineTopPlayers.Where(tPlayer => aPlayer.frostbitePlayerInfo.TeamID == t1.TeamID).Select(tPlayer =>
-                                                    (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2) : 1.0).Sum();
-                                                Double t2Power = onlineTopPlayers.Where(tPlayer => aPlayer.frostbitePlayerInfo.TeamID == t2.TeamID).Select(tPlayer =>
-                                                    (aPlayer.TopStats != null && aPlayer.TopStats.TopRoundRatio != 0) ? Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2) : 1.0).Sum();
+                                            AdKatsTeam t1, t2, tf, te;
+                                            if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2) && GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out tf)) {
+                                                Double t1Power = t1.getTeamTopPower();
+                                                Double t2Power = t2.getTeamTopPower();
                                                 Double friendlyPower, enemyPower;
-                                                if (t1 == current) {
+                                                if (t1.TeamID == tf.TeamID) {
+                                                    tf = t1;
+                                                    te = t2;
                                                     friendlyPower = t1Power;
                                                     enemyPower = t2Power;
                                                 } else {
+                                                    tf = t2;
+                                                    te = t1;
                                                     friendlyPower = t2Power;
                                                     enemyPower = t1Power;
                                                 }
@@ -8056,16 +8046,17 @@ namespace PRoConEvents
                                                     }
                                                     Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                                 }
-                                                if (current != aPlayer.RequiredTeam) {
+                                                if (tf != aPlayer.RequiredTeam) {
                                                     //The player is not on the team they should be. But are they?
-                                                    if (enemyPower >= friendlyPower && current.TeamKey != "Neutral") {
+                                                    if (enemyPower >= friendlyPower && tf.TeamKey != "Neutral") {
                                                         if (_isTestingAuthorized) {
-                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + current.TeamKey + ", enemy already has " + enemyPower + ".");
+                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + tf.TeamKey + ", enemy already has " + enemyPower + ".");
                                                         }
-                                                        aPlayer.RequiredTeam = current;
+                                                        aPlayer.RequiredTeam = tf;
                                                     } else {
-                                                        if (_isTestingAuthorized) {
-                                                            Log.Warn(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " but on " + current.TeamKey + ", attempting to move.");
+                                                        if (_isTestingAuthorized && tf.TeamKey != "Neutral") {
+                                                            Log.Warn(aPlayer.GetVerboseName() + " friendly power " + tf.TeamKey + " " + friendlyPower + ", enemy power " + te.TeamKey + " " + enemyPower + ".");
+                                                            Log.Warn(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " but on " + tf.TeamKey + ", attempting to move.");
                                                         }
                                                         ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
                                                     }
@@ -42171,6 +42162,12 @@ namespace PRoConEvents
                 {
                     Plugin.HandleException(new AdKatsException("Error while updating team ticket total score.", e));
                 }
+            }
+
+            public Double getTeamTopPower() {
+                return Math.Round(Plugin._PlayerDictionary.Values.ToList().Where(aPlayer => 
+                    aPlayer.frostbitePlayerInfo.TeamID == TeamID && aPlayer.TopStats.TopRoundRatio != 0).Select(aPlayer => 
+                        Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2)).Sum(), 2);
             }
 
             public void Reset()
