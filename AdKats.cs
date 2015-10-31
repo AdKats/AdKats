@@ -8053,7 +8053,7 @@ namespace PRoConEvents
                                                     var newFriendly = (friendlyPower - playerPower);
                                                     if (newEnemy >= newFriendly && tf.TeamKey != "Neutral") {
                                                         if (_isTestingAuthorized) {
-                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + tf.TeamKey + ", enemy would be up by " + Math.Round(newEnemy - newFriendly, 2) + "."));
+                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + tf.TeamKey + ", enemy would be up by " + Math.Round(newEnemy - newFriendly, 2) + ".");
                                                         }
                                                         aPlayer.RequiredTeam = tf;
                                                     } else {
