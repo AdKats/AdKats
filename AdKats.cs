@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.75
+ * Version 6.8.0.76
  * 31-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.75</version_code>
+ * <version_code>6.8.0.76</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.75";
+        private const String PluginVersion = "6.8.0.76";
 
         public enum GameVersion
         {
@@ -7307,14 +7307,25 @@ namespace PRoConEvents
                     {
                         Log.Write(aPlayer.GetVerboseName() + " moved from " + oldTeam.TeamKey + ":" + oldTeam.TeamID + " to " + newTeam.TeamKey + ":" + newTeam.TeamID);
                     }
-                    if (aPlayer.RequiredTeam != null && aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey && !PlayerIsAdmin(aPlayer))
+                    if (aPlayer.RequiredTeam != null && 
+                        aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey && 
+                        oldTeam.TeamKey != "Neutral" &&
+                        !PlayerIsAdmin(aPlayer))
                     {
-                        if (_roundState == RoundState.Playing && !_baserapeCausingPlayers.ContainsKey(aPlayer.player_name) && !_topPlayers.ContainsKey(aPlayer.player_name))
-                        {
-                            OnlineAdminSayMessage(soldierName + " attempted to team switch after being admin moved.");
-                            PlayerTellMessage(soldierName, "You were moved to " + aPlayer.RequiredTeam.TeamKey + " team, please remain on that team.");
+                        if (_UseTopPlayerMonitor && 
+                            aPlayer.TopStats.getTopPower() != 0 && 
+                            (newTeam.getTeamTopPower() + aPlayer.TopStats.getTopPower() <= oldTeam.getTeamTopPower() - aPlayer.TopStats.getTopPower())) {
+                            if (_isTestingAuthorized) {
+                                Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + ".");
+                            }
+                            aPlayer.RequiredTeam = newTeam;
+                        } else {
+                            if (_roundState == RoundState.Playing && !_baserapeCausingPlayers.ContainsKey(aPlayer.player_name) && !_topPlayers.ContainsKey(aPlayer.player_name)) {
+                                OnlineAdminSayMessage(soldierName + " attempted to switch teams after being admin moved.");
+                                PlayerTellMessage(soldierName, "You were moved to " + aPlayer.RequiredTeam.TeamKey + " team, please remain on that team.");
+                            }
+                            ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", "1", "true");
                         }
-                        ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", "1", "true");
                     }
                     else
                     {
@@ -8046,14 +8057,16 @@ namespace PRoConEvents
                                                         aPlayer.RequiredTeam = t1;
                                                     }
                                                     Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                                }
-                                                if (tf != aPlayer.RequiredTeam) {
+                                                } else if (tf != aPlayer.RequiredTeam) {
                                                     //The player is not on the team they should be. But are they?
-                                                    var newEnemy = (enemyPower + playerPower);
-                                                    var newFriendly = (friendlyPower - playerPower);
-                                                    if (newEnemy >= newFriendly && tf.TeamKey != "Neutral") {
+                                                    var reassignEnemy = (enemyPower - playerPower);
+                                                    var reassignFriendly = (friendlyPower + playerPower);
+                                                    var reassignDiff = Math.Abs(reassignEnemy - reassignFriendly);
+                                                    var currentDiff = Math.Abs(enemyPower - friendlyPower);
+                                                    //If team power difference after reassignment would be less than the current, do it
+                                                    if (reassignDiff <= currentDiff && tf.TeamKey != "Neutral") {
                                                         if (_isTestingAuthorized) {
-                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + tf.TeamKey + ", enemy would be up by " + Math.Round(newEnemy - newFriendly, 2) + ".");
+                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + tf.TeamKey + ", " + Math.Round(reassignDiff, 2) + " < " + Math.Round(currentDiff, 2) + ".");
                                                         }
                                                         aPlayer.RequiredTeam = tf;
                                                     } else {
@@ -41260,6 +41273,10 @@ namespace PRoConEvents
             public Int32 RoundCount;
             public Int32 TopCount;
             public Double TopRoundRatio;
+
+            public Double getTopPower() {
+                return Math.Pow(TopRoundRatio + 1, 2);
+            }
         }
 
         public class AdKatsPlayerStats {
@@ -41798,7 +41815,7 @@ namespace PRoConEvents
                             (aPlayer.RequiredTeam == null && aPlayer.frostbitePlayerInfo.TeamID == TeamID)
                         ) 
                         && aPlayer.TopStats.TopRoundRatio != 0)
-                    .Select(aPlayer => Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2)).Sum(), 2);
+                    .Select(aPlayer => aPlayer.TopStats.getTopPower()).Sum(), 2);
             }
 
             public void Reset()
