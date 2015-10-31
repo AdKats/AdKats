@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.72
- * 29-OCT-2015
+ * Version 6.8.0.73
+ * 30-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.72</version_code>
+ * <version_code>6.8.0.73</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.72";
+        private const String PluginVersion = "6.8.0.73";
 
         public enum GameVersion
         {
@@ -27681,7 +27681,6 @@ namespace PRoConEvents
 
                             FetchCommands();
                             FetchRoles();
-                            UpdateDatabase37014000();
 
                             counter.Stop();
                             //Log.Write("Initial command fetch took " + counter.ElapsedMilliseconds + "ms");
@@ -29030,373 +29029,6 @@ namespace PRoConEvents
                 confirmed = false;
             }
             return confirmed;
-        }
-
-        private void UpdateDatabase37014000()
-        {
-            try
-            {
-                //Check if old database table exists
-                if (!ConfirmTable("adkats_records"))
-                {
-                    Log.Debug(() => "Not updating database, no old tables to pull from.", 1);
-                    return;
-                }
-                //If the new main record table contains records return without handling
-                using (MySqlConnection connection = GetDatabaseConnection())
-                {
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
-                        command.CommandText = @"
-                        SELECT
-	                        *
-                        FROM
-	                        `adkats_records_main`
-                        LIMIT 1";
-                        using (MySqlDataReader reader = SafeExecuteReader(command))
-                        {
-                            if (reader.Read())
-                            {
-                                Log.Info("Not updating database, new records already found.");
-                                return;
-                            }
-                        }
-                    }
-                }
-                Log.Warn("Updating database information from version 3.7 spec to 4.0 spec. DO NOT DISABLE AdKats!");
-                Log.Write("Updating Users.");
-                //Add new users for every player in the access list
-                List<AdKatsUser> oldUsers = new List<AdKatsUser>();
-                using (MySqlConnection connection = GetDatabaseConnection())
-                {
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
-                        command.CommandText = @"
-                        SELECT
-	                        `player_name`,
-	                        `access_level`
-                        FROM
-	                        `adkats_accesslist`
-                        ORDER BY
-                            `access_level`
-                        ASC";
-                        using (MySqlDataReader reader = SafeExecuteReader(command))
-                        {
-                            while (reader.Read())
-                            {
-                                //Set all users to default guest role
-                                oldUsers.Add(new AdKatsUser
-                                {
-                                    user_name = reader.GetString("player_name"),
-                                    user_role = _RoleKeyDictionary["guest_default"],
-                                    user_expiration = UtcNow().AddYears(20),
-                                    user_notes = "No Notes"
-                                });
-                            }
-                        }
-                    }
-                }
-                foreach (AdKatsUser aUser in oldUsers)
-                {
-                    Log.Write("Processing user " + aUser.user_name);
-                    //Attempt to add soldiers matching the user's names
-                    TryAddUserSoldier(aUser, aUser.user_name);
-                    UploadUser(aUser);
-                }
-                Log.Success(oldUsers.Count + " old users fetched and updated to new spec.");
-                Log.Info("Updating Records...");
-                //Generate old->new command key dictionary
-                Dictionary<string, AdKatsCommand> commandConversionDictionary = new Dictionary<string, AdKatsCommand>();
-                commandConversionDictionary.Add("AdminSay", GetCommandByKey("admin_say"));
-                commandConversionDictionary.Add("AdminTell", GetCommandByKey("admin_tell"));
-                commandConversionDictionary.Add("AdminYell", GetCommandByKey("admin_yell"));
-                commandConversionDictionary.Add("CallAdmin", GetCommandByKey("player_calladmin"));
-                commandConversionDictionary.Add("ConfirmReport", GetCommandByKey("player_report_confirm"));
-                commandConversionDictionary.Add("EndLevel", GetCommandByKey("round_end"));
-                commandConversionDictionary.Add("EnforceBan", GetCommandByKey("banenforcer_enforce"));
-                commandConversionDictionary.Add("Exception", GetCommandByKey("adkats_exception"));
-                commandConversionDictionary.Add("ForceMove", GetCommandByKey("player_fmove"));
-                commandConversionDictionary.Add("Forgive", GetCommandByKey("player_forgive"));
-                commandConversionDictionary.Add("Join", GetCommandByKey("player_join"));
-                commandConversionDictionary.Add("Kick", GetCommandByKey("player_kick"));
-                commandConversionDictionary.Add("Kill", GetCommandByKey("player_kill"));
-                commandConversionDictionary.Add("KickAll", GetCommandByKey("server_kickall"));
-                commandConversionDictionary.Add("LowPopKill", GetCommandByKey("player_kill_lowpop"));
-                commandConversionDictionary.Add("Move", GetCommandByKey("player_move"));
-                commandConversionDictionary.Add("Mute", GetCommandByKey("player_mute"));
-                commandConversionDictionary.Add("NextLevel", GetCommandByKey("round_next"));
-                commandConversionDictionary.Add("Nuke", GetCommandByKey("server_nuke"));
-                commandConversionDictionary.Add("PermaBan", GetCommandByKey("player_ban_perm"));
-                commandConversionDictionary.Add("PlayerSay", GetCommandByKey("player_say"));
-                commandConversionDictionary.Add("PlayerYell", GetCommandByKey("player_yell"));
-                commandConversionDictionary.Add("PlayerTell", GetCommandByKey("player_tell"));
-                commandConversionDictionary.Add("Punish", GetCommandByKey("player_punish"));
-                commandConversionDictionary.Add("RepeatKill", GetCommandByKey("player_kill_repeat"));
-                commandConversionDictionary.Add("Report", GetCommandByKey("player_report"));
-                commandConversionDictionary.Add("RestartLevel", GetCommandByKey("round_restart"));
-                commandConversionDictionary.Add("RequestRules", GetCommandByKey("self_rules"));
-                commandConversionDictionary.Add("RoundWhitelist", GetCommandByKey("player_roundwhitelist"));
-                commandConversionDictionary.Add("KillSelf", GetCommandByKey("self_kill"));
-                commandConversionDictionary.Add("Teamswap", GetCommandByKey("self_teamswap"));
-                commandConversionDictionary.Add("TempBan", GetCommandByKey("player_ban_temp"));
-                Log.Write("Updating Bans...");
-                //Download all bans
-                Double totalBans = 0;
-                Double bansDownloaded = 0;
-                Double bansUpdated = 0;
-                DateTime startTime = UtcNow();
-                using (MySqlConnection connection = GetDatabaseConnection())
-                {
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
-                        command.CommandText = @"
-                        SELECT 
-                            COUNT(*) AS `ban_count`
-                        FROM 
-	                        `adkats_banlist`";
-
-                        using (MySqlDataReader reader = SafeExecuteReader(command))
-                        {
-                            if (reader.Read())
-                            {
-                                totalBans = reader.GetInt64("ban_count");
-                            }
-                        }
-                    }
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
-                        command.CommandText = @"
-                        SELECT 
-	                        `adkats_records`.`record_id`,
-	                        `adkats_records`.`server_id`,
-	                        `adkats_records`.`command_type`,
-	                        `adkats_records`.`command_action`,
-	                        `adkats_records`.`command_numeric`,
-	                        `adkats_records`.`target_name`,
-	                        `adkats_records`.`target_id`,
-	                        `adkats_records`.`source_name`,
-	                        `adkats_records`.`source_id`,
-	                        `adkats_records`.`record_message`,
-	                        `adkats_records`.`record_time`,
-	                        `adkats_records`.`adkats_read`,
-	                        `adkats_records`.`adkats_web`,
-	                        `adkats_banlist`.`ban_id`, 
-	                        `adkats_banlist`.`player_id`, 
-	                        `adkats_banlist`.`latest_record_id`, 
-	                        `adkats_banlist`.`ban_status`, 
-	                        `adkats_banlist`.`ban_notes`, 
-	                        `adkats_banlist`.`ban_sync`, 
-	                        `adkats_banlist`.`ban_startTime`, 
-	                        `adkats_banlist`.`ban_endTime`, 
-	                        `adkats_banlist`.`ban_enforceName`, 
-	                        `adkats_banlist`.`ban_enforceGUID`, 
-	                        `adkats_banlist`.`ban_enforceIP`
-                        FROM 
-	                        `adkats_banlist`
-                        INNER JOIN
-	                        `adkats_records`
-                        ON
-	                        `adkats_banlist`.`latest_record_id` = `adkats_records`.`record_id`";
-
-                        List<AdKatsBan> importedBans = new List<AdKatsBan>();
-                        using (MySqlDataReader reader = SafeExecuteReader(command))
-                        {
-                            //Loop through all incoming bans
-                            while (reader.Read())
-                            {
-                                //Create the ban element
-                                AdKatsBan aBan = new AdKatsBan
-                                {
-                                    ban_id = reader.GetInt64("ban_id"),
-                                    ban_status = reader.GetString("ban_status"),
-                                    ban_notes = reader.GetString("ban_notes"),
-                                    ban_sync = reader.GetString("ban_sync"),
-                                    ban_startTime = reader.GetDateTime("ban_startTime"),
-                                    ban_endTime = reader.GetDateTime("ban_endTime"),
-                                    ban_enforceName = (reader.GetString("ban_enforceName") == "Y"),
-                                    ban_enforceGUID = (reader.GetString("ban_enforceGUID") == "Y"),
-                                    ban_enforceIP = (reader.GetString("ban_enforceIP") == "Y")
-                                };
-                                AdKatsRecord aRecord = new AdKatsRecord();
-                                aRecord.record_source = AdKatsRecord.Sources.InternalAutomated;
-                                aRecord.server_id = reader.GetInt64("server_id");
-                                AdKatsCommand aCommandType = null;
-                                if (commandConversionDictionary.TryGetValue(reader.GetString("command_type"), out aCommandType))
-                                {
-                                    aRecord.command_type = aCommandType;
-                                }
-                                else
-                                {
-                                    //Skip record
-                                    //Log.Error("Unable to parse '" + reader.GetString("command_type") + "' as a valid command type. Skipping ban record.");
-                                    continue;
-                                }
-                                AdKatsCommand aCommandAction = null;
-                                if (commandConversionDictionary.TryGetValue(reader.GetString("command_action"), out aCommandAction))
-                                {
-                                    aRecord.command_action = aCommandAction;
-                                }
-                                else
-                                {
-                                    //Skip record
-                                    //Log.Error("Unable to parse '" + reader.GetString("command_action") + "' as a valid command action. Skipping ban record.");
-                                    continue;
-                                }
-                                aRecord.command_numeric = reader.GetInt32("command_numeric");
-                                aRecord.record_message = reader.GetString("record_message");
-                                aRecord.target_name = reader.GetString("target_name");
-                                if (!reader.IsDBNull(6))
-                                {
-                                    Int32 playerID = reader.GetInt32(6);
-                                    aRecord.target_player = new AdKatsPlayer(this)
-                                    {
-                                        player_id = playerID
-                                    };
-                                }
-                                aRecord.source_name = reader.GetString("source_name");
-                                if (!reader.IsDBNull(8))
-                                {
-                                    Int32 playerID = reader.GetInt32(8);
-                                    aRecord.source_player = new AdKatsPlayer(this)
-                                    {
-                                        player_id = playerID
-                                    };
-                                }
-                                aRecord.record_time = reader.GetDateTime("record_time");
-                                aBan.ban_record = aRecord;
-                                importedBans.Add(aBan);
-
-                                if (++bansDownloaded % 100 == 0)
-                                {
-                                    Log.Write(Math.Round(100 * bansDownloaded / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansDownloaded / ((UtcNow() - startTime).TotalSeconds), 2) + " downloads/sec.");
-                                }
-                            }
-                        }
-                        if (importedBans.Count > 0)
-                        {
-                            Log.Info(importedBans.Count + " bans downloaded, beginning update to 4.0 spec.");
-                        }
-                        startTime = UtcNow();
-                        //Upload all of those bans to the new database
-                        foreach (AdKatsBan aBan in importedBans)
-                        {
-                            UploadBan(aBan);
-                            if (++bansUpdated % 15 == 0)
-                            {
-                                Log.Write(Math.Round(100 * bansUpdated / totalBans, 2) + "% of bans updated. AVG " + Math.Round(bansUpdated / ((UtcNow() - startTime).TotalSeconds), 2) + " updates/sec.");
-                            }
-                        }
-                        Log.Success("All AdKats Enforced bans updated to 4.0 spec.");
-                    }
-                }
-                //Import all records that do not have command action TempBan or PermaBan
-                Double recordsDownloaded = 0;
-                Double recordsProcessed = 0;
-                List<AdKatsRecord> oldRecords = new List<AdKatsRecord>();
-                using (MySqlConnection connection = GetDatabaseConnection())
-                {
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
-                        command.CommandText = @"
-                        SELECT
-	                        `record_id`,
-	                        `server_id`,
-	                        `command_type`,
-	                        `command_action`,
-	                        `command_numeric`,
-	                        `target_name`,
-	                        `target_id`,
-	                        `source_name`,
-	                        `source_id`,
-	                        `record_message`,
-	                        `record_time`,
-	                        `adkats_read`,
-	                        `adkats_web`
-                        FROM
-	                        `adkats_records`
-                        WHERE
-                            `command_action` <> 'Exception'
-                        ORDER BY
-	                        `record_id`
-                        ASC";
-                        using (MySqlDataReader reader = SafeExecuteReader(command))
-                        {
-                            while (reader.Read())
-                            {
-                                AdKatsRecord aRecord = new AdKatsRecord();
-                                aRecord.record_source = AdKatsRecord.Sources.InternalAutomated;
-                                aRecord.server_id = reader.GetInt64("server_id");
-                                AdKatsCommand aCommandType = null;
-                                if (commandConversionDictionary.TryGetValue(reader.GetString("command_type"), out aCommandType))
-                                {
-                                    aRecord.command_type = aCommandType;
-                                }
-                                else
-                                {
-                                    //Skip record
-                                    //Log.Error("Unable to parse '" + reader.GetString("command_type") + "' as a valid command type. Skipping record.");
-                                    continue;
-                                }
-                                AdKatsCommand aCommandAction = null;
-                                if (commandConversionDictionary.TryGetValue(reader.GetString("command_action"), out aCommandAction))
-                                {
-                                    aRecord.command_action = aCommandAction;
-                                }
-                                else
-                                {
-                                    //Skip record
-                                    //Log.Error("Unable to parse '" + reader.GetString("command_action") + "' as a valid command action. Cancelling database update.");
-                                    return;
-                                }
-                                aRecord.command_numeric = reader.GetInt32("command_numeric");
-                                aRecord.record_message = reader.GetString("record_message");
-                                aRecord.target_name = reader.GetString("target_name");
-                                if (!reader.IsDBNull(6))
-                                {
-                                    Int32 playerID = reader.GetInt32(6);
-                                    aRecord.target_player = new AdKatsPlayer(this)
-                                    {
-                                        player_id = playerID
-                                    };
-                                }
-                                aRecord.source_name = reader.GetString("source_name");
-                                if (!reader.IsDBNull(8))
-                                {
-                                    Int32 playerID = reader.GetInt32(8);
-                                    aRecord.source_player = new AdKatsPlayer(this)
-                                    {
-                                        player_id = playerID
-                                    };
-                                }
-                                aRecord.record_time = reader.GetDateTime("record_time");
-                                //Set all users to default guest role
-                                oldRecords.Add(aRecord);
-                                if (++recordsDownloaded % 5000 == 0)
-                                {
-                                    Log.Write(recordsDownloaded + " records downloaded for processing.");
-                                }
-                            }
-                        }
-                    }
-                }
-                Log.Success("All records prepared for update.");
-                //Upload all of those records to the new database spec
-                Log.Info("Updating all prepared records...");
-                foreach (AdKatsRecord aRecord in oldRecords)
-                {
-                    //Attempt to upload the record
-                    UploadRecord(aRecord);
-                    if (++recordsProcessed % 50 == 0)
-                    {
-                        Log.Write(Math.Round(100 * recordsProcessed / recordsDownloaded, 3) + "% of records updated into 4.0 spec.");
-                    }
-                }
-                Log.Success("All records updated to 4.0 spec.");
-            }
-            catch (Exception e)
-            {
-                HandleException(new AdKatsException("Error while updating database information from 3.7 spec to 4.0 spec.", e));
-            }
         }
 
         private Boolean ConfirmTable(String tableName)
@@ -35934,18 +35566,8 @@ namespace PRoConEvents
                                             aPlayer.player_ip = playerIP;
                                             aPlayer.LastUsage = UtcNow();
                                         }
-                                        else
-                                        {
-                                            aPlayer = new AdKatsPlayer(this)
-                                            {
-                                                player_id = playerID,
-                                                game_id = gameID,
-                                                player_clanTag = clanTag,
-                                                player_name = playerName,
-                                                player_guid = playerGUID,
-                                                player_ip = playerIP,
-                                                LastUsage = UtcNow()
-                                            };
+                                        else {
+                                            aPlayer = FetchPlayer(true, true, false, (int?)gameID, playerID, playerName, playerGUID, playerIP);
                                             aUser.soldierDictionary.Add(playerID, aPlayer);
                                         }
                                         aPlayer.player_role = aUser.user_role;
@@ -42165,9 +41787,11 @@ namespace PRoConEvents
             }
 
             public Double getTeamTopPower() {
-                return Math.Round(Plugin._PlayerDictionary.Values.ToList().Where(aPlayer => 
-                    aPlayer.frostbitePlayerInfo.TeamID == TeamID && aPlayer.TopStats.TopRoundRatio != 0).Select(aPlayer => 
-                        Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2)).Sum(), 2);
+                return Math.Round(Plugin._PlayerDictionary.Values.ToList()
+                    .Where(aPlayer => 
+                        (aPlayer.frostbitePlayerInfo.TeamID == TeamID || (aPlayer.RequiredTeam != null && aPlayer.RequiredTeam.TeamID == TeamID)) 
+                        && aPlayer.TopStats.TopRoundRatio != 0)
+                    .Select(aPlayer => Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2)).Sum(), 2);
             }
 
             public void Reset()
