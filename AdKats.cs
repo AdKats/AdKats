@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.74
- * 30-OCT-2015
+ * Version 6.8.0.75
+ * 31-OCT-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.74</version_code>
+ * <version_code>6.8.0.75</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.74";
+        private const String PluginVersion = "6.8.0.75";
 
         public enum GameVersion
         {
@@ -8026,6 +8026,7 @@ namespace PRoConEvents
                                             if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2) && GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out tf)) {
                                                 Double t1Power = t1.getTeamTopPower();
                                                 Double t2Power = t2.getTeamTopPower();
+                                                Double playerPower = Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2);
                                                 Double friendlyPower, enemyPower;
                                                 if (t1.TeamID == tf.TeamID) {
                                                     tf = t1;
@@ -8048,9 +8049,11 @@ namespace PRoConEvents
                                                 }
                                                 if (tf != aPlayer.RequiredTeam) {
                                                     //The player is not on the team they should be. But are they?
-                                                    if (enemyPower >= friendlyPower && tf.TeamKey != "Neutral") {
+                                                    var newEnemy = (enemyPower + playerPower);
+                                                    var newFriendly = (friendlyPower - playerPower);
+                                                    if (newEnemy >= newFriendly && tf.TeamKey != "Neutral") {
                                                         if (_isTestingAuthorized) {
-                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + tf.TeamKey + ", enemy already has " + enemyPower + ".");
+                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + tf.TeamKey + ", enemy would be up by " + Math.Round(newEnemy - newFriendly, 2) + "."));
                                                         }
                                                         aPlayer.RequiredTeam = tf;
                                                     } else {
