@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.76
- * 31-OCT-2015
+ * Version 6.8.0.77
+ * 1-NOV-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.76</version_code>
+ * <version_code>6.8.0.77</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.76";
+        private const String PluginVersion = "6.8.0.77";
 
         public enum GameVersion
         {
@@ -22316,7 +22316,7 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
+                                    AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                                 }
                             }
                             int seconds = (int)UtcNow().Subtract(record.target_player.lastDeath).TotalSeconds;
@@ -22346,7 +22346,7 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
+                                        AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                                     }
                                 }
                                 if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name))
@@ -22444,7 +22444,7 @@ namespace PRoConEvents
                 else
                 {
                     SendMessageToSource(record, "You WARNED " + record.GetTargetNames() + " for " + record.record_message);
-                    AdminSayMessage(record.GetTargetNames() + " WARNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
+                    AdminSayMessage(record.GetTargetNames() + " WARNED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                     PlayerTellMessage(record.target_name, "Warned by admin for " + record.record_message, true, 3);
                 }
             }
@@ -22552,7 +22552,7 @@ namespace PRoConEvents
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_player.player_name, kickReason);
                     if (record.target_name != record.source_name && record.source_name != "AFKManager" && record.source_name != "PingEnforcer" && record.source_name != "SpectatorManager")
                     {
-                        AdminSayMessage(record.GetTargetNames() + " was KICKED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
+                        AdminSayMessage(record.GetTargetNames() + " was KICKED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                     }
                     if (record.target_player.frostbitePlayerInfo != null)
                     {
@@ -22643,7 +22643,7 @@ namespace PRoConEvents
                 }
                 if (record.target_name != record.source_name)
                 {
-                    AdminSayMessage(record.GetTargetNames() + " was BANNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
+                    AdminSayMessage(record.GetTargetNames() + " was BANNED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                 }
                 SendMessageToSource(record, "You TEMP BANNED " + record.GetTargetNames() + " for " + FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 3));
             }
@@ -22723,7 +22723,7 @@ namespace PRoConEvents
                 }
                 if (record.target_name != record.source_name)
                 {
-                    AdminSayMessage(record.GetTargetNames() + " was BANNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
+                    AdminSayMessage(record.GetTargetNames() + " was BANNED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                 }
                 SendMessageToSource(record, "You PERMA BANNED " + record.GetTargetNames());
             }
