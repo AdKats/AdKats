@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.77
- * 1-NOV-2015
+ * Version 6.8.0.78
+ * 2-NOV-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.77</version_code>
+ * <version_code>6.8.0.78</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.77";
+        private const String PluginVersion = "6.8.0.78";
 
         public enum GameVersion
         {
@@ -1541,7 +1541,7 @@ namespace PRoConEvents
                                     lock (_CommandIDDictionary) {
                                         Random random = new Random();
                                         String rolePrefix = GetSettingSection("4") + sept + "RLE" + aRole.role_id + sep + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + sep;
-                                        lstReturn.AddRange(from aCommand in _CommandNameDictionary.Values where aCommand.command_active == AdKatsCommand.CommandActive.Active && aCommand.command_key != "command_confirm" && aCommand.command_key != "command_cancel" where aRole.role_key != "guest_default" || !aCommand.command_playerInteraction let allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) let display = rolePrefix + "CDE" + aCommand.command_id + sep + aCommand.command_name + ((allowed && aCommand.command_playerInteraction) ? (" [ADMIN]") : ("")) select new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
+                                        lstReturn.AddRange(from aCommand in _CommandNameDictionary.Values where aCommand.command_active == AdKatsCommand.CommandActive.Active && aCommand.command_key != "command_confirm" && aCommand.command_key != "command_cancel" where aRole.role_key != "guest_default" || !aCommand.command_playerInteraction let allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) let display = rolePrefix + "CDE" + aCommand.command_id + sep + aCommand.command_name + ((aCommand.command_playerInteraction) ? (" [ADMIN]") : ("")) select new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
                                         //Do not display the delete option for default guest
                                         if (aRole.role_key != "guest_default") {
                                             lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof(String), ""));
