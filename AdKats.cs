@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.78
- * 2-NOV-2015
+ * Version 6.8.0.79
+ * 7-NOV-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.78</version_code>
+ * <version_code>6.8.0.79</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.78";
+        private const String PluginVersion = "6.8.0.79";
 
         public enum GameVersion
         {
@@ -7181,8 +7181,11 @@ namespace PRoConEvents
                             Thread.CurrentThread.Name = "TeamAssignmentConfirmation";
                             Thread.Sleep(TimeSpan.FromSeconds(1));
                             DateTime starting = UtcNow();
-                            while (true)
+                            while (true) 
                             {
+                                if (!_pluginEnabled) {
+                                    break;
+                                }
                                 if ((UtcNow() - starting).TotalSeconds > 30)
                                 {
                                     Log.Warn("TeamAssignmentConfirmation took too long.");
@@ -7236,6 +7239,9 @@ namespace PRoConEvents
                                         //Confirm they remain on the team they were assigned, yay DICE's mandatory balancer
                                         var start = UtcNow();
                                         while (NowDuration(start).TotalSeconds < 120 && _pluginEnabled && _roundState != RoundState.Playing) {
+                                            if (!_pluginEnabled) {
+                                                break;
+                                            }
                                             foreach (AdKatsPlayer aPlayer in orderedTopPlayers) {
                                                 Thread.Sleep(TimeSpan.FromMilliseconds(50));
                                                 if (_roundState == RoundState.Playing) {
@@ -7322,7 +7328,7 @@ namespace PRoConEvents
                         } else {
                             if (_roundState == RoundState.Playing && !_baserapeCausingPlayers.ContainsKey(aPlayer.player_name) && !_topPlayers.ContainsKey(aPlayer.player_name)) {
                                 OnlineAdminSayMessage(soldierName + " attempted to switch teams after being admin moved.");
-                                PlayerTellMessage(soldierName, "You were moved to " + aPlayer.RequiredTeam.TeamKey + " team, please remain on that team.");
+                                PlayerTellMessage(soldierName, "You were assigned to " + aPlayer.RequiredTeam.TeamName + ", please remain on that team.");
                             }
                             ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", "1", "true");
                         }
