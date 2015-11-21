@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.79
- * 7-NOV-2015
+ * Version 6.8.0.80
+ * 21-NOV-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.79</version_code>
+ * <version_code>6.8.0.80</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.79";
+        private const String PluginVersion = "6.8.0.80";
 
         public enum GameVersion
         {
@@ -228,6 +228,8 @@ namespace PRoConEvents
         private readonly Dictionary<PopulationState, TimeSpan> _populationDurations = new Dictionary<PopulationState, TimeSpan>();
         private Int32 _lowPopulationPlayerCount = 20;
         private Int32 _highPopulationPlayerCount = 40;
+        private Dictionary<String, String> ReadableMaps = new Dictionary<string, string>();
+        private Dictionary<String, String> ReadableModes = new Dictionary<string, string>();
 
         //MySQL connection
         private String _mySqlSchemaName = "";
@@ -833,6 +835,8 @@ namespace PRoConEvents
 
             //Start up TeamSpeakClientViewer
             _tsViewer = new TeamSpeakClientViewer(this);
+
+            FillReadableMapModeDictionaries();
         }
 
         public String GetPluginName()
@@ -2592,6 +2596,13 @@ namespace PRoConEvents
                     if (_surrenderAutoLosingRateMax != surrenderAutoLosingRateMax)
                     {
                         _surrenderAutoLosingRateMax = surrenderAutoLosingRateMax;
+
+                        if (_surrenderAutoLosingRateMin > _surrenderAutoLosingRateMax) {
+                            Log.Info("Min ticket rate cannot be greater than max. Swapping values.");
+                            var pivot = _surrenderAutoLosingRateMin;
+                            _surrenderAutoLosingRateMin = _surrenderAutoLosingRateMax;
+                            _surrenderAutoLosingRateMax = pivot;
+                        }
                         //Once setting has been changed, upload the change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
                     }
@@ -2607,6 +2618,13 @@ namespace PRoConEvents
                     if (_surrenderAutoLosingRateMin != surrenderAutoLosingRateMin)
                     {
                         _surrenderAutoLosingRateMin = surrenderAutoLosingRateMin;
+
+                        if (_surrenderAutoLosingRateMin > _surrenderAutoLosingRateMax) {
+                            Log.Info("Min ticket rate cannot be greater than max. Swapping values.");
+                            var pivot = _surrenderAutoLosingRateMin;
+                            _surrenderAutoLosingRateMin = _surrenderAutoLosingRateMax;
+                            _surrenderAutoLosingRateMax = pivot;
+                        }
                         //Once setting has been changed, upload the change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
                     }
@@ -2622,6 +2640,13 @@ namespace PRoConEvents
                     if (_surrenderAutoWinningRateMax != surrenderAutoWinningRateMax)
                     {
                         _surrenderAutoWinningRateMax = surrenderAutoWinningRateMax;
+
+                        if (_surrenderAutoWinningRateMin > _surrenderAutoWinningRateMax) {
+                            Log.Info("Min ticket rate cannot be greater than max. Swapping values.");
+                            var pivot = _surrenderAutoWinningRateMin;
+                            _surrenderAutoWinningRateMin = _surrenderAutoWinningRateMax;
+                            _surrenderAutoWinningRateMax = pivot;
+                        }
                         //Once setting has been changed, upload the change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
                     }
@@ -2637,6 +2662,13 @@ namespace PRoConEvents
                     if (_surrenderAutoWinningRateMin != surrenderAutoWinningRateMin)
                     {
                         _surrenderAutoWinningRateMin = surrenderAutoWinningRateMin;
+
+                        if (_surrenderAutoWinningRateMin > _surrenderAutoWinningRateMax) {
+                            Log.Info("Min ticket rate cannot be greater than max. Swapping values.");
+                            var pivot = _surrenderAutoWinningRateMin;
+                            _surrenderAutoWinningRateMin = _surrenderAutoWinningRateMax;
+                            _surrenderAutoWinningRateMax = pivot;
+                        }
                         //Once setting has been changed, upload the change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
                     }
@@ -8316,7 +8348,6 @@ namespace PRoConEvents
                                 record_time = UtcNow()
                             };
                             QueueRecordForProcessing(record);
-                            OnlineAdminSayMessage((++_pingKicksThisRound) + " ping kicks this round. " + Math.Round(++_pingKicksTotal / (UtcNow() - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
                             AdminSayMessage(record.GetTargetNames() + " KICKED for exceeding ping limit. " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]")));
                         }
 
@@ -18290,18 +18321,15 @@ namespace PRoConEvents
                             }
                         }
                         break;
-                    case "player_mark":
-                        {
+                    case "player_mark": {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 2);
-                            switch (parameters.Length)
-                            {
+                            switch (parameters.Length) {
                                 case 0:
-                                    if (record.record_source != AdKatsRecord.Sources.InGame)
-                                    {
+                                    if (record.record_source != AdKatsRecord.Sources.InGame) {
                                         SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                         FinalizeRecord(record);
                                         return;
@@ -18313,8 +18341,69 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Marking Player";
-                                    if (!HandleRoundReport(record))
-                                    {
+                                    if (!HandleRoundReport(record)) {
+                                        CompleteTargetInformation(record, false, false, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_loadout": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length) {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame) {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Loadout Fetching Self";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false, false);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Loadout Fetching Player";
+                                    if (!HandleRoundReport(record)) {
+                                        CompleteTargetInformation(record, false, false, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_loadout_force": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length) {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame) {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Loadout Forcing Self";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false, false);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Loadout Forcing Player";
+                                    if (!HandleRoundReport(record)) {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
                                     break;
@@ -21920,6 +22009,12 @@ namespace PRoConEvents
                         break;
                     case "player_mark":
                         MarkTarget(record);
+                        break;
+                    case "player_loadout":
+                        LoadoutFetchTarget(record);
+                        break;
+                    case "player_loadout_force":
+                        LoadoutForceTarget(record);
                         break;
                     case "server_afk":
                         ManageAFKPlayers(record);
@@ -27441,7 +27536,7 @@ namespace PRoConEvents
 
         public void MarkTarget(AdKatsRecord record)
         {
-            Log.Debug(() => "Entering FindTarget", 6);
+            Log.Debug(() => "Entering MarkTarget", 6);
             try
             {
                 if (record.target_player == null)
@@ -27450,20 +27545,7 @@ namespace PRoConEvents
                     return;
                 }
                 record.record_action_executed = true;
-                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled))
-                {
-                    ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable {
-                        {"caller_identity", "AdKats"},
-                        {"response_requested", false},
-                        {"player_name", record.target_player.player_name},
-                        {"loadoutCheck_reason", "marked"}
-                    }));
-                    SendMessageToSource(record, record.GetTargetNames() + " marked for loadout check.");
-                }
-                else
-                {
-                    SendMessageToSource(record, record.GetTargetNames() + " marked for leave notification.");
-                }
+                SendMessageToSource(record, record.GetTargetNames() + " marked for leave notification.");
             }
             catch (Exception e)
             {
@@ -27472,6 +27554,60 @@ namespace PRoConEvents
                 FinalizeRecord(record);
             }
             Log.Debug(() => "Exiting MarkTarget", 6);
+        }
+
+        public void LoadoutFetchTarget(AdKatsRecord record) {
+            Log.Debug(() => "Entering LoadoutFetchTarget", 6);
+            try {
+                if (record.target_player == null) {
+                    Log.Error("Player null when fetching loadout for player.");
+                    SendMessageToSource(record, "Error checking loadout for " + record.GetTargetNames() + ".");
+                    return;
+                }
+                record.record_action_executed = true;
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled)) {
+                    SendMessageToSource(record,  record.target_player.loadout_items_long);
+                } else {
+                    SendMessageToSource(record, "AdKatsLRT not installed/integrated, loadout for " + record.GetTargetNames() + " cannot be fetched.");
+                }
+            } catch (Exception e) {
+                record.record_exception = new AdKatsException("Error while fetching loadout for player.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting LoadoutFetchTarget", 6);
+        }
+
+        public void LoadoutForceTarget(AdKatsRecord record) {
+            Log.Debug(() => "Entering LoadoutForceTarget", 6);
+            try {
+                if (record.target_player == null) {
+                    Log.Error("Player null when forcing loadout on player.");
+                    SendMessageToSource(record, "Error forcing loadout on " + record.GetTargetNames() + ".");
+                    return;
+                }
+                if (!record.target_player.player_online) {
+                    SendMessageToSource(record, record.GetTargetNames() + " is not online, loadout cannot be forced.");
+                    return;
+                }
+                record.record_action_executed = true;
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled)) {
+                    ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable {
+                        {"caller_identity", "AdKats"},
+                        {"response_requested", false},
+                        {"player_name", record.target_player.player_name},
+                        {"loadoutCheck_reason", "forced"}
+                    }));
+                    SendMessageToSource(record, record.GetTargetNames() + " forced up to trigger level loadout enforcement.");
+                } else {
+                    SendMessageToSource(record, "AdKatsLRT not installed/integrated, " + record.GetTargetNames() + " CANNOT be forced up to trigger level loadout enforcement.");
+                }
+            } catch (Exception e) {
+                record.record_exception = new AdKatsException("Error while forcing loadout on player.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting LoadoutForceTarget", 6);
         }
 
         public void ManageAFKPlayers(AdKatsRecord record)
@@ -34859,12 +34995,24 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command 116", "REPLACE INTO `adkats_commands` VALUES(116, 'Active', 'player_blacklistautoassist_remove', 'Log', 'Remove Auto-Assist Blacklist', 'unauablacklist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
-                                if (!_CommandIDDictionary.ContainsKey(117)) {
+                                if (!_CommandIDDictionary.ContainsKey(117)) 
+                                {
                                     SendNonQuery("Adding command 117", "REPLACE INTO `adkats_commands` VALUES(117, 'Active', 'player_isadmin', 'Log', 'Fetch Admin Status', 'isadmin', FALSE, 'AnyHidden')", true);
                                     newCommands = true;
                                 }
-                                if (!_CommandIDDictionary.ContainsKey(118)) {
+                                if (!_CommandIDDictionary.ContainsKey(118)) 
+                                {
                                     SendNonQuery("Adding command 118", "REPLACE INTO `adkats_commands` VALUES(118, 'Active', 'self_feedback', 'Log', 'Give Server Feedback', 'feedback', FALSE, 'AnyHidden')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(119)) 
+                                {
+                                    SendNonQuery("Adding command 119", "REPLACE INTO `adkats_commands` VALUES(119, 'Active', 'player_loadout', 'Log', 'Fetch Player Loadout', 'loadout', FALSE, 'AnyHidden')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(120)) 
+                                {
+                                    SendNonQuery("Adding command 120", "REPLACE INTO `adkats_commands` VALUES(120, 'Active', 'player_loadout_force', 'Log', 'Force Player Loadout', 'floadout', FALSE, 'AnyHidden')", true);
                                     newCommands = true;
                                 }
                                 if (newCommands)
@@ -35008,6 +35156,75 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_blacklistautoassist_remove"] = "Removes a player from the auto-assist blacklist.";
             _CommandDescriptionDictionary["player_isadmin"] = "Fetches a player's admin status.";
             _CommandDescriptionDictionary["self_feedback"] = "Logs feedback for the server.";
+            _CommandDescriptionDictionary["player_loadout"] = "Returns a player's loadout if AdKatsLRT is installed and integrated.";
+            _CommandDescriptionDictionary["player_loadout_force"] = "If AdKatsLRT is installed the targeted player is elevated to trigger level loadout enforcement.";
+        }
+
+        private void FillReadableMapModeDictionaries() {
+            try {
+                ReadableMaps.Clear();
+                ReadableModes.Clear();
+                foreach (CMap m in this.GetMapDefines()) {
+                    if (!ReadableMaps.ContainsKey(m.FileName)) {
+                        ReadableMaps[m.FileName] = m.PublicLevelName;
+                    }
+                    if (!ReadableModes.ContainsKey(m.PlayList)) {
+                        ReadableModes[m.PlayList] = m.GameMode;
+                    }
+                }
+                Log.Debug(() => "Readable maps/modes filled", 6);
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while filling map/mode dictionaries.", e));
+            }
+        }
+
+        private String GetCurrentReadableMap() {
+            try {
+                if (_serverInfo != null && _serverInfo.InfoObject != null && !String.IsNullOrEmpty(_serverInfo.InfoObject.Map)) {
+                    return GetReadableMap(_serverInfo.InfoObject.Map);
+                }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error getting current readable map.", e));
+            }
+            return "Unknown";
+        }
+
+        private String GetReadableMap(String mapKey) {
+            try {
+                String map = mapKey;
+                ReadableMaps.TryGetValue(mapKey, out map);
+                return map;
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error getting readable map.", e));
+            }
+            return "Unknown";
+        }
+
+        private String GetCurrentReadableMode() {
+            try {
+                if (_serverInfo != null && _serverInfo.InfoObject != null && !String.IsNullOrEmpty(_serverInfo.InfoObject.GameMode)) {
+                    return GetReadableMode(_serverInfo.InfoObject.GameMode);
+                }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error getting current readable mode.", e));
+            }
+            return "Unknown";
+        }
+
+        private String GetReadableMode(String modeKey) {
+            try {
+                String mode = modeKey;
+                ReadableMaps.TryGetValue(modeKey, out mode);
+                return mode;
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error getting readable mode.", e));
+            }
+            return "Unknown";
         }
 
         private void UpdateCommandTimeouts()
@@ -37449,6 +37666,13 @@ namespace PRoConEvents
                 }
                 String loadoutItems = (String)parsedValidityHashtable["loadout_items"];
 
+                //Import the long loadout
+                if (!parsedValidityHashtable.ContainsKey("loadout_items_long")) {
+                    Log.Error("Loadout valididy params for " + identity + " didn't contain loadout_items_long! Unable to process.");
+                    return;
+                }
+                String loadoutItemsLong = (String) parsedValidityHashtable["loadout_items_long"];
+
                 //Import the denied items
                 if (!parsedValidityHashtable.ContainsKey("loadout_deniedItems"))
                 {
@@ -37469,6 +37693,7 @@ namespace PRoConEvents
                         aRecord.target_player.loadout_valid = loadoutValid;
                         aRecord.target_player.loadout_spawnValid = loadoutSpawnValid;
                         aRecord.target_player.loadout_items = loadoutItems;
+                        aRecord.target_player.loadout_items_long = loadoutItemsLong;
                         aRecord.target_player.loadout_deniedItems = loadoutDeniedItems;
                     }
                     QueueRecordForActionHandling(aRecord);
@@ -37479,6 +37704,7 @@ namespace PRoConEvents
                     aPlayer.loadout_valid = loadoutValid;
                     aPlayer.loadout_spawnValid = loadoutSpawnValid;
                     aPlayer.loadout_items = loadoutItems;
+                    aPlayer.loadout_items_long = loadoutItemsLong;
                     aPlayer.loadout_deniedItems = loadoutDeniedItems;
                     aPlayer.LastUsage = UtcNow();
                 }
@@ -37643,7 +37869,7 @@ namespace PRoConEvents
                     tPlayer["player_isAdmin"] = PlayerIsAdmin(aPlayer);
                     tPlayer["player_reported"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin");
                     tPlayer["player_punished"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_punish");
-                    tPlayer["player_marked"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_mark");
+                    tPlayer["player_loadout_forced"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_loadout_force");
                     if (aPlayer.LastPunishment != null)
                     {
                         tPlayer["player_lastPunishment"] = Math.Round((UtcNow() - aPlayer.LastPunishment.record_time).TotalSeconds);
@@ -37804,6 +38030,9 @@ namespace PRoConEvents
                                 if (!pid.Success)
                                 {
                                     HandleException(new AdKatsException("Could not find persona ID for " + aPlayer.player_name));
+                                    if (!String.IsNullOrEmpty(personaResponse)) {
+                                        ExecuteCommand("procon.protected.send", "admin.kickPlayer", aPlayer.player_name, "Battlelog info fetch issue. Please re-join.");
+                                    }
                                     return false;
                                 }
                                 aPlayer.player_personaID = pid.Groups[1].Value.Trim();
@@ -37952,7 +38181,12 @@ namespace PRoConEvents
                         String weaponResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/weaponsPopulateStats/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount);
                         Hashtable responseData = (Hashtable) JSON.JsonDecode(weaponResponse);
 
-                        if (responseData.ContainsKey("type") && (String) responseData["type"] == "success" && responseData.ContainsKey("message") && (String) responseData["message"] == "OK" && responseData.ContainsKey("data")) {
+                        if (responseData != null && 
+                            responseData.ContainsKey("type") && 
+                            (String) responseData["type"] == "success" && 
+                            responseData.ContainsKey("message") && 
+                            (String) responseData["message"] == "OK" && 
+                            responseData.ContainsKey("data")) {
                             Hashtable statsData = (Hashtable) responseData["data"];
                             if (statsData != null && statsData.ContainsKey("mainWeaponStats")) {
                                 ArrayList weaponData = (ArrayList) statsData["mainWeaponStats"];
@@ -38021,7 +38255,8 @@ namespace PRoConEvents
                             String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/vehiclesPopulateStats/" + aPlayer.player_personaID + "/1/");
                             Hashtable vehicleResponseData = (Hashtable) JSON.JsonDecode(vehicleResponse);
 
-                            if (vehicleResponseData.ContainsKey("type") &&
+                            if (vehicleResponseData != null && 
+                                vehicleResponseData.ContainsKey("type") &&
                                 (String) vehicleResponseData["type"] == "success" &&
                                 vehicleResponseData.ContainsKey("message") &&
                                 (String) vehicleResponseData["message"] == "OK" &&
@@ -39376,7 +39611,7 @@ namespace PRoConEvents
             Int32 modifier = 0;
             Int32 hour = 0;
             String population = "Unknown";
-            if (_PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) >= _serverInfo.InfoObject.MaxPlayerCount - 1) {
+            if (_PlayerDictionary.Values.ToList().Count(player => player.player_type == PlayerType.Player) >= _serverInfo.InfoObject.MaxPlayerCount - 1) {
                 baseTrigger = (Int32)_pingEnforcerFullTriggerMS;
                 hour = DateTime.Now.Hour;
                 modifier = _pingEnforcerFullTimeModifier[DateTime.Now.Hour];
@@ -41068,7 +41303,8 @@ namespace PRoConEvents
 
             public Boolean loadout_valid = true;
             public Boolean loadout_spawnValid = true;
-            public String loadout_items = "Loadout not fetched.";
+            public String loadout_items = "Loadout not fetched yet.";
+            public String loadout_items_long = "Loadout not fetched yet.";
             public String loadout_deniedItems = "No denied items.";
 
             private readonly AdKats Plugin;
@@ -42066,6 +42302,8 @@ namespace PRoConEvents
                                 sb.Append("Country: " + record.target_player.PBPlayerInfo.PlayerCountry + "<br/>");
                             }
                             String processedCustomHTML = Plugin.ReplacePlayerInformation(CustomHTMLAddition, record.target_player);
+                            processedCustomHTML = processedCustomHTML.Replace("%map_name%", Plugin.GetCurrentReadableMap());
+                            processedCustomHTML = processedCustomHTML.Replace("%mode_name%", Plugin.GetCurrentReadableMode());
                             sb.Append(processedCustomHTML);
                             sb.Append("</p>");
                             //TODO: Add chat back for ADK usage.
