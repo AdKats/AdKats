@@ -35012,7 +35012,7 @@ namespace PRoConEvents
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(120)) 
                                 {
-                                    SendNonQuery("Adding command 120", "REPLACE INTO `adkats_commands` VALUES(120, 'Active', 'player_loadout_force', 'Log', 'Force Player Loadout', 'floadout', FALSE, 'AnyHidden')", true);
+                                    SendNonQuery("Adding command 120", "REPLACE INTO `adkats_commands` VALUES(120, 'Active', 'player_loadout_force', 'Log', 'Force Player Loadout', 'floadout', TRUE, 'AnyHidden')", true);
                                     newCommands = true;
                                 }
                                 if (newCommands)
