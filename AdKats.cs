@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.80
- * 21-NOV-2015
+ * Version 6.8.0.81
+ * 22-NOV-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.80</version_code>
+ * <version_code>6.8.0.81</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.80";
+        private const String PluginVersion = "6.8.0.81";
 
         public enum GameVersion
         {
@@ -23007,7 +23007,9 @@ namespace PRoConEvents
                     {
                         action = skippedAction;
                     }
-                    if (_isTestingAuthorized && record.target_player.player_reputation > 15)
+                    if (_isTestingAuthorized && 
+                        record.target_player.player_reputation > 15 &&
+                        record.source_name == "AutoAdmin")
                     {
                         action = "repwarn";
                     }
