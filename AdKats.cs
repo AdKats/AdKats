@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.81
- * 22-NOV-2015
+ * Version 6.8.0.82
+ * 26-NOV-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.81</version_code>
+ * <version_code>6.8.0.82</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.81";
+        private const String PluginVersion = "6.8.0.82";
 
         public enum GameVersion
         {
@@ -15298,12 +15298,6 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
-                            if (_isTestingAuthorized && _serverInfo.ServerID == 1) {
-                                SendMessageToSource(record, "Moves may not be performed at this time.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
                                 SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
@@ -15345,12 +15339,6 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
-
-                            if (_isTestingAuthorized && _serverInfo.ServerID == 1) {
-                                SendMessageToSource(record, "Moves may not be performed at this time.");
-                                FinalizeRecord(record);
-                                return;
-                            }
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
