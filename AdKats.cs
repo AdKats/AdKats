@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.0.82
- * 26-NOV-2015
+ * Version 6.8.0.83
+ * 29-NOV-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.0.82</version_code>
+ * <version_code>6.8.0.83</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.0.82";
+        private const String PluginVersion = "6.8.0.83";
 
         public enum GameVersion
         {
@@ -15536,12 +15536,12 @@ namespace PRoConEvents
                                 SendMessageToSource(record, "Queuing you to assist the weak team. Thank you. " + debug);
                             } 
                             else {
-                                String responseMessage = "You may only assist a weak team. Enemy team is ";
+                                String responseMessage = enemyTeam.TeamKey + " team is ";
                                 if (teamFlux) {
                                     responseMessage += "in flux.";
                                 }
                                 else if (enemyWinning && enemyStrong) {
-                                    responseMessage += "winning and strong.";
+                                    responseMessage += "already winning and strong.";
                                 }
                                 else if (enemyWinning && !enemyStrong) {
                                     responseMessage += "losing ground, but still winning the match.";
@@ -15549,7 +15549,7 @@ namespace PRoConEvents
                                 else if (!enemyWinning && enemyStrong) {
                                     responseMessage += "losing, but is making a comeback.";
                                 }
-                                SendMessageToSource(record, responseMessage);
+                                AdminSayMessage(record.GetSourceName() + " assist rejected, " + responseMessage);
                                 FinalizeRecord(record);
                                 return;
                             }
