@@ -2210,7 +2210,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     Some layer providers require whitelisting of connections through their firewall.
 </p>
 <p>
-    <b>For AdKats to function properly, requests to the following domains/sub-domains must be allowed from your layer:</b>
+    <b>For AdKats to function properly, requests to the following domains/sub-domains must be allowed from your layer for http and https connections. If you do not understand what this means, please send this instruction and the list below to your layer host:</b>
 </p>
 <p>
 <table>
@@ -2219,12 +2219,8 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         <td><b>Usage</b></td>
     </tr>
     <tr>
-        <td>api.bf3stats.com</td>
-        <td>Player statistic tracking.</td>
-    </tr>
-    <tr>
-        <td>api.bf4stats.com</td>
-        <td>Player statistic tracking.</td>
+        <td>battlelog.battlefield.com</td>
+        <td>Player identity tracking and anti-cheat.</td>
     </tr>
     <tr>
         <td>raw.github.com</td>
