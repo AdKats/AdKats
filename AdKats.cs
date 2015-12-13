@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.0
- * 8-DEC-2015
+ * Version 6.8.1.1
+ * 12-DEC-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.1.0</version_code>
+ * <version_code>6.8.1.1</version_code>
  */
 
 using System;
@@ -58,6 +58,7 @@ using PRoCon.Core.Players;
 using PRoCon.Core.Players.Items;
 using PRoCon.Core.Plugin;
 using PRoCon.Core.Plugin.Commands;
+using PRoCon.Core.Remote;
 using Timer = System.Timers.Timer;
 
 namespace PRoConEvents
@@ -65,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.0";
+        private const String PluginVersion = "6.8.1.1";
 
         public enum GameVersion
         {
@@ -1384,7 +1385,7 @@ namespace PRoConEvents
                             AdKatsTeam t1, t2;
                             String teamPower = "Unknown";
                             if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
-                                teamPower = t1.TeamKey + ": (" + t1.getTeamTopPower() + ") / " + t2.TeamKey + ": (" + t2.getTeamTopPower() + ")";
+                                teamPower = t1.TeamKey + ": (" + t1.getTeamPower() + ") / " + t2.TeamKey + ": (" + t2.getTeamPower() + ")";
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Team Power (Display)", typeof(String), teamPower));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPLayerListing.ToArray()));
@@ -1393,7 +1394,7 @@ namespace PRoConEvents
                                     ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(-) ")) + "(" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
                                 .OrderBy(item => item)
                                 .ToArray()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above)", _TopPlayersAffected));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above|Many Players)", _TopPlayersAffected));
                         }
                     }
 
@@ -6570,7 +6571,7 @@ namespace PRoConEvents
                                             _topPlayers.ContainsKey(aPlayer.player_name));
                                     AdKatsTeam t1, t2;
                                     if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
-                                        OnlineAdminSayMessage("TeamPower: " + t1.TeamKey + ": (" + t1.getTeamTopPower() + ") / " + t2.TeamKey + ": (" + t2.getTeamTopPower() + ")");
+                                        OnlineAdminSayMessage("TeamPower: " + t1.TeamKey + ": (" + t1.getTeamPower() + ") / " + t2.TeamKey + ": (" + t2.getTeamPower() + ")");
                                     }
                                 }
 
@@ -7352,7 +7353,7 @@ namespace PRoConEvents
                     {
                         if (_UseTopPlayerMonitor && 
                             aPlayer.TopStats.getTopPower() != 0 && 
-                            (newTeam.getTeamTopPower() + aPlayer.TopStats.getTopPower() <= oldTeam.getTeamTopPower() - aPlayer.TopStats.getTopPower())) {
+                            (newTeam.getTeamPower() + aPlayer.TopStats.getTopPower() <= oldTeam.getTeamPower() - aPlayer.TopStats.getTopPower())) {
                             if (_isTestingAuthorized) {
                                 Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + ".");
                             }
@@ -8073,8 +8074,8 @@ namespace PRoConEvents
                                             _roundState == RoundState.Playing) {
                                             AdKatsTeam t1, t2, tf, te;
                                             if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2) && GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out tf)) {
-                                                Double t1Power = t1.getTeamTopPower();
-                                                Double t2Power = t2.getTeamTopPower();
+                                                Double t1Power = t1.getTeamPower();
+                                                Double t2Power = t2.getTeamPower();
                                                 Double playerPower = Math.Pow(aPlayer.TopStats.TopRoundRatio + 1, 2);
                                                 Double friendlyPower, enemyPower;
                                                 if (t1.TeamID == tf.TeamID) {
@@ -32756,7 +32757,8 @@ namespace PRoConEvents
 	                        `top_count`/REPLACE(`round_count`, 0, 1) >= @toproundratio_minimum
                         ORDER BY
 	                        `top_round_ratio` DESC, 
-	                        `player_name` ASC";
+	                        `player_name` ASC
+                        LIMIT 3000";
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@duration_minutes", (Int32) duration.TotalMinutes);
                         command.Parameters.AddWithValue("@tops_minimum", minTops);
@@ -32769,6 +32771,9 @@ namespace PRoConEvents
                                 break;
                             case "Ok And Above":
                                 command.Parameters.AddWithValue("@toproundratio_minimum", 0.40);
+                                break;
+                            case "Many Players":
+                                command.Parameters.AddWithValue("@toproundratio_minimum", 0.30);
                                 break;
                             default:
                                 Log.Error("Invalid affected top player category.");
@@ -42038,16 +42043,21 @@ namespace PRoConEvents
                 }
             }
 
-            public Double getTeamTopPower() {
-                return Math.Round(Plugin._PlayerDictionary.Values.ToList()
+            public Double getTeamPower() {
+                var teamPlayers = Plugin._PlayerDictionary.Values.ToList()
                     .Where(aPlayer => 
+                        aPlayer.player_type == PlayerType.Player
+                        &&
                         (
-                            (aPlayer.RequiredTeam != null && aPlayer.RequiredTeam.TeamID == TeamID) 
-                            || 
+                            (aPlayer.RequiredTeam != null && aPlayer.RequiredTeam.TeamID == TeamID)
+                            ||
                             (aPlayer.RequiredTeam == null && aPlayer.frostbitePlayerInfo.TeamID == TeamID)
-                        ) 
-                        && aPlayer.TopStats.TopRoundRatio != 0)
-                    .Select(aPlayer => aPlayer.TopStats.getTopPower()).Sum(), 2);
+                        )
+                        && 
+                        aPlayer.TopStats.TopRoundRatio != 0);
+                var topPowerSum = teamPlayers.Select(aPlayer => aPlayer.TopStats.getTopPower()).Sum();
+                var kdPower = teamPlayers.Select(aPlayer => aPlayer.frostbitePlayerInfo.Kills / (aPlayer.frostbitePlayerInfo.Deaths > 0 ? aPlayer.frostbitePlayerInfo.Deaths : 1)).Average();
+                return topPowerSum * (kdPower > 1 ? kdPower : 1);
             }
 
             public void Reset()
