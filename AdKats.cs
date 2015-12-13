@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.3
+ * Version 6.8.1.4
  * 12-DEC-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.1.3</version_code>
+ * <version_code>6.8.1.4</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.3";
+        private const String PluginVersion = "6.8.1.4";
 
         public enum GameVersion
         {
@@ -1394,7 +1394,7 @@ namespace PRoConEvents
                                     ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(-) ")) + "(" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
                                 .OrderBy(item => item)
                                 .ToArray()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above|Many Players|Very Many Players)", _TopPlayersAffected));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above|Marginal and Above|Most Players)", _TopPlayersAffected));
                         }
                     }
 
@@ -32772,10 +32772,10 @@ namespace PRoConEvents
                             case "Ok And Above":
                                 command.Parameters.AddWithValue("@toproundratio_minimum", 0.40);
                                 break;
-                            case "Many Players":
+                            case "Marginal and Above":
                                 command.Parameters.AddWithValue("@toproundratio_minimum", 0.30);
                                 break;
-                            case "Very Many Players":
+                            case "Most Players":
                                 command.Parameters.AddWithValue("@toproundratio_minimum", 0.10);
                                 break;
                             default:
