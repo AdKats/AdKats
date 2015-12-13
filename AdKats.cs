@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.2
+ * Version 6.8.1.3
  * 12-DEC-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.1.2</version_code>
+ * <version_code>6.8.1.3</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.2";
+        private const String PluginVersion = "6.8.1.3";
 
         public enum GameVersion
         {
@@ -1394,7 +1394,7 @@ namespace PRoConEvents
                                     ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(-) ")) + "(" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
                                 .OrderBy(item => item)
                                 .ToArray()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above|Many Players)", _TopPlayersAffected));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above|Many Players|Very Many Players)", _TopPlayersAffected));
                         }
                     }
 
@@ -32775,6 +32775,9 @@ namespace PRoConEvents
                             case "Many Players":
                                 command.Parameters.AddWithValue("@toproundratio_minimum", 0.30);
                                 break;
+                            case "Very Many Players":
+                                command.Parameters.AddWithValue("@toproundratio_minimum", 0.10);
+                                break;
                             default:
                                 Log.Error("Invalid affected top player category.");
                                 return resultPlayers;
@@ -42044,20 +42047,29 @@ namespace PRoConEvents
             }
 
             public Double getTeamPower() {
-                var teamPlayers = Plugin._PlayerDictionary.Values.ToList()
-                    .Where(aPlayer => 
-                        aPlayer.player_type == PlayerType.Player
-                        &&
-                        (
-                            (aPlayer.RequiredTeam != null && aPlayer.RequiredTeam.TeamID == TeamID)
-                            ||
-                            (aPlayer.RequiredTeam == null && aPlayer.frostbitePlayerInfo.TeamID == TeamID)
-                        )
-                        && 
-                        aPlayer.TopStats.TopRoundRatio != 0);
-                var topPowerSum = teamPlayers.Select(aPlayer => aPlayer.TopStats.getTopPower()).Sum();
-                var kdPower = teamPlayers.Select(aPlayer => aPlayer.frostbitePlayerInfo.Kills / (aPlayer.frostbitePlayerInfo.Deaths > 0 ? aPlayer.frostbitePlayerInfo.Deaths : 1)).Average();
-                return Math.Round(topPowerSum * (kdPower > 1 ? kdPower : 1), 1);
+                try {
+                    if (!Plugin._PlayerDictionary.Any()) {
+                        return 0;
+                    }
+                    var teamPlayers = Plugin._PlayerDictionary.Values.ToList()
+                        .Where(aPlayer =>
+                            aPlayer.player_type == PlayerType.Player
+                            &&
+                            (
+                                (aPlayer.RequiredTeam != null && aPlayer.RequiredTeam.TeamID == TeamID)
+                                ||
+                                (aPlayer.RequiredTeam == null && aPlayer.frostbitePlayerInfo.TeamID == TeamID)
+                            )
+                            &&
+                            aPlayer.TopStats.TopRoundRatio != 0);
+                    var topPowerSum = teamPlayers.Select(aPlayer => aPlayer.TopStats.getTopPower()).Sum();
+                    var kdPower = teamPlayers.Select(aPlayer => aPlayer.frostbitePlayerInfo.Kills / (aPlayer.frostbitePlayerInfo.Deaths > 0 ? aPlayer.frostbitePlayerInfo.Deaths : 1)).Average();
+                    return Math.Round(topPowerSum * (kdPower > 1 ? kdPower : 1), 1);
+                }
+                catch (Exception e) {
+                    Plugin.HandleException(new AdKatsException("Error while fetching team power.", e));
+                }
+                return 0;
             }
 
             public void Reset()
