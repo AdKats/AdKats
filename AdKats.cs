@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.7
+ * Version 6.8.1.8
  * 14-DEC-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.1.7</version_code>
+ * <version_code>6.8.1.8</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.7";
+        private const String PluginVersion = "6.8.1.8";
 
         public enum GameVersion
         {
@@ -6586,9 +6586,9 @@ namespace PRoConEvents
                                         double over100p = Math.Round(over100 / total * 100, 1);
                                         double over150p = Math.Round(over150 / total * 100, 1);
                                         double over200p = Math.Round(over200 / total * 100, 1);
-                                        string over100t = "Over 100ms: (" + Math.Round(over100) + ") " + over100p + "%";
-                                        string over150t = "Over 150ms: (" + Math.Round(over150) + ") " + over150p + "%";
-                                        string over200t = "Over 200ms: (" + Math.Round(over200) + ") " + over200p + "%";
+                                        string over100t = "Over 100ms: (" + Math.Round(over100) + "/" + total + ") " + over100p + "%";
+                                        string over150t = "Over 150ms: (" + Math.Round(over150) + "/" + total + ") " + over150p + "%";
+                                        string over200t = "Over 200ms: (" + Math.Round(over200) + "/" + total + ") " + over200p + "%";
                                         QueueStatisticForProcessing(new AdKatsStatistic() {
                                             stat_type = AdKatsStatistic.StatisticType.ping_over100,
                                             server_id = _serverInfo.ServerID,
@@ -15557,17 +15557,10 @@ namespace PRoConEvents
                             String debug = (PlayerIsAdmin(record.source_player)) ? ("[" + friendlyTeam.TeamKey + ":" + friendlyTeam.TeamTicketCount + ":" + (int)friendlyTeam.TeamTicketDifferenceRate + "][" + enemyTeam.TeamKey + ":" + enemyTeam.TeamTicketCount + ":" + (int)enemyTeam.TeamTicketDifferenceRate + "]") : ("");
 
                             record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]";
-                            var teamFlux = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) <= (_isTestingAuthorized && _serverInfo.ServerID == 1 ? 250 : 60);
+                            var teamPower = _UseTopPlayerMonitor && enemyTeam.getTeamPower() > friendlyTeam.getTeamPower();
+                            var teamFlux = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) <= 60;
                             Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID || teamFlux);
-                            Boolean enemyStrong = true;
-                            if (record.target_player.frostbitePlayerInfo.TeamID == team1.TeamID)
-                            {
-                                enemyStrong = Math.Abs(team2.TeamTicketDifferenceRate) < Math.Abs(team1.TeamTicketDifferenceRate);
-                            }
-                            else
-                            {
-                                enemyStrong = Math.Abs(team1.TeamTicketDifferenceRate) < Math.Abs(team2.TeamTicketDifferenceRate);
-                            }
+                            Boolean enemyStrong = enemyTeam.TeamTicketDifferenceRate > friendlyTeam.TeamTicketDifferenceRate || teamPower;
                             if ((!enemyWinning && !enemyStrong) || 
                                 (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 250))
                             {
@@ -15585,6 +15578,9 @@ namespace PRoConEvents
                                 String responseMessage = "team is ";
                                 if (teamFlux) {
                                     responseMessage += "in flux.";
+                                }
+                                else if (teamPower) {
+                                    responseMessage += "already strong.";
                                 }
                                 else if (enemyWinning && enemyStrong) {
                                     responseMessage += "already winning and strong.";
