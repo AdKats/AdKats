@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.6
+ * Version 6.8.1.7
  * 14-DEC-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.1.6</version_code>
+ * <version_code>6.8.1.7</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.6";
+        private const String PluginVersion = "6.8.1.7";
 
         public enum GameVersion
         {
@@ -6579,43 +6579,45 @@ namespace PRoConEvents
                                 if (_isTestingAuthorized) {
                                     var players = _PlayerDictionary.Values.ToList();
                                     double total = players.Count();
-                                    double over100 = players.Count(aPlayer => aPlayer.player_ping_avg > 100);
-                                    double over150 = players.Count(aPlayer => aPlayer.player_ping_avg > 150);
-                                    double over200 = players.Count(aPlayer => aPlayer.player_ping_avg > 200);
-                                    double over100p = Math.Round(over100 / total * 100, 1);
-                                    double over150p = Math.Round(over150 / total * 100, 1);
-                                    double over200p = Math.Round(over200 / total * 100, 1);
-                                    string over100t = "Over 100ms: (" + Math.Round(over100) + ") " + over100p + "%";
-                                    string over150t = "Over 150ms: (" + Math.Round(over150) + ") " + over150p + "%";
-                                    string over200t = "Over 200ms: (" + Math.Round(over200) + ") " + over200p + "%";
-                                    QueueStatisticForProcessing(new AdKatsStatistic() {
-                                        stat_type = AdKatsStatistic.StatisticType.ping_over100,
-                                        server_id = _serverInfo.ServerID,
-                                        round_id = _roundID,
-                                        target_name = _serverInfo.InfoObject.Map,
-                                        stat_value = over100p,
-                                        stat_comment = over100t,
-                                        stat_time = UtcNow()
-                                    });
-                                    QueueStatisticForProcessing(new AdKatsStatistic() {
-                                        stat_type = AdKatsStatistic.StatisticType.ping_over150,
-                                        server_id = _serverInfo.ServerID,
-                                        round_id = _roundID,
-                                        target_name = _serverInfo.InfoObject.Map,
-                                        stat_value = over150p,
-                                        stat_comment = over150t,
-                                        stat_time = UtcNow()
-                                    });
-                                    QueueStatisticForProcessing(new AdKatsStatistic() {
-                                        stat_type = AdKatsStatistic.StatisticType.ping_over200,
-                                        server_id = _serverInfo.ServerID,
-                                        round_id = _roundID,
-                                        target_name = _serverInfo.InfoObject.Map,
-                                        stat_value = over200p,
-                                        stat_comment = over200t,
-                                        stat_time = UtcNow()
-                                    });
-                                    Log.Info(over100t + ", " + over150t + ", " + over200t);
+                                    if (total > 0) {
+                                        double over100 = players.Count(aPlayer => aPlayer.player_ping_avg > 100);
+                                        double over150 = players.Count(aPlayer => aPlayer.player_ping_avg > 150);
+                                        double over200 = players.Count(aPlayer => aPlayer.player_ping_avg > 200);
+                                        double over100p = Math.Round(over100 / total * 100, 1);
+                                        double over150p = Math.Round(over150 / total * 100, 1);
+                                        double over200p = Math.Round(over200 / total * 100, 1);
+                                        string over100t = "Over 100ms: (" + Math.Round(over100) + ") " + over100p + "%";
+                                        string over150t = "Over 150ms: (" + Math.Round(over150) + ") " + over150p + "%";
+                                        string over200t = "Over 200ms: (" + Math.Round(over200) + ") " + over200p + "%";
+                                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                                            stat_type = AdKatsStatistic.StatisticType.ping_over100,
+                                            server_id = _serverInfo.ServerID,
+                                            round_id = _roundID,
+                                            target_name = _serverInfo.InfoObject.Map,
+                                            stat_value = over100p,
+                                            stat_comment = over100t,
+                                            stat_time = UtcNow()
+                                        });
+                                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                                            stat_type = AdKatsStatistic.StatisticType.ping_over150,
+                                            server_id = _serverInfo.ServerID,
+                                            round_id = _roundID,
+                                            target_name = _serverInfo.InfoObject.Map,
+                                            stat_value = over150p,
+                                            stat_comment = over150t,
+                                            stat_time = UtcNow()
+                                        });
+                                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                                            stat_type = AdKatsStatistic.StatisticType.ping_over200,
+                                            server_id = _serverInfo.ServerID,
+                                            round_id = _roundID,
+                                            target_name = _serverInfo.InfoObject.Map,
+                                            stat_value = over200p,
+                                            stat_comment = over200t,
+                                            stat_time = UtcNow()
+                                        });
+                                        Log.Info(over100t + ", " + over150t + ", " + over200t);
+                                    }
                                 }
 
                                 lastLongKeepAliveCheck = UtcNow();
