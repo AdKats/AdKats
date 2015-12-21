@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.13
- * 20-DEC-2015
+ * Version 6.8.1.14
+ * 21-DEC-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.1.13</version_code>
+ * <version_code>6.8.1.14</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.13";
+        private const String PluginVersion = "6.8.1.14";
 
         public enum GameVersion
         {
@@ -15569,10 +15569,11 @@ namespace PRoConEvents
                                 (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 250))
                             {
                                 //60 second timeout
-                                Double timeout = (60 - (UtcNow() - _commandUsageTimes["self_assist"]).TotalSeconds);
+                                Double secondTimeout = _isTestingAuthorized ? 180 : 60;
+                                Double timeout = (secondTimeout - (UtcNow() - _commandUsageTimes["self_assist"]).TotalSeconds);
                                 if (timeout > 0)
                                 {
-                                    SendMessageToSource(record, "Assist recently used. Please wait " + (int)timeout + " seconds before using it. Thank you. " + debug);
+                                    SendMessageToSource(record, "Assist recently used. Please wait " + Math.Ceiling(timeout) + " seconds before using it. Thank you. " + debug);
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -42115,7 +42116,7 @@ namespace PRoConEvents
                     if (Plugin._roundState == RoundState.Playing) {
                         var teamFInfo = teamPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo != null);
                         if (teamFInfo.Any()) {
-                            kdPower = teamFInfo.Select(aPlayer => aPlayer.frostbitePlayerInfo.Kills / (aPlayer.frostbitePlayerInfo.Deaths > 0 ? aPlayer.frostbitePlayerInfo.Deaths : 1)).Average();
+                            kdPower = teamFInfo.Select(aPlayer => aPlayer.frostbitePlayerInfo.Kills / (aPlayer.frostbitePlayerInfo.Deaths > 0 ? aPlayer.frostbitePlayerInfo.Deaths : 1)).Average() / 1.5;
                         }
                     }
                     return Math.Round(topPowerSum * (kdPower > 1 ? kdPower : 1), 1);
