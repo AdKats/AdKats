@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.10
+ * Version 6.8.1.11
  * 20-DEC-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.1.10</version_code>
+ * <version_code>6.8.1.11</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.10";
+        private const String PluginVersion = "6.8.1.11";
 
         public enum GameVersion
         {
@@ -13849,7 +13849,11 @@ namespace PRoConEvents
                                         string lowerM = " " + messageObject.Message.ToLower() + " ";
                                         if (lowerM.Contains(" ping")) {
                                             if (!PlayerIsAdmin(aPlayer)) {
-                                                PlayerTellMessage(messageObject.Speaker, "Ping limit is 175 during US primetime and missing pings are kicked when the server is full.");
+                                                if (_serverInfo.ServerID == 1) {
+                                                    PlayerTellMessage(messageObject.Speaker, "Ping limit is 175 during US primetime and missing pings are kicked when the server is full.");
+                                                } else {
+                                                    PlayerTellMessage(messageObject.Speaker, "Ping limit is 300 and missing pings are kicked when the server is full.");
+                                                }
                                                 continue;
                                             }
                                         }
