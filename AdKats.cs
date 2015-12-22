@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.14
- * 21-DEC-2015
+ * Version 6.8.1.15
+ * 22-DEC-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.1.14</version_code>
+ * <version_code>6.8.1.15</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.14";
+        private const String PluginVersion = "6.8.1.15";
 
         public enum GameVersion
         {
@@ -15561,7 +15561,9 @@ namespace PRoConEvents
                             String debug = (PlayerIsAdmin(record.source_player)) ? ("[" + friendlyTeam.TeamKey + ":" + friendlyTeam.TeamTicketCount + ":" + (int)friendlyTeam.TeamTicketDifferenceRate + "][" + enemyTeam.TeamKey + ":" + enemyTeam.TeamTicketCount + ":" + (int)enemyTeam.TeamTicketDifferenceRate + "]") : ("");
 
                             record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]";
-                            var teamPower = _UseTopPlayerMonitor && enemyTeam.getTeamPower() > friendlyTeam.getTeamPower();
+                            var teamPower = _UseTopPlayerMonitor && 
+                                            record.target_player.TopStats != null && 
+                                            (enemyTeam.getTeamPower() + record.target_player.TopStats.getTopPower() > friendlyTeam.getTeamPower() - record.target_player.TopStats.getTopPower());
                             var teamFlux = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) <= 60;
                             Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID || teamFlux);
                             Boolean enemyStrong = enemyTeam.TeamTicketDifferenceRate > friendlyTeam.TeamTicketDifferenceRate || teamPower;
