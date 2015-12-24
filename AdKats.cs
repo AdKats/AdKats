@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.15
- * 22-DEC-2015
+ * Version 6.8.1.16
+ * 24-DEC-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.1.15</version_code>
+ * <version_code>6.8.1.16</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.15";
+        private const String PluginVersion = "6.8.1.16";
 
         public enum GameVersion
         {
@@ -42110,18 +42110,17 @@ namespace PRoConEvents
                                 (aPlayer.RequiredTeam != null && aPlayer.RequiredTeam.TeamID == TeamID)
                                 ||
                                 (aPlayer.RequiredTeam == null && aPlayer.frostbitePlayerInfo.TeamID == TeamID)
-                            )
-                            &&
-                            aPlayer.TopStats.TopRoundRatio != 0);
-                    var topPowerSum = teamPlayers.Select(aPlayer => aPlayer.TopStats.getTopPower()).Sum();
+                            ));
+                    var teamTopPlayers = teamPlayers.Where(aPlayer => aPlayer.TopStats.TopRoundRatio != 0);
+                    var topPowerSum = teamTopPlayers.Select(aPlayer => aPlayer.TopStats.getTopPower()).Sum();
                     var kdPower = 1.0;
                     if (Plugin._roundState == RoundState.Playing) {
-                        var teamFInfo = teamPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo != null);
+                        var teamFInfo = teamTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo != null);
                         if (teamFInfo.Any()) {
                             kdPower = teamFInfo.Select(aPlayer => aPlayer.frostbitePlayerInfo.Kills / (aPlayer.frostbitePlayerInfo.Deaths > 0 ? aPlayer.frostbitePlayerInfo.Deaths : 1)).Average() / 1.5;
                         }
                     }
-                    return Math.Round(topPowerSum * (kdPower > 1 ? kdPower : 1), 1);
+                    return Math.Round(topPowerSum * (kdPower > 1 ? kdPower : 1) * Math.Sqrt(teamPlayers.Count()), 1);
                 }
                 catch (Exception e) {
                     Plugin.HandleException(new AdKatsException("Error while fetching team power.", e));
