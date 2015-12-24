@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.17
+ * Version 6.8.1.18
  * 24-DEC-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.1.17</version_code>
+ * <version_code>6.8.1.18</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.17";
+        private const String PluginVersion = "6.8.1.18";
 
         public enum GameVersion
         {
@@ -15355,6 +15355,17 @@ namespace PRoConEvents
                                 return;
                             }
 
+                            if (_isTestingAuthorized && _serverInfo.ServerID == 1 && _roundState == RoundState.Playing) {
+                                AdKatsTeam team1, team2, winningTeam, losingTeam;
+                                if (GetTeamByID(1, out team1) && 
+                                    GetTeamByID(2, out team2) &&
+                                    (team1.TeamTicketCount < 450 || team2.TeamTicketCount < 450)) {
+                                    SendMessageToSource(record, "Too late in round to perform moves.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                            }
+
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 1);
                             switch (parameters.Length)
@@ -15395,6 +15406,17 @@ namespace PRoConEvents
                                 SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
+                            }
+
+                            if (_isTestingAuthorized && _serverInfo.ServerID == 1 && _roundState == RoundState.Playing) {
+                                AdKatsTeam team1, team2;
+                                if (GetTeamByID(1, out team1) &&
+                                    GetTeamByID(2, out team2) &&
+                                    (team1.TeamTicketCount < 450 || team2.TeamTicketCount < 450)) {
+                                    SendMessageToSource(record, "Too late in round to perform moves.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                             }
 
                             //Parse parameters using max param count
