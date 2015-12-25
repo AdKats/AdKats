@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.18
+ * Version 6.8.1.19
  * 24-DEC-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.1.18</version_code>
+ * <version_code>6.8.1.19</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.18";
+        private const String PluginVersion = "6.8.1.19";
 
         public enum GameVersion
         {
@@ -9963,13 +9963,13 @@ namespace PRoConEvents
                 if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
                     if (_serverInfo.ServerID == 6) {
                         Int32 quality = 0;
-                        if (losingTeam.TeamTicketCount >= 260) {
+                        if (losingTeam.TeamTicketCount >= 350) {
                             quality = 4;
-                        } else if (losingTeam.TeamTicketCount >= 230) {
+                        } else if (losingTeam.TeamTicketCount >= 300) {
                             quality = 3;
                         } else if (losingTeam.TeamTicketCount >= 200) {
                             quality = 2;
-                        } else if (losingTeam.TeamTicketCount >= 150) {
+                        } else if (losingTeam.TeamTicketCount >= 100) {
                             quality = 1;
                         }
                         QueueStatisticForProcessing(new AdKatsStatistic() {
