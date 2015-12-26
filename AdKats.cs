@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.19
- * 24-DEC-2015
+ * Version 6.8.1.20
+ * 26-DEC-2015
  * 
  * Automatic Update Information
- * <version_code>6.8.1.19</version_code>
+ * <version_code>6.8.1.20</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.19";
+        private const String PluginVersion = "6.8.1.20";
 
         public enum GameVersion
         {
@@ -32828,7 +32828,7 @@ namespace PRoConEvents
                         ORDER BY
 	                        `top_round_ratio` DESC, 
 	                        `player_name` ASC
-                        LIMIT 3000";
+                        LIMIT 6000";
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@duration_minutes", (Int32) duration.TotalMinutes);
                         command.Parameters.AddWithValue("@tops_minimum", minTops);
