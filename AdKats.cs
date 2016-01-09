@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.23
+ * Version 6.8.1.24
  * 8-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.23</version_code>
+ * <version_code>6.8.1.24</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.23";
+        private const String PluginVersion = "6.8.1.24";
 
         public enum GameVersion
         {
@@ -8783,7 +8783,7 @@ namespace PRoConEvents
                             {
                                 List<TeamScore> listCurrTeamScore = serverInfo.TeamScores;
                                 //During round change, teams don't exist
-                                if (listCurrTeamScore.Count > 0 && _roundState == RoundState.Playing)
+                                if (listCurrTeamScore.Count > 0)
                                 {
                                     foreach (TeamScore score in listCurrTeamScore)
                                     {
