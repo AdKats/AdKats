@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.22
- * 26-DEC-2015
+ * Version 6.8.1.23
+ * 8-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.22</version_code>
+ * <version_code>6.8.1.23</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.22";
+        private const String PluginVersion = "6.8.1.23";
 
         public enum GameVersion
         {
@@ -147,6 +147,7 @@ namespace PRoConEvents
         private AdKatsRecord _pluginUpdateCaller;
         private volatile Boolean _useKeepAlive;
         private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
+        private Int32 _startingTicketCount = -1;
         private RoundState _roundState = RoundState.Loaded;
         private Int32 _highestTicketCount;
         private Int32 _lowestTicketCount = 500000;
@@ -6668,11 +6669,6 @@ namespace PRoConEvents
                                     }
                                 }
 
-                                //Skill based balancer
-                                if (_isTestingAuthorized && _serverInfo.ServerID == 1) {
-                                    ExecuteCommand("procon.protected.send", "vars.SkillBasedBalance", "true");
-                                }
-
                                 //Team operations
                                 AdKatsTeam team1, team2, winningTeam, losingTeam;
                                 if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
@@ -8143,7 +8139,8 @@ namespace PRoConEvents
                                                         aPlayer.RequiredTeam = t1;
                                                     }
                                                     Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                                } else if (tf != aPlayer.RequiredTeam) {
+                                                } else if (tf != aPlayer.RequiredTeam &&
+                                                           (_startingTicketCount == 0 || Math.Min(t1.TeamTicketCount, t2.TeamTicketCount) > _startingTicketCount / 2.0)) {
                                                     //The player is not on the team they should be. But are they?
                                                     var reassignEnemy = (enemyPower - playerPower);
                                                     var reassignFriendly = (friendlyPower + playerPower);
@@ -9969,9 +9966,9 @@ namespace PRoConEvents
                             quality = 4;
                         } else if (losingTeam.TeamTicketCount >= 300) {
                             quality = 3;
-                        } else if (losingTeam.TeamTicketCount >= 200) {
+                        } else if (losingTeam.TeamTicketCount >= 250) {
                             quality = 2;
-                        } else if (losingTeam.TeamTicketCount >= 100) {
+                        } else if (losingTeam.TeamTicketCount >= 200) {
                             quality = 1;
                         }
                         QueueStatisticForProcessing(new AdKatsStatistic() {
@@ -11341,9 +11338,49 @@ namespace PRoConEvents
                         Log.Error("Could not find " + soldierName + " in player dictionary on spawn.");
                         return;
                     }
+
+                    //Ensure frostbite player info
+                    if (aPlayer.frostbitePlayerInfo == null) {
+                        if (_isTestingAuthorized) {
+                            Log.Error("Could not find " + soldierName + " frostbite info on spawn.");
+                        }
+                        return;
+                    }
+
+                    //Fetch teams
+                    AdKatsTeam team1, team2;
+                    if (!GetTeamByID(1, out team1)) {
+                        if (_roundState == RoundState.Playing) {
+                            Log.Error("Teams not loaded when they should be.");
+                        }
+                        return;
+                    }
+                    if (!GetTeamByID(2, out team2)) {
+                        if (_roundState == RoundState.Playing) {
+                            Log.Error("Teams not loaded when they should be.");
+                        }
+                        return;
+                    }
+                    AdKatsTeam friendlyTeam, enemyTeam;
+                    if (aPlayer.frostbitePlayerInfo.TeamID == team1.TeamID) {
+                        friendlyTeam = team1;
+                        enemyTeam = team2;
+                    } else {
+                        friendlyTeam = team2;
+                        enemyTeam = team1;
+                    }
+
                     if (_roundState == RoundState.Loaded)
                     {
                         _roundState = RoundState.Playing;
+
+                        //Take minimum ticket count between teams (accounts for rush), but not less than 0
+                        _startingTicketCount = Math.Max(0, Math.Min(team1.TeamTicketCount, team2.TeamTicketCount));
+                        if (_isTestingAuthorized) {
+                            ProconChatWrite("Starting Ticket Count: " + _startingTicketCount);
+                            Log.Info("Starting Ticket Count: " + _startingTicketCount);
+                        }
+
                         if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
                             if (_serverInfo.ServerName.Contains("EU #5")) {
                                 StartAndLogThread(new Thread(new ThreadStart(delegate {
@@ -11423,10 +11460,9 @@ namespace PRoConEvents
                         aPlayer.lastAction = UtcNow();
 
                         //Add matched spawn count
-                        AdKatsTeam aTeam;
-                        if (aPlayer.frostbitePlayerInfo != null && _teamDictionary.TryGetValue(aPlayer.frostbitePlayerInfo.TeamID, out aTeam) && _unmatchedRoundDeaths.Contains(aPlayer.player_name))
+                        if (_unmatchedRoundDeaths.Contains(aPlayer.player_name))
                         {
-                            aTeam.IncrementTeamTicketAdjustment();
+                            friendlyTeam.IncrementTeamTicketAdjustment();
                         }
                         //Removed unmatched death if applicable
                         _unmatchedRoundDeaths.Remove(aPlayer.player_name);
