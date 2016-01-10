@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.25
- * 9-JAN-2016
+ * Version 6.8.1.26
+ * 10-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.25</version_code>
+ * <version_code>6.8.1.26</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.25";
+        private const String PluginVersion = "6.8.1.26";
 
         public enum GameVersion
         {
@@ -6567,16 +6567,6 @@ namespace PRoConEvents
                                     }
                                 }
 
-                                if (_UseTopPlayerMonitor && _isTestingAuthorized && _firstPlayerListComplete) {
-                                    var onlineTopPlayers = _PlayerDictionary.Values.ToList()
-                                        .Where(aPlayer =>
-                                            _topPlayers.ContainsKey(aPlayer.player_name));
-                                    AdKatsTeam t1, t2;
-                                    if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
-                                        OnlineAdminSayMessage("TeamPower: " + t1.TeamKey + ": (" + t1.getTeamPower() + ") / " + t2.TeamKey + ": (" + t2.getTeamPower() + ")");
-                                    }
-                                }
-
                                 if (_isTestingAuthorized && _roundState == RoundState.Playing) {
                                     var players = _PlayerDictionary.Values.ToList();
                                     double total = players.Count();
@@ -6626,6 +6616,21 @@ namespace PRoConEvents
 
                             //Check for short keep alive every 30 seconds
                             if ((UtcNow() - lastShortKeepAliveCheck).TotalSeconds > 30) {
+
+                                if (_UseTopPlayerMonitor && _isTestingAuthorized && _firstPlayerListComplete) {
+                                    var onlineTopPlayers = _PlayerDictionary.Values.ToList()
+                                        .Where(aPlayer =>
+                                            _topPlayers.ContainsKey(aPlayer.player_name));
+                                    AdKatsTeam t1, t2;
+                                    if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
+                                        var message = "TeamPower: " + t1.TeamKey + ": (" + t1.getTeamPower() + ") / " + t2.TeamKey + ": (" + t2.getTeamPower() + ")";
+                                        ProconChatWrite(Log.FBold(message));
+                                        if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
+                                            PlayerSayMessage("ColColonCleaner", message);
+                                        }
+                                    }
+                                }
+
                                 if (_isTestingAuthorized && _serverInfo.ServerID == 1 && _roundID > 0) {
                                     if (_roundID >= 20010) {
                                         this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | ADKGamers.com");
@@ -42174,7 +42179,7 @@ namespace PRoConEvents
                     var teamTopPlayers = teamPlayers.Where(aPlayer => aPlayer.TopStats.TopRoundRatio != 0);
                     var topPowerSum = teamTopPlayers.Select(aPlayer => aPlayer.TopStats.getTopPower()).Sum();
                     var kdPowerSum = 1.0;
-                    if (Plugin._roundState == RoundState.Playing && Plugin._serverInfo.GetRoundElapsedTime().TotalMinutes >= 3.0) {
+                    if (Plugin._roundState == RoundState.Playing && Plugin._serverInfo.GetRoundElapsedTime().TotalMinutes >= 4.0) {
                         var teamFInfo = teamTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo != null);
                         if (teamFInfo.Any()) {
                             var teamTotalKills = teamFInfo.Sum(aPlayer => aPlayer.frostbitePlayerInfo.Kills);
