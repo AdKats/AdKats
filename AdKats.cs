@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.29
+ * Version 6.8.1.30
  * 10-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.29</version_code>
+ * <version_code>6.8.1.30</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.29";
+        private const String PluginVersion = "6.8.1.30";
 
         public enum GameVersion
         {
@@ -7328,7 +7328,7 @@ namespace PRoConEvents
                                                 break;
                                             }
                                             foreach (AdKatsPlayer aPlayer in orderedTopPlayers) {
-                                                Thread.Sleep(TimeSpan.FromMilliseconds(10));
+                                                Thread.Sleep(TimeSpan.FromMilliseconds(50));
                                                 if (_roundState == RoundState.Playing) {
                                                     break;
                                                 }
@@ -7339,7 +7339,7 @@ namespace PRoConEvents
                                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
                                                 }
                                             }
-                                            Thread.Sleep(TimeSpan.FromMilliseconds(250));
+                                            Thread.Sleep(TimeSpan.FromMilliseconds(50));
                                         }
 
                                     }
