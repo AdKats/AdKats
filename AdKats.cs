@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.26
+ * Version 6.8.1.27
  * 10-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.26</version_code>
+ * <version_code>6.8.1.27</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.26";
+        private const String PluginVersion = "6.8.1.27";
 
         public enum GameVersion
         {
@@ -7322,15 +7322,15 @@ namespace PRoConEvents
                                                 break;
                                             }
                                             foreach (AdKatsPlayer aPlayer in orderedTopPlayers) {
-                                                Thread.Sleep(TimeSpan.FromMilliseconds(50));
+                                                Thread.Sleep(TimeSpan.FromMilliseconds(10));
                                                 if (_roundState == RoundState.Playing) {
                                                     break;
                                                 }
                                                 if (aPlayer.RequiredTeam != null) {
-                                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
+                                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
                                                 }
                                             }
-                                            Thread.Sleep(TimeSpan.FromSeconds(1));
+                                            Thread.Sleep(TimeSpan.FromMilliseconds(250));
                                         }
 
                                     }
@@ -8145,7 +8145,7 @@ namespace PRoConEvents
                                                     }
                                                     Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                                 } else if (tf != aPlayer.RequiredTeam &&
-                                                           (_startingTicketCount == 0 || Math.Min(t1.TeamTicketCount, t2.TeamTicketCount) > _startingTicketCount / 2.0)) {
+                                                           (_startingTicketCount == 0 || Math.Min(t1.TeamTicketCount, t2.TeamTicketCount) > _startingTicketCount * (2.0 / 5.0))) {
                                                     //The player is not on the team they should be. But are they?
                                                     var reassignEnemy = (enemyPower - playerPower);
                                                     var reassignFriendly = (friendlyPower + playerPower);
@@ -42184,9 +42184,12 @@ namespace PRoConEvents
                         if (teamFInfo.Any()) {
                             var teamTotalKills = teamFInfo.Sum(aPlayer => aPlayer.frostbitePlayerInfo.Kills);
                             var teamTotalDeaths = teamFInfo.Sum(aPlayer => aPlayer.frostbitePlayerInfo.Deaths);
+                            //Calculate total team K/D
                             kdPowerSum = (teamTotalKills / Math.Max(teamTotalDeaths, 1.0));
-                            //Coerce value to 1-2.5
+                            //Coerce to 1-3.5
                             kdPowerSum = Math.Min(Math.Max(kdPowerSum, 1.0), 3.5);
+                            //Sqrt
+                            kdPowerSum = Math.Sqrt(kdPowerSum);
                         }
                     }
                     var playerSum = Math.Sqrt(teamPlayers.Count());
