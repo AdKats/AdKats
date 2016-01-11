@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.28
+ * Version 6.8.1.29
  * 10-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.28</version_code>
+ * <version_code>6.8.1.29</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.28";
+        private const String PluginVersion = "6.8.1.29";
 
         public enum GameVersion
         {
@@ -7308,6 +7308,9 @@ namespace PRoConEvents
                                         foreach (AdKatsPlayer aPlayer in orderedTopPlayers)
                                         {
                                             aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
+                                            if (_isTestingAuthorized) {
+                                                ProconChatWrite("Assign Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
+                                            }
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
                                             if (_isTestingAuthorized) {
                                                 ProconChatWrite("Initial Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
@@ -7420,7 +7423,7 @@ namespace PRoConEvents
                             if (_isTestingAuthorized) {
                                 ProconChatWrite("Anti-move Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
                             }
-                            ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", "1", "true");
+                            ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", "1", "false");
                         }
                     }
                     else
@@ -7451,6 +7454,23 @@ namespace PRoConEvents
                 if (_PlayerDictionary.ContainsKey(soldierName))
                 {
                     AdKatsPlayer aPlayer = _PlayerDictionary[soldierName];
+                    AdKatsTeam oldTeam;
+                    if (!GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out oldTeam)) {
+                        if (_roundState == RoundState.Playing) {
+                            Log.Error("Error fetching old team on team change.");
+                        }
+                        return;
+                    }
+                    AdKatsTeam newTeam;
+                    if (!GetTeamByID(teamId, out newTeam)) {
+                        if (_roundState == RoundState.Playing) {
+                            Log.Error("Error fetching new team on team change.");
+                        }
+                        return;
+                    }
+                    if (_isTestingAuthorized) {
+                        Log.Write(aPlayer.GetVerboseName() + " squad moved from " + oldTeam.TeamKey + ":" + oldTeam.TeamID + " to " + newTeam.TeamKey + ":" + newTeam.TeamID);
+                    }
                     Int32 oldSquad = aPlayer.frostbitePlayerInfo.SquadID;
                     aPlayer.frostbitePlayerInfo.SquadID = squadId;
                 }
