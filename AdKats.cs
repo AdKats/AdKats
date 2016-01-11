@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.27
+ * Version 6.8.1.28
  * 10-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.27</version_code>
+ * <version_code>6.8.1.28</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.27";
+        private const String PluginVersion = "6.8.1.28";
 
         public enum GameVersion
         {
@@ -7308,7 +7308,10 @@ namespace PRoConEvents
                                         foreach (AdKatsPlayer aPlayer in orderedTopPlayers)
                                         {
                                             aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
-                                            ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
+                                            ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
+                                            if (_isTestingAuthorized) {
+                                                ProconChatWrite("Initial Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
+                                            }
                                             Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                             if (aPlayer.player_name == _debugSoldierName) {
                                                 PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
@@ -7327,6 +7330,9 @@ namespace PRoConEvents
                                                     break;
                                                 }
                                                 if (aPlayer.RequiredTeam != null) {
+                                                    if (_isTestingAuthorized) {
+                                                        ProconChatWrite("Keep Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
+                                                    }
                                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
                                                 }
                                             }
@@ -7410,6 +7416,9 @@ namespace PRoConEvents
                             if (_roundState == RoundState.Playing && !_baserapeCausingPlayers.ContainsKey(aPlayer.player_name) && !_topPlayers.ContainsKey(aPlayer.player_name)) {
                                 OnlineAdminSayMessage(soldierName + " attempted to switch teams after being admin moved.");
                                 PlayerTellMessage(soldierName, "You were assigned to " + aPlayer.RequiredTeam.TeamName + ", please remain on that team.");
+                            }
+                            if (_isTestingAuthorized) {
+                                ProconChatWrite("Anti-move Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
                             }
                             ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", "1", "true");
                         }
@@ -8161,6 +8170,9 @@ namespace PRoConEvents
                                                         if (_isTestingAuthorized && tf.TeamKey != "Neutral") {
                                                             Log.Warn(aPlayer.GetVerboseName() + " friendly power " + tf.TeamKey + " " + friendlyPower + ", enemy power " + te.TeamKey + " " + enemyPower + ".");
                                                             Log.Warn(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " but on " + tf.TeamKey + ", attempting to move.");
+                                                        }
+                                                        if (_isTestingAuthorized) {
+                                                            ProconChatWrite("Upkeep Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
                                                         }
                                                         ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
                                                     }
