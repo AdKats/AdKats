@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.31
- * 10-JAN-2016
+ * Version 6.8.1.32
+ * 14-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.31</version_code>
+ * <version_code>6.8.1.32</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.31";
+        private const String PluginVersion = "6.8.1.32";
 
         public enum GameVersion
         {
@@ -8042,7 +8042,7 @@ namespace PRoConEvents
                                                 };
                                                 QueueRecordForProcessing(record);
                                             }
-                                            if (GetASPlayersOfGroup("slot_spectator").Any() &&
+                                            if (GetVerboseASPlayersOfGroup("slot_spectator").Any() &&
                                                 !GetMatchingVerboseASPlayersOfGroup("slot_spectator", aPlayer).Any()) {
                                                 AdKatsRecord record = new AdKatsRecord {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -13188,7 +13188,7 @@ namespace PRoConEvents
                         _commandStartTime = UtcNow();
                     }
                     //If message contains comorose just return and ignore
-                    if (messageObject.Message.Contains("ComoRose:"))
+                    if (messageObject.OriginalMessage.Contains("ID_CHAT"))
                     {
                         return;
                     }
