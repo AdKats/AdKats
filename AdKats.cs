@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.34
- * 16-JAN-2016
+ * Version 6.8.1.33
+ * 14-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.34</version_code>
+ * <version_code>6.8.1.33</version_code>
  */
 
 using System;
@@ -49,7 +49,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Web;
 using System.Windows.Forms;
 using System.Windows.Forms.VisualStyles;
 using Microsoft.CSharp;
@@ -67,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.34";
+        private const String PluginVersion = "6.8.1.33";
 
         public enum GameVersion
         {
@@ -38126,7 +38125,7 @@ namespace PRoConEvents
                         try
                         {
                             DoBattlelogWait();
-                            String response = ClientDownloadTimer(client, HttpUtility.UrlEncode("http://battlelog.battlefield.com/bf3/user/" + aPlayer.player_name + "?cacherand=" + Environment.TickCount));
+                            String response = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/user/" + aPlayer.player_name + "?cacherand=" + Environment.TickCount);
                             Match pid = Regex.Match(response, @"bf3/soldier/" + aPlayer.player_name + @"/stats/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                             if (!pid.Success)
                             {
@@ -38169,7 +38168,7 @@ namespace PRoConEvents
                             {
                                 DoBattlelogWait();
 
-                                String personaResponse = ClientDownloadTimer(client, HttpUtility.UrlEncode("http://battlelog.battlefield.com/bf4/user/" + aPlayer.player_name + "?cacherand=" + Environment.TickCount));
+                                String personaResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/user/" + aPlayer.player_name + "?cacherand=" + Environment.TickCount);
                                 Match pid = Regex.Match(personaResponse, @"bf4/soldier/" + aPlayer.player_name + @"/stats/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                                 if (!pid.Success)
                                 {
@@ -38184,7 +38183,7 @@ namespace PRoConEvents
                             }
 
                             DoBattlelogWait();
-                            String overviewResponse = ClientDownloadTimer(client, HttpUtility.UrlEncode("http://battlelog.battlefield.com/bf4/warsawoverviewpopulate/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount));
+                            String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawoverviewpopulate/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount);
                             Hashtable json = (Hashtable)JSON.JsonDecode(overviewResponse);
                             Hashtable data = (Hashtable)json["data"];
                             Hashtable info = null;
@@ -38249,7 +38248,7 @@ namespace PRoConEvents
                                 catch (Exception)
                                 {
                                     // If all else fails, get PID by NAME from Battlelog :(
-                                    response = ClientDownloadTimer(client, HttpUtility.UrlEncode(@"http://battlelog.battlefield.com/bfh/user/" + aPlayer.player_name));
+                                    response = ClientDownloadTimer(client, @"http://battlelog.battlefield.com/bfh/user/" + aPlayer.player_name);
 
                                     Match pid = Regex.Match(response, @"bfh/agent/" + aPlayer.player_name + @"/stats/(\d+)/pc/", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                                     if (pid.Success)
@@ -38264,7 +38263,7 @@ namespace PRoConEvents
                             if (!String.IsNullOrEmpty(aPlayer.player_personaID)) {
                                 //Get tag
                                 DoBattlelogWait();
-                                String soldierResponse = ClientDownloadTimer(client, HttpUtility.UrlEncode("http://battlelog.battlefield.com/bfh/agent/" + aPlayer.player_name + "/stats/" + aPlayer.player_personaID + "/pc/?cacherand=" + Environment.TickCount));
+                                String soldierResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bfh/agent/" + aPlayer.player_name + "/stats/" + aPlayer.player_personaID + "/pc/?cacherand=" + Environment.TickCount);
                                 Match tag = Regex.Match(soldierResponse, @"\[\s*([a-zA-Z0-9]+)\s*\]\s*</span>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                                 if (!tag.Success || String.IsNullOrEmpty(tag.Groups[1].Value.Trim())) {
                                     Log.Debug(() => "Could not find BFHL clan tag for " + aPlayer.player_name, 4);
@@ -38322,7 +38321,7 @@ namespace PRoConEvents
                         //Fetch stats
                         AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
                         DoBattlelogWait();
-                        String weaponResponse = ClientDownloadTimer(client, HttpUtility.UrlEncode("http://battlelog.battlefield.com/bf3/weaponsPopulateStats/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount));
+                        String weaponResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/weaponsPopulateStats/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount);
                         Hashtable responseData = (Hashtable) JSON.JsonDecode(weaponResponse);
 
                         if (responseData != null && 
@@ -38396,7 +38395,7 @@ namespace PRoConEvents
                         if (_useHackerCheckerLIVESystem) {
                             //Fetch vehicle stats
                             DoBattlelogWait();
-                            String vehicleResponse = ClientDownloadTimer(client, HttpUtility.UrlEncode("http://battlelog.battlefield.com/bf3/vehiclesPopulateStats/" + aPlayer.player_personaID + "/1/"));
+                            String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/vehiclesPopulateStats/" + aPlayer.player_personaID + "/1/");
                             Hashtable vehicleResponseData = (Hashtable) JSON.JsonDecode(vehicleResponse);
 
                             if (vehicleResponseData != null && 
@@ -38475,7 +38474,7 @@ namespace PRoConEvents
                         if (_useHackerCheckerLIVESystem) {
                             //Handle overview stats
                             DoBattlelogWait();
-                            String overviewResponse = ClientDownloadTimer(client, HttpUtility.UrlEncode("http://battlelog.battlefield.com/bf4/warsawdetailedstatspopulate/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount));
+                            String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawdetailedstatspopulate/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount);
                             Hashtable json = (Hashtable) JSON.JsonDecode(overviewResponse);
                             Hashtable data = (Hashtable) json["data"];
                             Hashtable overviewStatsTable = null;
@@ -38497,7 +38496,7 @@ namespace PRoConEvents
 
                         //Handle specific weapon stats
                         DoBattlelogWait();
-                        String response = ClientDownloadTimer(client, HttpUtility.UrlEncode("http://battlelog.battlefield.com/bf4/warsawWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/"));
+                        String response = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/");
                         Hashtable responseData = (Hashtable) JSON.JsonDecode(response);
 
                         if (responseData.ContainsKey("type") && (String) responseData["type"] == "success" && responseData.ContainsKey("message") && (String) responseData["message"] == "OK" && responseData.ContainsKey("data")) {
@@ -38568,7 +38567,7 @@ namespace PRoConEvents
                         if (_useHackerCheckerLIVESystem) {
                             //Fetch vehicle stats
                             DoBattlelogWait();
-                            String vehicleResponse = ClientDownloadTimer(client, HttpUtility.UrlEncode("http://battlelog.battlefield.com/bf4/en/warsawvehiclesPopulateStats/" + aPlayer.player_personaID + "/1/stats/"));
+                            String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/en/warsawvehiclesPopulateStats/" + aPlayer.player_personaID + "/1/stats/");
                             Hashtable vehicleResponseData = (Hashtable) JSON.JsonDecode(vehicleResponse);
 
                             if (vehicleResponseData.ContainsKey("type") &&
@@ -38643,7 +38642,7 @@ namespace PRoConEvents
                         //Fetch stats
                         AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
                         DoBattlelogWait();
-                        String weaponResponse = ClientDownloadTimer(client, HttpUtility.UrlEncode("http://battlelog.battlefield.com/bfh/BFHWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/?cacherand=" + Environment.TickCount));
+                        String weaponResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bfh/BFHWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/?cacherand=" + Environment.TickCount);
                         Hashtable responseData = (Hashtable) JSON.JsonDecode(weaponResponse);
 
                         if (responseData.ContainsKey("type") && (String) responseData["type"] == "success" && responseData.ContainsKey("message") && (String) responseData["message"] == "OK" && responseData.ContainsKey("data")) {
