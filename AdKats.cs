@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.34
+ * Version 6.8.1.35
  * 24-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.34</version_code>
+ * <version_code>6.8.1.35</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.34";
+        private const String PluginVersion = "6.8.1.35";
 
         public enum GameVersion
         {
@@ -25607,7 +25607,7 @@ namespace PRoConEvents
                         lock (_LoadoutConfirmDictionary) {
                             _LoadoutConfirmDictionary[record.target_player.player_name] = record;
                         }
-                        Log.Info("Report record " + reportID + " waiting for loadout confirmation.");
+                        Log.Info("Report " + reportID + " waiting for loadout confirmation.");
                         ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable {
                             {"caller_identity", "AdKats"},
                             {"response_requested", false},
@@ -25752,13 +25752,11 @@ namespace PRoConEvents
                     Log.Info("Running loadout case for report record " + reportID);
                     if (!record.isLoadoutChecked)
                     {
-                        if (!_LoadoutConfirmDictionary.ContainsKey(record.target_player.player_name))
-                        {
-                            lock (_LoadoutConfirmDictionary)
-                            {
-                                _LoadoutConfirmDictionary.Add(record.target_player.player_name, record);
+                        if (!_LoadoutConfirmDictionary.ContainsKey(record.target_player.player_name)) {
+                            lock (_LoadoutConfirmDictionary) {
+                                _LoadoutConfirmDictionary[record.target_player.player_name] = record;
                             }
-                            Log.Info("Report record " + reportID + " waiting for loadout confirmation.");
+                            Log.Info("Admin call " + reportID + " waiting for loadout confirmation.");
                             ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable {
                                 {"caller_identity", "AdKats"},
                                 {"response_requested", false},
@@ -27749,6 +27747,9 @@ namespace PRoConEvents
                 }
                 record.record_action_executed = true;
                 if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled)) {
+                    lock (_LoadoutConfirmDictionary) {
+                        _LoadoutConfirmDictionary[record.target_player.player_name] = record;
+                    }
                     SendMessageToSource(record, "Fetching loadout for " + record.GetTargetNames() + ".");
                     ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable {
                         {"caller_identity", "AdKats"},
@@ -29606,6 +29607,9 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
                 QueueSettingForUpload(new CPluginVariable(@"Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Count", typeof(Int32), _surrenderAutoMinimumTicketCount));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Maximum Ticket Count", typeof(Int32), _surrenderAutoMaximumTicketCount));
+                QueueSettingForUpload(new CPluginVariable(@"Maximum Auto-Nukes Each Round", typeof(Int32), _surrenderAutoMaxNukesEachRound));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
