@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.33
- * 14-JAN-2016
+ * Version 6.8.1.34
+ * 24-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.33</version_code>
+ * <version_code>6.8.1.34</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.33";
+        private const String PluginVersion = "6.8.1.34";
 
         public enum GameVersion
         {
@@ -506,6 +506,8 @@ namespace PRoConEvents
         private Boolean _surrenderAutoUseLockerValues;
         private Boolean _surrenderAutoUseAdjustedTicketRates;
         private Int32 _surrenderAutoMinimumTicketGap = 100;
+        private Int32 _surrenderAutoMinimumTicketCount = 100;
+        private Int32 _surrenderAutoMaximumTicketCount = 999;
         private Double _surrenderAutoLosingRateMax = 999;
         private Double _surrenderAutoLosingRateMin = 999;
         private Double _surrenderAutoWinningRateMax = 999;
@@ -517,6 +519,8 @@ namespace PRoConEvents
         private Int32 _surrenderAutoMinimumPlayers = 10;
         private String _surrenderAutoMessage = "Auto-Resolving Round. %WinnerName% Wins!";
         private Boolean _surrenderAutoNukeWinning;
+        private Int32 _surrenderAutoMaxNukesEachRound = 4;
+        private Int32 _currentRoundNukes = 0;
         private Boolean _surrenderAutoTriggerVote;
         private String _surrenderAutoNukeMessage = "Nuking %WinnerName% for baserape!";
 
@@ -1273,6 +1277,8 @@ namespace PRoConEvents
                         if (_surrenderAutoEnable) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Minimum Ticket Count", typeof(Int32), _surrenderAutoMinimumTicketCount));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Maximum Ticket Count", typeof(Int32), _surrenderAutoMaximumTicketCount));
                             if (!_surrenderAutoUseMetroValues && !_surrenderAutoUseLockerValues) {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Use Adjusted Ticket Rates", typeof(Boolean), _surrenderAutoUseAdjustedTicketRates));
@@ -1285,6 +1291,9 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Reset Trigger Count on Cancel", typeof(Boolean), _surrenderAutoResetTriggerCountOnCancel));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Minimum Players", typeof(Int32), _surrenderAutoMinimumPlayers));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
+                            if (_surrenderAutoNukeWinning) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Maximum Auto-Nukes Each Round", typeof(Int32), _surrenderAutoMaxNukesEachRound));
+                            }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
                             if (!_surrenderAutoTriggerVote) {
                                 if (!_surrenderAutoNukeWinning) {
@@ -2562,6 +2571,17 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
                     }
+                } else if (Regex.Match(strVariable, @"Maximum Auto-Nukes Each Round").Success) {
+                    Int32 surrenderAutoMaxNukesEachRound = Int32.Parse(strValue);
+                    if (_surrenderAutoMaxNukesEachRound != surrenderAutoMaxNukesEachRound) {
+                        if (surrenderAutoMaxNukesEachRound < 0) {
+                            Log.Error("Maxumim nuke count each round cannot be negative.");
+                            return;
+                        }
+                        _surrenderAutoMaxNukesEachRound = surrenderAutoMaxNukesEachRound;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Maximum Auto-Nukes Each Round", typeof(Int32), _surrenderAutoMaxNukesEachRound));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Start Surrender Vote Instead of Surrendering Losing Team").Success)
                 {
@@ -2580,11 +2600,37 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"Auto-Surrender Minimum Ticket Gap").Success)
                 {
                     Int32 surrenderAutoMinimumTicketGap = Int32.Parse(strValue);
-                    if (_surrenderAutoMinimumTicketGap != surrenderAutoMinimumTicketGap)
+                    if (_surrenderAutoMinimumTicketGap != surrenderAutoMinimumTicketGap) 
                     {
+                        if (_surrenderAutoMinimumTicketGap < 0) {
+                            Log.Error("Minimum ticket gap cannot be negative.");
+                            return;
+                        }
                         _surrenderAutoMinimumTicketGap = surrenderAutoMinimumTicketGap;
                         //Once setting has been changed, upload the change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
+                    }
+                } else if (Regex.Match(strVariable, @"Auto-Surrender Minimum Ticket Count").Success) {
+                    Int32 surrenderAutoMinimumTicketCount = Int32.Parse(strValue);
+                    if (_surrenderAutoMinimumTicketCount != surrenderAutoMinimumTicketCount) {
+                        if (surrenderAutoMinimumTicketCount < 0) {
+                            Log.Error("Minimum ticket count cannot be negative.");
+                            return;
+                        }
+                        _surrenderAutoMinimumTicketCount = surrenderAutoMinimumTicketCount;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Count", typeof(Int32), _surrenderAutoMinimumTicketCount));
+                    }
+                } else if (Regex.Match(strVariable, @"Auto-Surrender Maximum Ticket Count").Success) {
+                    Int32 surrenderAutoMaximumTicketCount = Int32.Parse(strValue);
+                    if (_surrenderAutoMaximumTicketCount != surrenderAutoMaximumTicketCount) {
+                        if (surrenderAutoMaximumTicketCount < 0) {
+                            Log.Error("Maximum ticket count cannot be negative.");
+                            return;
+                        }
+                        _surrenderAutoMaximumTicketCount = surrenderAutoMaximumTicketCount;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Maximum Ticket Count", typeof(Int32), _surrenderAutoMaximumTicketCount));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Auto-Surrender Losing Team Rate Window Max").Success)
@@ -6157,6 +6203,7 @@ namespace PRoConEvents
                         _surrenderAutoSucceeded = false;
                         _surrenderAutoTriggerCountCurrent = 0;
                         _surrenderAutoTriggerCountPause = 0;
+                        _currentRoundNukes = 0;
                         _roundAssists.Clear();
                         _slowmo = false;
                         _pluginUpdateServerInfoChecked = false;
@@ -8990,7 +9037,7 @@ namespace PRoConEvents
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                                 _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                             }
-                            if (_surrenderAutoEnable && _roundState == RoundState.Playing && !_endingRound && (UtcNow() - _lastAutoSurrenderTriggerTime).TotalSeconds > 9.5 && _serverInfo.GetRoundElapsedTime().TotalSeconds > 60 && (UtcNow() - _AdKatsRunningTime).TotalMinutes > 2.5)
+                            if (_surrenderAutoEnable && _roundState == RoundState.Playing && !_endingRound && (UtcNow() - _lastAutoSurrenderTriggerTime).TotalSeconds > 9.5 && _serverInfo.GetRoundElapsedTime().TotalSeconds > 60 && (UtcNow() - _AdKatsRunningTime).TotalMinutes > 2.5 && _firstPlayerListComplete)
                             {
                                 int playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
                                 int neededPlayers = _surrenderAutoMinimumPlayers - playerCount;
@@ -9039,7 +9086,7 @@ namespace PRoConEvents
                                                 {
                                                     if (_surrenderAutoNukeWinning)
                                                     {
-                                                        AdminSayMessage("Preparing auto-nuke. " + completionPercentage + " ready." + neededMessage);
+                                                        AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
                                                     }
                                                     else
                                                     {
@@ -9204,7 +9251,7 @@ namespace PRoConEvents
                                                 {
                                                     if (_surrenderAutoNukeWinning)
                                                     {
-                                                        AdminSayMessage("Preparing auto-nuke. " + completionPercentage + " ready." + neededMessage);
+                                                        AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
                                                     }
                                                     else
                                                     {
@@ -9321,7 +9368,10 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > _surrenderAutoMinimumTicketGap)
+                                    if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > _surrenderAutoMinimumTicketGap && 
+                                        Math.Max(team1.TeamTicketCount, team2.TeamTicketCount) < _surrenderAutoMaximumTicketCount &&
+                                        Math.Min(team1.TeamTicketCount, team2.TeamTicketCount) > _surrenderAutoMinimumTicketCount && 
+                                        _currentRoundNukes < _surrenderAutoMaxNukesEachRound)
                                     {
                                         if (_surrenderAutoUseAdjustedTicketRates)
                                         {
@@ -9361,7 +9411,7 @@ namespace PRoConEvents
                                                         {
                                                             if (_surrenderAutoNukeWinning)
                                                             {
-                                                                AdminSayMessage("Preparing auto-nuke. " + completionPercentage + " ready." + neededMessage);
+                                                                AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
                                                             }
                                                             else
                                                             {
@@ -9514,7 +9564,7 @@ namespace PRoConEvents
                                                         {
                                                             if (_surrenderAutoNukeWinning)
                                                             {
-                                                                AdminSayMessage("Preparing auto-nuke. " + completionPercentage + " ready." + neededMessage);
+                                                                AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
                                                             }
                                                             else
                                                             {
@@ -9653,6 +9703,7 @@ namespace PRoConEvents
                                     if (_surrenderAutoNukeWinning)
                                     {
                                         string autoNukeMessage = _surrenderAutoNukeMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
+                                        _currentRoundNukes++;
                                         QueueRecordForProcessing(new AdKatsRecord
                                         {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -9930,6 +9981,7 @@ namespace PRoConEvents
                     _surrenderAutoSucceeded = false;
                     _surrenderAutoTriggerCountCurrent = 0;
                     _surrenderAutoTriggerCountPause = 0;
+                    _currentRoundNukes = 0;
                     _roundAssists.Clear();
                     _PlayersAutoAssistedThisRound = false;
                     _RoundReports.Clear();
@@ -25551,22 +25603,17 @@ namespace PRoConEvents
                     record.target_player.player_online)
                 {
                     Log.Info("Running loadout case for report record " + reportID);
-                    if (!record.isLoadoutChecked)
-                    {
-                        if (!_LoadoutConfirmDictionary.ContainsKey(record.target_player.player_name))
-                        {
-                            lock (_LoadoutConfirmDictionary)
-                            {
-                                _LoadoutConfirmDictionary.Add(record.target_player.player_name, record);
-                            }
-                            Log.Info("Report record " + reportID + " waiting for loadout confirmation.");
-                            ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable {
-                                {"caller_identity", "AdKats"},
-                                {"response_requested", false},
-                                {"player_name", record.target_player.player_name},
-                                {"loadoutCheck_reason", "reported"}
-                            }));
+                    if (!record.isLoadoutChecked) {
+                        lock (_LoadoutConfirmDictionary) {
+                            _LoadoutConfirmDictionary[record.target_player.player_name] = record;
                         }
+                        Log.Info("Report record " + reportID + " waiting for loadout confirmation.");
+                        ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable {
+                            {"caller_identity", "AdKats"},
+                            {"response_requested", false},
+                            {"player_name", record.target_player.player_name},
+                            {"loadoutCheck_reason", "reported"}
+                        }));
                         return;
                     }
                     if (record.targetLoadoutActed)
@@ -27702,7 +27749,13 @@ namespace PRoConEvents
                 }
                 record.record_action_executed = true;
                 if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled)) {
-                    SendMessageToSource(record,  record.target_player.loadout_items_long);
+                    SendMessageToSource(record, "Fetching loadout for " + record.GetTargetNames() + ".");
+                    ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable {
+                        {"caller_identity", "AdKats"},
+                        {"response_requested", false},
+                        {"player_name", record.target_player.player_name},
+                        {"loadoutCheck_reason", "fetch"}
+                    }));
                 } else {
                     SendMessageToSource(record, "AdKatsLRT not installed/integrated, loadout for " + record.GetTargetNames() + " cannot be fetched.");
                 }
@@ -37810,36 +37863,46 @@ namespace PRoConEvents
                 String loadoutItems = (String)parsedValidityHashtable["loadout_items"];
 
                 //Import the long loadout
-                if (!parsedValidityHashtable.ContainsKey("loadout_items_long")) {
+                if (!parsedValidityHashtable.ContainsKey("loadout_items_long"))
+                {
                     Log.Error("Loadout valididy params for " + identity + " didn't contain loadout_items_long! Unable to process.");
                     return;
                 }
                 String loadoutItemsLong = (String) parsedValidityHashtable["loadout_items_long"];
 
                 //Import the denied items
-                if (!parsedValidityHashtable.ContainsKey("loadout_deniedItems"))
+                if (!parsedValidityHashtable.ContainsKey("loadout_deniedItems")) 
                 {
                     Log.Error("Loadout valididy params for " + identity + " didn't contain loadout_deniedItems! Unable to process.");
                     return;
                 }
-                String loadoutDeniedItems = (String)parsedValidityHashtable["loadout_deniedItems"];
+                String loadoutDeniedItems = (String) parsedValidityHashtable["loadout_deniedItems"];
 
                 AdKatsRecord aRecord;
                 AdKatsPlayer aPlayer;
-                if (_LoadoutConfirmDictionary.TryGetValue(loadoutPlayer, out aRecord))
-                {
-                    Log.Success("Report " + aRecord.command_numeric + " loadout checked.");
-                    aRecord.isLoadoutChecked = true;
-                    aRecord.targetLoadoutActed = loadoutActed;
-                    if (aRecord.target_player != null)
-                    {
-                        aRecord.target_player.loadout_valid = loadoutValid;
-                        aRecord.target_player.loadout_spawnValid = loadoutSpawnValid;
-                        aRecord.target_player.loadout_items = loadoutItems;
-                        aRecord.target_player.loadout_items_long = loadoutItemsLong;
-                        aRecord.target_player.loadout_deniedItems = loadoutDeniedItems;
+                if (_LoadoutConfirmDictionary.TryGetValue(loadoutPlayer, out aRecord)) {
+                    aRecord.target_player.loadout_valid = loadoutValid;
+                    aRecord.target_player.loadout_spawnValid = loadoutSpawnValid;
+                    aRecord.target_player.loadout_items = loadoutItems;
+                    aRecord.target_player.loadout_items_long = loadoutItemsLong;
+                    aRecord.target_player.loadout_deniedItems = loadoutDeniedItems;
+                    switch (aRecord.command_type.command_key) {
+                        case "player_loadout":
+                            Log.Success("Loadout fetched for " + aRecord.target_player.GetVerboseName() + ".");
+                            aRecord.isLoadoutChecked = true;
+                            SendMessageToSource(aRecord, aRecord.target_player.loadout_items_long);
+                            break;
+                        case "player_calladmin":
+                        case "player_report":
+                            Log.Success("Report " + aRecord.command_numeric + " loadout checked.");
+                            aRecord.isLoadoutChecked = true;
+                            aRecord.targetLoadoutActed = loadoutActed;
+                            QueueRecordForActionHandling(aRecord);
+                            break;
+                        default:
+                            Log.Error("Invalid loadout confirm command detected.");
+                            break;
                     }
-                    QueueRecordForActionHandling(aRecord);
                     _LoadoutConfirmDictionary.Remove(loadoutPlayer);
                 }
                 else if (_PlayerDictionary.TryGetValue(loadoutPlayer, out aPlayer))
