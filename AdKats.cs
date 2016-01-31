@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.40
+ * Version 6.8.1.41
  * 31-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.40</version_code>
+ * <version_code>6.8.1.41</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.40";
+        private const String PluginVersion = "6.8.1.41";
 
         public enum GameVersion
         {
@@ -1044,7 +1044,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + sept + "Send PushBullet Reports", typeof(Boolean), _UsePushBullet));
                         if (_UsePushBullet) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + sept + "PushBullet Access Token", typeof(String), _PushBulletHandler.AccessToken));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + sept + "PushBullet Note Target", "enum.roleAllowCommandEnum(Private|Channel)", _PushBulletHandler.DefaultTarget.ToString()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + sept + "PushBullet Note Target", "enum.pushBulletTargetEnum(Private|Channel)", _PushBulletHandler.DefaultTarget.ToString()));
                             if (_PushBulletHandler.DefaultTarget == PushBulletHandler.Target.Channel) {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + sept + "PushBullet Channel Tag", typeof(String), _PushBulletHandler.DefaultChannelTag));
                             }
@@ -42588,7 +42588,7 @@ namespace PRoConEvents
                     WebRequest request = WebRequest.Create("https://api.pushbullet.com/v2/pushes");
                     var responseReader = new StreamReader(request.GetResponse().GetResponseStream());
                     request.Method = "POST";
-                    request.Headers.Add("Access-Token", AccessToken);
+                    request.Headers.Add("Authorization", "Bearer " + AccessToken);
                     request.ContentType = "application/json; charset=UTF-8";
                     byte[] byteArray = Encoding.UTF8.GetBytes(JSON.JsonEncode(new Hashtable {
                         {"active", true},
@@ -42629,7 +42629,7 @@ namespace PRoConEvents
                     WebRequest request = WebRequest.Create("https://api.pushbullet.com/v2/pushes");
                     var responseReader = new StreamReader(request.GetResponse().GetResponseStream());
                     request.Method = "POST";
-                    request.Headers.Add("Access-Token", AccessToken);
+                    request.Headers.Add("Authorization", "Bearer " + AccessToken);
                     request.ContentType = "application/json; charset=UTF-8";
                     byte[] byteArray = Encoding.UTF8.GetBytes(JSON.JsonEncode(new Hashtable {
                         {"active", true},
