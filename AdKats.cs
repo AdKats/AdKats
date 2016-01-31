@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.35
- * 24-JAN-2016
+ * Version 6.8.1.36
+ * 30-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.35</version_code>
+ * <version_code>6.8.1.36</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.35";
+        private const String PluginVersion = "6.8.1.36";
 
         public enum GameVersion
         {
@@ -7356,39 +7356,15 @@ namespace PRoConEvents
                                         {
                                             aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
                                             if (_isTestingAuthorized) {
-                                                ProconChatWrite("Assign Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
-                                            }
-                                            ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
-                                            if (_isTestingAuthorized) {
                                                 ProconChatWrite("Initial Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
                                             }
+                                            ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
                                             Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                             if (aPlayer.player_name == _debugSoldierName) {
                                                 PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                             }
                                             team1Set = !team1Set;
                                         }
-                                        //Confirm they remain on the team they were assigned, yay DICE's mandatory balancer
-                                        var start = UtcNow();
-                                        while (NowDuration(start).TotalSeconds < 120 && _pluginEnabled && _roundState != RoundState.Playing) {
-                                            if (!_pluginEnabled) {
-                                                break;
-                                            }
-                                            foreach (AdKatsPlayer aPlayer in orderedTopPlayers) {
-                                                Thread.Sleep(TimeSpan.FromMilliseconds(50));
-                                                if (_roundState == RoundState.Playing) {
-                                                    break;
-                                                }
-                                                if (aPlayer.RequiredTeam != null) {
-                                                    if (_isTestingAuthorized) {
-                                                        ProconChatWrite("Keep Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
-                                                    }
-                                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
-                                                }
-                                            }
-                                            Thread.Sleep(TimeSpan.FromMilliseconds(50));
-                                        }
-
                                     }
                                     else
                                     {
@@ -15713,8 +15689,7 @@ namespace PRoConEvents
                             var teamPower = _UseTopPlayerMonitor && 
                                             record.target_player.TopStats != null && 
                                             (enemyTeam.getTeamPower() + record.target_player.TopStats.getTopPower() > friendlyTeam.getTeamPower() - record.target_player.TopStats.getTopPower());
-                            var teamFlux = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) <= 60;
-                            Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID || teamFlux);
+                            Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
                             Boolean enemyStrong = enemyTeam.TeamTicketDifferenceRate > friendlyTeam.TeamTicketDifferenceRate || teamPower;
                             if ((!enemyWinning && !enemyStrong) || 
                                 (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 250))
@@ -15732,10 +15707,7 @@ namespace PRoConEvents
                             } 
                             else {
                                 String responseMessage = "team is ";
-                                if (teamFlux) {
-                                    responseMessage += "in flux.";
-                                }
-                                else if (teamPower) {
+                                if (teamPower) {
                                     responseMessage += "already strong.";
                                 }
                                 else if (enemyWinning && enemyStrong) {
@@ -29476,7 +29448,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Ping Whitelist", typeof(Boolean), _TeamspeakPlayerPerksPingWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
-                QueueSettingForUpload(new CPluginVariable(@"Affected Top Players", typeof(Int32), _TopPlayersAffected));
+                QueueSettingForUpload(new CPluginVariable(@"Affected Top Players", typeof(String), _TopPlayersAffected));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof(Boolean), _useRoundTimer));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof(Double), _maxRoundTimeMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
