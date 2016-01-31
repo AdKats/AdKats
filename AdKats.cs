@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.36
- * 30-JAN-2016
+ * Version 6.8.1.37
+ * 31-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.36</version_code>
+ * <version_code>6.8.1.37</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.36";
+        private const String PluginVersion = "6.8.1.37";
 
         public enum GameVersion
         {
@@ -7358,6 +7358,7 @@ namespace PRoConEvents
                                             if (_isTestingAuthorized) {
                                                 ProconChatWrite("Initial Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
                                             }
+                                            Thread.Sleep(TimeSpan.FromMilliseconds(50));
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
                                             Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                             if (aPlayer.player_name == _debugSoldierName) {
@@ -10024,7 +10025,47 @@ namespace PRoConEvents
                     winningTeam = team2;
                     losingTeam = team1;
                 }
-                if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
+                if (_serverInfo.ServerName.Contains("[FPSG] 24/7 Operation Lockers")) {
+                    Int32 quality = 4;
+                    if (winningTeam.TeamTicketCount >= 1500) {
+                        quality = 0;
+                    } else if (winningTeam.TeamTicketCount >= 1100) {
+                        quality = 1;
+                    } else if (winningTeam.TeamTicketCount >= 700) {
+                        quality = 2;
+                    } else if (winningTeam.TeamTicketCount >= 350) {
+                        quality = 3;
+                    }
+                    QueueStatisticForProcessing(new AdKatsStatistic() {
+                        stat_type = AdKatsStatistic.StatisticType.round_quality,
+                        server_id = _serverInfo.ServerID,
+                        round_id = _roundID,
+                        target_name = _serverInfo.InfoObject.Map,
+                        stat_value = quality,
+                        stat_comment = "Quality level " + quality + " (" + winningTeam.TeamTicketCount + "|" + losingTeam.TeamTicketCount + ")",
+                        stat_time = UtcNow()
+                    });
+                } else if (_serverInfo.ServerName.Contains("[FPSG] 24/7 Metro Madness")) {
+                    Int32 quality = 4;
+                    if (winningTeam.TeamTicketCount >= 1100) {
+                        quality = 0;
+                    } else if (winningTeam.TeamTicketCount >= 800) {
+                        quality = 1;
+                    } else if (winningTeam.TeamTicketCount >= 600) {
+                        quality = 2;
+                    } else if (winningTeam.TeamTicketCount >= 400) {
+                        quality = 3;
+                    }
+                    QueueStatisticForProcessing(new AdKatsStatistic() {
+                        stat_type = AdKatsStatistic.StatisticType.round_quality,
+                        server_id = _serverInfo.ServerID,
+                        round_id = _roundID,
+                        target_name = _serverInfo.InfoObject.Map,
+                        stat_value = quality,
+                        stat_comment = "Quality level " + quality + " (" + winningTeam.TeamTicketCount + "|" + losingTeam.TeamTicketCount + ")",
+                        stat_time = UtcNow()
+                    });
+                } else if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
                     if (_serverInfo.ServerID == 6) {
                         Int32 quality = 0;
                         if (losingTeam.TeamTicketCount >= 350) {
@@ -10266,9 +10307,9 @@ namespace PRoConEvents
                             quality = 0;
                         } else if (winningTeam.TeamTicketCount >= 750) {
                             quality = 1;
-                        } else if (winningTeam.TeamTicketCount >= 625) {
+                        } else if (winningTeam.TeamTicketCount >= 550) {
                             quality = 2;
-                        } else if (winningTeam.TeamTicketCount >= 500) {
+                        } else if (winningTeam.TeamTicketCount >= 350) {
                             quality = 3;
                         }
                         QueueStatisticForProcessing(new AdKatsStatistic() {
