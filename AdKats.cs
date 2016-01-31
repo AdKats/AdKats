@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.38
+ * Version 6.8.1.39
  * 31-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.38</version_code>
+ * <version_code>6.8.1.39</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.38";
+        private const String PluginVersion = "6.8.1.39";
 
         public enum GameVersion
         {
@@ -29735,9 +29735,6 @@ namespace PRoConEvents
                             if (success)
                             {
                                 _lastDbSettingFetch = UtcNow();
-                                if (_isTestingAuthorized) {
-                                    Log.Info("28816");
-                                }
                                 UpdateSettingPage();
                             }
                             else if (verbose)
@@ -36565,7 +36562,7 @@ namespace PRoConEvents
             {
                 _firstUserListComplete = true;
                 OnlineAdminSayMessage("User fetch complete [" + _userCache.Count + " users, " + _baseSpecialPlayerCache.Count + " Special Players]. Fetching player list.");
-                Log.Success("User fetch complete [" + _userCache.Count + " users, " + _baseSpecialPlayerCache.Count + " Special Players].");
+                Log.Success("User fetch complete [" + _userCache.Count + " users, " + _baseSpecialPlayerCache.Count + " Special Players, " + _FetchedPlayers.Count + " Fetched Players].");
                 if (!_userCache.Any())
                 {
                     Log.Warn("No users have been added. Add a new user with 'Add User'.");
@@ -36578,7 +36575,7 @@ namespace PRoConEvents
             {
                 if (_userCache.Count > 0)
                 {
-                    Log.Debug(() => "User List Fetched from Database. [" + _userCache.Count + " users, " + _baseSpecialPlayerCache.Count + " Special Players]", 1);
+                    Log.Debug(() => "User List Fetched from Database. [" + _userCache.Count + " users, " + _baseSpecialPlayerCache.Count + " Special Players, " + _FetchedPlayers.Count + " Fetched Players]", 1);
                 }
                 else
                 {
@@ -39937,9 +39934,6 @@ namespace PRoConEvents
 
         //Calling this method will make the settings window refresh with new data
         public void UpdateSettingPage() {
-            if (_isTestingAuthorized) {
-                Log.Info("Updating settings manually");
-            }
             SetExternalPluginSetting("AdKats", "UpdateSettings", "Update");
         }
 
@@ -42000,6 +41994,9 @@ namespace PRoConEvents
             public DateTime TeamTotalScoresTime { get; private set; }
             public Boolean TeamTotalScoresAdded { get; private set; }
 
+            private Double TeamPower = 0;
+            private DateTime _LastTeamPowerUpdate = DateTime.UtcNow;
+
             public AdKatsTeam(AdKats plugin, Int32 teamID, String teamKey, String teamName, String teamDesc)
             {
                 Plugin = plugin;
@@ -42273,6 +42270,9 @@ namespace PRoConEvents
 
             public Double getTeamPower() {
                 try {
+                    if ((DateTime.UtcNow - _LastTeamPowerUpdate).TotalSeconds < 5.0) {
+                        return TeamPower;
+                    }
                     if (!Plugin._PlayerDictionary.Any()) {
                         return 0;
                     }
@@ -42297,10 +42297,10 @@ namespace PRoConEvents
                             //Calculate total team K/D
                             kdPowerSum = (teamTotalKills / Math.Max(teamTotalDeaths, 1.0));
                             //Coerce to 1-3.5
-                            kdPowerSum = Math.Min(Math.Max(kdPowerSum, 1.0), 3.5);
+                            kdPowerSum = Math.Min(Math.Max(kdPowerSum, 0.75), 3.5);
                         }
                         if (!Plugin._serverInfo.InfoObject.Map.ToLower().Contains("rush") && Plugin._startingTicketCount > 0) {
-                            ticketPower = Math.Max((double) TeamTicketCount / (double) Plugin._startingTicketCount, 0.50);
+                            ticketPower = Math.Min(Math.Max((double) TeamTicketCount / (double) Plugin._startingTicketCount, 0.25), 0.75);
                         }
                     }
                     var playerSum = Math.Sqrt(teamPlayers.Count());
@@ -42308,6 +42308,8 @@ namespace PRoConEvents
                     if (Plugin._isTestingAuthorized) {
                         Plugin.Log.Info(TeamKey + " Power: " + totalPower + " = (top)" + Math.Round(topPowerSum, 2) + " * (kd)" + Math.Round(kdPowerSum, 2) + " * (count)" + Math.Round(playerSum, 2) + " * (ticket)" + Math.Round(ticketPower, 2));
                     }
+                    TeamPower = totalPower;
+                    _LastTeamPowerUpdate = DateTime.UtcNow;
                     return totalPower;
                 }
                 catch (Exception e) {
