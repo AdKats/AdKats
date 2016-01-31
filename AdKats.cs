@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.39
+ * Version 6.8.1.40
  * 31-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.39</version_code>
+ * <version_code>6.8.1.40</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.39";
+        private const String PluginVersion = "6.8.1.40";
 
         public enum GameVersion
         {
@@ -475,6 +475,9 @@ namespace PRoConEvents
         //Email
         private Boolean _UseEmail;
 
+        //PushBullet
+        private Boolean _UsePushBullet;
+
         //Muting
         private Int32 _MutedPlayerChances = 5;
         private String _MutedPlayerKickMessage = "Talking excessively while muted.";
@@ -523,7 +526,11 @@ namespace PRoConEvents
 
         //EmailHandler
         private EmailHandler _EmailHandler;
-        private Boolean _emailReportsOnlyWhenAdminless;
+        private Boolean _EmailReportsOnlyWhenAdminless;
+
+        //PushBullet
+        private PushBulletHandler _PushBulletHandler;
+        private Boolean _PushBulletReportsOnlyWhenAdminless;
 
         //Orchestration
         private List<String> _CurrentReservedSlotPlayers;
@@ -719,6 +726,7 @@ namespace PRoConEvents
             AddSettingSection("6", "Command List");
             AddSettingSection("7", "Punishment Settings");
             AddSettingSection("8", "Email Settings");
+            AddSettingSection("8-2", "PushBullet Settings");
             AddSettingSection("9", "TeamSwap Settings");
             AddSettingSection("A10", "Admin Assistant Settings");
             AddSettingSection("A11", "Player Mute Settings");
@@ -1027,7 +1035,20 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "SMTP-Server password", typeof(String), _EmailHandler.SMTPPassword));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Custom HTML Addition", typeof(String), _EmailHandler.CustomHTMLAddition));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Extra Recipient Email Addresses", typeof(String[]), _EmailHandler.RecipientEmails.ToArray()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Only Send Report Emails When Admins Offline", typeof(Boolean), _emailReportsOnlyWhenAdminless));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Only Send Report Emails When Admins Offline", typeof(Boolean), _EmailReportsOnlyWhenAdminless));
+                        }
+                    }
+
+                    if (IsActiveSettingSection("8-2")) {
+                        //PushBullet Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + sept + "Send PushBullet Reports", typeof(Boolean), _UsePushBullet));
+                        if (_UsePushBullet) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + sept + "PushBullet Access Token", typeof(String), _PushBulletHandler.AccessToken));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + sept + "PushBullet Note Target", "enum.roleAllowCommandEnum(Private|Channel)", _PushBulletHandler.DefaultTarget.ToString()));
+                            if (_PushBulletHandler.DefaultTarget == PushBulletHandler.Target.Channel) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + sept + "PushBullet Channel Tag", typeof(String), _PushBulletHandler.DefaultChannelTag));
+                            }
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + sept + "Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
                         }
                     }
 
@@ -5223,13 +5244,39 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"Only Send Report Emails When Admins Offline").Success)
                 {
                     Boolean emailReportsOnlyWhenAdminless = Boolean.Parse(strValue);
-                    if (emailReportsOnlyWhenAdminless != _emailReportsOnlyWhenAdminless)
+                    if (emailReportsOnlyWhenAdminless != _EmailReportsOnlyWhenAdminless)
                     {
-                        _emailReportsOnlyWhenAdminless = emailReportsOnlyWhenAdminless;
+                        _EmailReportsOnlyWhenAdminless = emailReportsOnlyWhenAdminless;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Only Send Report Emails When Admins Offline", typeof(Boolean), _emailReportsOnlyWhenAdminless));
+                        QueueSettingForUpload(new CPluginVariable(@"Only Send Report Emails When Admins Offline", typeof(Boolean), _EmailReportsOnlyWhenAdminless));
                     }
-                }
+                } 
+                else if (Regex.Match(strVariable, @"Send PushBullet Reports").Success) {
+                    _UsePushBullet = Boolean.Parse(strValue);
+                    QueueSettingForUpload(new CPluginVariable(@"Send PushBullet Reports", typeof(Boolean), _UsePushBullet));
+                } else if (Regex.Match(strVariable, @"PushBullet Access Token").Success) {
+                    _PushBulletHandler.AccessToken = strValue;
+                    QueueSettingForUpload(new CPluginVariable(@"PushBullet Access Token", typeof(String), _PushBulletHandler.AccessToken));
+                } else if (Regex.Match(strVariable, @"PushBullet Note Target").Success) {
+                    switch (strValue) {
+                        case "Private":
+                            _PushBulletHandler.DefaultTarget = PushBulletHandler.Target.Private;
+                            break;
+                        case "Channel":
+                            _PushBulletHandler.DefaultTarget = PushBulletHandler.Target.Channel;
+                            break;
+                        default:
+                            Log.Error("Unknown setting when changing PushBullet note target.");
+                            return;
+                    }
+                    QueueSettingForUpload(new CPluginVariable(@"PushBullet Note Target", typeof(String), _PushBulletHandler.DefaultTarget.ToString()));
+                } else if (Regex.Match(strVariable, @"PushBullet Channel Tag").Success) {
+                    _PushBulletHandler.AccessToken = strValue;
+                    QueueSettingForUpload(new CPluginVariable(@"PushBullet Channel Tag", typeof(String), _PushBulletHandler.DefaultChannelTag));
+                } else if (Regex.Match(strVariable, @"Only Send PushBullet Reports When Admins Offline").Success) {
+                    _EmailReportsOnlyWhenAdminless = Boolean.Parse(strValue);
+                    QueueSettingForUpload(new CPluginVariable(@"Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
+                } 
                 else if (Regex.Match(strVariable, @"Use Metabans?").Success) {
                     var useMetabans = Boolean.Parse(strValue);
                     if (!_useMetabans && useMetabans) {
@@ -7104,8 +7151,12 @@ namespace PRoConEvents
                     break;
             }
             Log.Debug(() => "^1Game Version: " + _gameVersion, 1);
-            //Initialize the email handler
+
+            //Initialize the Email Handler
             _EmailHandler = new EmailHandler(this);
+
+            //Initialize PushBullet Handler
+            _PushBulletHandler = new PushBulletHandler(this);
         }
 
         public override void OnVersion(String serverType, String version)
@@ -25698,16 +25749,20 @@ namespace PRoConEvents
                         PlayerTellMessage(record.target_name, record.GetSourceName() + " reported you for " + record.record_message, true, 6);
                     }
                 }
-                if (_UseEmail)
-                {
-                    if (_emailReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any())
-                    {
+                if (_UseEmail) {
+                    if (_EmailReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any()) {
                         Log.Debug(() => "Email cancelled, admins online.", 3);
-                    }
-                    else
-                    {
+                    } else {
                         Log.Debug(() => "Preparing to send report email.", 3);
                         _EmailHandler.SendReport(record);
+                    }
+                }
+                if (_UsePushBullet) {
+                    if (_PushBulletReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any()) {
+                        Log.Debug(() => "PushBullet report cancelled, admins online.", 3);
+                    } else {
+                        Log.Debug(() => "Preparing to send PushBullet report.", 3);
+                        _PushBulletHandler.PushReport(record);
                     }
                 }
                 if (record.source_player != null && record.source_name != record.target_name && record.source_player.player_type == PlayerType.Spectator)
@@ -25839,16 +25894,20 @@ namespace PRoConEvents
                         PlayerTellMessage(record.target_name, record.GetSourceName() + " reported you for " + record.record_message, true, 6);
                     }
                 }
-                if (_UseEmail)
-                {
-                    if (_emailReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any())
-                    {
+                if (_UseEmail) {
+                    if (_EmailReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any()) {
                         Log.Debug(() => "Email cancelled, admins online.", 3);
-                    }
-                    else
-                    {
+                    } else {
                         Log.Debug(() => "Preparing to send report email.", 3);
                         _EmailHandler.SendReport(record);
+                    }
+                }
+                if (_UsePushBullet) {
+                    if (_PushBulletReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any()) {
+                        Log.Debug(() => "PushBullet report cancelled, admins online.", 3);
+                    } else {
+                        Log.Debug(() => "Preparing to send PushBullet report.", 3);
+                        _PushBulletHandler.PushReport(record);
                     }
                 }
             }
@@ -29534,7 +29593,11 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"SMTP-Server password", typeof(String), _EmailHandler.SMTPPassword));
                 QueueSettingForUpload(new CPluginVariable(@"Custom HTML Addition", typeof(String), _EmailHandler.CustomHTMLAddition));
                 QueueSettingForUpload(new CPluginVariable(@"Extra Recipient Email Addresses", typeof(String[]), _EmailHandler.RecipientEmails.ToArray()));
-                QueueSettingForUpload(new CPluginVariable(@"Only Send Report Emails When Admins Offline", typeof(Boolean), _emailReportsOnlyWhenAdminless));
+                QueueSettingForUpload(new CPluginVariable(@"Only Send Report Emails When Admins Offline", typeof(Boolean), _EmailReportsOnlyWhenAdminless));
+                QueueSettingForUpload(new CPluginVariable(@"Send PushBullet Reports", typeof(Boolean), _UsePushBullet));
+                QueueSettingForUpload(new CPluginVariable(@"PushBullet Access Token", typeof(String), _PushBulletHandler.AccessToken));
+                QueueSettingForUpload(new CPluginVariable(@"PushBullet Note Target", typeof(String), _PushBulletHandler.DefaultTarget.ToString()));
+                QueueSettingForUpload(new CPluginVariable(@"Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
                 QueueSettingForUpload(new CPluginVariable(@"Use Metabans?", typeof(Boolean), _useMetabans));
                 QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof(String), _metabansAPIKey));
                 QueueSettingForUpload(new CPluginVariable(@"Metabans Username", typeof(String), _metabansUsername));
@@ -36561,7 +36624,7 @@ namespace PRoConEvents
             if (!_firstUserListComplete)
             {
                 _firstUserListComplete = true;
-                OnlineAdminSayMessage("User fetch complete [" + _userCache.Count + " users, " + _baseSpecialPlayerCache.Count + " Special Players]. Fetching player list.");
+                OnlineAdminSayMessage("User fetch complete [" + _userCache.Count + " users, " + _baseSpecialPlayerCache.Count + " Special Players, " + _FetchedPlayers.Count + " Fetched Players]. Fetching player list.");
                 Log.Success("User fetch complete [" + _userCache.Count + " users, " + _baseSpecialPlayerCache.Count + " Special Players, " + _FetchedPlayers.Count + " Fetched Players].");
                 if (!_userCache.Any())
                 {
@@ -42270,7 +42333,7 @@ namespace PRoConEvents
 
             public Double getTeamPower() {
                 try {
-                    if ((DateTime.UtcNow - _LastTeamPowerUpdate).TotalSeconds < 5.0) {
+                    if ((DateTime.UtcNow - _LastTeamPowerUpdate).TotalSeconds < 0.5) {
                         return TeamPower;
                     }
                     if (!Plugin._PlayerDictionary.Any()) {
@@ -42463,6 +42526,130 @@ namespace PRoConEvents
             public String soldiername = null;
         }
 
+        public class PushBulletHandler {
+            public enum Target {
+                Private,
+                Channel
+            }
+
+            public AdKats Plugin;
+            public String AccessToken;
+            public Target DefaultTarget = Target.Private;
+            public String DefaultChannelTag;
+
+            public PushBulletHandler(AdKats plugin) {
+                Plugin = plugin;
+            }
+
+            public void PushReport(AdKatsRecord record) {
+                if (record.target_player == null) {
+                    Plugin.SendMessageToSource(record, "Unable to send report email. No target player found.");
+                    return;
+                }
+                Plugin.Log.Debug(() => "Sending PushBullet report [" + record.command_numeric + "] on " + record.GetTargetNames(), 3);
+                String title = record.GetTargetNames() + " reported in [" + Plugin._gameVersion + "] " + Plugin._serverInfo.ServerName.Substring(0, Math.Min(15, Plugin._serverInfo.ServerName.Length - 1));
+                StringBuilder bb = new StringBuilder();
+                bb.Append("AdKats Round Report [" + record.command_numeric + "]");
+                bb.AppendLine();
+                bb.Append(record.GetSourceName() + " reported " + record.GetTargetNames() + " for " + record.record_message);
+                bb.AppendLine();
+                bb.Append(Plugin._serverInfo.ServerName);
+                PushDefault(title, bb.ToString());
+            }
+
+            public void PushDefault(String title, String body) {
+                switch (DefaultTarget) {
+                    case Target.Private:
+                        PushPrivate(title, body);
+                        break;
+                    case Target.Channel:
+                        PushChannel(title, body, DefaultChannelTag);
+                        break;
+                    default:
+                        Plugin.Log.Error("Pushbullet configured with invalid target.");
+                        break;
+                }
+            }
+
+            public void PushPrivate(String title, String body) {
+                try {
+                    if (String.IsNullOrEmpty(AccessToken)) {
+                        Plugin.Log.Error("PushBullet token empty! Unable to push private note.");
+                        return;
+                    }
+                    if (String.IsNullOrEmpty(title)) {
+                        Plugin.Log.Error("PushBullet note title empty! Unable to push private note.");
+                        return;
+                    }
+                    if (String.IsNullOrEmpty(body)) {
+                        Plugin.Log.Error("PushBullet note body empty! Unable to push private note.");
+                        return;
+                    }
+                    WebRequest request = WebRequest.Create("https://api.pushbullet.com/v2/pushes");
+                    var responseReader = new StreamReader(request.GetResponse().GetResponseStream());
+                    request.Method = "POST";
+                    request.Headers.Add("Access-Token", AccessToken);
+                    request.ContentType = "application/json; charset=UTF-8";
+                    byte[] byteArray = Encoding.UTF8.GetBytes(JSON.JsonEncode(new Hashtable {
+                        {"active", true},
+                        {"type", "note"},
+                        {"sender_name", "AdKats-" + Plugin._serverInfo.ServerID},
+                        {"title", title},
+                        {"body", body}
+                    }));
+                    request.ContentLength = byteArray.Length;
+                    Stream requestStream = request.GetRequestStream();
+                    requestStream.Write(byteArray, 0, byteArray.Length);
+                    requestStream.Close();
+                    Plugin.Log.Info("RESPONSE: " + responseReader.ReadToEnd());
+                }
+                catch (Exception e) {
+                    Plugin.HandleException(new AdKatsException("Error sending private PushBullet note.", e));
+                }
+            }
+
+            public void PushChannel(String title, String body, String channelTag) {
+                try {
+                    if (String.IsNullOrEmpty(AccessToken)) {
+                        Plugin.Log.Error("PushBullet token empty! Unable to push channel note.");
+                        return;
+                    }
+                    if (String.IsNullOrEmpty(channelTag)) {
+                        Plugin.Log.Error("PushBullet channel tag empty! Unable to push channel note.");
+                        return;
+                    }
+                    if (String.IsNullOrEmpty(title)) {
+                        Plugin.Log.Error("PushBullet note title empty! Unable to push channel note.");
+                        return;
+                    }
+                    if (String.IsNullOrEmpty(body)) {
+                        Plugin.Log.Error("PushBullet note body empty! Unable to push channel note.");
+                        return;
+                    }
+                    WebRequest request = WebRequest.Create("https://api.pushbullet.com/v2/pushes");
+                    var responseReader = new StreamReader(request.GetResponse().GetResponseStream());
+                    request.Method = "POST";
+                    request.Headers.Add("Access-Token", AccessToken);
+                    request.ContentType = "application/json; charset=UTF-8";
+                    byte[] byteArray = Encoding.UTF8.GetBytes(JSON.JsonEncode(new Hashtable {
+                        {"active", true},
+                        {"type", "note"},
+                        {"sender_name", "AdKats-" + Plugin._serverInfo.ServerID},
+                        {"channel_tag", channelTag},
+                        {"title", title},
+                        {"body", body}
+                    }));
+                    request.ContentLength = byteArray.Length;
+                    Stream requestStream = request.GetRequestStream();
+                    requestStream.Write(byteArray, 0, byteArray.Length);
+                    requestStream.Close();
+                    Plugin.Log.Info("RESPONSE: " + responseReader.ReadToEnd());
+                } catch (Exception e) {
+                    Plugin.HandleException(new AdKatsException("Error sending channel PushBullet note.", e));
+                }
+            }
+        }
+
         public class EmailHandler
         {
             private readonly Queue<MailMessage> _EmailProcessingQueue = new Queue<MailMessage>();
@@ -42516,6 +42703,7 @@ namespace PRoConEvents
                     if (record.target_player == null)
                     {
                         Plugin.SendMessageToSource(record, "Unable to send report email. No target player found.");
+                        return;
                     }
                     //Create a new thread to handle keep-alive
                     //This thread will remain running for the duration the layer is online
