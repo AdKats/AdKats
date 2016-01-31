@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.37
+ * Version 6.8.1.38
  * 31-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.37</version_code>
+ * <version_code>6.8.1.38</version_code>
  */
 
 using System;
@@ -50,7 +50,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
-using System.Windows.Forms.VisualStyles;
 using Microsoft.CSharp;
 using MySql.Data.MySqlClient;
 using PRoCon.Core;
@@ -58,15 +57,13 @@ using PRoCon.Core.Players;
 using PRoCon.Core.Players.Items;
 using PRoCon.Core.Plugin;
 using PRoCon.Core.Plugin.Commands;
-using PRoCon.Core.Remote;
-using Timer = System.Timers.Timer;
 
 namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.37";
+        private const String PluginVersion = "6.8.1.38";
 
         public enum GameVersion
         {
@@ -42291,8 +42288,9 @@ namespace PRoConEvents
                     var teamTopPlayers = teamPlayers.Where(aPlayer => aPlayer.TopStats.TopRoundRatio != 0);
                     var topPowerSum = teamTopPlayers.Select(aPlayer => aPlayer.TopStats.getTopPower()).Sum();
                     var kdPowerSum = 1.0;
+                    var ticketPower = 1.0;
                     if (Plugin._roundState == RoundState.Playing && Plugin._serverInfo.GetRoundElapsedTime().TotalMinutes >= 4.0) {
-                        var teamFInfo = teamTopPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo != null);
+                        var teamFInfo = teamPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo != null);
                         if (teamFInfo.Any()) {
                             var teamTotalKills = teamFInfo.Sum(aPlayer => aPlayer.frostbitePlayerInfo.Kills);
                             var teamTotalDeaths = teamFInfo.Sum(aPlayer => aPlayer.frostbitePlayerInfo.Deaths);
@@ -42301,9 +42299,16 @@ namespace PRoConEvents
                             //Coerce to 1-3.5
                             kdPowerSum = Math.Min(Math.Max(kdPowerSum, 1.0), 3.5);
                         }
+                        if (!Plugin._serverInfo.InfoObject.Map.ToLower().Contains("rush") && Plugin._startingTicketCount > 0) {
+                            ticketPower = Math.Max((double) TeamTicketCount / (double) Plugin._startingTicketCount, 0.50);
+                        }
                     }
                     var playerSum = Math.Sqrt(teamPlayers.Count());
-                    return Math.Round(topPowerSum * kdPowerSum * playerSum);
+                    var totalPower = Math.Round(topPowerSum * kdPowerSum * playerSum * ticketPower);
+                    if (Plugin._isTestingAuthorized) {
+                        Plugin.Log.Info(TeamKey + " Power: " + totalPower + " = (top)" + Math.Round(topPowerSum, 2) + " * (kd)" + Math.Round(kdPowerSum, 2) + " * (count)" + Math.Round(playerSum, 2) + " * (ticket)" + Math.Round(ticketPower, 2));
+                    }
+                    return totalPower;
                 }
                 catch (Exception e) {
                     Plugin.HandleException(new AdKatsException("Error while fetching team power.", e));
