@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.42
+ * Version 6.8.1.43
  * 31-JAN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.42</version_code>
+ * <version_code>6.8.1.43</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.42";
+        private const String PluginVersion = "6.8.1.43";
 
         public enum GameVersion
         {
@@ -5271,7 +5271,7 @@ namespace PRoConEvents
                     }
                     QueueSettingForUpload(new CPluginVariable(@"PushBullet Note Target", typeof(String), _PushBulletHandler.DefaultTarget.ToString()));
                 } else if (Regex.Match(strVariable, @"PushBullet Channel Tag").Success) {
-                    _PushBulletHandler.AccessToken = strValue;
+                    _PushBulletHandler.DefaultChannelTag = strValue;
                     QueueSettingForUpload(new CPluginVariable(@"PushBullet Channel Tag", typeof(String), _PushBulletHandler.DefaultChannelTag));
                 } else if (Regex.Match(strVariable, @"Only Send PushBullet Reports When Admins Offline").Success) {
                     _EmailReportsOnlyWhenAdminless = Boolean.Parse(strValue);
@@ -6723,7 +6723,7 @@ namespace PRoConEvents
                                 }
 
                                 if (_isTestingAuthorized && _serverInfo.ServerID == 1 && _roundID > 0) {
-                                    if (_roundID >= 25000 + 10 || _roundID < 25000 - 100) {
+                                    if (_roundID >= 25000 + 10 || _roundID < 25000 - 400) {
                                         this.ExecuteCommand("procon.protected.send", "vars.serverName", "=ADK= #7 | 24/7 Operation Metro NO EXPLOSIVES | ADKGamers.com");
                                     } else if (_roundID >= 25000) {
                                         String result = "";
@@ -29597,6 +29597,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Send PushBullet Reports", typeof(Boolean), _UsePushBullet));
                 QueueSettingForUpload(new CPluginVariable(@"PushBullet Access Token", typeof(String), _PushBulletHandler.AccessToken));
                 QueueSettingForUpload(new CPluginVariable(@"PushBullet Note Target", typeof(String), _PushBulletHandler.DefaultTarget.ToString()));
+                QueueSettingForUpload(new CPluginVariable(@"PushBullet Channel Tag", typeof(String), _PushBulletHandler.DefaultChannelTag));
                 QueueSettingForUpload(new CPluginVariable(@"Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
                 QueueSettingForUpload(new CPluginVariable(@"Use Metabans?", typeof(Boolean), _useMetabans));
                 QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof(String), _metabansAPIKey));
