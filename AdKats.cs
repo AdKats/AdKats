@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.45
- * 10-FEB-2016
+ * Version 6.8.1.46
+ * 11-FEB-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.45</version_code>
+ * <version_code>6.8.1.46</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.45";
+        private const String PluginVersion = "6.8.1.46";
 
         public enum GameVersion
         {
@@ -10229,8 +10229,8 @@ namespace PRoConEvents
                                         ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
                                         break;
                                     case 25005:
-                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! REPAIR TOOL AND EOD BOT ONLY!");
-                                        //25,005 - Rush 300 Repair Tools/EOD Only
+                                        AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! REPAIR TOOL ONLY!");
+                                        //25,005 - Rush 300 Repair Tools Only
                                         ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
                                         ExecuteCommand("procon.protected.send", "mapList.remove", "0");
                                         ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
@@ -11287,8 +11287,6 @@ namespace PRoConEvents
                                     break;
                                 case 25005:
                                     if (aKill.weaponCode != "U_Repairtool" &&
-                                        aKill.weaponCode != "EODBot" &&
-                                        aKill.weaponCode != "Death" &&
                                         aKill.weaponCode != "DamageArea" &&
                                         !killSpam) {
                                         AdKatsCommand aCommand = GetCommandByKey("player_kill");
@@ -11308,7 +11306,7 @@ namespace PRoConEvents
                                             target_player = aKill.killer,
                                             source_name = "AutoAdmin",
                                             record_time = UtcNow(),
-                                            record_message = "REPAIR TOOL/EOD ONLY! ROUND 25000 EVENT (PT 6)"
+                                            record_message = "REPAIR TOOL ONLY! ROUND 25000 EVENT (PT 6)"
                                         });
                                     }
                                     break;
@@ -11571,7 +11569,7 @@ namespace PRoConEvents
                                             AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! PHANTOM BOW AND KNIVES ONLY!");
                                             break;
                                         case 25005:
-                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! REPAIR TOOL AND EOD BOT ONLY!");
+                                            AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! REPAIR TOOL ONLY!");
                                             break;
                                         case 25006:
                                             AdminTellMessage("WELCOME TO THE ROUND " + String.Format("{0:n0}", _roundID) + " EVENT! PISTOLS ONLY!");
