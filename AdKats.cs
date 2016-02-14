@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.47
- * 13-FEB-2016
+ * Version 6.8.1.48
+ * 14-FEB-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.47</version_code>
+ * <version_code>6.8.1.48</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.47";
+        private const String PluginVersion = "6.8.1.48";
 
         public enum GameVersion
         {
@@ -15775,12 +15775,13 @@ namespace PRoConEvents
                             String debug = (PlayerIsAdmin(record.source_player)) ? ("[" + friendlyTeam.TeamKey + ":" + friendlyTeam.TeamTicketCount + ":" + (int)friendlyTeam.TeamTicketDifferenceRate + "][" + enemyTeam.TeamKey + ":" + enemyTeam.TeamTicketCount + ":" + (int)enemyTeam.TeamTicketDifferenceRate + "]") : ("");
 
                             record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]";
-                            var teamPower = _UseTopPlayerMonitor && 
+                            var enemyPowerLower = _UseTopPlayerMonitor && 
                                             record.target_player.TopStats != null && 
-                                            (enemyTeam.getTeamPower() + record.target_player.TopStats.getTopPower() > friendlyTeam.getTeamPower() - record.target_player.TopStats.getTopPower());
+                                            (enemyTeam.getTeamPower() + record.target_player.TopStats.getTopPower() < friendlyTeam.getTeamPower() - record.target_player.TopStats.getTopPower());
                             Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
-                            Boolean enemyStrong = enemyTeam.TeamTicketDifferenceRate > friendlyTeam.TeamTicketDifferenceRate || teamPower;
+                            Boolean enemyStrong = enemyTeam.TeamTicketDifferenceRate > friendlyTeam.TeamTicketDifferenceRate;
                             if ((!enemyWinning && !enemyStrong) || 
+                                enemyPowerLower || 
                                 (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 250))
                             {
                                 //60 second timeout
@@ -15796,16 +15797,13 @@ namespace PRoConEvents
                             } 
                             else {
                                 String responseMessage = "team is ";
-                                if (teamPower) {
+                                if (_UseTopPlayerMonitor && !enemyPowerLower) {
                                     responseMessage += "already strong.";
-                                }
-                                else if (enemyWinning && enemyStrong) {
+                                } else if (enemyWinning && enemyStrong) {
                                     responseMessage += "already winning and strong.";
-                                }
-                                else if (enemyWinning && !enemyStrong) {
+                                } else if (enemyWinning && !enemyStrong) {
                                     responseMessage += "losing ground, but still winning the match.";
-                                }
-                                else if (!enemyWinning && enemyStrong) {
+                                } else if (!enemyWinning && enemyStrong) {
                                     responseMessage += "losing, but is making a comeback.";
                                 }
                                 AdminSayMessage(record.GetSourceName() + " assist to " + enemyTeam.TeamKey + " rejected, " + responseMessage);
