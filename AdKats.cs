@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.48
- * 14-FEB-2016
+ * Version 6.8.1.49
+ * 15-FEB-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.48</version_code>
+ * <version_code>6.8.1.49</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.48";
+        private const String PluginVersion = "6.8.1.49";
 
         public enum GameVersion
         {
@@ -568,6 +568,7 @@ namespace PRoConEvents
         private Boolean _PlayersAutoAssistedThisRound;
         //Top Players
         private Boolean _UseTopPlayerMonitor;
+        private Boolean currentStartingTeam1 = true;
         private String _TopPlayersAffected = "Good And Above";
         private readonly Dictionary<String, AdKatsPlayer> _topPlayers = new Dictionary<String, AdKatsPlayer>();
         //Populators
@@ -7398,8 +7399,8 @@ namespace PRoConEvents
                                             Log.Info("Team 2 was not found, waiting.");
                                             continue;
                                         }
-                                        Random rand = new Random();
-                                        Boolean team1Set = rand.NextDouble() >= 0.5;
+                                        Boolean team1Set = currentStartingTeam1;
+                                        currentStartingTeam1 = !currentStartingTeam1;
                                         foreach (AdKatsPlayer aPlayer in orderedTopPlayers)
                                         {
                                             aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
@@ -32939,7 +32940,7 @@ namespace PRoConEvents
             try {
                 List<Int64> validIDs = new List<Int64>();
                 lock (_topPlayers) {
-                    foreach (AdKatsPlayer aPlayer in GetTopPlayers(TimeSpan.FromDays(90), _isTestingAuthorized ? 4 : 3)) {
+                    foreach (AdKatsPlayer aPlayer in GetTopPlayers(TimeSpan.FromDays(60), 3)) {
                         if (!_pluginEnabled) {
                             return;
                         }
