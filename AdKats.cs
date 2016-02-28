@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.50
- * 15-FEB-2016
+ * Version 6.8.1.51
+ * 28-FEB-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.50</version_code>
+ * <version_code>6.8.1.51</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.50";
+        private const String PluginVersion = "6.8.1.51";
 
         public enum GameVersion
         {
@@ -9150,12 +9150,12 @@ namespace PRoConEvents
                                                         auaPlayers[aPlayer.player_name] = aPlayer;
                                                     }
                                                 }
-                                                //Get players from those who have assisted to the now winning team
-                                                foreach (AdKatsPlayer aPlayer in _roundAssists.Values.Where(dPlayer => dPlayer.player_online && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
-                                                {
-                                                    if (!auaPlayers.ContainsKey(aPlayer.player_name))
-                                                    {
-                                                        auaPlayers[aPlayer.player_name] = aPlayer;
+                                                if (!_UseTopPlayerMonitor) {
+                                                    //Get players from those who have assisted to the now winning team
+                                                    foreach (AdKatsPlayer aPlayer in _roundAssists.Values.Where(dPlayer => dPlayer.player_online && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) {
+                                                        if (!auaPlayers.ContainsKey(aPlayer.player_name)) {
+                                                            auaPlayers[aPlayer.player_name] = aPlayer;
+                                                        }
                                                     }
                                                 }
                                                 foreach (AdKatsPlayer aPlayer in auaPlayers.Values) {
@@ -9309,12 +9309,12 @@ namespace PRoConEvents
                                                         auaPlayers[aPlayer.player_name] = aPlayer;
                                                     }
                                                 }
-                                                //Get players from those who have assisted to the now winning team
-                                                foreach (AdKatsPlayer aPlayer in _roundAssists.Values.Where(dPlayer => dPlayer.player_online && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
-                                                {
-                                                    if (!auaPlayers.ContainsKey(aPlayer.player_name))
-                                                    {
-                                                        auaPlayers[aPlayer.player_name] = aPlayer;
+                                                if (!_UseTopPlayerMonitor) {
+                                                    //Get players from those who have assisted to the now winning team
+                                                    foreach (AdKatsPlayer aPlayer in _roundAssists.Values.Where(dPlayer => dPlayer.player_online && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) {
+                                                        if (!auaPlayers.ContainsKey(aPlayer.player_name)) {
+                                                            auaPlayers[aPlayer.player_name] = aPlayer;
+                                                        }
                                                     }
                                                 }
                                                 foreach (AdKatsPlayer aPlayer in auaPlayers.Values) {
@@ -9469,12 +9469,12 @@ namespace PRoConEvents
                                                                 auaPlayers[aPlayer.player_name] = aPlayer;
                                                             }
                                                         }
-                                                        //Get players from those who have assisted to the now winning team
-                                                        foreach (AdKatsPlayer aPlayer in _roundAssists.Values.Where(dPlayer => dPlayer.player_online && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
-                                                        {
-                                                            if (!auaPlayers.ContainsKey(aPlayer.player_name))
-                                                            {
-                                                                auaPlayers[aPlayer.player_name] = aPlayer;
+                                                        if (!_UseTopPlayerMonitor) {
+                                                            //Get players from those who have assisted to the now winning team
+                                                            foreach (AdKatsPlayer aPlayer in _roundAssists.Values.Where(dPlayer => dPlayer.player_online && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) {
+                                                                if (!auaPlayers.ContainsKey(aPlayer.player_name)) {
+                                                                    auaPlayers[aPlayer.player_name] = aPlayer;
+                                                                }
                                                             }
                                                         }
                                                         foreach (AdKatsPlayer aPlayer in auaPlayers.Values) {
@@ -9622,12 +9622,12 @@ namespace PRoConEvents
                                                                 auaPlayers[aPlayer.player_name] = aPlayer;
                                                             }
                                                         }
-                                                        //Get players from those who have assisted to the now winning team
-                                                        foreach (AdKatsPlayer aPlayer in _roundAssists.Values.Where(dPlayer => dPlayer.player_online && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
-                                                        {
-                                                            if (!auaPlayers.ContainsKey(aPlayer.player_name))
-                                                            {
-                                                                auaPlayers[aPlayer.player_name] = aPlayer;
+                                                        if (!_UseTopPlayerMonitor) {
+                                                            //Get players from those who have assisted to the now winning team
+                                                            foreach (AdKatsPlayer aPlayer in _roundAssists.Values.Where(dPlayer => dPlayer.player_online && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) {
+                                                                if (!auaPlayers.ContainsKey(aPlayer.player_name)) {
+                                                                    auaPlayers[aPlayer.player_name] = aPlayer;
+                                                                }
                                                             }
                                                         }
                                                         foreach (AdKatsPlayer aPlayer in auaPlayers.Values)
@@ -15784,7 +15784,7 @@ namespace PRoConEvents
                             Boolean enemyStrong = enemyTeam.TeamTicketDifferenceRate > friendlyTeam.TeamTicketDifferenceRate;
                             if ((!enemyWinning && !enemyStrong) || 
                                 enemyPowerLower || 
-                                (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 250))
+                                (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > (_startingTicketCount > 0 ? (_startingTicketCount / 4.0) : 250)))
                             {
                                 //60 second timeout
                                 Double secondTimeout = _UseTopPlayerMonitor ? 20 : 60;
@@ -15796,6 +15796,7 @@ namespace PRoConEvents
                                     return;
                                 }
                                 SendMessageToSource(record, "Queuing you to assist the weak team. Thank you. " + debug);
+                                OnlineAdminSayMessage(record.GetTargetNames() + " + assist to " + enemyTeam.TeamKey + " accepted, queueing.");
                             } 
                             else {
                                 String responseMessage = "team is ";
@@ -22623,7 +22624,7 @@ namespace PRoConEvents
                     record.record_message += " [Rejected]";
                     return;
                 }
-                if (friendlyTeam.TeamID == losingTeam.TeamID)
+                if (friendlyTeam.TeamID == losingTeam.TeamID && !_UseTopPlayerMonitor)
                 {
                     SendMessageToSource(record, "Player already on losing team, rejecting switch attempt.");
                     record.record_message += " [Rejected]";
