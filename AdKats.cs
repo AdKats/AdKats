@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.51
- * 28-FEB-2016
+ * Version 6.8.1.52
+ * 29-FEB-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.51</version_code>
+ * <version_code>6.8.1.52</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.51";
+        private const String PluginVersion = "6.8.1.52";
 
         public enum GameVersion
         {
@@ -519,6 +519,7 @@ namespace PRoConEvents
         private Int32 _surrenderAutoMinimumPlayers = 10;
         private String _surrenderAutoMessage = "Auto-Resolving Round. %WinnerName% Wins!";
         private Boolean _surrenderAutoNukeWinning;
+        private Boolean _surrenderAutoAnnounceNukePrep;
         private Int32 _surrenderAutoMaxNukesEachRound = 4;
         private Int32 _currentRoundNukes = 0;
         private Boolean _surrenderAutoTriggerVote;
@@ -1312,6 +1313,7 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
                             if (_surrenderAutoNukeWinning) {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Maximum Auto-Nukes Each Round", typeof(Int32), _surrenderAutoMaxNukesEachRound));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Announce Nuke Preparation to Players", typeof(Boolean), _surrenderAutoAnnounceNukePrep));
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
                             if (!_surrenderAutoTriggerVote) {
@@ -2590,6 +2592,20 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
                     }
+                }
+                else if (Regex.Match(strVariable, @"Nuke Winning Team Instead of Surrendering Losing Team").Success)
+                {
+                    Boolean surrenderAutoNukeWinning = Boolean.Parse(strValue);
+                    if (surrenderAutoNukeWinning != _surrenderAutoNukeWinning)
+                    {
+                        _surrenderAutoNukeWinning = surrenderAutoNukeWinning;
+                        if (_surrenderAutoNukeWinning)
+                        {
+                            _surrenderAutoTriggerVote = false;
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
+                    }
                 } else if (Regex.Match(strVariable, @"Maximum Auto-Nukes Each Round").Success) {
                     Int32 surrenderAutoMaxNukesEachRound = Int32.Parse(strValue);
                     if (_surrenderAutoMaxNukesEachRound != surrenderAutoMaxNukesEachRound) {
@@ -2600,6 +2616,13 @@ namespace PRoConEvents
                         _surrenderAutoMaxNukesEachRound = surrenderAutoMaxNukesEachRound;
                         //Once setting has been changed, upload the change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Maximum Auto-Nukes Each Round", typeof(Int32), _surrenderAutoMaxNukesEachRound));
+                    }
+                } else if (Regex.Match(strVariable, @"Announce Nuke Preparation to Players").Success) {
+                    Boolean surrenderAutoAnnounceNukePrep = Boolean.Parse(strValue);
+                    if (surrenderAutoAnnounceNukePrep != _surrenderAutoAnnounceNukePrep) {
+                        _surrenderAutoAnnounceNukePrep = surrenderAutoAnnounceNukePrep;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Announce Nuke Preparation to Players", typeof(Boolean), _surrenderAutoAnnounceNukePrep));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Start Surrender Vote Instead of Surrendering Losing Team").Success)
@@ -9111,9 +9134,10 @@ namespace PRoConEvents
                                                 }
                                                 else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                 {
-                                                    if (_surrenderAutoNukeWinning)
-                                                    {
-                                                        AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
+                                                    if (_surrenderAutoNukeWinning) {
+                                                        if (_surrenderAutoAnnounceNukePrep) {
+                                                            AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
+                                                        }
                                                     }
                                                     else
                                                     {
@@ -9276,9 +9300,10 @@ namespace PRoConEvents
                                                 }
                                                 else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                 {
-                                                    if (_surrenderAutoNukeWinning)
-                                                    {
-                                                        AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
+                                                    if (_surrenderAutoNukeWinning) {
+                                                        if (_surrenderAutoAnnounceNukePrep) {
+                                                            AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
+                                                        }
                                                     }
                                                     else
                                                     {
@@ -9436,9 +9461,10 @@ namespace PRoConEvents
                                                         }
                                                         else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                         {
-                                                            if (_surrenderAutoNukeWinning)
-                                                            {
-                                                                AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
+                                                            if (_surrenderAutoNukeWinning) {
+                                                                if (_surrenderAutoAnnounceNukePrep) {
+                                                                    AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
+                                                                }
                                                             }
                                                             else
                                                             {
@@ -9589,9 +9615,10 @@ namespace PRoConEvents
                                                         }
                                                         else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                         {
-                                                            if (_surrenderAutoNukeWinning)
-                                                            {
-                                                                AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
+                                                            if (_surrenderAutoNukeWinning) {
+                                                                if (_surrenderAutoAnnounceNukePrep) {
+                                                                    AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
+                                                                }
                                                             }
                                                             else
                                                             {
@@ -29680,6 +29707,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Adjusted Ticket Rates", typeof(Boolean), _surrenderAutoUseAdjustedTicketRates));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Reset Trigger Count on Cancel", typeof(Boolean), _surrenderAutoResetTriggerCountOnCancel));
                 QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
+                QueueSettingForUpload(new CPluginVariable(@"Announce Nuke Preparation to Players", typeof(Boolean), _surrenderAutoAnnounceNukePrep));
                 QueueSettingForUpload(new CPluginVariable(@"Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Count", typeof(Int32), _surrenderAutoMinimumTicketCount));
