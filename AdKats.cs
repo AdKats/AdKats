@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.52
+ * Version 6.8.1.53
  * 29-FEB-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.52</version_code>
+ * <version_code>6.8.1.53</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.52";
+        private const String PluginVersion = "6.8.1.53";
 
         public enum GameVersion
         {
@@ -15809,9 +15809,10 @@ namespace PRoConEvents
                                             (enemyTeam.getTeamPower() + record.target_player.TopStats.getTopPower() < friendlyTeam.getTeamPower() - record.target_player.TopStats.getTopPower());
                             Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
                             Boolean enemyStrong = enemyTeam.TeamTicketDifferenceRate > friendlyTeam.TeamTicketDifferenceRate;
-                            if ((!enemyWinning && !enemyStrong) || 
+                            if (!enemyWinning && (
+                                !enemyStrong || 
                                 enemyPowerLower || 
-                                (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > (_startingTicketCount > 0 ? (_startingTicketCount / 4.0) : 250)))
+                                Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > (_startingTicketCount > 0 ? (_startingTicketCount / 4.0) : 250)))
                             {
                                 //60 second timeout
                                 Double secondTimeout = _UseTopPlayerMonitor ? 20 : 60;
@@ -15823,7 +15824,7 @@ namespace PRoConEvents
                                     return;
                                 }
                                 SendMessageToSource(record, "Queuing you to assist the weak team. Thank you. " + debug);
-                                OnlineAdminSayMessage(record.GetTargetNames() + " + assist to " + enemyTeam.TeamKey + " accepted, queueing.");
+                                OnlineAdminSayMessage(record.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted, queueing.");
                             } 
                             else {
                                 String responseMessage = "team is ";
