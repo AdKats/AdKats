@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.57
+ * Version 6.8.1.58
  * 8-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.57</version_code>
+ * <version_code>6.8.1.58</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.57";
+        private const String PluginVersion = "6.8.1.58";
 
         public enum GameVersion
         {
@@ -32825,10 +32825,10 @@ namespace PRoConEvents
                                         ON DUPLICATE KEY 
                                         UPDATE 
                                             `PlayerID` = LAST_INSERT_ID(`PlayerID`),
-                                            `SoldierName` = @SoldierName
-                                            `EAGUID` = @EAGUID
+                                            `SoldierName` = @SoldierName,
+                                            `EAGUID` = @EAGUID,
                                             `IP_Address` = @IP_Address";
-                                        command.Parameters.AddWithValue("@GameID", gameID);
+                                        command.Parameters.AddWithValue("@GameID", _serverInfo.GameID);
                                         command.Parameters.AddWithValue("@SoldierName", String.IsNullOrEmpty(playerName) ? null : playerName);
                                         command.Parameters.AddWithValue("@EAGUID", String.IsNullOrEmpty(playerGUID) ? null : playerGUID);
                                         command.Parameters.AddWithValue("@IP_Address", String.IsNullOrEmpty(playerIP) ? null : playerIP);
@@ -32851,8 +32851,8 @@ namespace PRoConEvents
                                         ON DUPLICATE KEY 
                                         UPDATE 
                                             `PlayerID` = LAST_INSERT_ID(`PlayerID`),
-                                            `SoldierName` = @SoldierName
-                                            `EAGUID` = @EAGUID
+                                            `SoldierName` = @SoldierName,
+                                            `EAGUID` = @EAGUID,
                                             `IP_Address` = @IP_Address";
                                         command.Parameters.AddWithValue("@SoldierName", String.IsNullOrEmpty(playerName) ? null : playerName);
                                         command.Parameters.AddWithValue("@EAGUID", String.IsNullOrEmpty(playerGUID) ? null : playerGUID);
