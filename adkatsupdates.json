@@ -108,6 +108,25 @@
 			],
 			"update_success":[],
 			"update_failure":[]
+		},
+		{
+			"update_id":"fixEmptyPlayerIPs",
+			"version_minimum":"6.8.1.56",
+			"version_maximum":null,
+			"message_name":"Fixing empty player IPs",
+			"message_success":"Fixed empty player IPs",
+			"message_failure":"Failed to fix empty player IPs",
+			"update_checks_hasResults":true,
+			"update_checks":[
+				"SELECT * FROM `tbl_playerdata` WHERE `IP_Address` = ''"
+			],
+			"update_execute_requiresModRows":true,
+			"update_execute":[
+				"UPDATE `tbl_playerdata` SET `IP_Address` = '100.100.100.100' WHERE `IP_Address` = '';",
+				"UPDATE `tbl_playerdata` SET `IP_Address` = NULL WHERE `IP_Address` = '100.100.100.100';"
+			],
+			"update_success":[],
+			"update_failure":[]
 		}
 	]
 }
