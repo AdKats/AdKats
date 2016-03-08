@@ -122,8 +122,8 @@
 			],
 			"update_execute_requiresModRows":true,
 			"update_execute":[
-				"UPDATE `%DATABASENAME%`.`tbl_playerdata` SET `IP_Address` = '100.100.100.100' WHERE `IP_Address` = '';",
-				"UPDATE `%DATABASENAME%`.`tbl_playerdata` SET `IP_Address` = NULL WHERE `IP_Address` = '100.100.100.100';"
+				"UPDATE `%DATABASENAME%`.`tbl_playerdata` SET `IP_Address` = '127.0.0.1' WHERE `IP_Address` = '';",
+				"UPDATE `%DATABASENAME%`.`tbl_playerdata` SET `IP_Address` = NULL WHERE `IP_Address` = '127.0.0.1';"
 			],
 			"update_success":[],
 			"update_failure":[]
