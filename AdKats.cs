@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.55
- * 6-MAR-2016
+ * Version 6.8.1.56
+ * 8-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.55</version_code>
+ * <version_code>6.8.1.56</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.55";
+        private const String PluginVersion = "6.8.1.56";
 
         public enum GameVersion
         {
@@ -12628,7 +12628,7 @@ namespace PRoConEvents
 
                         try
                         {
-                            if (_BattlelogFetchQueue.Count() >= 5) {
+                            if (_BattlelogFetchQueue.Count >= 5) {
                                 Log.Debug(() => "Hacker-checker waiting on battlelog fetches to complete.", 4);
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(10));
                                 continue;
@@ -13037,12 +13037,12 @@ namespace PRoConEvents
                                         _threadMasterWaitHandle.WaitOne(1000);
                                     }
                                     //Onced triggered, ban after 90 seconds.
-                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " triggered DPS timer. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "] They will be banned in 90 seconds.");
+                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " triggered DPS timer. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "] They will be banned in 90 seconds.");
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
                                     PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", true, 6);
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
 
-                                    Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                                    Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]");
                                     if (!debugMode)
                                     {
                                         //Unlock the player
@@ -13057,7 +13057,7 @@ namespace PRoConEvents
                                             target_name = aPlayer.player_name,
                                             target_player = aPlayer,
                                             source_name = "AutoAdmin",
-                                            record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
+                                            record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]",
                                             record_time = UtcNow()
                                         };
                                         //Process the record
@@ -13078,7 +13078,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                        Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]");
                         if (!debugMode)
                         {
                             //Create the ban record
@@ -13091,7 +13091,7 @@ namespace PRoConEvents
                                 target_name = aPlayer.player_name,
                                 target_player = aPlayer,
                                 source_name = "AutoAdmin",
-                                record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
+                                record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]",
                                 record_time = UtcNow()
                             };
                             //Process the record
@@ -13220,7 +13220,7 @@ namespace PRoConEvents
                                         _threadMasterWaitHandle.WaitOne(1000);
                                     }
                                     //Onced triggered, ban after 90 seconds.
-                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " triggered HSK timer. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "] They will be banned in 90 seconds.");
+                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " triggered HSK timer. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "] They will be banned in 90 seconds.");
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
                                     if (actedWeapon.HSKR >= .75)
                                     {
@@ -13228,7 +13228,7 @@ namespace PRoConEvents
                                     }
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
 
-                                    Log.Info(banPlayer.GetVerboseName() + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                                    Log.Info(banPlayer.GetVerboseName() + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]");
                                     if (!debugMode)
                                     {
                                         //Unlock player
@@ -13243,7 +13243,7 @@ namespace PRoConEvents
                                             target_name = banPlayer.player_name,
                                             target_player = banPlayer,
                                             source_name = "AutoAdmin",
-                                            record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
+                                            record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]",
                                             record_time = UtcNow()
                                         };
                                         //Process the record
@@ -13264,7 +13264,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        Log.Info(aPlayer.GetVerboseName() + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                        Log.Info(aPlayer.GetVerboseName() + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]");
                         if (!debugMode)
                         {
                             //Create the ban record
@@ -13277,7 +13277,7 @@ namespace PRoConEvents
                                 target_name = aPlayer.player_name,
                                 target_player = aPlayer,
                                 source_name = "AutoAdmin",
-                                record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
+                                record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]",
                                 record_time = UtcNow()
                             };
                             //Process the record
@@ -13381,7 +13381,7 @@ namespace PRoConEvents
                 {
                     acted = true;
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                    Log.Info(aPlayer.GetVerboseName() + ((debugMode) ? (" debug") : (" auto")) + "-banned for KPM. [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                    Log.Info(aPlayer.GetVerboseName() + ((debugMode) ? (" debug") : (" auto")) + "-banned for KPM. [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]");
                     if (!debugMode)
                     {
                         //Create the ban record
@@ -13394,7 +13394,7 @@ namespace PRoConEvents
                             target_name = aPlayer.player_name,
                             target_player = aPlayer,
                             source_name = "AutoAdmin",
-                            record_message = _HackerCheckerKPMBanMessage + " [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
+                            record_message = _HackerCheckerKPMBanMessage + " [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]",
                             record_time = UtcNow()
                         };
                         //Process the record
@@ -18363,6 +18363,20 @@ namespace PRoConEvents
                                 return;
                             }
 
+                            if (record.source_player != null && record.source_player.player_type == PlayerType.Spectator)
+                            {
+                                SendMessageToSource(record, "You cannot use !" + GetCommandByKey("player_pull").command_text + " as a spectator.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            if (record.source_player != null && (record.source_player.player_type == PlayerType.CommanderMobile || record.source_player.player_type == PlayerType.CommanderPC))
+                            {
+                                SendMessageToSource(record, "You cannot use !" + GetCommandByKey("player_pull").command_text + " as a commander.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 1);
                             switch (parameters.Length)
@@ -18394,6 +18408,20 @@ namespace PRoConEvents
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
                                 SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            if (record.source_player != null && record.source_player.player_type == PlayerType.Spectator)
+                            {
+                                SendMessageToSource(record, "You cannot use !" + GetCommandByKey("player_pull").command_text + " as a spectator.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            if (record.source_player != null && (record.source_player.player_type == PlayerType.CommanderMobile || record.source_player.player_type == PlayerType.CommanderPC))
+                            {
+                                SendMessageToSource(record, "You cannot use !" + GetCommandByKey("player_pull").command_text + " as a commander.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -31696,10 +31724,13 @@ namespace PRoConEvents
 	                        `tbl_server`.`GameID` = `tbl_playerdata`.`GameID`
                         WHERE
 	                        `tbl_currentplayers`.`ServerID` != @current_server_id 
+                        AND
+	                        `tbl_playerdata`.`GameID` != @game_id 
                         GROUP BY
 	                        `tbl_playerdata`.`PlayerID`";
                         command.CommandText = sql;
                         command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@game_id", _serverInfo.GameID);
                         using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
                             while (reader.Read())
@@ -32157,8 +32188,43 @@ namespace PRoConEvents
                     {
                         if (matchingPlayers.Count > 0)
                         {
+                            AdKatsPlayer exactMatch = null;
+                            foreach (AdKatsPlayer aPlayer in matchingPlayers)
+                            {
+                                if(aPlayer.player_name == soldierName)
+                                {
+                                    exactMatch = aPlayer;
+                                    break;
+                                }
+                            }
                             if (matchingPlayers.Count > 10)
                             {
+                                if (exactMatch != null)
+                                {
+                                    exactMatch.LastUsage = UtcNow();
+                                    bool playerDuplicate = false;
+                                    //Make sure the player is not already assigned to another user
+                                    lock (_userCache)
+                                    {
+                                        if (_userCache.Values.Any(innerUser => innerUser.soldierDictionary.ContainsKey(exactMatch.player_id)))
+                                        {
+                                            playerDuplicate = true;
+                                        }
+                                    }
+                                    if (!playerDuplicate)
+                                    {
+                                        if (aUser.soldierDictionary.ContainsKey(exactMatch.player_id))
+                                        {
+                                            aUser.soldierDictionary.Remove(exactMatch.player_id);
+                                        }
+                                        aUser.soldierDictionary.Add(exactMatch.player_id, exactMatch);
+                                        return;
+                                    }
+                                    else
+                                    {
+                                        Log.Error("Player " + exactMatch.GetVerboseName() + "(" + _gameIDDictionary[exactMatch.game_id] + ") already assigned to a user.");
+                                    }
+                                }
                                 Log.Error("Too many players matched the query, unable to add.");
                                 return;
                             }
@@ -32739,29 +32805,59 @@ namespace PRoConEvents
                                         useableGameID = (Int32?)_serverInfo.GameID;
                                     }
                                     //Set the insert command structure
-                                    //The on duplicate key clause should never be hit, but is placed there to avoid exceptions in rare edge cases
-                                    Boolean hasPrevious = (_serverInfo.GameID > 0) || !String.IsNullOrEmpty(playerName) || !String.IsNullOrEmpty(playerGUID) || !String.IsNullOrEmpty(playerIP);
-                                    command.CommandText = @"
-                                    INSERT INTO `" + _mySqlSchemaName + @"`.`tbl_playerdata` 
-                                    (
-                                        " + ((useableGameID != null) ? ("`GameID`") : ("")) + @"
-                                        " + ((!String.IsNullOrEmpty(playerName)) ? (((useableGameID != null) ? (",") : ("")) + "`SoldierName`") : ("")) + @"
-                                        " + ((!String.IsNullOrEmpty(playerGUID)) ? ((hasPrevious ? (",") : ("")) + "`EAGUID`") : ("")) + @"
-                                        " + ((!String.IsNullOrEmpty(playerIP)) ? ((hasPrevious ? (",") : ("")) + "`IP_Address`") : ("")) + @"
-                                    ) 
-                                    VALUES 
-                                    (
-                                        " + ((useableGameID != null) ? (useableGameID + "") : ("")) + @"
-                                        " + ((!String.IsNullOrEmpty(playerName)) ? (((useableGameID != null) ? (",") : ("")) + "'" + playerName + "'") : ("")) + @"
-                                        " + ((!String.IsNullOrEmpty(playerGUID)) ? ((hasPrevious ? (",") : ("")) + "'" + playerGUID + "'") : ("")) + @"
-                                        " + ((!String.IsNullOrEmpty(playerIP)) ? ((hasPrevious ? (",") : ("")) + "'" + playerIP + "'") : ("")) + @"
-                                    )
-                                    ON DUPLICATE KEY 
-                                    UPDATE 
-                                        `PlayerID` = LAST_INSERT_ID(`PlayerID`)
-                                        " + ((!String.IsNullOrEmpty(playerName)) ? (@",`SoldierName` = '" + playerName + "'") : ("")) + @"
-                                        " + ((!String.IsNullOrEmpty(playerGUID)) ? (@",`EAGUID` = '" + playerGUID + "'") : ("")) + @"
-                                        " + ((!String.IsNullOrEmpty(playerIP)) ? (@",`IP_Address` = '" + playerIP + "'") : (""));
+                                    if (useableGameID != null)
+                                    {
+                                        command.CommandText = @"
+                                        INSERT INTO `" + _mySqlSchemaName + @"`.`tbl_playerdata` 
+                                        (
+                                            `GameID`,
+                                            `SoldierName`,
+                                            `EAGUID`,
+                                            `IP_Address`
+                                        ) 
+                                        VALUES 
+                                        (
+                                            @GameID,
+                                            @SoldierName,
+                                            @EAGUID,
+                                            @IP_Address
+                                        )
+                                        ON DUPLICATE KEY 
+                                        UPDATE 
+                                            `PlayerID` = LAST_INSERT_ID(`PlayerID`),
+                                            `SoldierName` = @SoldierName
+                                            `EAGUID` = @EAGUID
+                                            `IP_Address` = @IP_Address";
+                                        command.Parameters.AddWithValue("@GameID", gameID);
+                                        command.Parameters.AddWithValue("@SoldierName", String.IsNullOrEmpty(playerName) ? null : playerName);
+                                        command.Parameters.AddWithValue("@EAGUID", String.IsNullOrEmpty(playerGUID) ? null : playerGUID);
+                                        command.Parameters.AddWithValue("@IP_Address", String.IsNullOrEmpty(playerIP) ? null : playerIP);
+                                    }
+                                    else
+                                    {
+                                        command.CommandText = @"
+                                        INSERT INTO `" + _mySqlSchemaName + @"`.`tbl_playerdata` 
+                                        (
+                                            `SoldierName`,
+                                            `EAGUID`,
+                                            `IP_Address`
+                                        ) 
+                                        VALUES 
+                                        (
+                                            @SoldierName,
+                                            @EAGUID,
+                                            @IP_Address
+                                        )
+                                        ON DUPLICATE KEY 
+                                        UPDATE 
+                                            `PlayerID` = LAST_INSERT_ID(`PlayerID`),
+                                            `SoldierName` = @SoldierName
+                                            `EAGUID` = @EAGUID
+                                            `IP_Address` = @IP_Address";
+                                        command.Parameters.AddWithValue("@SoldierName", String.IsNullOrEmpty(playerName) ? null : playerName);
+                                        command.Parameters.AddWithValue("@EAGUID", String.IsNullOrEmpty(playerGUID) ? null : playerGUID);
+                                        command.Parameters.AddWithValue("@IP_Address", String.IsNullOrEmpty(playerIP) ? null : playerIP);
+                                    }
                                     //Attempt to execute the query
                                     if (SafeExecuteNonQuery(command) > 0)
                                     {
@@ -32861,7 +32957,7 @@ namespace PRoConEvents
                             {
                                 command.CommandText = @"
                                 SELECT
-                                    (Playtime/60) as playtime_minutes
+                                    (Playtime/60.0) as playtime_minutes
                                 FROM
                                     tbl_server_player
                                         INNER JOIN
@@ -40023,16 +40119,6 @@ namespace PRoConEvents
             }
             Log.Debug(() => "Exiting formatTimeString", 7);
             return timeString;
-        }
-
-        private Double ConvertToTimestamp(DateTime value)
-        {
-            //create Timespan by subtracting the value provided from
-            //the Unix Epoch
-            TimeSpan span = (value - new DateTime(1970, 1, 1, 0, 0, 0, 0).ToLocalTime());
-
-            //return the total seconds (which is a UNIX timestamp)
-            return span.TotalSeconds;
         }
 
         private void RemovePlayerFromDictionary(String playerName, Boolean lockDictionary)
