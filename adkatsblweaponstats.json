@@ -758,6 +758,14 @@
       "sar-21": {
         "max": 24,
         "min": 15
+      },
+      "aug-a3": {
+        "max": 25,
+        "min": 18
+      },
+      "rpk-74": {
+        "max": 24,
+        "min": 12
       }
     },
     "ar_standard": {
@@ -870,6 +878,14 @@
       "g17-race-pistol": {
         "max": 34,
         "min": 25
+      },
+      "improvised-gun": {
+        "max": 18,
+        "min": 10
+      },
+      "dual-vz-61": {
+        "max": 15,
+        "min": 8
       }
     },
     "pistols": {
@@ -914,6 +930,10 @@
       "tec-9": {
         "max": 30,
         "min": 18
+      },
+      "mp9": {
+        "max": 20,
+        "min": 10
       }
     },
     "revolvers": {
@@ -1004,6 +1024,10 @@
       "ump-9": {
         "max": 34,
         "min": 18
+      },
+      "mx4": {
+        "max": 20,
+        "min": 8
       }
     }
   }
