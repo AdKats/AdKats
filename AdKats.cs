@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.59
- * 8-MAR-2016
+ * Version 6.8.1.60
+ * 9-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.59</version_code>
+ * <version_code>6.8.1.60</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.59";
+        private const String PluginVersion = "6.8.1.60";
 
         public enum GameVersion
         {
@@ -42863,6 +42863,7 @@ namespace PRoConEvents
             }
 
             public void PushPrivate(String title, String body) {
+                WebResponse response = null;
                 try {
                     if (String.IsNullOrEmpty(AccessToken)) {
                         Plugin.Log.Error("PushBullet token empty! Unable to push private note.");
@@ -42877,24 +42878,32 @@ namespace PRoConEvents
                         return;
                     }
                     WebRequest request = WebRequest.Create("https://api.pushbullet.com/v2/pushes");
-                    var responseReader = new StreamReader(request.GetResponse().GetResponseStream());
                     request.Method = "POST";
-                    request.Headers.Add("Access-Token: " + AccessToken);
-                    request.ContentType = "application/json; charset=UTF-8";
-                    byte[] byteArray = Encoding.UTF8.GetBytes(JSON.JsonEncode(new Hashtable {
+                    request.Headers.Add("Access-Token", AccessToken);
+                    request.Headers.Add("Content-Type", "application/json");
+                    String jsonBody = JSON.JsonEncode(new Hashtable {
                         {"active", true},
                         {"type", "note"},
                         {"sender_name", "AdKats-" + Plugin._serverInfo.ServerID},
                         {"title", title},
                         {"body", body}
-                    }));
+                    });
+                    byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
                     request.ContentLength = byteArray.Length;
+
+                    Plugin.Log.Info("Request Headers: " + request.Headers.ToString());
+                    Plugin.Log.Info("Request Body: " + jsonBody);
+
                     Stream requestStream = request.GetRequestStream();
                     requestStream.Write(byteArray, 0, byteArray.Length);
                     requestStream.Close();
-                    Plugin.Log.Info("RESPONSE: " + responseReader.ReadToEnd());
+                    response = request.GetResponse();
+                    Plugin.Log.Info("RESPONSE: " + new StreamReader(response.GetResponseStream()).ReadToEnd());
                 }
-                catch (Exception e) {
+                catch (WebException e)
+                {
+                    response = e.Response;
+                    Plugin.Log.Info("RESPONSE: " + new StreamReader(response.GetResponseStream()).ReadToEnd());
                     Plugin.HandleException(new AdKatsException("Error sending private PushBullet note.", e));
                 }
             }
