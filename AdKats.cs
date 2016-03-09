@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.62
+ * Version 6.8.1.63
  * 9-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.62</version_code>
+ * <version_code>6.8.1.63</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.62";
+        private const String PluginVersion = "6.8.1.63";
 
         public enum GameVersion
         {
@@ -519,7 +519,7 @@ namespace PRoConEvents
         private Int32 _surrenderAutoMinimumPlayers = 10;
         private String _surrenderAutoMessage = "Auto-Resolving Round. %WinnerName% Wins!";
         private Boolean _surrenderAutoNukeInstead;
-        private Int32 _surrenderAutoNukeDuration = 1;
+        private Int32 _surrenderAutoNukeDuration = 0;
         private Int32 _surrenderAutoNukeMinBetween = 60;
         private DateTime _surrenderAutoNukeLast = DateTime.UtcNow - TimeSpan.FromMinutes(10);
         private AdKatsTeam _surrenderAutoNukeLastTeam;
@@ -2860,8 +2860,8 @@ namespace PRoConEvents
                     {
                         if (surrenderAutoNukeDuration < 0)
                         {
-                            Log.Error("Auto-nuke duration must be positive.");
-                            surrenderAutoNukeDuration = 1;
+                            Log.Error("Auto-nuke duration must be non-negative.");
+                            surrenderAutoNukeDuration = 0;
                         }
                         if (surrenderAutoNukeDuration > 120)
                         {
