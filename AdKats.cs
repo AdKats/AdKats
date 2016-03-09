@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.61
+ * Version 6.8.1.62
  * 9-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.61</version_code>
+ * <version_code>6.8.1.62</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.61";
+        private const String PluginVersion = "6.8.1.62";
 
         public enum GameVersion
         {
@@ -42842,7 +42842,9 @@ namespace PRoConEvents
                 StringBuilder bb = new StringBuilder();
                 bb.Append("AdKats Round Report [" + record.command_numeric + "]");
                 bb.AppendLine();
+                bb.AppendLine();
                 bb.Append(record.GetSourceName() + " reported " + record.GetTargetNames() + " for " + record.record_message);
+                bb.AppendLine();
                 bb.AppendLine();
                 bb.Append(Plugin._serverInfo.ServerName);
                 PushDefault(title, bb.ToString());
@@ -42862,7 +42864,8 @@ namespace PRoConEvents
                 }
             }
 
-            public void PushPrivate(String title, String body) {
+            public void PushPrivate(String title, String body)
+            {
                 WebResponse response = null;
                 try {
                     if (String.IsNullOrEmpty(AccessToken)) {
@@ -42890,15 +42893,9 @@ namespace PRoConEvents
                     });
                     byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
                     request.ContentLength = byteArray.Length;
-
-                    Plugin.Log.Info("Request Headers: " + request.Headers.ToString());
-                    Plugin.Log.Info("Request Body: " + jsonBody);
-
                     Stream requestStream = request.GetRequestStream();
                     requestStream.Write(byteArray, 0, byteArray.Length);
                     requestStream.Close();
-                    response = request.GetResponse();
-                    Plugin.Log.Info("RESPONSE: " + new StreamReader(response.GetResponseStream()).ReadToEnd());
                 }
                 catch (WebException e)
                 {
@@ -42908,44 +42905,54 @@ namespace PRoConEvents
                 }
             }
 
-            public void PushChannel(String title, String body, String channelTag) {
-                try {
-                    if (String.IsNullOrEmpty(AccessToken)) {
+            public void PushChannel(String title, String body, String channelTag)
+            {
+                WebResponse response = null;
+                try
+                {
+                    if (String.IsNullOrEmpty(AccessToken))
+                    {
                         Plugin.Log.Error("PushBullet token empty! Unable to push channel note.");
                         return;
                     }
-                    if (String.IsNullOrEmpty(channelTag)) {
+                    if (String.IsNullOrEmpty(channelTag))
+                    {
                         Plugin.Log.Error("PushBullet channel tag empty! Unable to push channel note.");
                         return;
                     }
-                    if (String.IsNullOrEmpty(title)) {
+                    if (String.IsNullOrEmpty(title))
+                    {
                         Plugin.Log.Error("PushBullet note title empty! Unable to push channel note.");
                         return;
                     }
-                    if (String.IsNullOrEmpty(body)) {
+                    if (String.IsNullOrEmpty(body))
+                    {
                         Plugin.Log.Error("PushBullet note body empty! Unable to push channel note.");
                         return;
                     }
                     WebRequest request = WebRequest.Create("https://api.pushbullet.com/v2/pushes");
-                    var responseReader = new StreamReader(request.GetResponse().GetResponseStream());
                     request.Method = "POST";
-                    request.Headers.Add("Authorization", "Bearer " + AccessToken);
-                    request.ContentType = "application/json; charset=UTF-8";
-                    byte[] byteArray = Encoding.UTF8.GetBytes(JSON.JsonEncode(new Hashtable {
+                    request.Headers.Add("Access-Token", AccessToken);
+                    request.ContentType = "application/json";
+                    String jsonBody = JSON.JsonEncode(new Hashtable {
                         {"active", true},
                         {"type", "note"},
                         {"sender_name", "AdKats-" + Plugin._serverInfo.ServerID},
                         {"channel_tag", channelTag},
                         {"title", title},
                         {"body", body}
-                    }));
+                    });
+                    byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
                     request.ContentLength = byteArray.Length;
                     Stream requestStream = request.GetRequestStream();
                     requestStream.Write(byteArray, 0, byteArray.Length);
                     requestStream.Close();
-                    Plugin.Log.Info("RESPONSE: " + responseReader.ReadToEnd());
-                } catch (Exception e) {
-                    Plugin.HandleException(new AdKatsException("Error sending channel PushBullet note.", e));
+                }
+                catch (WebException e)
+                {
+                    response = e.Response;
+                    Plugin.Log.Info("RESPONSE: " + new StreamReader(response.GetResponseStream()).ReadToEnd());
+                    Plugin.HandleException(new AdKatsException("Error sending private PushBullet note.", e));
                 }
             }
         }
