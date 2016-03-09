@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.63
+ * Version 6.8.1.64
  * 9-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.63</version_code>
+ * <version_code>6.8.1.64</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.63";
+        private const String PluginVersion = "6.8.1.64";
 
         public enum GameVersion
         {
@@ -354,7 +354,7 @@ namespace PRoConEvents
         private readonly Dictionary<String, Func<AdKats, Double>> _commandTimeoutDictionary = new Dictionary<string, Func<AdKats, double>>();
         private readonly Dictionary<String, DateTime> _commandUsageTimes = new Dictionary<string, DateTime>();
         private Boolean _AllowAdminSayCommands = true;
-        private Boolean _bypassCommandConfirmation;
+        private Boolean _bypassCommandConfirmation = false;
         private List<String> _ExternalPlayerCommands = new List<string>();
         private List<String> _ExternalAdminCommands = new List<string>();
         private List<String> _CommandTargetWhitelistCommands = new List<string>();
@@ -442,7 +442,7 @@ namespace PRoConEvents
         private Boolean _attemptManualPingWhenMissing = false;
 
         //Commander manager
-        private Boolean _CMDRManagerEnable;
+        private Boolean _CMDRManagerEnable = false;
         private Int32 _CMDRMinimumPlayers = 40;
 
         //Ban enforcer
@@ -454,14 +454,14 @@ namespace PRoConEvents
         private Boolean _BansQueuing;
         private String _CBanAdminName = "BanEnforcer";
         private Boolean _DefaultEnforceGUID = true;
-        private Boolean _DefaultEnforceIP;
-        private Boolean _DefaultEnforceName;
+        private Boolean _DefaultEnforceIP = false;
+        private Boolean _DefaultEnforceName = false;
         private Int64 _GUIDBanCount = -1;
         private Int64 _IPBanCount = -1;
         private Int64 _NameBanCount = -1;
         private TimeSpan _MaxTempBanDuration = TimeSpan.FromDays(3650);
         //Metabans
-        private Boolean _useMetabans;
+        private Boolean _useMetabans = false;
         private String _metabansAPIKey = "";
         private String _metabansUsername = "";
         private String[] _metabansFilterStrings = { };
@@ -7037,7 +7037,10 @@ namespace PRoConEvents
                                 _surrenderAutoNukeLastTeam != null)
                             {
                                 var endDuration = NowDuration(_surrenderAutoNukeLast.AddSeconds(_surrenderAutoNukeDuration));
-                                AdminTellMessage(_surrenderAutoNukeLastTeam.TeamKey + " nuke active for " + Math.Round(endDuration.TotalSeconds, 1) + " seconds!");
+                                if (endDuration.TotalSeconds >= 1.0) 
+                                {
+                                    AdminTellMessage(_surrenderAutoNukeLastTeam.TeamKey + " nuke active for " + Math.Round(endDuration.TotalSeconds, 1) + " seconds!");
+                                }
                             }
 
                             //Sleep 1 second between loops
