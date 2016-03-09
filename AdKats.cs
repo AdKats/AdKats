@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.60
+ * Version 6.8.1.61
  * 9-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.60</version_code>
+ * <version_code>6.8.1.61</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.60";
+        private const String PluginVersion = "6.8.1.61";
 
         public enum GameVersion
         {
@@ -42880,7 +42880,7 @@ namespace PRoConEvents
                     WebRequest request = WebRequest.Create("https://api.pushbullet.com/v2/pushes");
                     request.Method = "POST";
                     request.Headers.Add("Access-Token", AccessToken);
-                    request.Headers.Add("Content-Type", "application/json");
+                    request.ContentType = "application/json";
                     String jsonBody = JSON.JsonEncode(new Hashtable {
                         {"active", true},
                         {"type", "note"},
