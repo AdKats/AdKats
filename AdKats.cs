@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.58
+ * Version 6.8.1.59
  * 8-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.58</version_code>
+ * <version_code>6.8.1.59</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.58";
+        private const String PluginVersion = "6.8.1.59";
 
         public enum GameVersion
         {
@@ -15975,7 +15975,6 @@ namespace PRoConEvents
                                 FinalizeRecord(record);
                                 return;
                             }
-                            String debug = (PlayerIsAdmin(record.source_player)) ? ("[" + friendlyTeam.TeamKey + ":" + friendlyTeam.TeamTicketCount + ":" + (int)friendlyTeam.TeamTicketDifferenceRate + "][" + enemyTeam.TeamKey + ":" + enemyTeam.TeamTicketCount + ":" + (int)enemyTeam.TeamTicketDifferenceRate + "]") : ("");
 
                             record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]";
                             var enemyPowerLower = _UseTopPlayerMonitor && 
@@ -15993,11 +15992,11 @@ namespace PRoConEvents
                                 Double timeout = (secondTimeout - (UtcNow() - _commandUsageTimes["self_assist"]).TotalSeconds);
                                 if (timeout > 0)
                                 {
-                                    SendMessageToSource(record, "Assist recently used. Please wait " + Math.Ceiling(timeout) + " seconds before using it. Thank you. " + debug);
+                                    SendMessageToSource(record, "Assist recently used. Please wait " + Math.Ceiling(timeout) + " seconds before using it. Thank you.");
                                     FinalizeRecord(record);
                                     return;
                                 }
-                                SendMessageToSource(record, "Queuing you to assist the weak team. Thank you. " + debug);
+                                SendMessageToSource(record, "Queuing you to assist the weak team. Thank you.");
                                 OnlineAdminSayMessage(record.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted, queueing.");
                             } 
                             else {
@@ -42880,7 +42879,7 @@ namespace PRoConEvents
                     WebRequest request = WebRequest.Create("https://api.pushbullet.com/v2/pushes");
                     var responseReader = new StreamReader(request.GetResponse().GetResponseStream());
                     request.Method = "POST";
-                    request.Headers.Add("Authorization", "Bearer " + AccessToken);
+                    request.Headers.Add("Access-Token: " + AccessToken);
                     request.ContentType = "application/json; charset=UTF-8";
                     byte[] byteArray = Encoding.UTF8.GetBytes(JSON.JsonEncode(new Hashtable {
                         {"active", true},
