@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.64
- * 9-MAR-2016
+ * Version 6.8.1.65
+ * 12-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.64</version_code>
+ * <version_code>6.8.1.65</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.64";
+        private const String PluginVersion = "6.8.1.65";
 
         public enum GameVersion
         {
@@ -7458,9 +7458,10 @@ namespace PRoConEvents
                             Thread.CurrentThread.Name = "TeamAssignmentConfirmation";
                             Thread.Sleep(TimeSpan.FromSeconds(1));
                             DateTime starting = UtcNow();
-                            while (true) 
+                            while (true)
                             {
-                                if (!_pluginEnabled) {
+                                if (!_pluginEnabled)
+                                {
                                     break;
                                 }
                                 if ((UtcNow() - starting).TotalSeconds > 30)
@@ -7468,62 +7469,15 @@ namespace PRoConEvents
                                     Log.Warn("TeamAssignmentConfirmation took too long.");
                                     break;
                                 }
-                                if (!_teamDictionary.ContainsKey(1) || 
-                                    !_teamDictionary.ContainsKey(2) || 
-                                    !_teamDictionary.ContainsKey(3) || 
+                                if (!_teamDictionary.ContainsKey(1) ||
+                                    !_teamDictionary.ContainsKey(2) ||
+                                    !_teamDictionary.ContainsKey(3) ||
                                     !_teamDictionary.ContainsKey(4))
                                 {
-                                    Thread.Sleep(TimeSpan.FromSeconds(1));
+                                    Thread.Sleep(TimeSpan.FromSeconds(0.5));
                                     continue;
                                 }
                                 _acceptingTeamUpdates = false;
-                                if (_UseTopPlayerMonitor && _firstPlayerListComplete)
-                                {
-                                    //Update team assignment of top players
-                                    List<AdKatsPlayer> orderedTopPlayers = _PlayerDictionary.Values
-                                        .Where(dPlayer =>
-                                            dPlayer.player_type == PlayerType.Player &&
-                                            _topPlayers.ContainsKey(dPlayer.player_name))
-                                        .OrderByDescending(dPlayer =>
-                                            dPlayer.TopStats.TopRoundRatio)
-                                        .ToList();
-                                    if (orderedTopPlayers.Count > 1)
-                                    {
-                                        AdKatsTeam team1;
-                                        AdKatsTeam team2;
-                                        if (!_teamDictionary.TryGetValue(1, out team1))
-                                        {
-                                            Log.Info("Team 1 was not found, waiting.");
-                                            continue;
-                                        }
-                                        if (!_teamDictionary.TryGetValue(2, out team2))
-                                        {
-                                            Log.Info("Team 2 was not found, waiting.");
-                                            continue;
-                                        }
-                                        Boolean team1Set = currentStartingTeam1;
-                                        currentStartingTeam1 = !currentStartingTeam1;
-                                        foreach (AdKatsPlayer aPlayer in orderedTopPlayers)
-                                        {
-                                            aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
-                                            if (_isTestingAuthorized) {
-                                                ProconChatWrite("Initial Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
-                                            }
-                                            Thread.Sleep(TimeSpan.FromMilliseconds(50));
-                                            ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
-                                            Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                            if (aPlayer.player_name == _debugSoldierName) {
-                                                PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                            }
-                                            team1Set = !team1Set;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Log.Debug(() => "Not enough top players online to do splitting.", 3);
-                                    }
-                                    FetchAllAccess(true);
-                                }
                                 break;
                             }
                             LogThreadExit();
@@ -7537,13 +7491,113 @@ namespace PRoConEvents
                     OnTeamFactionOverride(2, 1);
                     _acceptingTeamUpdates = false;
                 }
+
+                //Top player monitor
+                if (_aliveThreads.Values.All(thread => thread.Name != "TopPlayerMonitorAssignment"))
+                {
+                    StartAndLogThread(new Thread(new ThreadStart(delegate
+                    {
+                        Thread.CurrentThread.Name = "TopPlayerMonitorAssignment";
+                        Thread.Sleep(TimeSpan.FromSeconds(0.1));
+                        DateTime starting = UtcNow();
+                        while (true)
+                        {
+                            if (!_pluginEnabled)
+                            {
+                                break;
+                            }
+                            if ((UtcNow() - starting).TotalSeconds > 30)
+                            {
+                                Log.Warn("TopPlayerMonitorAssignment took too long.");
+                                break;
+                            }
+                            if (_acceptingTeamUpdates)
+                            {
+                                Thread.Sleep(TimeSpan.FromSeconds(0.5));
+                                continue;
+                            }
+                            if (_UseTopPlayerMonitor && _firstPlayerListComplete)
+                            {
+                                //Update team assignment of top players
+                                List<AdKatsPlayer> orderedTopPlayers = _PlayerDictionary.Values
+                                    .Where(dPlayer =>
+                                        dPlayer.player_type == PlayerType.Player &&
+                                        _topPlayers.ContainsKey(dPlayer.player_name))
+                                    .OrderByDescending(dPlayer =>
+                                        dPlayer.TopStats.TopRoundRatio)
+                                    .ToList();
+                                if (orderedTopPlayers.Count > 1)
+                                {
+                                    AdKatsTeam team1;
+                                    AdKatsTeam team2;
+                                    if (!_teamDictionary.TryGetValue(1, out team1))
+                                    {
+                                        Log.Info("Team 1 was not found, waiting.");
+                                        continue;
+                                    }
+                                    if (!_teamDictionary.TryGetValue(2, out team2))
+                                    {
+                                        Log.Info("Team 2 was not found, waiting.");
+                                        continue;
+                                    }
+                                    Boolean team1Set = currentStartingTeam1;
+                                    currentStartingTeam1 = !currentStartingTeam1;
+                                    foreach (AdKatsPlayer aPlayer in orderedTopPlayers)
+                                    {
+                                        aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
+                                        if (_isTestingAuthorized)
+                                        {
+                                            ProconChatWrite("Initial Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
+                                        }
+                                        Thread.Sleep(TimeSpan.FromMilliseconds(50));
+                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
+                                        Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                        if (aPlayer.player_name == _debugSoldierName)
+                                        {
+                                            PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                        }
+                                        team1Set = !team1Set;
+                                    }
+                                    //Confirm they remain on the team they were assigned, yay DICE's mandatory balancer
+                                    var start = UtcNow();
+                                    while (NowDuration(start).TotalSeconds < 120 && _pluginEnabled && _roundState != RoundState.Playing)
+                                    {
+                                        foreach (AdKatsPlayer aPlayer in orderedTopPlayers)
+                                        {
+                                            if (!_pluginEnabled || _roundState == RoundState.Playing)
+                                            {
+                                                break;
+                                            }
+                                            Thread.Sleep(TimeSpan.FromMilliseconds(50));
+                                            if (aPlayer.RequiredTeam != null)
+                                            {
+                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
+                                                if (_isTestingAuthorized)
+                                                {
+                                                    ProconChatWrite("Upkeep Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
+                                                }
+                                            }
+                                        }
+                                        Thread.Sleep(TimeSpan.FromSeconds(1));
+                                    }
+                                }
+                                else
+                                {
+                                    Log.Debug(() => "Not enough top players online to do splitting.", 3);
+                                }
+                                FetchAllAccess(true);
+                            }
+                            break;
+                        }
+                        LogThreadExit();
+                    })));
+                }
             }
             catch (Exception e)
             {
                 HandleException(new AdKatsException("Error while running faction updates.", e));
             }
         }
-
 
         public override void OnPlayerTeamChange(String soldierName, Int32 teamId, Int32 squadId)
         {
