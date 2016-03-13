@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.65
+ * Version 6.8.1.66
  * 12-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.65</version_code>
+ * <version_code>6.8.1.66</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.65";
+        private const String PluginVersion = "6.8.1.66";
 
         public enum GameVersion
         {
@@ -15979,7 +15979,7 @@ namespace PRoConEvents
                                 return;
                             }
 
-                            Int32 minAssistMinutes = ((_baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.target_player.player_id)) ? (4) : (2));
+                            Int32 minAssistMinutes = 4;
                             if (_isTestingAuthorized && _serverInfo.GetRoundElapsedTime().TotalMinutes < minAssistMinutes) {
                                 SendMessageToSource(record, "Please wait at least " + minAssistMinutes + " minutes into the round to use assist. [" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "]");
                                 FinalizeRecord(record);
