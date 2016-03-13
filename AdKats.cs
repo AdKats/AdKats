@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.66
- * 12-MAR-2016
+ * Version 6.8.1.67
+ * 13-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.66</version_code>
+ * <version_code>6.8.1.67</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.66";
+        private const String PluginVersion = "6.8.1.67";
 
         public enum GameVersion
         {
@@ -385,7 +385,7 @@ namespace PRoConEvents
         private Boolean _acceptingTeamUpdates;
         private readonly Dictionary<String, Int32> _unmatchedRoundDeathCounts = new Dictionary<String, Int32>();
         private readonly HashSet<String> _unmatchedRoundDeaths = new HashSet<String>();
-        private readonly Dictionary<String, AdKatsPlayer> _roundAssists = new Dictionary<String, AdKatsPlayer>();
+        private readonly Dictionary<String, AdKatsRecord> _roundAssists = new Dictionary<String, AdKatsRecord>();
 
         //Players
         private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
@@ -7036,10 +7036,10 @@ namespace PRoConEvents
                             if (duration.TotalSeconds < _surrenderAutoNukeDuration &&
                                 _surrenderAutoNukeLastTeam != null)
                             {
-                                var endDuration = NowDuration(_surrenderAutoNukeLast.AddSeconds(_surrenderAutoNukeDuration));
-                                if (endDuration.TotalSeconds >= 1.0) 
+                                Int32 endDuration = (int)NowDuration(_surrenderAutoNukeLast.AddSeconds(_surrenderAutoNukeDuration)).TotalSeconds;
+                                if (endDuration >= 1 && endDuration % 2 == 0) 
                                 {
-                                    AdminTellMessage(_surrenderAutoNukeLastTeam.TeamKey + " nuke active for " + Math.Round(endDuration.TotalSeconds, 1) + " seconds!");
+                                    AdminTellMessage(_surrenderAutoNukeLastTeam.TeamKey + " nuke active for " + endDuration + " seconds!");
                                 }
                             }
 
@@ -9334,11 +9334,14 @@ namespace PRoConEvents
                                                         auaPlayers[aPlayer.player_name] = aPlayer;
                                                     }
                                                 }
-                                                if (!_UseTopPlayerMonitor) {
+                                                if (!_UseTopPlayerMonitor)
+                                                {
                                                     //Get players from those who have assisted to the now winning team
-                                                    foreach (AdKatsPlayer aPlayer in _roundAssists.Values.Where(dPlayer => dPlayer.player_online && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) {
-                                                        if (!auaPlayers.ContainsKey(aPlayer.player_name)) {
-                                                            auaPlayers[aPlayer.player_name] = aPlayer;
+                                                    foreach (AdKatsRecord aRecord in _roundAssists.Values.Where(dRecord => dRecord.target_player.player_online && dRecord.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                    {
+                                                        if (!auaPlayers.ContainsKey(aRecord.target_player.player_name))
+                                                        {
+                                                            auaPlayers[aRecord.target_player.player_name] = aRecord.target_player;
                                                         }
                                                     }
                                                 }
@@ -9509,11 +9512,14 @@ namespace PRoConEvents
                                                         auaPlayers[aPlayer.player_name] = aPlayer;
                                                     }
                                                 }
-                                                if (!_UseTopPlayerMonitor) {
+                                                if (!_UseTopPlayerMonitor)
+                                                {
                                                     //Get players from those who have assisted to the now winning team
-                                                    foreach (AdKatsPlayer aPlayer in _roundAssists.Values.Where(dPlayer => dPlayer.player_online && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) {
-                                                        if (!auaPlayers.ContainsKey(aPlayer.player_name)) {
-                                                            auaPlayers[aPlayer.player_name] = aPlayer;
+                                                    foreach (AdKatsRecord aRecord in _roundAssists.Values.Where(dRecord => dRecord.target_player.player_online && dRecord.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                    {
+                                                        if (!auaPlayers.ContainsKey(aRecord.target_player.player_name))
+                                                        {
+                                                            auaPlayers[aRecord.target_player.player_name] = aRecord.target_player;
                                                         }
                                                     }
                                                 }
@@ -9688,11 +9694,14 @@ namespace PRoConEvents
                                                                 auaPlayers[aPlayer.player_name] = aPlayer;
                                                             }
                                                         }
-                                                        if (!_UseTopPlayerMonitor) {
+                                                        if (!_UseTopPlayerMonitor)
+                                                        {
                                                             //Get players from those who have assisted to the now winning team
-                                                            foreach (AdKatsPlayer aPlayer in _roundAssists.Values.Where(dPlayer => dPlayer.player_online && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) {
-                                                                if (!auaPlayers.ContainsKey(aPlayer.player_name)) {
-                                                                    auaPlayers[aPlayer.player_name] = aPlayer;
+                                                            foreach (AdKatsRecord aRecord in _roundAssists.Values.Where(dRecord => dRecord.target_player.player_online && dRecord.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                            {
+                                                                if (!auaPlayers.ContainsKey(aRecord.target_player.player_name))
+                                                                {
+                                                                    auaPlayers[aRecord.target_player.player_name] = aRecord.target_player;
                                                                 }
                                                             }
                                                         }
@@ -9861,11 +9870,14 @@ namespace PRoConEvents
                                                                 auaPlayers[aPlayer.player_name] = aPlayer;
                                                             }
                                                         }
-                                                        if (!_UseTopPlayerMonitor) {
+                                                        if (!_UseTopPlayerMonitor)
+                                                        {
                                                             //Get players from those who have assisted to the now winning team
-                                                            foreach (AdKatsPlayer aPlayer in _roundAssists.Values.Where(dPlayer => dPlayer.player_online && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) {
-                                                                if (!auaPlayers.ContainsKey(aPlayer.player_name)) {
-                                                                    auaPlayers[aPlayer.player_name] = aPlayer;
+                                                            foreach (AdKatsRecord aRecord in _roundAssists.Values.Where(dRecord => dRecord.target_player.player_online && dRecord.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                            {
+                                                                if (!auaPlayers.ContainsKey(aRecord.target_player.player_name))
+                                                                {
+                                                                    auaPlayers[aRecord.target_player.player_name] = aRecord.target_player;
                                                                 }
                                                             }
                                                         }
@@ -15478,6 +15490,8 @@ namespace PRoConEvents
                     }
                 }
                 Log.Debug(() => "Preparing to queue " + record.command_type.command_key + " record for processing", 6);
+                //Set the record update time
+                record.record_time_update = UtcNow();
                 lock (_UnprocessedRecordQueue)
                 {
                     //Queue the record for processing
@@ -16044,14 +16058,24 @@ namespace PRoConEvents
                                 enemyPowerLower || 
                                 Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > (_startingTicketCount > 0 ? (_startingTicketCount / 4.0) : 250)))
                             {
-                                //60 second timeout
-                                Double secondTimeout = _UseTopPlayerMonitor ? 20 : 60;
-                                Double timeout = (secondTimeout - (UtcNow() - _commandUsageTimes["self_assist"]).TotalSeconds);
-                                if (timeout > 0)
+                                //Timeout or over-queueing
+                                var assists = _roundAssists.Values;
+                                if (assists.Any())
                                 {
-                                    SendMessageToSource(record, "Assist recently used. Please wait " + Math.Ceiling(timeout) + " seconds before using it. Thank you.");
-                                    FinalizeRecord(record);
-                                    return;
+                                    if (assists.Any(aRecord => aRecord.command_action.command_key == "self_assist_unconfirmed"))
+                                    {
+                                        SendMessageToSource(record, "Another player is already queued for assist. Please wait for them to be moved. Thank you.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    Double secondTimeout = _UseTopPlayerMonitor ? 20 : 60;
+                                    Double timeout = (secondTimeout - (UtcNow() - assists.Max(aRecord => aRecord.record_time_update)).TotalSeconds);
+                                    if (timeout > 0)
+                                    {
+                                        SendMessageToSource(record, "Assist recently used. Please wait " + Math.Ceiling(timeout) + " seconds before using it. Thank you.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
                                 }
                                 SendMessageToSource(record, "Queuing you to assist the weak team. Thank you.");
                                 OnlineAdminSayMessage(record.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted, queueing.");
@@ -22918,7 +22942,7 @@ namespace PRoConEvents
                 }
                 if (record.source_name == record.target_name)
                 {
-                    _roundAssists[record.target_player.player_name] = record.target_player;
+                    _roundAssists[record.target_player.player_name] = record;
                 }
                 QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
             }
@@ -42231,6 +42255,7 @@ namespace PRoConEvents
             public String record_message = null;
             public Sources record_source = Sources.Default;
             public DateTime record_time = DateTime.UtcNow;
+            public DateTime record_time_update = DateTime.UtcNow;
             public Int64 server_id = -1;
             public String source_name = null;
             public AdKatsPlayer source_player = null;
