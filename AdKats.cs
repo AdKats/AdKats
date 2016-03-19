@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.69
- * 15-MAR-2016
+ * Version 6.8.1.70
+ * 17-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.69</version_code>
+ * <version_code>6.8.1.70</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.69";
+        private const String PluginVersion = "6.8.1.70";
 
         public enum GameVersion
         {
@@ -559,23 +559,11 @@ namespace PRoConEvents
         private Boolean _MULTIBalancerUnswitcherDisabled;
         public readonly String[] _subscriptionGroups = { "OnlineSoldiers" };
         private readonly List<AdKatsClient> _subscribedClients = new List<AdKatsClient>();
-        //Round leaders
-        private Boolean _RoundLeadersMonitor = false;
-        private Int32 _RoundLeadersTopCount = 5;
-        private Int32 _RoundLeadersTopDays = 30;
-        private readonly Dictionary<String, AdKatsPlayer> _RoundLeaderPlayers = new Dictionary<String, AdKatsPlayer>();
-        //Baserape Causers
-        private Boolean _PostWinLossBaserapeStatistics;
-        private Boolean _BaserapeCausingPlayersMonitor;
-        private Int32 _BaserapeCausingPlayersDurationDays = 7;
-        private Int32 _BaserapeCausingPlayersMinimumCount = 5;
-        private readonly Dictionary<String, AdKatsPlayer> _baserapeCausingPlayers = new Dictionary<String, AdKatsPlayer>();
-        private Boolean _FeedBaserapeCausingPlayerDispersion;
-        private Boolean _AutomaticAssistBaserapeCausingPlayers;
-        private Boolean _PlayersAutoAssistedThisRound;
         //Top Players
         private Boolean _UseTopPlayerMonitor;
         private Boolean currentStartingTeam1 = true;
+        private Boolean _PlayersAutoAssistedThisRound = false;
+        private Int32 _TopPlayersTeamConfirmationDuration = 5;
         private String _TopPlayersAffected = "Good And Above";
         private readonly Dictionary<String, AdKatsPlayer> _topPlayers = new Dictionary<String, AdKatsPlayer>();
         //Populators
@@ -634,7 +622,8 @@ namespace PRoConEvents
         private Boolean _useFirstSpawnRepMessage;
         private String _FirstSpawnMessage = "FIRST SPAWN MESSAGE";
         private Boolean _DisplayTicketRatesInProconChat;
-        private Boolean _InformReputablePlayersOfAdminJoins = true;
+        private Boolean _InformReputablePlayersOfAdminJoins = false;
+        private Boolean _InformAdminsOfAdminJoins = true;
 
         //SpamBot
         private Boolean _spamBotEnabled;
@@ -1099,7 +1088,8 @@ namespace PRoConEvents
                         if (_InformReportedPlayers) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Player Inform Exclusion Strings", typeof(String[]), _PlayerInformExclusionStrings));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Inform reputable players and admins of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Inform reputable players of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Inform admins of admin joins", typeof(Boolean), _InformAdminsOfAdminJoins));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Yell display time seconds", typeof(int), _YellDuration));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Pre-Message List", typeof(String[]), _PreMessageList.ToArray()));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
@@ -1343,28 +1333,12 @@ namespace PRoConEvents
                     if (IsActiveSettingSection("B26")) {
                         //Statistics Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B26") + sept + "Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B26") + sept + "Post Win/Loss/Baserape Statistics", typeof(Boolean), _PostWinLossBaserapeStatistics));
-                    }
-
-                    if (IsActiveSettingSection("B27")) {
-                        //Player monitor settings
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor Baserape Causing Players", typeof(Boolean), _BaserapeCausingPlayersMonitor));
                     }
 
                     if (IsActiveSettingSection("B27")) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor Populator Players - Thanks CMWGaming", typeof(Boolean), _PopulatorMonitor));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor Teamspeak Players - Thanks CMWGaming", typeof(Boolean), _TeamspeakPlayerMonitorView));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
-                    }
-
-                    if (IsActiveSettingSection("B27-1")) {
-                        if (_BaserapeCausingPlayersMonitor) {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "[" + _baserapeCausingPlayers.Count() + "] Baserape Causing Players (Display)", typeof(String[]), _baserapeCausingPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "Past Days to Monitor Baserape Causing Players", typeof(Int32), _BaserapeCausingPlayersDurationDays));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "Count to Consider Baserape Causing", typeof(Int32), _BaserapeCausingPlayersMinimumCount));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "Automatic Dispersion for Baserape Causing Players", typeof(Boolean), _FeedBaserapeCausingPlayerDispersion));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "Automatic Assist Trigger for Baserape Causing Players", typeof(Boolean), _AutomaticAssistBaserapeCausingPlayers));
-                        }
                     }
 
                     if (IsActiveSettingSection("B27-2")) {
@@ -1440,6 +1414,7 @@ namespace PRoConEvents
                                 .OrderBy(item => item)
                                 .ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above|Marginal and Above|Most Players)", _TopPlayersAffected));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Top player team confirmation duration", typeof(Int32), _TopPlayersTeamConfirmationDuration));
                         }
                     }
 
@@ -3134,196 +3109,8 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Post Win/Loss/Baserape Statistics").Success)
+                else if (Regex.Match(strVariable, @"Monitor/Disperse Top Players").Success)
                 {
-                    Boolean PostWinLossBaserapeStatistics = Boolean.Parse(strValue);
-                    if (PostWinLossBaserapeStatistics != _PostWinLossBaserapeStatistics)
-                    {
-                        _PostWinLossBaserapeStatistics = PostWinLossBaserapeStatistics;
-                        if (_threadsReady)
-                        {
-                            if (_PostWinLossBaserapeStatistics)
-                            {
-                                Log.Info("Statistics for player wins, losses, and caused baserapes will now be logged.");
-                            }
-                            else
-                            {
-                                Log.Info("Statistics for player wins, losses, and caused baserapes will no longer be logged.");
-                            }
-                        }
-                        if (!_PostWinLossBaserapeStatistics && _FeedBaserapeCausingPlayerDispersion)
-                        {
-                            _FeedBaserapeCausingPlayerDispersion = false;
-                            Log.Warn("Baserape statistics were disabled. Feed for baserape causing players cannot be enabled when that is not.");
-                        }
-                        if (!_PostWinLossBaserapeStatistics && _AutomaticAssistBaserapeCausingPlayers)
-                        {
-                            _AutomaticAssistBaserapeCausingPlayers = false;
-                            Log.Warn("Baserape statistics were disabled. Automatic assist trigger cannot be enabled when that is not.");
-                        }
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Post Win/Loss/Baserape Statistics", typeof(Boolean), _PostWinLossBaserapeStatistics));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"Past Days to Monitor Baserape Causing Players").Success)
-                {
-                    //Initial parse
-                    Int32 BaserapeCausingPlayersDurationDays = Int32.Parse(strValue);
-                    //Check for changed value
-                    if (_BaserapeCausingPlayersDurationDays != BaserapeCausingPlayersDurationDays)
-                    {
-                        //Rejection cases
-                        if (BaserapeCausingPlayersDurationDays < 1)
-                        {
-                            Log.Error("'Past Days to Monitor Baserape Causing Players' cannot be less than 1.");
-                            BaserapeCausingPlayersDurationDays = 1;
-                        }
-                        //Assignment
-                        _BaserapeCausingPlayersDurationDays = BaserapeCausingPlayersDurationDays;
-                        //Notification
-                        if (_threadsReady)
-                        {
-                            Log.Info("Players are now considered baserape causing if they contribute to " + _BaserapeCausingPlayersMinimumCount + " baserapes in the past " + _BaserapeCausingPlayersDurationDays + " days.");
-                        }
-                        FetchAllAccess(true);
-                        //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Past Days to Monitor Baserape Causing Players", typeof(Int32), _BaserapeCausingPlayersDurationDays));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"Monitor Baserape Causing Players").Success)
-                {
-                    //Initial parse
-                    Boolean BaserapeCausingPlayersMonitor = Boolean.Parse(strValue);
-                    //Check for changed value
-                    if (BaserapeCausingPlayersMonitor != _BaserapeCausingPlayersMonitor)
-                    {
-                        //Rejection cases
-                        if (_threadsReady && !_PostWinLossBaserapeStatistics && BaserapeCausingPlayersMonitor)
-                        {
-                            Log.Error("Baserape causing players cannot be monitored when not posting win/loss/baserape statistics.");
-                            return;
-                        }
-                        //Assignment
-                        _BaserapeCausingPlayersMonitor = BaserapeCausingPlayersMonitor;
-                        //Notification
-                        if (_threadsReady)
-                        {
-                            if (_BaserapeCausingPlayersMonitor)
-                            {
-                                Log.Info("Baserape causing players are now being monitored. Players are considered baserape causing if they contribute to " + _BaserapeCausingPlayersMinimumCount + " baserapes in the past " + _BaserapeCausingPlayersDurationDays + " days.");
-                            }
-                            else
-                            {
-                                Log.Info("Baserape causing players are no longer being monitored.");
-                            }
-                            FetchAllAccess(true);
-                        }
-                        //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Monitor Baserape Causing Players", typeof(Boolean), _BaserapeCausingPlayersMonitor));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"Count to Consider Baserape Causing").Success)
-                {
-                    //Initial parse
-                    Int32 BaserapeCausingPlayersMinimumCount = Int32.Parse(strValue);
-                    //Check for changed value
-                    if (_BaserapeCausingPlayersMinimumCount != BaserapeCausingPlayersMinimumCount)
-                    {
-                        //Rejection cases
-                        if (BaserapeCausingPlayersMinimumCount < 1)
-                        {
-                            Log.Error("'Count to Consider Baserape Causing' cannot be less than 1.");
-                            BaserapeCausingPlayersMinimumCount = 1;
-                        }
-                        //Assignment
-                        _BaserapeCausingPlayersMinimumCount = BaserapeCausingPlayersMinimumCount;
-                        //Notification
-                        if (_threadsReady)
-                        {
-                            Log.Info("Players are now considered baserape causing if they contribute to " + _BaserapeCausingPlayersMinimumCount + " baserapes in the past " + _BaserapeCausingPlayersDurationDays + " days.");
-
-                            FetchAllAccess(true);
-                        }
-                        //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Count to Consider Baserape Causing", typeof(Int32), _BaserapeCausingPlayersMinimumCount));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"Automatic Dispersion for Baserape Causing Players").Success)
-                {
-                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
-                    {
-                        strValue = "False";
-                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
-                        return;
-                    }
-                    //Initial parse
-                    Boolean FeedBaserapeCausingPlayerDispersion = Boolean.Parse(strValue);
-                    //Check for changed value
-                    if (_FeedBaserapeCausingPlayerDispersion != FeedBaserapeCausingPlayerDispersion)
-                    {
-                        //Rejection cases
-                        if (_threadsReady && !_FeedMultiBalancerDisperseList && FeedBaserapeCausingPlayerDispersion)
-                        {
-                            Log.Error("'Automatic Dispersion for Baserape Causing Players' cannot be enabled when 'Feed MULTIBalancer Even Dispersion List' is disabled.");
-                            return;
-                        }
-                        //Assignment
-                        _FeedBaserapeCausingPlayerDispersion = FeedBaserapeCausingPlayerDispersion;
-                        //Notification
-                        if (_threadsReady)
-                        {
-                            if (_FeedBaserapeCausingPlayerDispersion)
-                            {
-                                Log.Info("Baserape causing players are now being fed to autobalance dispersion.");
-                            }
-                            else
-                            {
-                                Log.Info("Baserape causing players are no longer being fed to autobalance dispersion.");
-                            }
-                            FetchAllAccess(true);
-                        }
-                        //Upload change to database 
-                        QueueSettingForUpload(new CPluginVariable(@"Automatic Dispersion for Baserape Causing Players", typeof(Boolean), _FeedBaserapeCausingPlayerDispersion));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"Automatic Assist Trigger for Baserape Causing Players").Success)
-                {
-                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
-                    {
-                        strValue = "False";
-                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
-                        return;
-                    }
-                    //Initial parse
-                    Boolean AutomaticAssistBaserapeCausingPlayers = Boolean.Parse(strValue);
-                    //Check for changed value
-                    if (_AutomaticAssistBaserapeCausingPlayers != AutomaticAssistBaserapeCausingPlayers)
-                    {
-                        //Rejection cases
-                        if (_threadsReady && !_FeedMultiBalancerDisperseList && AutomaticAssistBaserapeCausingPlayers)
-                        {
-                            Log.Error("'Automatic Dispersion for Baserape Causing Players' cannot be enabled when 'Feed MULTIBalancer Even Dispersion List' is disabled.");
-                            return;
-                        }
-                        //Assignment
-                        _AutomaticAssistBaserapeCausingPlayers = AutomaticAssistBaserapeCausingPlayers;
-                        //Notification
-                        if (_threadsReady)
-                        {
-                            if (_AutomaticAssistBaserapeCausingPlayers)
-                            {
-                                Log.Info("Baserape causing players are now being automatically assisted to weak teams when auto-surrender begins countdown.");
-                            }
-                            else
-                            {
-                                Log.Info("Baserape causing players are no longer being assisted to weak teams when auto-surrender begins countdown.");
-                            }
-                            FetchAllAccess(true);
-                        }
-                        //Upload change to database 
-                        QueueSettingForUpload(new CPluginVariable(@"Automatic Assist Trigger for Baserape Causing Players", typeof(Boolean), _AutomaticAssistBaserapeCausingPlayers));
-                    }
-                } else if (Regex.Match(strVariable, @"Monitor/Disperse Top Players").Success) {
                     //Initial parse
                     Boolean UseTopPlayerMonitor = Boolean.Parse(strValue);
                     //Check for changed value
@@ -3351,6 +3138,19 @@ namespace PRoConEvents
                         _TopPlayersAffected = strValue;
                         //Upload change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Affected Top Players", typeof(String), _TopPlayersAffected));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Top player team confirmation duration").Success)
+                {
+                    //Initial parse
+                    Int32 TopPlayersTeamConfirmationDuration = Int32.Parse(strValue);
+                    //Check for changed value
+                    if (_TopPlayersTeamConfirmationDuration != TopPlayersTeamConfirmationDuration)
+                    {
+                        //Assignment
+                        _TopPlayersTeamConfirmationDuration = TopPlayersTeamConfirmationDuration;
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Top player team confirmation duration", typeof(Int32), _TopPlayersTeamConfirmationDuration));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Monitor Populator Players").Success)
@@ -5800,14 +5600,24 @@ namespace PRoConEvents
                     //Once setting has been changed, upload the change to database
                     QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 }
-                else if (Regex.Match(strVariable, @"Inform reputable players and admins of admin joins").Success)
+                else if (Regex.Match(strVariable, @"Inform reputable players of admin joins").Success)
                 {
                     Boolean InformReputablePlayersOfAdminJoins = Boolean.Parse(strValue);
                     if (InformReputablePlayersOfAdminJoins != _InformReputablePlayersOfAdminJoins)
                     {
                         _InformReputablePlayersOfAdminJoins = InformReputablePlayersOfAdminJoins;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Inform reputable players and admins of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
+                        QueueSettingForUpload(new CPluginVariable(@"Inform reputable players of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Inform admins of admin joins").Success)
+                {
+                    Boolean InformAdminsOfAdminJoins = Boolean.Parse(strValue);
+                    if (InformAdminsOfAdminJoins != _InformAdminsOfAdminJoins)
+                    {
+                        _InformAdminsOfAdminJoins = InformAdminsOfAdminJoins;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Inform admins of admin joins", typeof(Boolean), _InformAdminsOfAdminJoins));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Add User").Success)
@@ -7560,11 +7370,13 @@ namespace PRoConEvents
                                     }
                                     //Confirm they remain on the team they were assigned, yay DICE's mandatory balancer
                                     var start = UtcNow();
-                                    while (NowDuration(start).TotalSeconds < 120 && _pluginEnabled && _roundState != RoundState.Playing)
+                                    while (NowDuration(start).TotalSeconds < _TopPlayersTeamConfirmationDuration && _pluginEnabled && _roundState != RoundState.Playing)
                                     {
                                         foreach (AdKatsPlayer aPlayer in orderedTopPlayers)
                                         {
-                                            if (!_pluginEnabled || _roundState == RoundState.Playing)
+                                            if (!_pluginEnabled || 
+                                                _roundState == RoundState.Playing || 
+                                                NowDuration(start).TotalSeconds > _TopPlayersTeamConfirmationDuration)
                                             {
                                                 break;
                                             }
@@ -7579,6 +7391,10 @@ namespace PRoConEvents
                                             }
                                         }
                                         Thread.Sleep(TimeSpan.FromSeconds(1));
+                                    }
+                                    if (_isTestingAuthorized)
+                                    {
+                                        ProconChatWrite("Stopped confirming player positions.");
                                     }
                                 }
                                 else
@@ -7645,7 +7461,7 @@ namespace PRoConEvents
                             }
                             aPlayer.RequiredTeam = newTeam;
                         } else {
-                            if (_roundState == RoundState.Playing && !_baserapeCausingPlayers.ContainsKey(aPlayer.player_name) && !_topPlayers.ContainsKey(aPlayer.player_name)) {
+                            if (_roundState == RoundState.Playing && !_topPlayers.ContainsKey(aPlayer.player_name)) {
                                 OnlineAdminSayMessage(soldierName + " attempted to switch teams after being admin moved.");
                                 PlayerTellMessage(soldierName, "You were assigned to " + aPlayer.RequiredTeam.TeamName + ", please remain on that team.");
                             }
@@ -8292,14 +8108,20 @@ namespace PRoConEvents
                                         {
                                             bool isAdmin = PlayerIsAdmin(aPlayer);
                                             //Notify reputable players
-                                            if ((isAdmin || aPlayer.player_aa) && _InformReputablePlayersOfAdminJoins)
+                                            if (isAdmin || aPlayer.player_aa)
                                             {
-                                                List<AdKatsPlayer> reputablePlayers = _PlayerDictionary.Values.Where(iPlayer => iPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(iPlayer)).ToList();
                                                 String message = ((isAdmin) ? ("Admin ") : ("Admin assistant ")) + aPlayer.GetVerboseName() + " joined the server as a " + joinLocation + ".";
-                                                OnlineAdminSayMessage(message);
-                                                foreach (AdKatsPlayer reputablePlayer in reputablePlayers)
+                                                if (_InformReputablePlayersOfAdminJoins)
                                                 {
-                                                    PlayerSayMessage(reputablePlayer.player_name, message);
+                                                    List<AdKatsPlayer> reputablePlayers = _PlayerDictionary.Values.Where(iPlayer => iPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(iPlayer)).ToList();
+                                                    foreach (AdKatsPlayer reputablePlayer in reputablePlayers)
+                                                    {
+                                                        PlayerSayMessage(reputablePlayer.player_name, message);
+                                                    }
+                                                }
+                                                if (_InformAdminsOfAdminJoins)
+                                                {
+                                                    OnlineAdminSayMessage(message);
                                                 }
                                             }
                                             else if (aPlayer.player_type == PlayerType.Spectator)
@@ -9308,23 +9130,6 @@ namespace PRoConEvents
                                             if (!_Team1MoveQueue.Any() && !_Team2MoveQueue.Any() && _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 && (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
                                             {
                                                 Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
-                                                //Get players from the baserape causing list
-                                                bool lowPopAssist = _isTestingAuthorized && 
-                                                    (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")) && 
-                                                    (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
-                                                if (_AutomaticAssistBaserapeCausingPlayers || lowPopAssist)
-                                                {
-                                                    foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(dPlayer => 
-                                                        dPlayer.player_type == PlayerType.Player && 
-                                                        dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && 
-                                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
-                                                    {
-                                                        if (!auaPlayers.ContainsKey(aPlayer.player_name))
-                                                        {
-                                                            auaPlayers[aPlayer.player_name] = aPlayer;
-                                                        }
-                                                    }
-                                                }
                                                 //Get players from the auto-assist blacklist
                                                 foreach (AdKatsPlayer aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(aPlayer => 
                                                     aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
@@ -9492,18 +9297,6 @@ namespace PRoConEvents
                                             if (!_Team1MoveQueue.Any() && !_Team2MoveQueue.Any() && _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 && (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
                                             {
                                                 Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
-                                                //Get players from the baserape causing list
-                                                bool lowPopAssist = _isTestingAuthorized && (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")) && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
-                                                if (_AutomaticAssistBaserapeCausingPlayers || lowPopAssist)
-                                                {
-                                                    foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(dPlayer => dPlayer.player_type == PlayerType.Player && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
-                                                    {
-                                                        if (!auaPlayers.ContainsKey(aPlayer.player_name))
-                                                        {
-                                                            auaPlayers[aPlayer.player_name] = aPlayer;
-                                                        }
-                                                    }
-                                                }
                                                 //Get players from the auto-assist blacklist
                                                 foreach (AdKatsPlayer aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
                                                 {
@@ -9674,18 +9467,6 @@ namespace PRoConEvents
                                                     if (!_Team1MoveQueue.Any() && !_Team2MoveQueue.Any() && _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 && (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
                                                     {
                                                         Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
-                                                        //Get players from the baserape causing list
-                                                        bool lowPopAssist = _isTestingAuthorized && (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")) && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
-                                                        if (_AutomaticAssistBaserapeCausingPlayers || lowPopAssist)
-                                                        {
-                                                            foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(dPlayer => dPlayer.player_type == PlayerType.Player && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
-                                                            {
-                                                                if (!auaPlayers.ContainsKey(aPlayer.player_name))
-                                                                {
-                                                                    auaPlayers[aPlayer.player_name] = aPlayer;
-                                                                }
-                                                            }
-                                                        }
                                                         //Get players from the auto-assist blacklist
                                                         foreach (AdKatsPlayer aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
                                                         {
@@ -9850,18 +9631,6 @@ namespace PRoConEvents
                                                     if (!_Team1MoveQueue.Any() && !_Team2MoveQueue.Any() && _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 && (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
                                                     {
                                                         Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
-                                                        //Get players from the baserape causing list
-                                                        bool lowPopAssist = _isTestingAuthorized && (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")) && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
-                                                        if (_AutomaticAssistBaserapeCausingPlayers || lowPopAssist)
-                                                        {
-                                                            foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(dPlayer => dPlayer.player_type == PlayerType.Player && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
-                                                            {
-                                                                if (!auaPlayers.ContainsKey(aPlayer.player_name))
-                                                                {
-                                                                    auaPlayers[aPlayer.player_name] = aPlayer;
-                                                                }
-                                                            }
-                                                        }
                                                         //Get players from the auto-assist blacklist
                                                         foreach (AdKatsPlayer aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
                                                         {
@@ -10090,7 +9859,6 @@ namespace PRoConEvents
                                         _surrenderAutoUseLockerValues = true;
                                     }
                                     _spamBotExcludeAdminsAndWhitelist = true;
-                                    _PostWinLossBaserapeStatistics = true;
                                 }
                                 _DisplayTicketRatesInProconChat = true;
                                 _PostMapBenefitStatistics = true;
@@ -10652,9 +10420,10 @@ namespace PRoConEvents
                         });
                     }
                 }
-                if (_PostWinLossBaserapeStatistics) {
-                    PostRoundStatistics(winningTeam, losingTeam);
-                }
+
+                //Post round stats
+                PostRoundStatistics(winningTeam, losingTeam);
+
                 //Wait for round over players to be fired, if not already
                 var start = UtcNow();
                 while (_roundOverPlayers == null && (UtcNow() - start).TotalSeconds < 10) {
@@ -15167,16 +14936,6 @@ namespace PRoConEvents
                                 }
                             }
                             break;
-                        case "self_assist":
-                            {
-                                if (record.source_player != null && _baserapeCausingPlayers.ContainsKey(record.source_player.player_name))
-                                {
-                                    SendMessageToSource(record, "You may not use assist at this time.");
-                                    FinalizeRecord(record);
-                                    return;
-                                }
-                            }
-                            break;
                         case "player_whitelistreport":
                             if (GetMatchingASPlayersOfGroup("whitelist_report", record.target_player).Any())
                             {
@@ -15982,13 +15741,6 @@ namespace PRoConEvents
                             if (record.source_player.player_type != PlayerType.Player)
                             {
                                 SendMessageToSource(record, "You must be a player to use assist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-
-                            if (_baserapeCausingPlayers.ContainsKey(record.source_player.player_name))
-                            {
-                                SendMessageToSource(record, "You may not use assist at this time.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -29835,12 +29587,6 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
                 QueueSettingForUpload(new CPluginVariable(@"Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
                 QueueSettingForUpload(new CPluginVariable(@"Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
-                QueueSettingForUpload(new CPluginVariable(@"Post Win/Loss/Baserape Statistics", typeof(Boolean), _PostWinLossBaserapeStatistics));
-                QueueSettingForUpload(new CPluginVariable(@"Monitor Baserape Causing Players", typeof(Boolean), _BaserapeCausingPlayersMonitor));
-                QueueSettingForUpload(new CPluginVariable(@"Past Days to Monitor Baserape Causing Players", typeof(Int32), _BaserapeCausingPlayersDurationDays));
-                QueueSettingForUpload(new CPluginVariable(@"Count to Consider Baserape Causing", typeof(Int32), _BaserapeCausingPlayersMinimumCount));
-                QueueSettingForUpload(new CPluginVariable(@"Automatic Dispersion for Baserape Causing Players", typeof(Boolean), _FeedBaserapeCausingPlayerDispersion));
-                QueueSettingForUpload(new CPluginVariable(@"Automatic Assist Trigger for Baserape Causing Players", typeof(Boolean), _AutomaticAssistBaserapeCausingPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"Monitor Populator Players", typeof(Boolean), _PopulatorMonitor));
                 QueueSettingForUpload(new CPluginVariable(@"Monitor Specified Populators Only", typeof(Boolean), _PopulatorUseSpecifiedPopulatorsOnly));
                 QueueSettingForUpload(new CPluginVariable(@"Monitor Populators of This Server Only", typeof(Boolean), _PopulatorPopulatingThisServerOnly));
@@ -29871,6 +29617,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
                 QueueSettingForUpload(new CPluginVariable(@"Affected Top Players", typeof(String), _TopPlayersAffected));
+                QueueSettingForUpload(new CPluginVariable(@"Top player team confirmation duration", typeof(Int32), _TopPlayersTeamConfirmationDuration));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof(Boolean), _useRoundTimer));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof(Double), _maxRoundTimeMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
@@ -29957,7 +29704,8 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
                 QueueSettingForUpload(new CPluginVariable(@"Display Targeted Player Left Notification", typeof(Boolean), _ShowTargetedPlayerLeftNotification));
                 QueueSettingForUpload(new CPluginVariable(@"Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
-                QueueSettingForUpload(new CPluginVariable(@"Inform reputable players and admins of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
+                QueueSettingForUpload(new CPluginVariable(@"Inform reputable players of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
+                QueueSettingForUpload(new CPluginVariable(@"Inform admins of admin joins", typeof(Boolean), _InformAdminsOfAdminJoins));
                 QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
@@ -33155,183 +32903,6 @@ namespace PRoConEvents
             }
             Log.Debug(() => "updatePlayer finished!", 6);
             return aPlayer;
-        }
-
-        private void UpdateBaserapeCausingPlayers()
-        {
-            Log.Debug(() => "UpdateBaserapeCausingPlayers starting!", 6);
-            try
-            {
-                List<Int64> validIDs = new List<Int64>();
-                lock (_baserapeCausingPlayers)
-                {
-                    if (_threadsReady && !_PostWinLossBaserapeStatistics)
-                    {
-                        _BaserapeCausingPlayersMonitor = false;
-                        _baserapeCausingPlayers.Clear();
-                        return;
-                    }
-                    if (!_BaserapeCausingPlayersMonitor)
-                    {
-                        _baserapeCausingPlayers.Clear();
-                        return;
-                    }
-                    foreach (AdKatsPlayer aPlayer in GetBaserapeCausingPlayers(TimeSpan.FromDays(_BaserapeCausingPlayersDurationDays), _BaserapeCausingPlayersMinimumCount)) {
-                        if (!_pluginEnabled) {
-                            return;
-                        }
-                        validIDs.Add(aPlayer.player_id);
-                        if (!_baserapeCausingPlayers.ContainsKey(aPlayer.player_name))
-                        {
-                            if (_firstPlayerListComplete)
-                            {
-                                Log.Info("Adding " + aPlayer.player_name + " to baserape causing player list.");
-                            }
-                        }
-                        _baserapeCausingPlayers[aPlayer.player_name] = aPlayer;
-                    }
-                    foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList()) {
-                        if (!_pluginEnabled) {
-                            return;
-                        }
-                        if (_firstPlayerListComplete)
-                        {
-                            Log.Info("Removing " + aPlayer.player_name + " from baserape causing player list.");
-                        }
-                        _baserapeCausingPlayers.Remove(aPlayer.player_name);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                HandleException(new AdKatsException("Error while fetching baserape causing players", e));
-            }
-            Log.Debug(() => "UpdateBaserapeCausingPlayers finished!", 6);
-        }
-
-        private List<AdKatsPlayer> GetBaserapeCausingPlayers(TimeSpan duration, Int32 minBaserapes) {
-            Log.Debug(() => "GetBaserapeCausingPlayers starting!", 6);
-            List<AdKatsPlayer> resultPlayers = new List<AdKatsPlayer>();
-            try {
-                using (MySqlConnection connection = GetDatabaseConnection()) {
-                    using (MySqlCommand command = connection.CreateCommand()) {
-                        command.CommandText = @"
-                        SELECT 
-	                        `InnerResults`.*,
-	                        ROUND(`win_count`/REPLACE(`loss_count`, 0, 1), 2) AS `win_loss_ratio`,
-	                        ROUND(`baserape_count`/REPLACE(`round_count`, 0, 1), 2) AS `baserape_round_ratio`
-                        FROM
-                        (
-                        SELECT 
-	                        `server_id` AS `server`,
-	                        `target_id` AS `player_id`,
-	                        `target_name` AS `player_name`,
-	                        (SELECT
-		                        COUNT(`stat_id`)
-	                         FROM
-		                        `adkats_statistics`
-	                         WHERE
-		                        `server_id` = `server`
-	                         AND
-		                        `target_id` = `player_id`
-	                         AND
-		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
-	                         AND
-		                        (
-			                        `stat_type` = 'player_win'
-			                        OR
-			                        `stat_type` = 'player_loss'
-		                        )) AS `round_count`,
-	                        (SELECT
-		                        COUNT(`stat_id`)
-	                         FROM
-		                        `adkats_statistics`
-	                         WHERE
-		                        `server_id` = `server`
-	                         AND
-		                        `target_id` = `player_id`
-	                         AND
-		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
-	                         AND
-		                        `stat_type` = 'player_win') AS `win_count`,
-	                        (SELECT
-		                        COUNT(`stat_id`)
-	                         FROM
-		                        `adkats_statistics`
-	                         WHERE
-		                        `server_id` = `server`
-	                         AND
-		                        `target_id` = `player_id`
-	                         AND
-		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
-	                         AND
-		                        `stat_type` = 'player_loss') AS `loss_count`,
-	                        (SELECT
-		                        COUNT(`stat_id`)
-	                         FROM
-		                        `adkats_statistics`
-	                         WHERE
-		                        `server_id` = `server`
-	                         AND
-		                        `target_id` = `player_id`
-	                         AND
-		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
-	                         AND
-		                        `stat_type` = 'player_baserape') AS `baserape_count`
-                        FROM
-	                        `adkats_statistics`
-                        WHERE
-	                        `server_id` = @server_id
-                        AND
-                        (
-	                        `stat_type` = 'player_win'
-                        OR
-	                        `stat_type` = 'player_loss'
-                        OR
-	                        `stat_type` = 'player_baserape'
-                        ) 
-                        GROUP BY
-	                        `target_id`, `server_id`
-                        ORDER BY 
-	                        `baserape_count` DESC
-                        ) AS `InnerResults`
-                        WHERE
-	                        `baserape_count` >= @baserapes_minimum
-                        AND
-                        (
-	                        `win_count`/REPLACE(`loss_count`, 0, 1) >= @winlossratio_minimum
-	                        OR
-	                        `baserape_count`/REPLACE(`round_count`, 0, 1) >= @baseraperoundratio_minimum
-                        )
-                        ORDER BY
-	                        `InnerResults`.`server` ASC, 
-	                        `baserape_count` DESC, 
-	                        `player_name` ASC";
-                        command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
-                        command.Parameters.AddWithValue("@duration_minutes", (Int32) duration.TotalMinutes);
-                        command.Parameters.AddWithValue("@baserapes_minimum", minBaserapes);
-                        command.Parameters.AddWithValue("@winlossratio_minimum", 1.25);
-                        command.Parameters.AddWithValue("@baseraperoundratio_minimum", 0.10);
-                        //Attempt to execute the query
-                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
-                            //Grab the matching players
-                            while (reader.Read()) {
-                                if (!_pluginEnabled) {
-                                    return resultPlayers;
-                                }
-                                AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
-                                if (aPlayer != null) {
-                                    resultPlayers.Add(aPlayer);
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                HandleException(new AdKatsException("Error while fetching baserape causing players", e));
-            }
-            Log.Debug(() => "GetBaserapeCausingPlayers finished!", 6);
-            return resultPlayers;
         }
 
         private void UpdateTopPlayers() {
@@ -36641,10 +36212,6 @@ namespace PRoConEvents
                                 }
                             }
                         }
-                        //Update qualifier lists
-                        if (_BaserapeCausingPlayersMonitor) {
-                            UpdateBaserapeCausingPlayers();
-                        }
                         if (_PopulatorMonitor) {
                             UpdatePopulatorPlayers();
                         }
@@ -36839,27 +36406,6 @@ namespace PRoConEvents
                                                 tempASPlayers.Add(new AdKatsSpecialPlayer() {
                                                     player_game = (int) _serverInfo.GameID,
                                                     player_server = (int) _serverInfo.ServerID,
-                                                    player_group = asGroup,
-                                                    player_identifier = aPlayer.player_name,
-                                                    player_object = aPlayer,
-                                                    player_effective = UtcNow(),
-                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
-                                                });
-                                            }
-                                        }
-                                    }
-                                    break;
-                                case "blacklist_dispersion":
-                                    if (_FeedBaserapeCausingPlayerDispersion)
-                                    {
-                                        lock (_baserapeCausingPlayers)
-                                        {
-                                            foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
-                                            {
-                                                tempASPlayers.Add(new AdKatsSpecialPlayer()
-                                                {
-                                                    player_game = (int)_serverInfo.GameID,
-                                                    player_server = (int)_serverInfo.ServerID,
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
@@ -40095,24 +39641,19 @@ namespace PRoConEvents
             return s.Substring(startIndex, endIndex - startIndex);
         }
 
-        public Boolean IsSoldierNameValid(String input)
+        public Boolean IsSoldierNameValid(String soldierName)
         {
             try
             {
-                Log.Debug(() => "Checking player '" + input + "' for validity.", 7);
-                if (String.IsNullOrEmpty(input))
+                Log.Debug(() => "Checking player '" + soldierName + "' for validity.", 7);
+                if (String.IsNullOrEmpty(soldierName))
                 {
                     Log.Debug(() => "Soldier Name empty or null.", 5);
                     return false;
                 }
-                if (input.Length > 16)
+                if (soldierName.Length > 16)
                 {
-                    Log.Debug(() => "Soldier Name '" + input + "' too long, maximum length is 16 characters.", 5);
-                    return false;
-                }
-                if (new Regex("[^a-zA-Z0-9_-]").Replace(input, "").Length != input.Length)
-                {
-                    Log.Debug(() => "Soldier Name '" + input + "' contained invalid characters.", 5);
+                    Log.Debug(() => "Soldier Name '" + soldierName + "' too long, maximum length is 16 characters.", 5);
                     return false;
                 }
                 return true;
@@ -40120,7 +39661,7 @@ namespace PRoConEvents
             catch (Exception)
             {
                 //Soldier id caused exception in the regex, definitely not valid
-                Log.Error("Soldier Name '" + input + "' contained invalid characters.");
+                Log.Error("Soldier Name '" + soldierName + "' contained invalid characters.");
                 return false;
             }
         }
