@@ -108,43 +108,6 @@
 			],
 			"update_success":[],
 			"update_failure":[]
-		},
-		{
-			"update_id":"fixEmptyPlayerIPs",
-			"version_minimum":"6.8.1.56",
-			"version_maximum":null,
-			"message_name":"Fixing empty player IPs",
-			"message_success":"Fixed empty player IPs",
-			"message_failure":"Failed to fix empty player IPs",
-			"update_checks_hasResults":true,
-			"update_checks":[
-				"SELECT * FROM `%DATABASENAME%`.`tbl_playerdata` WHERE `IP_Address` = ''"
-			],
-			"update_execute_requiresModRows":true,
-			"update_execute":[
-				"UPDATE `%DATABASENAME%`.`tbl_playerdata` SET `IP_Address` = '127.0.0.1' WHERE `IP_Address` = '';",
-				"UPDATE `%DATABASENAME%`.`tbl_playerdata` SET `IP_Address` = NULL WHERE `IP_Address` = '127.0.0.1';"
-			],
-			"update_success":[],
-			"update_failure":[]
-		},
-		{
-			"update_id":"fixSettingIssues",
-			"version_minimum":"6.8.1.62",
-			"version_maximum":"6.8.1.63",
-			"message_name":"Fixing setting issues",
-			"message_success":"Fixed setting issues",
-			"message_failure":"Failed to fix setting issues",
-			"update_checks_hasResults":true,
-			"update_checks":[
-				"SELECT * FROM `%DATABASENAME%`.`adkats_settings` WHERE `setting_name` = 'Auto-Nuke Duration Seconds' AND `setting_value` = '1'"
-			],
-			"update_execute_requiresModRows":true,
-			"update_execute":[
-				"UPDATE `%DATABASENAME%`.`adkats_settings` SET `setting_value` = '0' WHERE `setting_name` = 'Auto-Nuke Duration Seconds' AND `setting_value` = '1';"
-			],
-			"update_success":[],
-			"update_failure":[]
 		}
 	]
 }
