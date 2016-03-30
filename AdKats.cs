@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.70
- * 17-MAR-2016
+ * Version 6.8.1.72
+ * 29-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.70</version_code>
+ * <version_code>6.8.1.72</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.70";
+        private const String PluginVersion = "6.8.1.72";
 
         public enum GameVersion
         {
@@ -110,13 +110,6 @@ namespace PRoConEvents
             TestBuild,
             UnknownBuild,
             UnfetchedBuild
-        }
-
-        public enum MessageType
-        {
-            Say,
-            Yell,
-            Tell
         }
 
         //State
@@ -662,11 +655,26 @@ namespace PRoConEvents
         private const Double _reputationThresholdGood = 75;
         private const Double _reputationThresholdBad = 0;
 
+        //Battlecries
+        public enum BattlecryVolume
+        {
+            Say,
+            Yell,
+            Tell,
+            Disabled
+        }
+        private BattlecryVolume _battlecryVolume = BattlecryVolume.Disabled;
+        private Int32 _battlecryMaxLength = 100;
+        private String[] _battlecryDeniedWords = { };
+
         //Weapon stats
         private readonly Dictionary<String, AdKatsWeaponName> _weaponNames = new Dictionary<String, AdKatsWeaponName>();
         private StatLibrary _StatLibrary;
         HashSet<String> _hackerCheckedPlayers = new HashSet<String>();
         HashSet<String> _hackerCheckedPlayersStats = new HashSet<String>();
+
+        //Events
+        Dictionary<String, AdKatsEvent> _events = new Dictionary<String, AdKatsEvent>();
 
         //Experimental
         private Boolean _useExperimentalTools;
@@ -729,6 +737,7 @@ namespace PRoConEvents
             AddSettingSection("A11", "Player Mute Settings");
             AddSettingSection("A12", "Messaging Settings");
             AddSettingSection("A12-2", "SpamBot Settings");
+            AddSettingSection("A12-3", "Battlecry Settings");
             AddSettingSection("A13", "Banning Settings");
             AddSettingSection("A13-2", "Ban Enforcer Settings");
             AddSettingSection("A13-3", "Mini Ban Management");
@@ -746,7 +755,6 @@ namespace PRoConEvents
             AddSettingSection("B25", "Auto-Surrender Settings");
             AddSettingSection("B26", "Statistics Settings");
             AddSettingSection("B27", "Player Monitor Settings");
-            AddSettingSection("B27-1", "Baserape Causing Player Monitor Settings");
             AddSettingSection("B27-2", "Populator Monitor Settings - Thanks CMWGaming");
             AddSettingSection("B27-3", "Teamspeak Player Monitor Settings - Thanks CMWGaming");
             AddSettingSection("B27-4", "Top Player Monitor Settings");
@@ -845,6 +853,9 @@ namespace PRoConEvents
             _tsViewer = new TeamSpeakClientViewer(this);
 
             FillReadableMapModeDictionaries();
+
+            //Events
+            FillEvents();
         }
 
         public String GetPluginName()
@@ -1100,7 +1111,8 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsActiveSettingSection("A12-2")) {
+                    if (IsActiveSettingSection("A12-2"))
+                    {
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Enable", typeof(Boolean), _spamBotEnabled));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Say List", typeof(String[]), _spamBotSayList.ToArray()));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Say Delay Seconds", typeof(Int32), _spamBotSayDelaySeconds));
@@ -1109,6 +1121,13 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Tell List", typeof(String[]), _spamBotTellList.ToArray()));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Tell Delay Seconds", typeof(Int32), _spamBotTellDelaySeconds));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdminsAndWhitelist));
+                    }
+
+                    if (IsActiveSettingSection("A12-3"))
+                    {
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "Player Battlecry Max Length", typeof(Int32), _battlecryMaxLength));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + sept + "Player Battlecry Denied Words", typeof(String[]), _battlecryDeniedWords));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + sept + "Player Battlecry Volume", "enum.battlecryVolumeEnum(Disabled|Say|Yell|Tell)", _battlecryVolume.ToString()));
                     }
 
                     if (IsActiveSettingSection("A13")) {
@@ -5533,6 +5552,52 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdminsAndWhitelist));
                     }
+                }
+                else if (Regex.Match(strVariable, @"Player Battlecry Volume").Success)
+                {
+                    switch (strValue)
+                    {
+                        case "Disabled":
+                            _battlecryVolume = BattlecryVolume.Disabled;
+                            break;
+                        case "Say":
+                            _battlecryVolume = BattlecryVolume.Say;
+                            break;
+                        case "Yell":
+                            _battlecryVolume = BattlecryVolume.Yell;
+                            break;
+                        case "Tell":
+                            _battlecryVolume = BattlecryVolume.Tell;
+                            break;
+                        default:
+                            Log.Error("Unknown setting when updating player battlecry volume.");
+                            return;
+                    }
+                    QueueSettingForUpload(new CPluginVariable(@"Player Battlecry Volume", typeof(String), _battlecryVolume.ToString()));
+                }
+                else if (Regex.Match(strVariable, @"Player Battlecry Max Length").Success)
+                {
+                    Int32 battleCryMaxLength = Int32.Parse(strValue);
+                    if (_battlecryMaxLength != battleCryMaxLength)
+                    {
+                        if (battleCryMaxLength < 20)
+                        {
+                            Log.Error("Battlecry max length cannot be less than 20 characters.");
+                            battleCryMaxLength = 20;
+                        }
+                        if (battleCryMaxLength > 300)
+                        {
+                            Log.Error("Battlecry max length cannot be more than 300 characters.");
+                            battleCryMaxLength = 300;
+                        }
+                        _battlecryMaxLength = battleCryMaxLength;
+                        QueueSettingForUpload(new CPluginVariable(@"Player Battlecry Max Length", typeof(Int32), _battlecryMaxLength));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Player Battlecry Denied Words").Success)
+                {
+                    _battlecryDeniedWords = CPluginVariable.DecodeStringArray(strValue);
+                    QueueSettingForUpload(new CPluginVariable(@"Player Battlecry Denied Words", typeof(String), CPluginVariable.EncodeStringArray(_battlecryDeniedWords)));
                 }
                 else if (Regex.Match(strVariable, @"Display Admin Name in Kick and Ban Announcement").Success)
                 {
@@ -11691,7 +11756,7 @@ namespace PRoConEvents
                         {
                             OnlineAdminSayMessage(aPlayer.GetVerboseName() + " just joined this server group for the first time!");
                         }
-                        if (_UseFirstSpawnMessage)
+                        if (_UseFirstSpawnMessage || (_battlecryVolume != BattlecryVolume.Disabled && !String.IsNullOrEmpty(aPlayer.player_battlecry)))
                         {
                             Thread spawnPrinter = new Thread(new ThreadStart(delegate
                             {
@@ -11701,9 +11766,27 @@ namespace PRoConEvents
                                     Thread.CurrentThread.Name = "SpawnPrinter";
                                     //Wait 2 seconds
                                     _threadMasterWaitHandle.WaitOne(2000);
-                                    PlayerTellMessage(aPlayer.player_name, _FirstSpawnMessage);
+                                    if (!String.IsNullOrEmpty(aPlayer.player_battlecry))
+                                    {
+                                        switch (_battlecryVolume)
+                                        {
+                                            case BattlecryVolume.Say:
+                                                AdminSayMessage(aPlayer.player_battlecry);
+                                                break;
+                                            case BattlecryVolume.Yell:
+                                                AdminYellMessage(aPlayer.player_battlecry);
+                                                break;
+                                            case BattlecryVolume.Tell:
+                                                AdminTellMessage(aPlayer.player_battlecry);
+                                                break;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        PlayerTellMessage(aPlayer.player_name, _FirstSpawnMessage);
+                                    }
                                     int points = FetchPoints(aPlayer, false, true);
-                                    if ((_isTestingAuthorized && (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6"))) || _useFirstSpawnRepMessage)
+                                    if (_useFirstSpawnRepMessage)
                                     {
                                         Boolean isAdmin = PlayerIsAdmin(aPlayer);
                                         _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(_YellDuration));
@@ -21177,6 +21260,95 @@ namespace PRoConEvents
                             }
                         }
                         break;
+                    case "self_battlecry":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (record.record_source != AdKatsRecord.Sources.InGame)
+                            {
+                                SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    record.record_message = GetPreMessage(parameters[0], false);
+                                    if (record.record_message.Length > _battlecryMaxLength)
+                                    {
+                                        SendMessageToSource(record, "Battlecries cannot be longer than " + _battlecryMaxLength + " characters.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    var messageLower = record.record_message.ToLowerInvariant();
+                                    foreach (String deniedWord in _battlecryDeniedWords)
+                                    {
+                                        if (messageLower.Contains(deniedWord.ToLowerInvariant()))
+                                        {
+                                            SendMessageToSource(record, "Your battlecry contains denied words. Talk to an admin if this message is in error.");
+                                            FinalizeRecord(record);
+                                            return;
+                                        }
+                                    }
+                                    record.target_name = record.source_name;
+                                    if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player))
+                                    {
+                                        SendMessageToSource(record, "Source player not found, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_battlecry":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    SendMessageToSource(record, "No message given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 2:
+                                    record.target_name = parameters[0];
+                                    record.record_message = GetPreMessage(parameters[1], false);
+                                    if (record.record_message.Length > _battlecryMaxLength)
+                                    {
+                                        SendMessageToSource(record, "Battlecries cannot be longer than " + _battlecryMaxLength + " characters.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     case "command_confirm":
                         Log.Debug(() => "attempting to confirm command", 6);
                         AdKatsRecord recordAttempt = null;
@@ -22546,6 +22718,12 @@ namespace PRoConEvents
                         break;
                     case "adkats_exception":
                         record.record_action_executed = true;
+                        break;
+                    case "self_battlecry":
+                        UpdatePlayerBattlecry(record);
+                        break;
+                    case "player_battlecry":
+                        UpdatePlayerBattlecry(record);
                         break;
                     case "player_changename":
                     case "player_changeip":
@@ -25598,6 +25776,79 @@ namespace PRoConEvents
                 FinalizeRecord(record);
             }
             Log.Debug(() => "Exiting TeamKillTrackerWhitelistRemoveTarget", 6);
+        }
+
+        public void UpdatePlayerBattlecry(AdKatsRecord record)
+        {
+            Log.Debug(() => "Entering UpdatePlayerBattlecry", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "UpdatePlayerBattlecry not available for multiple targets.");
+                    Log.Error("UpdatePlayerBattlecry not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                if (record.target_player.player_id <= 0)
+                {
+                    Log.Error("Player ID invalid when assigning player battlecry. Unable to complete.");
+                    SendMessageToSource(record, "Player ID invalid when assigning player battlecry. Unable to complete.");
+                    FinalizeRecord(record);
+                    return;
+                }
+
+                //Update the player's battlecry on the object
+                record.target_player.player_battlecry = record.record_message;
+
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        REPLACE INTO
+	                        `adkats_battlecries`
+                        (
+	                        `player_id`,
+	                        `player_battlecry`
+                        )
+                        VALUES
+                        (
+	                        'player_id',
+	                        @player_battlecry
+                        )";
+                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                        command.Parameters.AddWithValue("@player_battlecry", record.target_player.player_battlecry);
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
+                        if (rowsAffected > 0)
+                        {
+                            String message = "'" + record.target_player.player_battlecry + "'.";
+                            if (record.source_name == record.target_name)
+                            {
+                                message = "Your new battlecry: " + message;
+                            }
+                            else
+                            {
+                                message = record.GetTargetNames() + "'s new battlecry: " + message;
+                            }
+                            SendMessageToSource(record, message);
+                        }
+                        else
+                        {
+                            Log.Error("Unable to update player battlecry. Error uploading.");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for Player Battlecry record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting UpdatePlayerBattlecry", 6);
         }
 
         public void MuteTarget(AdKatsRecord record)
@@ -29329,6 +29580,18 @@ namespace PRoConEvents
             {
                 return false;
             }
+            if (!ConfirmTable("adkats_battlecries"))
+            {
+                Log.Info("Battlecries table not found. Attempting to add.");
+                SendNonQuery("Adding battlecries table", @"
+                    CREATE TABLE IF NOT EXISTS `adkats_battlecries`( 
+                      `player_id` int(10) UNSIGNED NOT NULL,
+                      `player_battlecry` varchar(300) COLLATE utf8_unicode_ci DEFAULT NULL
+                      PRIMARY KEY (`player_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Battlecries List'", true);
+                SendNonQuery("Adding battlecries table foreign keys", @"
+                    ALTER TABLE `adkats_battlecries` ADD CONSTRAINT `adkats_battlecries_player_id` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata`(`PlayerID`) ON UPDATE NO ACTION ON DELETE CASCADE", true);
+            }
             if (!ConfirmTable("adkats_specialplayers"))
             {
                 Log.Info("Special players table not found. Attempting to add.");
@@ -29699,6 +29962,9 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Tell List", typeof(String), CPluginVariable.EncodeStringArray(_spamBotTellList.ToArray())));
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Tell Delay Seconds", typeof(Int32), _spamBotTellDelaySeconds));
                 QueueSettingForUpload(new CPluginVariable(@"Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdminsAndWhitelist));
+                QueueSettingForUpload(new CPluginVariable(@"Player Battlecry Volume", typeof(String), _battlecryVolume.ToString()));
+                QueueSettingForUpload(new CPluginVariable(@"Player Battlecry Max Length", typeof(Int32), _battlecryMaxLength));
+                QueueSettingForUpload(new CPluginVariable(@"Player Battlecry Denied Words", typeof(String), CPluginVariable.EncodeStringArray(_battlecryDeniedWords)));
                 QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
                 QueueSettingForUpload(new CPluginVariable(@"Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
                 QueueSettingForUpload(new CPluginVariable(@"Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
@@ -32474,7 +32740,6 @@ namespace PRoConEvents
             return true;
         }
 
-
         private AdKatsPlayer FetchPlayer(Boolean allowUpdate, Boolean allowOtherGames, Boolean allowNameSubstringSearch, Int32? gameID, Int64 playerID, String playerName, String playerGUID, String playerIP)
         {
             Log.Debug(() => "fetchPlayer starting!", 6);
@@ -32526,12 +32791,15 @@ namespace PRoConEvents
                                 `SoldierName` as `player_name`, 
                                 `EAGUID` as `player_guid`, 
                                 `PBGUID` as `player_pbguid`, 
-                                `IP_Address` as `player_ip`";
+                                `IP_Address` as `player_ip`,
+                                `adkats_battlecries`.`player_battlecry`";
                             if (_serverInfo.GameID > 0)
                             {
                                 sql += ",`GameID` as `game_id` ";
                             }
-                            sql += "FROM `" + _mySqlSchemaName + @"`.`tbl_playerdata` ";
+                            sql += "FROM `" + _mySqlSchemaName + @"`.`tbl_playerdata` 
+                                    LEFT JOIN `adkats_battlecries` 
+                                    ON `tbl_playerdata`.`PlayerID` = `adkats_battlecries`.`player_id` ";
                             bool sqlEnder = true;
                             if (playerID >= 0)
                             {
@@ -32622,6 +32890,10 @@ namespace PRoConEvents
                                     if (!reader.IsDBNull(4))
                                     {
                                         aPlayer.player_ip = reader.GetString("player_ip");
+                                    }
+                                    if (!reader.IsDBNull(5))
+                                    {
+                                        aPlayer.player_battlecry = reader.GetString("player_battlecry");
                                     }
                                 }
                                 else
@@ -34661,598 +34933,608 @@ namespace PRoConEvents
                                 Boolean newCommands = false;
                                 if (!_CommandIDDictionary.ContainsKey(1))
                                 {
-                                    SendNonQuery("Adding command 1", "INSERT INTO `adkats_commands` VALUES(1, 'Active', 'command_confirm', 'Unable', 'Confirm Command', 'yes', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command command_confirm", "INSERT INTO `adkats_commands` VALUES(1, 'Active', 'command_confirm', 'Unable', 'Confirm Command', 'yes', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(2))
                                 {
-                                    SendNonQuery("Adding command 2", "INSERT INTO `adkats_commands` VALUES(2, 'Active', 'command_cancel', 'Unable', 'Cancel Command', 'no', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command command_cancel", "INSERT INTO `adkats_commands` VALUES(2, 'Active', 'command_cancel', 'Unable', 'Cancel Command', 'no', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(3))
                                 {
-                                    SendNonQuery("Adding command 3", "INSERT INTO `adkats_commands` VALUES(3, 'Active', 'player_kill', 'Log', 'Kill Player', 'kill', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_kill", "INSERT INTO `adkats_commands` VALUES(3, 'Active', 'player_kill', 'Log', 'Kill Player', 'kill', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(4))
                                 {
-                                    SendNonQuery("Adding command 4", "INSERT INTO `adkats_commands` VALUES(4, 'Invisible', 'player_kill_lowpop', 'Log', 'Kill Player (Low Population)', 'lowpopkill', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_kill_lowpop", "INSERT INTO `adkats_commands` VALUES(4, 'Invisible', 'player_kill_lowpop', 'Log', 'Kill Player (Low Population)', 'lowpopkill', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(5))
                                 {
-                                    SendNonQuery("Adding command 5", "INSERT INTO `adkats_commands` VALUES(5, 'Invisible', 'player_kill_repeat', 'Log', 'Kill Player (Repeat Kill)', 'repeatkill', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_kill_repeat", "INSERT INTO `adkats_commands` VALUES(5, 'Invisible', 'player_kill_repeat', 'Log', 'Kill Player (Repeat Kill)', 'repeatkill', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(6))
                                 {
-                                    SendNonQuery("Adding command 6", "INSERT INTO `adkats_commands` VALUES(6, 'Active', 'player_kick', 'Log', 'Kick Player', 'kick', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_kick", "INSERT INTO `adkats_commands` VALUES(6, 'Active', 'player_kick', 'Log', 'Kick Player', 'kick', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(7))
                                 {
-                                    SendNonQuery("Adding command 7", "INSERT INTO `adkats_commands` VALUES(7, 'Active', 'player_ban_temp', 'Log', 'Temp-Ban Player', 'tban', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_ban_temp", "INSERT INTO `adkats_commands` VALUES(7, 'Active', 'player_ban_temp', 'Log', 'Temp-Ban Player', 'tban', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(8))
                                 {
-                                    SendNonQuery("Adding command 8", "INSERT INTO `adkats_commands` VALUES(8, 'Active', 'player_ban_perm', 'Log', 'Permaban Player', 'ban', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_ban_perm", "INSERT INTO `adkats_commands` VALUES(8, 'Active', 'player_ban_perm', 'Log', 'Permaban Player', 'ban', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(9))
                                 {
-                                    SendNonQuery("Adding command 9", "INSERT INTO `adkats_commands` VALUES(9, 'Active', 'player_punish', 'Mandatory', 'Punish Player', 'punish', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_punish", "INSERT INTO `adkats_commands` VALUES(9, 'Active', 'player_punish', 'Mandatory', 'Punish Player', 'punish', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(10))
                                 {
-                                    SendNonQuery("Adding command 10", "INSERT INTO `adkats_commands` VALUES(10, 'Active', 'player_forgive', 'Mandatory', 'Forgive Player', 'forgive', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_forgive", "INSERT INTO `adkats_commands` VALUES(10, 'Active', 'player_forgive', 'Mandatory', 'Forgive Player', 'forgive', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(11))
                                 {
-                                    SendNonQuery("Adding command 11", "INSERT INTO `adkats_commands` VALUES(11, 'Active', 'player_mute', 'Log', 'Mute Player', 'mute', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_mute", "INSERT INTO `adkats_commands` VALUES(11, 'Active', 'player_mute', 'Log', 'Mute Player', 'mute', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(12))
                                 {
-                                    SendNonQuery("Adding command 12", "INSERT INTO `adkats_commands` VALUES(12, 'Active', 'player_join', 'Log', 'Join Player', 'join', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command player_join", "INSERT INTO `adkats_commands` VALUES(12, 'Active', 'player_join', 'Log', 'Join Player', 'join', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(14))
                                 {
-                                    SendNonQuery("Adding command 14", "INSERT INTO `adkats_commands` VALUES(14, 'Active', 'player_move', 'Log', 'On-Death Move Player', 'move', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_move", "INSERT INTO `adkats_commands` VALUES(14, 'Active', 'player_move', 'Log', 'On-Death Move Player', 'move', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(15))
                                 {
-                                    SendNonQuery("Adding command 15", "INSERT INTO `adkats_commands` VALUES(15, 'Active', 'player_fmove', 'Log', 'Force Move Player', 'fmove', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_fmove", "INSERT INTO `adkats_commands` VALUES(15, 'Active', 'player_fmove', 'Log', 'Force Move Player', 'fmove', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(16))
                                 {
-                                    SendNonQuery("Adding command 16", "INSERT INTO `adkats_commands` VALUES(16, 'Active', 'self_teamswap', 'Log', 'Teamswap Self', 'moveme', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_teamswap", "INSERT INTO `adkats_commands` VALUES(16, 'Active', 'self_teamswap', 'Log', 'Teamswap Self', 'moveme', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(17))
                                 {
-                                    SendNonQuery("Adding command 17", "INSERT INTO `adkats_commands` VALUES(17, 'Active', 'self_kill', 'Log', 'Kill Self', 'killme', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_kill", "INSERT INTO `adkats_commands` VALUES(17, 'Active', 'self_kill', 'Log', 'Kill Self', 'killme', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(18))
                                 {
-                                    SendNonQuery("Adding command 18", "INSERT INTO `adkats_commands` VALUES(18, 'Active', 'player_report', 'Log', 'Report Player', 'report', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command player_report", "INSERT INTO `adkats_commands` VALUES(18, 'Active', 'player_report', 'Log', 'Report Player', 'report', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(19))
                                 {
-                                    SendNonQuery("Adding command 19", "INSERT INTO `adkats_commands` VALUES(19, 'Invisible', 'player_report_confirm', 'Log', 'Report Player (Confirmed)', 'confirmreport', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_report_confirm", "INSERT INTO `adkats_commands` VALUES(19, 'Invisible', 'player_report_confirm', 'Log', 'Report Player (Confirmed)', 'confirmreport', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(20))
                                 {
-                                    SendNonQuery("Adding command 20", "INSERT INTO `adkats_commands` VALUES(20, 'Active', 'player_calladmin', 'Log', 'Call Admin on Player', 'admin', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command player_calladmin", "INSERT INTO `adkats_commands` VALUES(20, 'Active', 'player_calladmin', 'Log', 'Call Admin on Player', 'admin', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(21))
                                 {
-                                    SendNonQuery("Adding command 21", "INSERT INTO `adkats_commands` VALUES(21, 'Active', 'admin_say', 'Log', 'Admin Say', 'say', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command admin_say", "INSERT INTO `adkats_commands` VALUES(21, 'Active', 'admin_say', 'Log', 'Admin Say', 'say', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(22))
                                 {
-                                    SendNonQuery("Adding command 22", "INSERT INTO `adkats_commands` VALUES(22, 'Active', 'player_say', 'Log', 'Player Say', 'psay', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_say", "INSERT INTO `adkats_commands` VALUES(22, 'Active', 'player_say', 'Log', 'Player Say', 'psay', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(23))
                                 {
-                                    SendNonQuery("Adding command 23", "INSERT INTO `adkats_commands` VALUES(23, 'Active', 'admin_yell', 'Log', 'Admin Yell', 'yell', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command admin_yell", "INSERT INTO `adkats_commands` VALUES(23, 'Active', 'admin_yell', 'Log', 'Admin Yell', 'yell', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(24))
                                 {
-                                    SendNonQuery("Adding command 24", "INSERT INTO `adkats_commands` VALUES(24, 'Active', 'player_yell', 'Log', 'Player Yell', 'pyell', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_yell", "INSERT INTO `adkats_commands` VALUES(24, 'Active', 'player_yell', 'Log', 'Player Yell', 'pyell', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(25))
                                 {
-                                    SendNonQuery("Adding command 25", "INSERT INTO `adkats_commands` VALUES(25, 'Active', 'admin_tell', 'Log', 'Admin Tell', 'tell', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command admin_tell", "INSERT INTO `adkats_commands` VALUES(25, 'Active', 'admin_tell', 'Log', 'Admin Tell', 'tell', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(26))
                                 {
-                                    SendNonQuery("Adding command 26", "INSERT INTO `adkats_commands` VALUES(26, 'Active', 'player_tell', 'Log', 'Player Tell', 'ptell', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_tell", "INSERT INTO `adkats_commands` VALUES(26, 'Active', 'player_tell', 'Log', 'Player Tell', 'ptell', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(27))
                                 {
-                                    SendNonQuery("Adding command 27", "INSERT INTO `adkats_commands` VALUES(27, 'Active', 'self_whatis', 'Unable', 'What Is', 'whatis', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_whatis", "INSERT INTO `adkats_commands` VALUES(27, 'Active', 'self_whatis', 'Unable', 'What Is', 'whatis', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(28))
                                 {
-                                    SendNonQuery("Adding command 28", "INSERT INTO `adkats_commands` VALUES(28, 'Active', 'self_voip', 'Unable', 'VOIP', 'voip', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_voip", "INSERT INTO `adkats_commands` VALUES(28, 'Active', 'self_voip', 'Unable', 'VOIP', 'voip', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(29))
                                 {
-                                    SendNonQuery("Adding command 29", "INSERT INTO `adkats_commands` VALUES(29, 'Active', 'self_rules', 'Log', 'Request Rules', 'rules', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_rules", "INSERT INTO `adkats_commands` VALUES(29, 'Active', 'self_rules', 'Log', 'Request Rules', 'rules', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(30))
                                 {
-                                    SendNonQuery("Adding command 30", "INSERT INTO `adkats_commands` VALUES(30, 'Active', 'round_restart', 'Log', 'Restart Current Round', 'restart', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command round_restart", "INSERT INTO `adkats_commands` VALUES(30, 'Active', 'round_restart', 'Log', 'Restart Current Round', 'restart', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(31))
                                 {
-                                    SendNonQuery("Adding command 31", "INSERT INTO `adkats_commands` VALUES(31, 'Active', 'round_next', 'Log', 'Run Next Round', 'nextlevel', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command round_next", "INSERT INTO `adkats_commands` VALUES(31, 'Active', 'round_next', 'Log', 'Run Next Round', 'nextlevel', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(32))
                                 {
-                                    SendNonQuery("Adding command 32", "INSERT INTO `adkats_commands` VALUES(32, 'Active', 'round_end', 'Log', 'End Current Round', 'endround', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command round_end", "INSERT INTO `adkats_commands` VALUES(32, 'Active', 'round_end', 'Log', 'End Current Round', 'endround', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(33))
                                 {
-                                    SendNonQuery("Adding command 33", "INSERT INTO `adkats_commands` VALUES(33, 'Active', 'server_nuke', 'Log', 'Server Nuke', 'nuke', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command server_nuke", "INSERT INTO `adkats_commands` VALUES(33, 'Active', 'server_nuke', 'Log', 'Server Nuke', 'nuke', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(34))
                                 {
-                                    SendNonQuery("Adding command 34", "INSERT INTO `adkats_commands` VALUES(34, 'Active', 'server_kickall', 'Log', 'Kick All Guests', 'kickall', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command server_kickall", "INSERT INTO `adkats_commands` VALUES(34, 'Active', 'server_kickall', 'Log', 'Kick All Guests', 'kickall', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(35))
                                 {
-                                    SendNonQuery("Adding command 35", "INSERT INTO `adkats_commands` VALUES(35, 'Invisible', 'adkats_exception', 'Mandatory', 'Logged Exception', 'logexception', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command adkats_exception", "INSERT INTO `adkats_commands` VALUES(35, 'Invisible', 'adkats_exception', 'Mandatory', 'Logged Exception', 'logexception', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(36))
                                 {
-                                    SendNonQuery("Adding command 36", "INSERT INTO `adkats_commands` VALUES(36, 'Invisible', 'banenforcer_enforce', 'Mandatory', 'Enforce Active Ban', 'enforceban', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command banenforcer_enforce", "INSERT INTO `adkats_commands` VALUES(36, 'Invisible', 'banenforcer_enforce', 'Mandatory', 'Enforce Active Ban', 'enforceban', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(37))
                                 {
-                                    SendNonQuery("Adding command 37", "INSERT INTO `adkats_commands` VALUES(37, 'Active', 'player_unban', 'Log', 'Unban Player', 'unban', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_unban", "INSERT INTO `adkats_commands` VALUES(37, 'Active', 'player_unban', 'Log', 'Unban Player', 'unban', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(38))
                                 {
-                                    SendNonQuery("Adding command 38", "INSERT INTO `adkats_commands` VALUES(38, 'Active', 'self_admins', 'Log', 'Request Online Admins', 'admins', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_admins", "INSERT INTO `adkats_commands` VALUES(38, 'Active', 'self_admins', 'Log', 'Request Online Admins', 'admins', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(39))
                                 {
-                                    SendNonQuery("Adding command 39", "INSERT INTO `adkats_commands` VALUES(39, 'Active', 'self_lead', 'Log', 'Lead Current Squad', 'lead', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_lead", "INSERT INTO `adkats_commands` VALUES(39, 'Active', 'self_lead', 'Log', 'Lead Current Squad', 'lead', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(40))
                                 {
-                                    SendNonQuery("Adding command 40", "INSERT INTO `adkats_commands` VALUES(40, 'Active', 'admin_accept', 'Log', 'Accept Round Report', 'accept', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command admin_accept", "INSERT INTO `adkats_commands` VALUES(40, 'Active', 'admin_accept', 'Log', 'Accept Round Report', 'accept', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(41))
                                 {
-                                    SendNonQuery("Adding command 41", "INSERT INTO `adkats_commands` VALUES(41, 'Active', 'admin_deny', 'Log', 'Deny Round Report', 'deny', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command admin_deny", "INSERT INTO `adkats_commands` VALUES(41, 'Active', 'admin_deny', 'Log', 'Deny Round Report', 'deny', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(42))
                                 {
-                                    SendNonQuery("Adding command 42", "INSERT INTO `adkats_commands` VALUES(42, 'Invisible', 'player_report_deny', 'Log', 'Report Player (Denied)', 'denyreport', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_report_deny", "INSERT INTO `adkats_commands` VALUES(42, 'Invisible', 'player_report_deny', 'Log', 'Report Player (Denied)', 'denyreport', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(43))
                                 {
-                                    SendNonQuery("Adding command 43", "INSERT INTO `adkats_commands` VALUES(43, 'Active', 'server_swapnuke', 'Log', 'SwapNuke Server', 'swapnuke', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command server_swapnuke", "INSERT INTO `adkats_commands` VALUES(43, 'Active', 'server_swapnuke', 'Log', 'SwapNuke Server', 'swapnuke', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(44))
                                 {
-                                    SendNonQuery("Adding command 44", "INSERT INTO `adkats_commands` VALUES(44, 'Active', 'player_blacklistdisperse', 'Log', 'Autobalance Disperse Player', 'disperse', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_blacklistdisperse", "INSERT INTO `adkats_commands` VALUES(44, 'Active', 'player_blacklistdisperse', 'Log', 'Autobalance Disperse Player', 'disperse', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(45))
                                 {
-                                    SendNonQuery("Adding command 45", "INSERT INTO `adkats_commands` VALUES(45, 'Active', 'player_whitelistbalance', 'Log', 'Autobalance Whitelist Player', 'mbwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistbalance", "INSERT INTO `adkats_commands` VALUES(45, 'Active', 'player_whitelistbalance', 'Log', 'Autobalance Whitelist Player', 'mbwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(46))
                                 {
-                                    SendNonQuery("Adding command 46", "INSERT INTO `adkats_commands` VALUES(46, 'Active', 'player_slotreserved', 'Log', 'Reserved Slot Player', 'reserved', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_slotreserved", "INSERT INTO `adkats_commands` VALUES(46, 'Active', 'player_slotreserved', 'Log', 'Reserved Slot Player', 'reserved', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(47))
                                 {
-                                    SendNonQuery("Adding command 47", "INSERT INTO `adkats_commands` VALUES(47, 'Active', 'player_slotspectator', 'Log', 'Spectator Slot Player', 'spectator', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_slotspectator", "INSERT INTO `adkats_commands` VALUES(47, 'Active', 'player_slotspectator', 'Log', 'Spectator Slot Player', 'spectator', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(48))
                                 {
-                                    SendNonQuery("Adding command 48", "INSERT INTO `adkats_commands` VALUES(48, 'Invisible', 'player_changename', 'Log', 'Player Changed Name', 'changename', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_changename", "INSERT INTO `adkats_commands` VALUES(48, 'Invisible', 'player_changename', 'Log', 'Player Changed Name', 'changename', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(49))
                                 {
-                                    SendNonQuery("Adding command 49", "INSERT INTO `adkats_commands` VALUES(49, 'Invisible', 'player_changeip', 'Log', 'Player Changed IP', 'changeip', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_changeip", "INSERT INTO `adkats_commands` VALUES(49, 'Invisible', 'player_changeip', 'Log', 'Player Changed IP', 'changeip', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(50))
                                 {
-                                    SendNonQuery("Adding command 50", "INSERT INTO `adkats_commands` VALUES(50, 'Active', 'player_ban_perm_future', 'Log', 'Future Permaban Player', 'fban', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_ban_perm_future", "INSERT INTO `adkats_commands` VALUES(50, 'Active', 'player_ban_perm_future', 'Log', 'Future Permaban Player', 'fban', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(51))
                                 {
-                                    SendNonQuery("Adding command 51", "INSERT INTO `adkats_commands` VALUES(51, 'Active', 'self_assist', 'Log', 'Assist Losing Team', 'assist', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_assist", "INSERT INTO `adkats_commands` VALUES(51, 'Active', 'self_assist', 'Log', 'Assist Losing Team', 'assist', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 SendNonQuery("Updating command 51 player interaction", "UPDATE `adkats_commands` SET `command_playerInteraction`=0 WHERE `command_id`=51", false);
                                 if (!_CommandIDDictionary.ContainsKey(52))
                                 {
-                                    SendNonQuery("Adding command 52", "INSERT INTO `adkats_commands` VALUES(52, 'Active', 'self_uptime', 'Log', 'Request Uptimes', 'uptime', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_uptime", "INSERT INTO `adkats_commands` VALUES(52, 'Active', 'self_uptime', 'Log', 'Request Uptimes', 'uptime', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(53))
                                 {
-                                    SendNonQuery("Adding command 53", "INSERT INTO `adkats_commands` VALUES(53, 'Active', 'self_contest', 'Log', 'Contest Report', 'contest', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_contest", "INSERT INTO `adkats_commands` VALUES(53, 'Active', 'self_contest', 'Log', 'Contest Report', 'contest', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(54))
                                 {
-                                    SendNonQuery("Adding command 54", "INSERT INTO `adkats_commands` VALUES(54, 'Active', 'player_kill_force', 'Log', 'Kill Player (Force)', 'fkill', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_kill_force", "INSERT INTO `adkats_commands` VALUES(54, 'Active', 'player_kill_force', 'Log', 'Kill Player (Force)', 'fkill', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(55))
                                 {
-                                    SendNonQuery("Adding command 55", "INSERT INTO `adkats_commands` VALUES(55, 'Active', 'player_info', 'Log', 'Fetch Player Info', 'pinfo', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_info", "INSERT INTO `adkats_commands` VALUES(55, 'Active', 'player_info', 'Log', 'Fetch Player Info', 'pinfo', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(56))
                                 {
-                                    SendNonQuery("Adding command 56", "INSERT INTO `adkats_commands` VALUES(56, 'Active', 'player_dequeue', 'Log', 'Dequeue Player Action', 'deq', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_dequeue", "INSERT INTO `adkats_commands` VALUES(56, 'Active', 'player_dequeue', 'Log', 'Dequeue Player Action', 'deq', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(57))
                                 {
-                                    SendNonQuery("Adding command 57", "INSERT INTO `adkats_commands` VALUES(57, 'Active', 'self_help', 'Log', 'Request Server Commands', 'help', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_help", "INSERT INTO `adkats_commands` VALUES(57, 'Active', 'self_help', 'Log', 'Request Server Commands', 'help', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(58))
                                 {
-                                    SendNonQuery("Adding command 58", "INSERT INTO `adkats_commands` VALUES(58, 'Active', 'player_find', 'Log', 'Find Player', 'find', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command player_find", "INSERT INTO `adkats_commands` VALUES(58, 'Active', 'player_find', 'Log', 'Find Player', 'find', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(59))
                                 {
-                                    SendNonQuery("Adding command 59", "INSERT INTO `adkats_commands` VALUES(59, 'Active', 'server_afk', 'Log', 'Manage AFK Players', 'afk', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command server_afk", "INSERT INTO `adkats_commands` VALUES(59, 'Active', 'server_afk', 'Log', 'Manage AFK Players', 'afk', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(60))
                                 {
-                                    SendNonQuery("Adding command 60", "INSERT INTO `adkats_commands` VALUES(60, 'Active', 'player_pull', 'Log', 'Pull Player', 'pull', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_pull", "INSERT INTO `adkats_commands` VALUES(60, 'Active', 'player_pull', 'Log', 'Pull Player', 'pull', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(61))
                                 {
-                                    SendNonQuery("Adding command 61", "INSERT INTO `adkats_commands` VALUES(61, 'Active', 'admin_ignore', 'Log', 'Ignore Round Report', 'ignore', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command admin_ignore", "INSERT INTO `adkats_commands` VALUES(61, 'Active', 'admin_ignore', 'Log', 'Ignore Round Report', 'ignore', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(62))
                                 {
-                                    SendNonQuery("Adding command 62", "INSERT INTO `adkats_commands` VALUES(62, 'Invisible', 'player_report_ignore', 'Log', 'Report Player (Ignored)', 'ignorereport', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_report_ignore", "INSERT INTO `adkats_commands` VALUES(62, 'Invisible', 'player_report_ignore', 'Log', 'Report Player (Ignored)', 'ignorereport', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(63))
                                 {
-                                    SendNonQuery("Adding command 63", "INSERT INTO `adkats_commands` VALUES(63, 'Active', 'player_mark', 'Unable', 'Mark Player', 'mark', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_mark", "INSERT INTO `adkats_commands` VALUES(63, 'Active', 'player_mark', 'Unable', 'Mark Player', 'mark', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(64))
                                 {
-                                    SendNonQuery("Adding command 64", "INSERT INTO `adkats_commands` VALUES(64, 'Active', 'player_chat', 'Log', 'Fetch Player Chat', 'pchat', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_chat", "INSERT INTO `adkats_commands` VALUES(64, 'Active', 'player_chat', 'Log', 'Fetch Player Chat', 'pchat', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(65))
                                 {
-                                    SendNonQuery("Adding command 65", "INSERT INTO `adkats_commands` VALUES(65, 'Active', 'player_whitelisthackerchecker', 'Log', 'Hacker-Checker Whitelist Player', 'hcwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelisthackerchecker", "INSERT INTO `adkats_commands` VALUES(65, 'Active', 'player_whitelisthackerchecker', 'Log', 'Hacker-Checker Whitelist Player', 'hcwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(66))
                                 {
-                                    SendNonQuery("Adding command 66", "INSERT INTO `adkats_commands` VALUES(66, 'Active', 'player_lock', 'Log', 'Lock Player Commands', 'lock', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_lock", "INSERT INTO `adkats_commands` VALUES(66, 'Active', 'player_lock', 'Log', 'Lock Player Commands', 'lock', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(67))
                                 {
-                                    SendNonQuery("Adding command 67", "INSERT INTO `adkats_commands` VALUES(67, 'Active', 'player_unlock', 'Log', 'Unlock Player Commands', 'unlock', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_unlock", "INSERT INTO `adkats_commands` VALUES(67, 'Active', 'player_unlock', 'Log', 'Unlock Player Commands', 'unlock', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(68))
                                 {
-                                    SendNonQuery("Adding command 68", "INSERT INTO `adkats_commands` VALUES(68, 'Active', 'self_rep', 'Log', 'Request Server Reputation', 'rep', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_rep", "INSERT INTO `adkats_commands` VALUES(68, 'Active', 'self_rep', 'Log', 'Request Server Reputation', 'rep', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(69))
                                 {
-                                    SendNonQuery("Adding command 69", "INSERT INTO `adkats_commands` VALUES(69, 'Invisible', 'player_repboost', 'Log', 'Boost Player Reputation', 'rboost', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command player_repboost", "INSERT INTO `adkats_commands` VALUES(69, 'Invisible', 'player_repboost', 'Log', 'Boost Player Reputation', 'rboost', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(70))
                                 {
-                                    SendNonQuery("Adding command 70", "INSERT INTO `adkats_commands` VALUES(70, 'Active', 'player_log', 'Log', 'Log Player Information', 'log', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command player_log", "INSERT INTO `adkats_commands` VALUES(70, 'Active', 'player_log', 'Log', 'Log Player Information', 'log', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(71))
                                 {
-                                    SendNonQuery("Adding command 71", "INSERT INTO `adkats_commands` VALUES(71, 'Active', 'player_whitelistping', 'Log', 'Ping Whitelist Player', 'pwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistping", "INSERT INTO `adkats_commands` VALUES(71, 'Active', 'player_whitelistping', 'Log', 'Ping Whitelist Player', 'pwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(72))
                                 {
-                                    SendNonQuery("Adding command 72", "INSERT INTO `adkats_commands` VALUES(72, 'Invisible', 'player_ban_temp_old', 'Log', 'Previous Temp Ban', 'pretban', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_ban_temp_old", "INSERT INTO `adkats_commands` VALUES(72, 'Invisible', 'player_ban_temp_old', 'Log', 'Previous Temp Ban', 'pretban', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(73))
                                 {
-                                    SendNonQuery("Adding command 73", "INSERT INTO `adkats_commands` VALUES(73, 'Invisible', 'player_ban_perm_old', 'Log', 'Previous Perm Ban', 'preban', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_ban_perm_old", "INSERT INTO `adkats_commands` VALUES(73, 'Invisible', 'player_ban_perm_old', 'Log', 'Previous Perm Ban', 'preban', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(74))
                                 {
-                                    SendNonQuery("Adding command 74", "INSERT INTO `adkats_commands` VALUES(74, 'Active', 'player_pm_send', 'Unable', 'Player Private Message', 'msg', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command player_pm_send", "INSERT INTO `adkats_commands` VALUES(74, 'Active', 'player_pm_send', 'Unable', 'Player Private Message', 'msg', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(75))
                                 {
-                                    SendNonQuery("Adding command 75", "INSERT INTO `adkats_commands` VALUES(75, 'Active', 'player_pm_reply', 'Unable', 'Player Private Reply', 'r', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command player_pm_reply", "INSERT INTO `adkats_commands` VALUES(75, 'Active', 'player_pm_reply', 'Unable', 'Player Private Reply', 'r', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(76))
                                 {
-                                    SendNonQuery("Adding command 76", "INSERT INTO `adkats_commands` VALUES(76, 'Active', 'admin_pm_send', 'Unable', 'Admin Private Message', 'adminmsg', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command admin_pm_send", "INSERT INTO `adkats_commands` VALUES(76, 'Active', 'admin_pm_send', 'Unable', 'Admin Private Message', 'adminmsg', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(77))
                                 {
-                                    SendNonQuery("Adding command 77", "INSERT INTO `adkats_commands` VALUES(77, 'Active', 'player_whitelistaa', 'Log', 'AA Whitelist Player', 'aawhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistaa", "INSERT INTO `adkats_commands` VALUES(77, 'Active', 'player_whitelistaa', 'Log', 'AA Whitelist Player', 'aawhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(78))
                                 {
-                                    SendNonQuery("Adding command 78", "INSERT INTO `adkats_commands` VALUES(78, 'Active', 'self_surrender', 'Log', 'Vote Surrender', 'surrender', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_surrender", "INSERT INTO `adkats_commands` VALUES(78, 'Active', 'self_surrender', 'Log', 'Vote Surrender', 'surrender', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(79))
                                 {
-                                    SendNonQuery("Adding command 79", "INSERT INTO `adkats_commands` VALUES(79, 'Active', 'self_votenext', 'Log', 'Vote Next Round', 'votenext', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_votenext", "INSERT INTO `adkats_commands` VALUES(79, 'Active', 'self_votenext', 'Log', 'Vote Next Round', 'votenext', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(80))
                                 {
-                                    SendNonQuery("Adding command 80", "INSERT INTO `adkats_commands` VALUES(80, 'Active', 'self_reportlist', 'Log', 'List Round Reports', 'reportlist', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_reportlist", "INSERT INTO `adkats_commands` VALUES(80, 'Active', 'self_reportlist', 'Log', 'List Round Reports', 'reportlist', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(81))
                                 {
-                                    SendNonQuery("Adding command 81", "INSERT INTO `adkats_commands` VALUES(81, 'Active', 'plugin_restart', 'Log', 'Restart AdKats', 'prestart', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command plugin_restart", "INSERT INTO `adkats_commands` VALUES(81, 'Active', 'plugin_restart', 'Log', 'Restart AdKats', 'prestart', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(82))
                                 {
-                                    SendNonQuery("Adding command 82", "INSERT INTO `adkats_commands` VALUES(82, 'Active', 'server_shutdown', 'Log', 'Shutdown Server', 'shutdown', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command server_shutdown", "INSERT INTO `adkats_commands` VALUES(82, 'Active', 'server_shutdown', 'Log', 'Shutdown Server', 'shutdown', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(83))
                                 {
-                                    SendNonQuery("Adding command 83", "INSERT INTO `adkats_commands` VALUES(83, 'Active', 'self_nosurrender', 'Log', 'Vote Against Surrender', 'nosurrender', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_nosurrender", "INSERT INTO `adkats_commands` VALUES(83, 'Active', 'self_nosurrender', 'Log', 'Vote Against Surrender', 'nosurrender', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(84))
                                 {
-                                    SendNonQuery("Adding command 84", "INSERT INTO `adkats_commands` VALUES(84, 'Active', 'player_whitelistspambot', 'Log', 'SpamBot Whitelist Player', 'spamwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistspambot", "INSERT INTO `adkats_commands` VALUES(84, 'Active', 'player_whitelistspambot', 'Log', 'SpamBot Whitelist Player', 'spamwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(85))
                                 {
-                                    SendNonQuery("Adding command 85", "INSERT INTO `adkats_commands` VALUES(85, 'Invisible', 'player_pm_start', 'Log', 'Player Private Message Start', 'pmstart', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command player_pm_start", "INSERT INTO `adkats_commands` VALUES(85, 'Invisible', 'player_pm_start', 'Log', 'Player Private Message Start', 'pmstart', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(86))
                                 {
-                                    SendNonQuery("Adding command 86", "INSERT INTO `adkats_commands` VALUES(86, 'Invisible', 'player_pm_transmit', 'Log', 'Player Private Message Transmit', 'pmtransmit', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command player_pm_transmit", "INSERT INTO `adkats_commands` VALUES(86, 'Invisible', 'player_pm_transmit', 'Log', 'Player Private Message Transmit', 'pmtransmit', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(87))
                                 {
-                                    SendNonQuery("Adding command 87", "INSERT INTO `adkats_commands` VALUES(87, 'Invisible', 'player_pm_cancel', 'Log', 'Player Private Message Cancel', 'pmcancel', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command player_pm_cancel", "INSERT INTO `adkats_commands` VALUES(87, 'Invisible', 'player_pm_cancel', 'Log', 'Player Private Message Cancel', 'pmcancel', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(88))
                                 {
-                                    SendNonQuery("Adding command 88", "INSERT INTO `adkats_commands` VALUES(88, 'Invisible', 'player_population_success', 'Log', 'Player Successfully Populated Server', 'popsuccess', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command player_population_success", "INSERT INTO `adkats_commands` VALUES(88, 'Invisible', 'player_population_success', 'Log', 'Player Successfully Populated Server', 'popsuccess', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(89))
                                 {
-                                    SendNonQuery("Adding command 89", "INSERT INTO `adkats_commands` VALUES(89, 'Invisible', 'server_map_detriment', 'Log', 'Map Detriment Log', 'mapdetriment', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command server_map_detriment", "INSERT INTO `adkats_commands` VALUES(89, 'Invisible', 'server_map_detriment', 'Log', 'Map Detriment Log', 'mapdetriment', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(90))
                                 {
-                                    SendNonQuery("Adding command 90", "INSERT INTO `adkats_commands` VALUES(90, 'Invisible', 'server_map_benefit', 'Log', 'Map Benefit Log', 'mapbenefit', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command server_map_benefit", "INSERT INTO `adkats_commands` VALUES(90, 'Invisible', 'server_map_benefit', 'Log', 'Map Benefit Log', 'mapbenefit', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(91))
                                 {
-                                    SendNonQuery("Adding command 91", "INSERT INTO `adkats_commands` VALUES(91, 'Active', 'plugin_update', 'Unable', 'Update AdKats', 'pupdate', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command plugin_update", "INSERT INTO `adkats_commands` VALUES(91, 'Active', 'plugin_update', 'Unable', 'Update AdKats', 'pupdate', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(92))
                                 {
-                                    SendNonQuery("Adding command 92", "INSERT INTO `adkats_commands` VALUES(92, 'Active', 'player_warn', 'Log', 'Warn Player', 'warn', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_warn", "INSERT INTO `adkats_commands` VALUES(92, 'Active', 'player_warn', 'Log', 'Warn Player', 'warn', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(93))
                                 {
-                                    SendNonQuery("Adding command 93", "INSERT INTO `adkats_commands` VALUES(93, 'Active', 'server_countdown', 'Log', 'Run Countdown', 'cdown', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command server_countdown", "INSERT INTO `adkats_commands` VALUES(93, 'Active', 'server_countdown', 'Log', 'Run Countdown', 'cdown', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(94))
                                 {
-                                    SendNonQuery("Adding command 94", "INSERT INTO `adkats_commands` VALUES(94, 'Active', 'player_whitelistreport', 'Log', 'Report Whitelist Player', 'rwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistreport", "INSERT INTO `adkats_commands` VALUES(94, 'Active', 'player_whitelistreport', 'Log', 'Report Whitelist Player', 'rwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(95))
                                 {
-                                    SendNonQuery("Adding command 95", "INSERT INTO `adkats_commands` VALUES(95, 'Active', 'player_whitelistreport_remove', 'Log', 'Remove Report Whitelist', 'unrwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistreport_remove", "INSERT INTO `adkats_commands` VALUES(95, 'Active', 'player_whitelistreport_remove', 'Log', 'Remove Report Whitelist', 'unrwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(96))
                                 {
-                                    SendNonQuery("Adding command 96", "INSERT INTO `adkats_commands` VALUES(96, 'Active', 'player_whitelistspambot_remove', 'Log', 'Remove SpamBot Whitelist', 'unspamwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistspambot_remove", "INSERT INTO `adkats_commands` VALUES(96, 'Active', 'player_whitelistspambot_remove', 'Log', 'Remove SpamBot Whitelist', 'unspamwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(97))
                                 {
-                                    SendNonQuery("Adding command 97", "INSERT INTO `adkats_commands` VALUES(97, 'Active', 'player_whitelistaa_remove', 'Log', 'Remove AA Whitelist', 'unaawhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistaa_remove", "INSERT INTO `adkats_commands` VALUES(97, 'Active', 'player_whitelistaa_remove', 'Log', 'Remove AA Whitelist', 'unaawhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(98))
                                 {
-                                    SendNonQuery("Adding command 98", "INSERT INTO `adkats_commands` VALUES(98, 'Active', 'player_whitelistping_remove', 'Log', 'Remove Ping Whitelist', 'unpwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistping_remove", "INSERT INTO `adkats_commands` VALUES(98, 'Active', 'player_whitelistping_remove', 'Log', 'Remove Ping Whitelist', 'unpwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(99))
                                 {
-                                    SendNonQuery("Adding command 99", "INSERT INTO `adkats_commands` VALUES(99, 'Active', 'player_whitelisthackerchecker_remove', 'Log', 'Remove Hacker-Checker Whitelist', 'unhcwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelisthackerchecker_remove", "INSERT INTO `adkats_commands` VALUES(99, 'Active', 'player_whitelisthackerchecker_remove', 'Log', 'Remove Hacker-Checker Whitelist', 'unhcwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(100))
                                 {
-                                    SendNonQuery("Adding command 100", "INSERT INTO `adkats_commands` VALUES(100, 'Active', 'player_slotspectator_remove', 'Log', 'Remove Spectator Slot', 'unspectator', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_slotspectator_remove", "INSERT INTO `adkats_commands` VALUES(100, 'Active', 'player_slotspectator_remove', 'Log', 'Remove Spectator Slot', 'unspectator', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(101))
                                 {
-                                    SendNonQuery("Adding command 101", "INSERT INTO `adkats_commands` VALUES(101, 'Active', 'player_slotreserved_remove', 'Log', 'Remove Reserved Slot', 'unreserved', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_slotreserved_remove", "INSERT INTO `adkats_commands` VALUES(101, 'Active', 'player_slotreserved_remove', 'Log', 'Remove Reserved Slot', 'unreserved', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(102))
                                 {
-                                    SendNonQuery("Adding command 102", "INSERT INTO `adkats_commands` VALUES(102, 'Active', 'player_whitelistbalance_remove', 'Log', 'Remove Autobalance Whitelist', 'unmbwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistbalance_remove", "INSERT INTO `adkats_commands` VALUES(102, 'Active', 'player_whitelistbalance_remove', 'Log', 'Remove Autobalance Whitelist', 'unmbwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(103))
                                 {
-                                    SendNonQuery("Adding command 103", "INSERT INTO `adkats_commands` VALUES(103, 'Active', 'player_blacklistdisperse_remove', 'Log', 'Remove Autobalance Dispersion', 'undisperse', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_blacklistdisperse_remove", "INSERT INTO `adkats_commands` VALUES(103, 'Active', 'player_blacklistdisperse_remove', 'Log', 'Remove Autobalance Dispersion', 'undisperse', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(104))
                                 {
-                                    SendNonQuery("Adding command 104", "INSERT INTO `adkats_commands` VALUES(104, 'Active', 'player_whitelistpopulator', 'Log', 'Populator Whitelist Player', 'popwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistpopulator", "INSERT INTO `adkats_commands` VALUES(104, 'Active', 'player_whitelistpopulator', 'Log', 'Populator Whitelist Player', 'popwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(105))
                                 {
-                                    SendNonQuery("Adding command 105", "INSERT INTO `adkats_commands` VALUES(105, 'Active', 'player_whitelistpopulator_remove', 'Log', 'Remove Populator Whitelist', 'unpopwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistpopulator_remove", "INSERT INTO `adkats_commands` VALUES(105, 'Active', 'player_whitelistpopulator_remove', 'Log', 'Remove Populator Whitelist', 'unpopwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(106))
                                 {
-                                    SendNonQuery("Adding command 106", "INSERT INTO `adkats_commands` VALUES(106, 'Active', 'player_whitelistteamkill', 'Log', 'TeamKillTracker Whitelist Player', 'tkwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistteamkill", "INSERT INTO `adkats_commands` VALUES(106, 'Active', 'player_whitelistteamkill', 'Log', 'TeamKillTracker Whitelist Player', 'tkwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(107))
                                 {
-                                    SendNonQuery("Adding command 107", "INSERT INTO `adkats_commands` VALUES(107, 'Active', 'player_whitelistteamkill_remove', 'Log', 'Remove TeamKillTracker Whitelist', 'untkwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistteamkill_remove", "INSERT INTO `adkats_commands` VALUES(107, 'Active', 'player_whitelistteamkill_remove', 'Log', 'Remove TeamKillTracker Whitelist', 'untkwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(108))
                                 {
-                                    SendNonQuery("Adding command 108", "INSERT INTO `adkats_commands` VALUES(108, 'Invisible', 'self_assist_unconfirmed', 'Log', 'Unconfirmed Assist', 'uassist', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_assist_unconfirmed", "INSERT INTO `adkats_commands` VALUES(108, 'Invisible', 'self_assist_unconfirmed', 'Log', 'Unconfirmed Assist', 'uassist', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(109))
                                 {
-                                    SendNonQuery("Adding command 109", "INSERT INTO `adkats_commands` VALUES(109, 'Active', 'player_blacklistspectator', 'Log', 'Spectator Blacklist Player', 'specblacklist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_blacklistspectator", "INSERT INTO `adkats_commands` VALUES(109, 'Active', 'player_blacklistspectator', 'Log', 'Spectator Blacklist Player', 'specblacklist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(110))
                                 {
-                                    SendNonQuery("Adding command 110", "INSERT INTO `adkats_commands` VALUES(110, 'Active', 'player_blacklistspectator_remove', 'Log', 'Remove Spectator Blacklist', 'unspecblacklist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_blacklistspectator_remove", "INSERT INTO `adkats_commands` VALUES(110, 'Active', 'player_blacklistspectator_remove', 'Log', 'Remove Spectator Blacklist', 'unspecblacklist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(111))
                                 {
-                                    SendNonQuery("Adding command 111", "INSERT INTO `adkats_commands` VALUES(111, 'Active', 'player_blacklistreport', 'Log', 'Report Source Blacklist', 'rblacklist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_blacklistreport", "INSERT INTO `adkats_commands` VALUES(111, 'Active', 'player_blacklistreport', 'Log', 'Report Source Blacklist', 'rblacklist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(112))
                                 {
-                                    SendNonQuery("Adding command 112", "INSERT INTO `adkats_commands` VALUES(112, 'Active', 'player_blacklistreport_remove', 'Log', 'Remove Report Source Blacklist', 'unrblacklist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_blacklistreport_remove", "INSERT INTO `adkats_commands` VALUES(112, 'Active', 'player_blacklistreport_remove', 'Log', 'Remove Report Source Blacklist', 'unrblacklist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(113))
                                 {
-                                    SendNonQuery("Adding command 113", "INSERT INTO `adkats_commands` VALUES(113, 'Active', 'player_whitelistcommand', 'Log', 'Command Target Whitelist', 'cwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistcommand", "INSERT INTO `adkats_commands` VALUES(113, 'Active', 'player_whitelistcommand', 'Log', 'Command Target Whitelist', 'cwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(114))
                                 {
-                                    SendNonQuery("Adding command 114", "INSERT INTO `adkats_commands` VALUES(114, 'Active', 'player_whitelistcommand_remove', 'Log', 'Remove Command Target Whitelist', 'uncwhitelist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_whitelistcommand_remove", "INSERT INTO `adkats_commands` VALUES(114, 'Active', 'player_whitelistcommand_remove', 'Log', 'Remove Command Target Whitelist', 'uncwhitelist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(115))
                                 {
-                                    SendNonQuery("Adding command 115", "INSERT INTO `adkats_commands` VALUES(115, 'Active', 'player_blacklistautoassist', 'Log', 'Auto-Assist Blacklist', 'auablacklist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_blacklistautoassist", "INSERT INTO `adkats_commands` VALUES(115, 'Active', 'player_blacklistautoassist', 'Log', 'Auto-Assist Blacklist', 'auablacklist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(116))
                                 {
-                                    SendNonQuery("Adding command 116", "INSERT INTO `adkats_commands` VALUES(116, 'Active', 'player_blacklistautoassist_remove', 'Log', 'Remove Auto-Assist Blacklist', 'unauablacklist', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_blacklistautoassist_remove", "INSERT INTO `adkats_commands` VALUES(116, 'Active', 'player_blacklistautoassist_remove', 'Log', 'Remove Auto-Assist Blacklist', 'unauablacklist', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(117)) 
                                 {
-                                    SendNonQuery("Adding command 117", "INSERT INTO `adkats_commands` VALUES(117, 'Active', 'player_isadmin', 'Log', 'Fetch Admin Status', 'isadmin', FALSE, 'AnyHidden')", true);
+                                    SendNonQuery("Adding command player_isadmin", "INSERT INTO `adkats_commands` VALUES(117, 'Active', 'player_isadmin', 'Log', 'Fetch Admin Status', 'isadmin', FALSE, 'AnyHidden')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(118)) 
                                 {
-                                    SendNonQuery("Adding command 118", "INSERT INTO `adkats_commands` VALUES(118, 'Active', 'self_feedback', 'Log', 'Give Server Feedback', 'feedback', FALSE, 'AnyHidden')", true);
+                                    SendNonQuery("Adding command self_feedback", "INSERT INTO `adkats_commands` VALUES(118, 'Active', 'self_feedback', 'Log', 'Give Server Feedback', 'feedback', FALSE, 'AnyHidden')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(119)) 
                                 {
-                                    SendNonQuery("Adding command 119", "INSERT INTO `adkats_commands` VALUES(119, 'Active', 'player_loadout', 'Log', 'Fetch Player Loadout', 'loadout', FALSE, 'AnyHidden')", true);
+                                    SendNonQuery("Adding command player_loadout", "INSERT INTO `adkats_commands` VALUES(119, 'Active', 'player_loadout', 'Log', 'Fetch Player Loadout', 'loadout', FALSE, 'AnyHidden')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(120)) 
                                 {
-                                    SendNonQuery("Adding command 120", "INSERT INTO `adkats_commands` VALUES(120, 'Active', 'player_loadout_force', 'Log', 'Force Player Loadout', 'floadout', TRUE, 'AnyHidden')", true);
+                                    SendNonQuery("Adding command player_loadout_force", "INSERT INTO `adkats_commands` VALUES(120, 'Active', 'player_loadout_force', 'Log', 'Force Player Loadout', 'floadout', TRUE, 'AnyHidden')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(121))
+                                {
+                                    SendNonQuery("Adding command self_battlecry", "INSERT INTO `adkats_commands` VALUES(121, 'Active', 'self_battlecry', 'Log', 'Set Own Battlecry', 'battlecry', FALSE, 'AnyHidden')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(122))
+                                {
+                                    SendNonQuery("Adding command player_battlecry", "INSERT INTO `adkats_commands` VALUES(122, 'Active', 'player_battlecry', 'Log', 'Set Player Battlecry', 'setbattlecry', TRUE, 'AnyHidden')", true);
                                     newCommands = true;
                                 }
                                 if (newCommands)
@@ -35343,7 +35625,6 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_info"] = "Returns all known information about the player.";
             _CommandDescriptionDictionary["player_dequeue"] = "Cancels any queued action on a player.";
             _CommandDescriptionDictionary["self_help"] = "Tells you all commands your user role can access.";
-            _CommandDescriptionDictionary["self_rep"] = "Tells you your server reputation.";
             _CommandDescriptionDictionary["player_find"] = "Target a player to fetch their team, position, and current score.";
             _CommandDescriptionDictionary["server_afk"] = "Calls the AFK Manager logic to remove AFK players from the server.";
             _CommandDescriptionDictionary["player_pull"] = "Pulls a player to your squad, killing them in the process.";
@@ -35398,6 +35679,8 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["self_feedback"] = "Logs feedback for the server.";
             _CommandDescriptionDictionary["player_loadout"] = "Returns a player's loadout if AdKatsLRT is installed and integrated.";
             _CommandDescriptionDictionary["player_loadout_force"] = "If AdKatsLRT is installed the targeted player is elevated to trigger level loadout enforcement.";
+            _CommandDescriptionDictionary["self_battlecry"] = "Sets a new battlecry for your player.";
+            _CommandDescriptionDictionary["player_battlecry"] = "Sets a new battlecry for the given player.";
         }
 
         private void FillReadableMapModeDictionaries() {
@@ -35417,6 +35700,14 @@ namespace PRoConEvents
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while filling map/mode dictionaries.", e));
             }
+        }
+
+        private void FillEvents()
+        {
+            //Laith event
+            AdKatsEvent laithEvent = new AdKatsEvent();
+            laithEvent.EventID = "laith319";
+            laithEvent.EventName = "Laith's TDM Event 3/19/2016";
         }
 
         private String GetCurrentReadableMap() {
@@ -41474,6 +41765,7 @@ namespace PRoConEvents
             public String player_ip = null;
             public String player_name = null;
             public String player_name_previous = null;
+            public String player_battlecry = null;
             public Boolean player_online = true;
             public String player_pbguid = null;
             public AdKatsRole player_role = null;
@@ -41871,6 +42163,32 @@ namespace PRoConEvents
                     targets = ((String.IsNullOrEmpty(target_name))?("NoNameTarget"):(target_name));
                 }
                 return targets.Trim().TrimEnd(',');
+            }
+        }
+
+        public class AdKatsEvent
+        {
+            public String EventID;
+            public String EventName;
+            public Int32 StartingRound;
+            // Handlers for each event round's variables, executed before the round is about to begin
+            public Dictionary<Int32, Func<AdKats, Boolean>> VariableHandlers;
+            // Handlers for the server name active during each event round
+            public Dictionary<Int32, Func<AdKats, Boolean>> ServerNameHandlers;
+            // Handlers for spawns during the event for each round
+            public Dictionary<Int32, Func<AdKats, Boolean>> SpawnHandlers;
+            // Handlers for kills during the event for each round
+            public Dictionary<Int32, Func<AdKats, String, Boolean>> KillHandlers;
+
+            //Old server values, the server should return to these values after the event is over
+            public CServerInfo OldServerInfo;
+
+            public AdKatsEvent()
+            {
+                VariableHandlers = new Dictionary<Int32, Func<AdKats, Boolean>>();
+                ServerNameHandlers = new Dictionary<Int32, Func<AdKats, Boolean>>();
+                SpawnHandlers = new Dictionary<Int32, Func<AdKats, Boolean>>();
+                KillHandlers = new Dictionary<Int32, Func<AdKats, String, Boolean>>();
             }
         }
 
