@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.77
+ * Version 6.8.1.78
  * 31-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.77</version_code>
+ * <version_code>6.8.1.78</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.77";
+        private const String PluginVersion = "6.8.1.78";
 
         public enum GameVersion
         {
@@ -15062,6 +15062,23 @@ namespace PRoConEvents
                                 }
                             }
                             break;
+                        case "player_join":
+                            if (record.target_name == record.source_name)
+                            {
+                                SendMessageToSource(record, "You are already in squad with yourself.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            if (record.target_player != null && 
+                                record.source_player != null && 
+                                record.target_player.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID &&
+                                record.target_player.frostbitePlayerInfo.SquadID == record.source_player.frostbitePlayerInfo.SquadID)
+                            {
+                                SendMessageToSource(record, "You are already in squad with " + record.target_player.GetVerboseName() + ".");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            break;
                         case "player_whitelistreport":
                             if (GetMatchingASPlayersOfGroup("whitelist_report", record.target_player).Any())
                             {
@@ -18354,7 +18371,7 @@ namespace PRoConEvents
                             switch (parameters.Length)
                             {
                                 case 0:
-                                    SendMessageToSource(record, "foreveralone.jpg (You cannot join on yourself.)");
+                                    SendMessageToSource(record, "You are already in squad with yourself.");
                                     FinalizeRecord(record);
                                     return;
                                 case 1:
