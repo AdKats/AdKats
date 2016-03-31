@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.80
+ * Version 6.8.1.81
  * 31-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.80</version_code>
+ * <version_code>6.8.1.81</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.80";
+        private const String PluginVersion = "6.8.1.81";
 
         public enum GameVersion
         {
@@ -25899,11 +25899,11 @@ namespace PRoConEvents
                             {
                                 if (record.source_name == record.target_name)
                                 {
-                                    SendMessageToSource(record, "Your battlecry has been cleared.");
+                                    SendMessageToSource(record, "Your battlecry has been removed.");
                                 }
                                 else
                                 {
-                                    SendMessageToSource(record, record.GetTargetNames() + "'s battlecry has been cleared.");
+                                    SendMessageToSource(record, record.GetTargetNames() + "'s battlecry has been removed.");
                                 }
                             }
                             else
