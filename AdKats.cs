@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.76
- * 30-MAR-2016
+ * Version 6.8.1.77
+ * 31-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.76</version_code>
+ * <version_code>6.8.1.77</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.76";
+        private const String PluginVersion = "6.8.1.77";
 
         public enum GameVersion
         {
@@ -9135,10 +9135,17 @@ namespace PRoConEvents
                                 {
                                     //Set base required triggers
                                     Int32 requiredTriggers = ((shouldNuke() || _surrenderAutoTriggerVote) ? (4) : (20));
-                                    //Add modification based on ticket count
-                                    requiredTriggers -= ((losingTeam.TeamTicketCount <= 500) ? ((500 - losingTeam.TeamTicketCount) / 30) : (0));
-                                    //Add modification based on automatic assist
-                                    requiredTriggers = ((_PlayersAutoAssistedThisRound) ? (requiredTriggers * 2) : (requiredTriggers));
+                                    if (!shouldNuke())
+                                    {
+                                        //Add modification based on ticket count
+                                        requiredTriggers -= ((losingTeam.TeamTicketCount <= 500) ? ((500 - losingTeam.TeamTicketCount) / 30) : (0));
+                                        //Add modification based on automatic assist
+                                        requiredTriggers = ((_PlayersAutoAssistedThisRound) ? (requiredTriggers * 2) : (requiredTriggers));
+                                    }
+                                    else if (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium)
+                                    {
+                                        requiredTriggers += 3;
+                                    }
                                     if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -5) ||
                                         //Allow either team to be nuked if that setting is enabled
                                         (_surrenderAutoNukeLosingTeams && (losingTeam.TeamAdjustedTicketDifferenceRate < -40 || winningTeam.TeamAdjustedTicketDifferenceRate < -40)))
@@ -9302,10 +9309,17 @@ namespace PRoConEvents
                                 {
                                     //Set base required triggers
                                     Int32 requiredTriggers = ((shouldNuke() || _surrenderAutoTriggerVote) ? (4) : ((_isTestingAuthorized) ? (25) : (20)));
-                                    //Add modification based on ticket count
-                                    requiredTriggers -= ((losingTeam.TeamTicketCount <= 500) ? ((500 - losingTeam.TeamTicketCount) / 30) : (0));
-                                    //Add modification based on automatic assist
-                                    requiredTriggers = ((_PlayersAutoAssistedThisRound) ? (requiredTriggers * 2) : (requiredTriggers));
+                                    if (!shouldNuke())
+                                    {
+                                        //Add modification based on ticket count
+                                        requiredTriggers -= ((losingTeam.TeamTicketCount <= 500) ? ((500 - losingTeam.TeamTicketCount) / 30) : (0));
+                                        //Add modification based on automatic assist
+                                        requiredTriggers = ((_PlayersAutoAssistedThisRound) ? (requiredTriggers * 2) : (requiredTriggers));
+                                    }
+                                    else if (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium)
+                                    {
+                                        requiredTriggers += 3;
+                                    }
                                     if ((losingTeam.TeamAdjustedTicketDifferenceRate < ((_isTestingAuthorized) ? (-45) : (-50)) && winningTeam.TeamAdjustedTicketDifferenceRate > -5) ||
                                         //Allow either team to be nuked if that setting is enabled
                                         (_surrenderAutoNukeLosingTeams && (losingTeam.TeamAdjustedTicketDifferenceRate < ((_isTestingAuthorized) ? (-45) : (-50)) || winningTeam.TeamAdjustedTicketDifferenceRate < ((_isTestingAuthorized) ? (-45) : (-50)))))
@@ -9480,9 +9494,22 @@ namespace PRoConEvents
                                                  losingTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoWinningRateMax &&
                                                  losingTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoWinningRateMin))
                                             {
+                                                // Increment triggers
+                                                _surrenderAutoTriggerCountCurrent++;
                                                 _lastAutoSurrenderTriggerTime = UtcNow();
+
                                                 bool resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
-                                                if (++_surrenderAutoTriggerCountCurrent >= ((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender)))
+
+                                                var requiredTriggers = _surrenderAutoTriggerCountToSurrender;
+                                                if (_PlayersAutoAssistedThisRound)
+                                                {
+                                                    requiredTriggers *= 2;
+                                                }
+                                                if (shouldNuke() && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium))
+                                                {
+                                                    requiredTriggers += 3;
+                                                }
+                                                if (_surrenderAutoTriggerCountCurrent >= requiredTriggers)
                                                 {
                                                     if (neededPlayers <= 0)
                                                     {
@@ -9644,9 +9671,22 @@ namespace PRoConEvents
                                                  losingTeam.TeamTicketDifferenceRate < _surrenderAutoWinningRateMax &&
                                                  losingTeam.TeamTicketDifferenceRate > _surrenderAutoWinningRateMin))
                                             {
+                                                // Increment triggers
+                                                _surrenderAutoTriggerCountCurrent++;
                                                 _lastAutoSurrenderTriggerTime = UtcNow();
+
                                                 bool resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
-                                                if (++_surrenderAutoTriggerCountCurrent >= ((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender)))
+
+                                                var requiredTriggers = _surrenderAutoTriggerCountToSurrender;
+                                                if (_PlayersAutoAssistedThisRound)
+                                                {
+                                                    requiredTriggers *= 2;
+                                                }
+                                                if (shouldNuke() && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium))
+                                                {
+                                                    requiredTriggers += 3;
+                                                }
+                                                if (_surrenderAutoTriggerCountCurrent >= requiredTriggers)
                                                 {
                                                     if (neededPlayers <= 0)
                                                     {
@@ -21291,10 +21331,10 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    var messageLower = record.record_message.ToLowerInvariant();
+                                    var messageLower = record.record_message.Trim().ToLowerInvariant();
                                     foreach (String deniedWord in _battlecryDeniedWords)
                                     {
-                                        if (messageLower.Contains(deniedWord.ToLowerInvariant()))
+                                        if (!String.IsNullOrEmpty(deniedWord.Trim()) && messageLower.Contains(deniedWord.Trim().ToLowerInvariant()))
                                         {
                                             SendMessageToSource(record, "Your battlecry contains denied words. Talk to an admin if this message is in error.");
                                             FinalizeRecord(record);
@@ -32790,11 +32830,12 @@ namespace PRoConEvents
                         {
                             String sql = @"
                             SELECT 
-                                `PlayerID` as `player_id`, 
-                                `SoldierName` as `player_name`, 
-                                `EAGUID` as `player_guid`, 
-                                `PBGUID` as `player_pbguid`, 
-                                `IP_Address` as `player_ip`,
+                                `tbl_playerdata`.`PlayerID` as `player_id`, 
+                                `tbl_playerdata`.`SoldierName` as `player_name`, 
+                                `tbl_playerdata`.`EAGUID` as `player_guid`, 
+                                `tbl_playerdata`.`PBGUID` as `player_pbguid`, 
+                                `tbl_playerdata`.`IP_Address` as `player_ip`,
+                                `tbl_playerdata`.`ClanTag` as `player_clantag`,
                                 `adkats_battlecries`.`player_battlecry`";
                             if (_serverInfo.GameID > 0)
                             {
@@ -32895,6 +32936,10 @@ namespace PRoConEvents
                                         aPlayer.player_ip = reader.GetString("player_ip");
                                     }
                                     if (!reader.IsDBNull(5))
+                                    {
+                                        aPlayer.player_clanTag = reader.GetString("player_clantag");
+                                    }
+                                    if (!reader.IsDBNull(6))
                                     {
                                         aPlayer.player_battlecry = reader.GetString("player_battlecry");
                                     }
