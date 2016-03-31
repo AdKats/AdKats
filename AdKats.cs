@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.79
+ * Version 6.8.1.80
  * 31-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.79</version_code>
+ * <version_code>6.8.1.80</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.79";
+        private const String PluginVersion = "6.8.1.80";
 
         public enum GameVersion
         {
@@ -15075,6 +15075,15 @@ namespace PRoConEvents
                                 record.target_player.frostbitePlayerInfo.SquadID == record.source_player.frostbitePlayerInfo.SquadID)
                             {
                                 SendMessageToSource(record, "You are already in squad with " + record.target_player.GetVerboseName() + ".");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            break;
+                        case "self_battlecry":
+                        case "player_battlecry":
+                            if (String.IsNullOrEmpty(record.record_message) && String.IsNullOrEmpty(record.target_player.player_battlecry))
+                            {
+                                SendMessageToSource(record, "You do not have a battlecry to remove.");
                                 FinalizeRecord(record);
                                 return;
                             }
