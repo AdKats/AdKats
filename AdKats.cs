@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.75
+ * Version 6.8.1.76
  * 30-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.75</version_code>
+ * <version_code>6.8.1.76</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.75";
+        private const String PluginVersion = "6.8.1.76";
 
         public enum GameVersion
         {
@@ -737,7 +737,7 @@ namespace PRoConEvents
             AddSettingSection("A11", "Player Mute Settings");
             AddSettingSection("A12", "Messaging Settings");
             AddSettingSection("A12-2", "SpamBot Settings");
-            AddSettingSection("A12-3", "Battlecry Settings");
+            AddSettingSection("A12-3", "Battlecry Settings - Thanks WDF");
             AddSettingSection("A13", "Banning Settings");
             AddSettingSection("A13-2", "Ban Enforcer Settings");
             AddSettingSection("A13-3", "Mini Ban Management");
@@ -1125,7 +1125,7 @@ namespace PRoConEvents
 
                     if (IsActiveSettingSection("A12-3"))
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "Player Battlecry Max Length", typeof(Int32), _battlecryMaxLength));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + sept + "Player Battlecry Max Length", typeof(Int32), _battlecryMaxLength));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + sept + "Player Battlecry Denied Words", typeof(String[]), _battlecryDeniedWords));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + sept + "Player Battlecry Volume", "enum.battlecryVolumeEnum(Disabled|Say|Yell|Tell)", _battlecryVolume.ToString()));
                     }
@@ -25819,7 +25819,7 @@ namespace PRoConEvents
                         )
                         VALUES
                         (
-	                        'player_id',
+	                        @player_id,
 	                        @player_battlecry
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
