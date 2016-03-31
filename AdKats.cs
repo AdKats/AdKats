@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.78
+ * Version 6.8.1.79
  * 31-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.78</version_code>
+ * <version_code>6.8.1.79</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.78";
+        private const String PluginVersion = "6.8.1.79";
 
         public enum GameVersion
         {
@@ -21337,9 +21337,16 @@ namespace PRoConEvents
                             switch (parameters.Length)
                             {
                                 case 0:
-                                    SendMessageToSource(record, "No parameters given, unable to submit.");
-                                    FinalizeRecord(record);
-                                    return;
+                                    record.record_message = "";
+                                    record.target_name = record.source_name;
+                                    if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player))
+                                    {
+                                        SendMessageToSource(record, "Source player not found, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    QueueRecordForProcessing(record);
+                                    break;
                                 case 1:
                                     record.record_message = GetPreMessage(parameters[0], false);
                                     if (record.record_message.Length > _battlecryMaxLength)
@@ -21388,9 +21395,16 @@ namespace PRoConEvents
                                     FinalizeRecord(record);
                                     return;
                                 case 1:
-                                    SendMessageToSource(record, "No message given, unable to submit.");
-                                    FinalizeRecord(record);
-                                    return;
+                                    record.record_message = "";
+                                    record.target_name = record.source_name;
+                                    if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player))
+                                    {
+                                        SendMessageToSource(record, "Source player not found, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    QueueRecordForProcessing(record);
+                                    break;
                                 case 2:
                                     record.target_name = parameters[0];
                                     record.record_message = GetPreMessage(parameters[1], false);
@@ -25867,37 +25881,62 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
-                        command.CommandText = @"
-                        REPLACE INTO
-	                        `adkats_battlecries`
-                        (
-	                        `player_id`,
-	                        `player_battlecry`
-                        )
-                        VALUES
-                        (
-	                        @player_id,
-	                        @player_battlecry
-                        )";
-                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
-                        command.Parameters.AddWithValue("@player_battlecry", record.target_player.player_battlecry);
-                        Int32 rowsAffected = SafeExecuteNonQuery(command);
-                        if (rowsAffected > 0)
+                        if (String.IsNullOrEmpty(record.target_player.player_battlecry))
                         {
-                            String message = "'" + record.target_player.player_battlecry + "'.";
-                            if (record.source_name == record.target_name)
+                            command.CommandText = @"DELETE FROM `adkats_battlecries` WHERE `player_id` = @player_id";
+                            command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
                             {
-                                message = "Your new battlecry: " + message;
+                                if (record.source_name == record.target_name)
+                                {
+                                    SendMessageToSource(record, "Your battlecry has been cleared.");
+                                }
+                                else
+                                {
+                                    SendMessageToSource(record, record.GetTargetNames() + "'s battlecry has been cleared.");
+                                }
                             }
                             else
                             {
-                                message = record.GetTargetNames() + "'s new battlecry: " + message;
+                                Log.Error("Unable to remove player battlecry.");
+                                SendMessageToSource(record, "Unable to remove your battlecry.");
                             }
-                            SendMessageToSource(record, message);
                         }
                         else
                         {
-                            Log.Error("Unable to update player battlecry. Error uploading.");
+                            command.CommandText = @"
+                            REPLACE INTO
+	                            `adkats_battlecries`
+                            (
+	                            `player_id`,
+	                            `player_battlecry`
+                            )
+                            VALUES
+                            (
+	                            @player_id,
+	                            @player_battlecry
+                            )";
+                            command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                            command.Parameters.AddWithValue("@player_battlecry", record.target_player.player_battlecry);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "'" + record.target_player.player_battlecry + "'.";
+                                if (record.source_name == record.target_name)
+                                {
+                                    message = "Your new battlecry: " + message;
+                                }
+                                else
+                                {
+                                    message = record.GetTargetNames() + "'s new battlecry: " + message;
+                                }
+                                SendMessageToSource(record, message);
+                            }
+                            else
+                            {
+                                Log.Error("Unable to update player battlecry. Error uploading.");
+                            }
                         }
                     }
                 }
