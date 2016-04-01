@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.82
+ * Version 6.8.1.83
  * 31-MAR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.82</version_code>
+ * <version_code>6.8.1.83</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.82";
+        private const String PluginVersion = "6.8.1.83";
 
         public enum GameVersion
         {
@@ -1310,7 +1310,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsActiveSettingSection("B25")) {
+                    if (IsActiveSettingSection("B25") || IsActiveSettingSection("B25-2")) {
                         //Auto-Surrender Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
                         if (_surrenderAutoEnable) {
@@ -16019,18 +16019,42 @@ namespace PRoConEvents
                             }
 
                             record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]";
+                            Boolean canAssist = true;
+                            String rejectionMessage = "team ";
                             var newPowerDiff = Math.Round(Math.Abs(enemyTeam.getTeamPower(null, record.target_player) - friendlyTeam.getTeamPower(record.target_player, null)));
                             var oldPowerDiff = Math.Round(Math.Abs(enemyTeam.getTeamPower() - friendlyTeam.getTeamPower()));
-                            var enemyPowerLower = _UseTopPlayerMonitor && 
-                                                  record.target_player.TopStats != null && 
-                                                  //Difference in power between teams must be less after the assist vs before
-                                                  newPowerDiff < oldPowerDiff;
                             Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
-                            Boolean enemyStrong = enemyTeam.TeamTicketDifferenceRate > friendlyTeam.TeamTicketDifferenceRate;
-                            if (!enemyWinning && (
-                                !enemyStrong || 
-                                enemyPowerLower || 
-                                Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > (_startingTicketCount > 0 ? (_startingTicketCount / 4.0) : 250)))
+                            Boolean enemyMapPower = enemyTeam.TeamTicketDifferenceRate > friendlyTeam.TeamTicketDifferenceRate;
+                            Boolean ticketBypass = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > (_startingTicketCount > 0 ? (_startingTicketCount / 4.0) : 250);
+                            if (enemyWinning)
+                            {
+                                canAssist = false;
+                                if (enemyMapPower)
+                                {
+                                    rejectionMessage += "is already winning and strong.";
+                                }
+                                else
+                                {
+                                    rejectionMessage += "is losing ground, but still winning the match.";
+                                }
+                            }
+                            else if (_UseTopPlayerMonitor)
+                            {
+                                if (newPowerDiff > oldPowerDiff)
+                                {
+                                    canAssist = false;
+                                    rejectionMessage += "would be too strong with them on it.";
+                                }
+                            }
+                            else
+                            {
+                                if (enemyMapPower)
+                                {
+                                    canAssist = false;
+                                    rejectionMessage += "is losing, but is making a comeback.";
+                                }
+                            }
+                            if (canAssist)
                             {
                                 //Timeout or over-queueing
                                 var assists = _roundAssists.Values;
@@ -16054,29 +16078,9 @@ namespace PRoConEvents
                                 SendMessageToSource(record, "Queuing you to assist the weak team. Thank you.");
                                 OnlineAdminSayMessage(record.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted " + (_UseTopPlayerMonitor ? "(" + newPowerDiff + "<" + oldPowerDiff + ")" : "") + ", queueing.");
                             } 
-                            else {
-                                String responseMessage = "team ";
-                                if (_UseTopPlayerMonitor && newPowerDiff > oldPowerDiff)
-                                {
-                                    responseMessage += "would be too strong with them on it.";
-                                }
-                                else if (enemyWinning && enemyStrong)
-                                {
-                                    responseMessage += "is already strong.";
-                                }
-                                else if (enemyWinning && enemyStrong)
-                                {
-                                    responseMessage += "is already winning and strong.";
-                                }
-                                else if (enemyWinning && !enemyStrong)
-                                {
-                                    responseMessage += "is losing ground, but still winning the match.";
-                                }
-                                else if (!enemyWinning && enemyStrong)
-                                {
-                                    responseMessage += "is losing, but is making a comeback.";
-                                }
-                                AdminSayMessage(record.GetSourceName() + " assist to " + enemyTeam.TeamKey + " rejected, " + responseMessage);
+                            else
+                            {
+                                AdminSayMessage(record.GetSourceName() + " assist to " + enemyTeam.TeamKey + " rejected, " + rejectionMessage);
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -42489,9 +42493,6 @@ namespace PRoConEvents
             public DateTime TeamTotalScoresTime { get; private set; }
             public Boolean TeamTotalScoresAdded { get; private set; }
 
-            private Double TeamPower = 0;
-            private DateTime _LastTeamPowerUpdate = DateTime.UtcNow;
-
             public AdKatsTeam(AdKats plugin, Int32 teamID, String teamKey, String teamName, String teamDesc)
             {
                 Plugin = plugin;
@@ -42770,9 +42771,6 @@ namespace PRoConEvents
 
             public Double getTeamPower(AdKatsPlayer ignorePlayer, AdKatsPlayer includePlayer) {
                 try {
-                    if ((DateTime.UtcNow - _LastTeamPowerUpdate).TotalSeconds < 0.5) {
-                        return TeamPower;
-                    }
                     if (!Plugin._PlayerDictionary.Any() || !Plugin._UseTopPlayerMonitor) {
                         return 0;
                     }
@@ -42810,8 +42808,6 @@ namespace PRoConEvents
                     if (Plugin._isTestingAuthorized) {
                         Plugin.Log.Info(TeamKey + " Power: " + totalPower + " = (top)" + Math.Round(topPowerSum, 2) + " * (kd)" + Math.Round(kdPowerSum, 2) + " * (count)" + Math.Round(playerSum, 2));
                     }
-                    TeamPower = totalPower;
-                    _LastTeamPowerUpdate = DateTime.UtcNow;
                     return totalPower;
                 }
                 catch (Exception e) {
