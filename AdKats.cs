@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.83
- * 31-MAR-2016
+ * Version 6.8.1.84
+ * 2-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.83</version_code>
+ * <version_code>6.8.1.84</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.83";
+        private const String PluginVersion = "6.8.1.84";
 
         public enum GameVersion
         {
@@ -354,6 +354,7 @@ namespace PRoConEvents
         private Int32 _RequiredReasonLength = 4;
         //Commands specific
         private String _ServerVoipAddress = "(TS3) TS.ADKGamers.com:3796";
+        private Int32 _NukeCountdownDurationSeconds = 0;
         //Dynamic access
         public Func<AdKats, AdKatsPlayer, Boolean> AAPerkFunc = ((plugin, aPlayer) => ((plugin._EnableAdminAssistantPerk && aPlayer.player_aa) || (aPlayer.player_reputation > _reputationThresholdGood)));
         public Func<AdKats, AdKatsPlayer, Boolean> TeamSwapFunc = ((plugin, aPlayer) => ((plugin._EnableAdminAssistantPerk && aPlayer.player_aa) || plugin.GetMatchingVerboseASPlayersOfGroup("whitelist_teamswap", aPlayer).Any()));
@@ -1594,7 +1595,17 @@ namespace PRoConEvents
                                     lock (_CommandIDDictionary) {
                                         Random random = new Random();
                                         String rolePrefix = GetSettingSection("4") + t + "RLE" + aRole.role_id + s + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + s;
-                                        lstReturn.AddRange(from aCommand in _CommandNameDictionary.Values where aCommand.command_active == AdKatsCommand.CommandActive.Active && aCommand.command_key != "command_confirm" && aCommand.command_key != "command_cancel" where aRole.role_key != "guest_default" || !aCommand.command_playerInteraction let allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) let display = rolePrefix + "CDE" + aCommand.command_id + s + aCommand.command_name + ((aCommand.command_playerInteraction) ? (" [ADMIN]") : ("")) select new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
+                                        lstReturn.AddRange(from aCommand in _CommandNameDictionary.Values
+                                                           where 
+                                                           aCommand.command_active == AdKatsCommand.CommandActive.Active && 
+                                                           aCommand.command_key != "command_confirm" && 
+                                                           aCommand.command_key != "command_cancel"
+                                                           where 
+                                                           aRole.role_key != "guest_default" || 
+                                                           !aCommand.command_playerInteraction
+                                                           let allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key)
+                                                           let display = rolePrefix + "CDE" + aCommand.command_id + s + aCommand.command_name + ((aCommand.command_playerInteraction) ? (" [ADMIN]") : ("")) + ((aCommand.command_playerInteraction && allowed) ? (" <---") : (""))
+                                                           select new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
                                         //Do not display the delete option for default guest
                                         if (aRole.role_key != "guest_default") {
                                             lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof(String), ""));
@@ -1628,6 +1639,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Minimum Required Reason Length", typeof(int), _RequiredReasonLength));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Minimum Report Handle Seconds", typeof(int), _MinimumReportHandleSeconds));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Countdown Duration before a Nuke is fired", typeof(int), _NukeCountdownDurationSeconds));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Bypass all command confirmation -DO NOT USE-", typeof(Boolean), _bypassCommandConfirmation));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "External plugin player commands", typeof(String[]), _ExternalPlayerCommands.ToArray()));
@@ -4220,6 +4232,24 @@ namespace PRoConEvents
                         }
                     }
                 }
+                else if (Regex.Match(strVariable, @"Countdown Duration before a Nuke is fired").Success)
+                {
+                    Int32 duration = Int32.Parse(strValue);
+                    if (_NukeCountdownDurationSeconds != duration)
+                    {
+                        _NukeCountdownDurationSeconds = duration;
+                        if (_NukeCountdownDurationSeconds < 0)
+                        {
+                            _NukeCountdownDurationSeconds = 0;
+                        }
+                        if (_NukeCountdownDurationSeconds > 10)
+                        {
+                            _NukeCountdownDurationSeconds = 10;
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Countdown Duration before a Nuke is fired", typeof(Int32), _NukeCountdownDurationSeconds));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Minimum Required Reason Length").Success)
                 {
                     Int32 required = Int32.Parse(strValue);
@@ -5233,7 +5263,7 @@ namespace PRoConEvents
                     _PushBulletHandler.DefaultChannelTag = strValue;
                     QueueSettingForUpload(new CPluginVariable(@"PushBullet Channel Tag", typeof(String), _PushBulletHandler.DefaultChannelTag));
                 } else if (Regex.Match(strVariable, @"Only Send PushBullet Reports When Admins Offline").Success) {
-                    _EmailReportsOnlyWhenAdminless = Boolean.Parse(strValue);
+                    _PushBulletReportsOnlyWhenAdminless = Boolean.Parse(strValue);
                     QueueSettingForUpload(new CPluginVariable(@"Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
                 } 
                 else if (Regex.Match(strVariable, @"Use Metabans?").Success) {
@@ -7586,13 +7616,15 @@ namespace PRoConEvents
                         oldTeam.TeamKey != "Neutral" &&
                         !PlayerIsAdmin(aPlayer))
                     {
+                        var newPowerDiff = Math.Round(Math.Abs(newTeam.getTeamPower(null, aPlayer) - oldTeam.getTeamPower(aPlayer, null)));
+                        var oldPowerDiff = Math.Round(Math.Abs(newTeam.getTeamPower() - oldTeam.getTeamPower()));
                         if (_UseTopPlayerMonitor && 
                             aPlayer.TopStats.getTopPower() != 0 && 
-                            (newTeam.getTeamPower() + aPlayer.TopStats.getTopPower() <= oldTeam.getTeamPower() - aPlayer.TopStats.getTopPower()) &&
+                            newPowerDiff <= oldPowerDiff &&
                             _roundState == RoundState.Playing && 
                             _serverInfo.GetRoundElapsedTime().TotalSeconds > 10) {
                             if (_isTestingAuthorized) {
-                                Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + ".");
+                                Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + " (" + newPowerDiff + "<" + oldPowerDiff + ").");
                             }
                             aPlayer.RequiredTeam = newTeam;
                         } else {
@@ -8363,23 +8395,18 @@ namespace PRoConEvents
                                                 } else if (tf != aPlayer.RequiredTeam &&
                                                            (_startingTicketCount == 0 || Math.Min(t1.TeamTicketCount, t2.TeamTicketCount) > _startingTicketCount * (2.0 / 5.0))) {
                                                     //The player is not on the team they should be. But are they?
-                                                    var reassignEnemy = (enemyPower - playerPower);
-                                                    var reassignFriendly = (friendlyPower + playerPower);
-                                                    var reassignDiff = Math.Abs(reassignEnemy - reassignFriendly);
-                                                    var currentDiff = Math.Abs(enemyPower - friendlyPower);
+                                                    var reassignDiff = Math.Round(Math.Abs(tf.getTeamPower(null, aPlayer) - te.getTeamPower(aPlayer, null)));
+                                                    var currentDiff = Math.Round(Math.Abs(tf.getTeamPower() - te.getTeamPower()));
                                                     //If team power difference after reassignment would be less than the current, do it
                                                     if (reassignDiff <= currentDiff && tf.TeamKey != "Neutral") {
                                                         if (_isTestingAuthorized) {
-                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + tf.TeamKey + ", " + Math.Round(reassignDiff, 2) + " < " + Math.Round(currentDiff, 2) + ".");
+                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + tf.TeamKey + " (" + reassignDiff + "<" + currentDiff + ").");
                                                         }
                                                         aPlayer.RequiredTeam = tf;
                                                     } else {
                                                         if (_isTestingAuthorized && tf.TeamKey != "Neutral") {
                                                             Log.Warn(aPlayer.GetVerboseName() + " friendly power " + tf.TeamKey + " " + friendlyPower + ", enemy power " + te.TeamKey + " " + enemyPower + ".");
                                                             Log.Warn(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " but on " + tf.TeamKey + ", attempting to move.");
-                                                        }
-                                                        if (_isTestingAuthorized) {
-                                                            ProconChatWrite("Upkeep Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
                                                         }
                                                         ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
                                                     }
@@ -26563,14 +26590,47 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                if (record.source_name == "RoundManager") {
-                    AdminTellMessage(record.record_message);
+
+                if (_NukeCountdownDurationSeconds > 0)
+                {
+                    //Start the thread
+                    StartAndLogThread(new Thread(new ThreadStart(delegate
+                    {
+                        Log.Debug(() => "Starting a nuke countdown printer.", 5);
+                        try
+                        {
+                            Thread.CurrentThread.Name = "NukeCountdownPrinter";
+                            for (Int32 countdown = _NukeCountdownDurationSeconds; countdown > 0; countdown--)
+                            {
+                                if (!_pluginEnabled)
+                                {
+                                    LogThreadExit();
+                                    return;
+                                }
+                                AdminTellMessage("Nuking " + record.GetTargetNames() + " team in " + countdown + "...", false);
+                                _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
+                            }
+                            AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + " team NOW!");
+                            foreach (AdKatsPlayer player in _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone")))
+                            {
+                                ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            HandleException(new AdKatsException("Error while printing nuke countdown"));
+                        }
+                        Log.Debug(() => "Exiting a nuke countdown printer.", 5);
+                        LogThreadExit();
+                    })));
                 }
-                foreach (AdKatsPlayer player in _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"))) {
-                    ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
-                    if (record.source_name != "RoundManager") {
-                        PlayerTellMessage(record.source_name, "NUKE issued on team " + record.GetTargetNames());
+                else
+                {
+                    foreach (AdKatsPlayer player in _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone")))
+                    {
+                        ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
                     }
+                    AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + " team!");
                 }
                 SendMessageToSource(record, "You NUKED " + record.GetTargetNames() + ".");
             }
@@ -30085,6 +30145,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
                 QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by GUID", typeof(Boolean), _DefaultEnforceGUID));
                 QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by IP", typeof(Boolean), _DefaultEnforceIP));
+                QueueSettingForUpload(new CPluginVariable(@"Countdown Duration before a Nuke is fired", typeof(Int32), _NukeCountdownDurationSeconds));
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Required Reason Length", typeof(Int32), _RequiredReasonLength));
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Report Handle Seconds", typeof(Int32), _MinimumReportHandleSeconds));
                 QueueSettingForUpload(new CPluginVariable(@"Banned Tags", typeof(String), CPluginVariable.EncodeStringArray(_BannedTags)));
@@ -42806,7 +42867,7 @@ namespace PRoConEvents
                     var playerSum = Math.Sqrt(teamPlayers.Count());
                     var totalPower = Math.Round(topPowerSum * kdPowerSum * playerSum);
                     if (Plugin._isTestingAuthorized) {
-                        Plugin.Log.Info(TeamKey + " Power: " + totalPower + " = (top)" + Math.Round(topPowerSum, 2) + " * (kd)" + Math.Round(kdPowerSum, 2) + " * (count)" + Math.Round(playerSum, 2));
+                        //Plugin.Log.Info(TeamKey + " Power: " + totalPower + " = (top)" + Math.Round(topPowerSum, 2) + " * (kd)" + Math.Round(kdPowerSum, 2) + " * (count)" + Math.Round(playerSum, 2));
                     }
                     return totalPower;
                 }
