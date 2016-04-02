@@ -14863,11 +14863,6 @@ namespace PRoConEvents
                                         return;
                                     }
                                     string lowerM = " " + record.record_message.ToLower() + " ";
-                                    if (lowerM.Contains("bipod")) {
-                                        SendMessageToSource(record, "Bipod related actions are not bannable.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
                                     if (lowerM.Contains("headgl") || lowerM.Contains("head gl")) {
                                         SendMessageToSource(record, "'Head Glitching' related actions are not bannable.");
                                         FinalizeRecord(record);
