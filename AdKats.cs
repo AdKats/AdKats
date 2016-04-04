@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.84
- * 2-APR-2016
+ * Version 6.8.1.85
+ * 3-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.84</version_code>
+ * <version_code>6.8.1.85</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.84";
+        private const String PluginVersion = "6.8.1.85";
 
         public enum GameVersion
         {
@@ -110,6 +110,14 @@ namespace PRoConEvents
             TestBuild,
             UnknownBuild,
             UnfetchedBuild
+        }
+
+        public enum AutoSurrenderAction
+        {
+            None,
+            Surrender,
+            Nuke,
+            Vote
         }
 
         //State
@@ -498,7 +506,6 @@ namespace PRoConEvents
         private Boolean _surrenderAutoSucceeded;
         private Boolean _surrenderAutoUseMetroValues;
         private Boolean _surrenderAutoUseLockerValues;
-        private Boolean _surrenderAutoUseAdjustedTicketRates;
         private Int32 _surrenderAutoMinimumTicketGap = 100;
         private Int32 _surrenderAutoMinimumTicketCount = 100;
         private Int32 _surrenderAutoMaximumTicketCount = 999;
@@ -522,6 +529,7 @@ namespace PRoConEvents
         private AdKatsTeam _surrenderAutoNukeLastTeam;
         private Boolean _surrenderAutoAnnounceNukePrep = true;
         private Boolean _surrenderAutoNukeLosingTeams = false;
+        private Int32 _surrenderAutoNukeLosingMaxDiff = 200;
         private Boolean _surrenderAutoNukeResolveAfterMax = false;
         private Int32 _surrenderAutoMaxNukesEachRound = 4;
         private Int32 _currentRoundNukes = 0;
@@ -1321,7 +1329,6 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Maximum Ticket Count", typeof(Int32), _surrenderAutoMaximumTicketCount));
                             if (!_surrenderAutoUseMetroValues && !_surrenderAutoUseLockerValues) {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Use Adjusted Ticket Rates", typeof(Boolean), _surrenderAutoUseAdjustedTicketRates));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
@@ -1340,6 +1347,10 @@ namespace PRoConEvents
                                 {
                                     lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Announce Nuke Preparation to Players", typeof(Boolean), _surrenderAutoAnnounceNukePrep));
                                     lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Allow Auto-Nuke to fire on losing teams", typeof(Boolean), _surrenderAutoNukeLosingTeams));
+                                    if (_surrenderAutoNukeLosingTeams)
+                                    {
+                                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Maximum Nuke Ticket Difference for Losing Team", typeof(Int32), _surrenderAutoNukeLosingMaxDiff));
+                                    }
                                     lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke High Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationHigh));
                                     lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Medium Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationMed));
                                     lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Low Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationLow));
@@ -2588,16 +2599,6 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Auto-Surrender Use Adjusted Ticket Rates").Success)
-                {
-                    Boolean surrenderAutoUseAdjustedTicketRates = Boolean.Parse(strValue);
-                    if (surrenderAutoUseAdjustedTicketRates != _surrenderAutoUseAdjustedTicketRates)
-                    {
-                        _surrenderAutoUseAdjustedTicketRates = surrenderAutoUseAdjustedTicketRates;
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Adjusted Ticket Rates", typeof(Boolean), _surrenderAutoUseAdjustedTicketRates));
-                    }
-                }
                 else if (Regex.Match(strVariable, @"Auto-Surrender Reset Trigger Count on Cancel").Success)
                 {
                     Boolean surrenderAutoResetTriggerCountOnCancel = Boolean.Parse(strValue);
@@ -2866,6 +2867,21 @@ namespace PRoConEvents
                         _surrenderAutoMinimumPlayers = surrenderAutoMinimumPlayers;
                         //Once setting has been changed, upload the change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Players", typeof(Int32), _surrenderAutoMinimumPlayers));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Maximum Nuke Ticket Difference for Losing Team").Success)
+                {
+                    Int32 losingTeamTicketDiff = Int32.Parse(strValue);
+                    if (_surrenderAutoNukeLosingMaxDiff != losingTeamTicketDiff)
+                    {
+                        if (losingTeamTicketDiff < 0)
+                        {
+                            Log.Error("Max ticket difference must be non-negative.");
+                            losingTeamTicketDiff = 0;
+                        }
+                        _surrenderAutoNukeLosingMaxDiff = losingTeamTicketDiff;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Maximum Nuke Ticket Difference for Losing Team", typeof(Int32), _surrenderAutoNukeLosingMaxDiff));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Auto-Nuke High Pop Duration Seconds").Success)
@@ -6825,7 +6841,7 @@ namespace PRoConEvents
                                     if (_roundState == RoundState.Playing &&
                                         _serverInfo.GetRoundElapsedTime().TotalMinutes > 5 && 
                                         Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 && 
-                                        winningTeam.TeamTicketDifferenceRate > losingTeam.TeamTicketDifferenceRate &&
+                                        winningTeam.GetTicketDifferenceRate() > losingTeam.GetTicketDifferenceRate() &&
                                         !_Team1MoveQueue.Any() &&
                                         !_Team2MoveQueue.Any() &&
                                         (!_isTestingAuthorized || (_serverInfo.ServerID != 1 || losingTeam.TeamTicketCount > 400))) {
@@ -8970,8 +8986,8 @@ namespace PRoConEvents
                                     command.Parameters.AddWithValue("@team2_spm", Math.Round(team2.TeamScoreDifferenceRate, 2));
                                     command.Parameters.AddWithValue("@team1_tickets", team1.TeamTicketCount);
                                     command.Parameters.AddWithValue("@team2_tickets", team2.TeamTicketCount);
-                                    command.Parameters.AddWithValue("@team1_tpm", Math.Round(team1.TeamTicketDifferenceRate, 2));
-                                    command.Parameters.AddWithValue("@team2_tpm", Math.Round(team2.TeamTicketDifferenceRate, 2));
+                                    command.Parameters.AddWithValue("@team1_tpm", Math.Round(team1.GetTicketDifferenceRate(), 2));
+                                    command.Parameters.AddWithValue("@team2_tpm", Math.Round(team2.GetTicketDifferenceRate(), 2));
                                     if (team1.TeamPlayerCount > 0 || team2.TeamPlayerCount > 0)
                                     {
                                         try
@@ -8984,7 +9000,7 @@ namespace PRoConEvents
                                         }
                                         catch (Exception e)
                                         {
-                                            HandleException(new AdKatsException("Invalid round stats when posting. " + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "|" + team1.TeamPlayerCount + "|" + team2.TeamPlayerCount + "|" + Math.Round(team1.TeamTotalScore, 2) + "|" + Math.Round(team2.TeamTotalScore, 2) + "|" + Math.Round(team1.TeamScoreDifferenceRate, 2) + "|" + team1.TeamScoreDifferenceRate + "|" + Math.Round(team2.TeamScoreDifferenceRate, 2) + "|" + team2.TeamScoreDifferenceRate + "|" + team1.TeamTicketCount + "|" + team2.TeamTicketCount + "|" + Math.Round(team1.TeamTicketDifferenceRate, 2) + "|" + team1.TeamTicketDifferenceRate + "|" + Math.Round(team2.TeamTicketDifferenceRate, 2) + "|" + team2.TeamTicketDifferenceRate));
+                                            HandleException(new AdKatsException("Invalid round stats when posting. " + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "|" + team1.TeamPlayerCount + "|" + team2.TeamPlayerCount + "|" + Math.Round(team1.TeamTotalScore, 2) + "|" + Math.Round(team2.TeamTotalScore, 2) + "|" + Math.Round(team1.TeamScoreDifferenceRate, 2) + "|" + team1.TeamScoreDifferenceRate + "|" + Math.Round(team2.TeamScoreDifferenceRate, 2) + "|" + team2.TeamScoreDifferenceRate + "|" + team1.TeamTicketCount + "|" + team2.TeamTicketCount + "|" + Math.Round(team1.GetTicketDifferenceRate(), 2) + "|" + team1.GetTicketDifferenceRate() + "|" + Math.Round(team2.GetTicketDifferenceRate(), 2) + "|" + team2.GetTicketDifferenceRate()));
                                         }
                                     }
                                 }
@@ -9075,6 +9091,8 @@ namespace PRoConEvents
                             }
                             AdKatsTeam winningTeam = null;
                             AdKatsTeam losingTeam = null;
+                            AdKatsTeam mapUpTeam = null;
+                            AdKatsTeam mapDownTeam = null;
                             AdKatsTeam baserapingTeam = null;
                             AdKatsTeam baserapedTeam = null;
                             if (team1.TeamTicketCount > team2.TeamTicketCount)
@@ -9087,28 +9105,29 @@ namespace PRoConEvents
                                 winningTeam = team2;
                                 losingTeam = team1;
                             }
+                            if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate())
+                            {
+                                //Team1 has more map than Team2
+                                mapUpTeam = team1;
+                                mapDownTeam = team2;
+                            }
+                            else
+                            {
+                                //Team2 has more map than Team1
+                                mapUpTeam = team2;
+                                mapDownTeam = team1;
+                            }
                             if (_DisplayTicketRatesInProconChat && 
                                 _roundState == RoundState.Playing &&
                                 _PlayerDictionary.Any())
                             {
                                 String flagMessage = "";
-                                if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" || _serverInfo.InfoObject.GameMode == "Chainlink0")
+                                if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" || 
+                                    _serverInfo.InfoObject.GameMode == "Chainlink0" || 
+                                    _serverInfo.InfoObject.GameMode == "Domination0")
                                 {
-                                    AdKatsTeam flagWinningTeam, flagLosingTeam;
-                                    if (team2.TeamAdjustedTicketDifferenceRate < team1.TeamAdjustedTicketDifferenceRate)
-                                    {
-                                        //Team1 has more flags than Team2
-                                        flagWinningTeam = team1;
-                                        flagLosingTeam = team2;
-                                    }
-                                    else
-                                    {
-                                        //Team2 has more flags than Team1
-                                        flagWinningTeam = team2;
-                                        flagLosingTeam = team1;
-                                    }
-                                    Double winRate = flagWinningTeam.TeamAdjustedTicketDifferenceRate;
-                                    Double loseRate = flagLosingTeam.TeamAdjustedTicketDifferenceRate;
+                                    Double winRate = mapUpTeam.GetTicketDifferenceRate();
+                                    Double loseRate = mapDownTeam.GetTicketDifferenceRate();
                                     if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" && _gameVersion == GameVersion.BF4)
                                     {
                                         Int32 maxFlags = Int32.MaxValue;
@@ -9129,43 +9148,43 @@ namespace PRoConEvents
                                             }
                                             else if (loseRate <= -20 && loseRate > -34)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 1 flag, ";
+                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 1 flag, ";
                                             }
                                             else if (loseRate <= -34 && loseRate > -38)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 1-3 flags, ";
+                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 1-3 flags, ";
                                             }
                                             else if (loseRate <= -38 && loseRate > -44 || maxFlags == 3)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 3 flags, ";
+                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 3 flags, ";
                                             }
                                             else if (loseRate <= -44 && loseRate > -48)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 3-5 flags, ";
+                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 3-5 flags, ";
                                             }
                                             else if (loseRate <= -48 && loseRate > -54 || maxFlags == 5)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 5 flags, ";
+                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 5 flags, ";
                                             }
                                             else if (loseRate <= -54 && loseRate > -58)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 5-7 flags, ";
+                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 5-7 flags, ";
                                             }
                                             else if (loseRate <= -58 && loseRate > -64 || maxFlags == 7)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 7 flags, ";
+                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 7 flags, ";
                                             }
                                             else if (loseRate <= -64 && loseRate > -68)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 7-9 flags, ";
+                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 7-9 flags, ";
                                             }
                                             else if (loseRate <= -68 && loseRate > -74 || maxFlags == 9)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 9 flags, ";
+                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 9 flags, ";
                                             }
                                             else if (loseRate < -74)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up many flags, ";
+                                                flagMessage = " | " + mapUpTeam.TeamKey + " up many flags, ";
                                             }
                                             double t1t = team1.TeamAdjustedTicketAccellerationRate - team2.TeamAdjustedTicketAccellerationRate;
                                             double t2t = team2.TeamAdjustedTicketAccellerationRate - team1.TeamAdjustedTicketAccellerationRate;
@@ -9196,14 +9215,16 @@ namespace PRoConEvents
                                 {
                                     _LastTicketRateDisplay = UtcNow();
                                     _currentFlagMessage = flagMessage;
-                                    ProconChatWrite(Log.FBold(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
+                                    ProconChatWrite(Log.FBold(team1.TeamKey + " Rate: " + Math.Round(team1.GetTicketDifferenceRate(), 2) + " t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.GetTicketDifferenceRate(), 2) + " t/m" + flagMessage));
                                 }
                             }
+
                             if (team1.TeamTicketCount >= 0 && team2.TeamTicketCount >= 0)
                             {
-                                _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
-                                _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
+                                _lowestTicketCount = Math.Min(team1.TeamTicketCount, team2.TeamTicketCount);
+                                _highestTicketCount = Math.Max(team1.TeamTicketCount, team2.TeamTicketCount);
                             }
+
                             //Auto-Surrender System
                             if (_surrenderAutoEnable && 
                                 _roundState == RoundState.Playing && 
@@ -9212,95 +9233,316 @@ namespace PRoConEvents
                                 _serverInfo.GetRoundElapsedTime().TotalSeconds > 60 && 
                                 (UtcNow() - _AdKatsRunningTime).TotalMinutes > 2.5 &&
                                 _firstPlayerListComplete &&
+                                //Block system if all possible actions have already taken place this round
                                 (_currentRoundNukes < _surrenderAutoMaxNukesEachRound || _surrenderAutoNukeResolveAfterMax) &&
-                                //Block triggers from firing while a nuke is active
-                                NowDuration(_surrenderAutoNukeLast).TotalSeconds > _surrenderAutoNukeDurationHigh &&
-                                //Block triggers from firing in the inside the minimum duration since last nuke
-                                NowDuration(_surrenderAutoNukeLast).TotalSeconds > _surrenderAutoNukeMinBetween)
+                                //Block system while a nuke is active
+                                NowDuration(_surrenderAutoNukeLast).TotalSeconds > _surrenderAutoNukeDurationHigh)
                             {
-                                int playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
-                                int neededPlayers = _surrenderAutoMinimumPlayers - playerCount;
-                                string neededMessage = ((neededPlayers > 0) ? (" " + neededPlayers + " more players needed to fire.") : (""));
-                                if (_surrenderAutoUseMetroValues && 
-                                    Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 && 
-                                    losingTeam.TeamTicketCount > 100 && 
-                                    winningTeam.TeamTicketDifferenceRate < 0 && 
-                                    losingTeam.TeamTicketDifferenceRate < 0)
+                                Boolean canFire = true;
+                                Boolean fired = false;
+                                String denyReason = "";
+                                String readyPercentage = "";
+
+                                //Action
+                                AutoSurrenderAction config_action = AutoSurrenderAction.None;
+                                if (_surrenderAutoNukeInstead)
                                 {
-                                    //Set base required triggers
-                                    Int32 requiredTriggers = ((shouldNuke() || _surrenderAutoTriggerVote) ? (4) : (20));
-                                    if (!shouldNuke())
+                                    if (_currentRoundNukes < _surrenderAutoMaxNukesEachRound)
                                     {
-                                        //Add modification based on ticket count
-                                        requiredTriggers -= ((losingTeam.TeamTicketCount <= 500) ? ((500 - losingTeam.TeamTicketCount) / 30) : (0));
-                                        //Add modification based on automatic assist
-                                        requiredTriggers = ((_PlayersAutoAssistedThisRound) ? (requiredTriggers * 2) : (requiredTriggers));
+                                        config_action = AutoSurrenderAction.Nuke;
                                     }
-                                    else if (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium)
+                                    else if (_surrenderAutoNukeResolveAfterMax)
                                     {
-                                        requiredTriggers += 3;
+                                        config_action = AutoSurrenderAction.Surrender;
                                     }
-                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -5) ||
-                                        //Allow either team to be nuked if that setting is enabled
-                                        (_surrenderAutoNukeLosingTeams && (losingTeam.TeamAdjustedTicketDifferenceRate < -40 || winningTeam.TeamAdjustedTicketDifferenceRate < -40)))
+                                    else
                                     {
-                                        _lastAutoSurrenderTriggerTime = UtcNow();
-                                        bool resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
-                                        if (++_surrenderAutoTriggerCountCurrent >= requiredTriggers)
+                                        config_action = AutoSurrenderAction.None;
+                                    }
+                                }
+                                else if (_surrenderAutoTriggerVote)
+                                {
+                                    config_action = AutoSurrenderAction.Vote;
+                                }
+                                else
+                                {
+                                    config_action = AutoSurrenderAction.Surrender;
+                                }
+
+                                if (config_action != AutoSurrenderAction.None)
+                                {
+                                    //State
+                                    Boolean config_resumed = _surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
+
+                                    //Tickets
+                                    Int32 config_tickets_min = 0;
+                                    Int32 config_tickets_max = 9999;
+                                    Int32 config_tickets_gap_min = 0;
+
+                                    //Rates
+                                    Double config_mapUp_rate_max = 0;
+                                    Double config_mapUp_rate_min = 0;
+                                    Double config_mapDown_rate_max = 0;
+                                    Double config_mapDown_rate_min = 0;
+
+                                    //Triggers
+                                    Int32 config_triggers_min = 0;
+
+                                    //Set automatic values for metro 2014 
+                                    if (_surrenderAutoUseMetroValues)
+                                    {
+                                        //Tickets
+                                        config_tickets_min = 100;
+                                        config_tickets_max = 9999;
+                                        config_tickets_gap_min = 100;
+
+                                        //Rates
+                                        config_mapDown_rate_max = -42;
+                                        config_mapDown_rate_min = -1000;
+                                        config_mapUp_rate_max = 1000;
+                                        config_mapUp_rate_min = -5;
+
+                                        //Triggers
+                                        if (config_action == AutoSurrenderAction.Surrender)
                                         {
-                                            if (neededPlayers <= 0)
+                                            config_triggers_min = 20;
+                                            //Add modification based on ticket count
+                                            if (losingTeam.TeamTicketCount <= 600)
                                             {
-                                                baserapingTeam = winningTeam;
-                                                baserapedTeam = losingTeam;
-                                                if (shouldNuke() && 
-                                                    _surrenderAutoNukeLosingTeams &&
-                                                    baserapingTeam.TeamAdjustedTicketDifferenceRate < baserapedTeam.TeamAdjustedTicketDifferenceRate)
-                                                {
-                                                    //If we are allowed to nuke losing teams, make sure the team marked baseraping is the one with most flags
-                                                    var swap = baserapedTeam;
-                                                    baserapedTeam = baserapingTeam;
-                                                    baserapingTeam = swap;
-                                                }
+                                                config_triggers_min -= (600 - losingTeam.TeamTicketCount) / 30;
                                             }
-                                            else if (neededPlayers <= 10)
+                                            //Add modification based on automatic assist
+                                            if (_PlayersAutoAssistedThisRound)
                                             {
-                                                OnlineAdminSayMessage("Auto-" + ((shouldNuke()) ? ("nuke") : ("surrender")) + " ready." + neededMessage);
+                                                config_triggers_min *= 2;
                                             }
                                         }
                                         else
                                         {
-                                            if (neededPlayers <= 10)
+                                            config_triggers_min = 4;
+                                        }
+                                    }
+                                    //Set automatic values for operation locker 
+                                    else if (_surrenderAutoUseLockerValues)
+                                    {
+                                        //Tickets
+                                        config_tickets_min = 100;
+                                        config_tickets_max = 9999;
+                                        config_tickets_gap_min = 100;
+
+                                        //Rates
+                                        config_mapDown_rate_max = -50;
+                                        config_mapDown_rate_min = -1000;
+                                        config_mapUp_rate_max = 1000;
+                                        config_mapUp_rate_min = -5;
+
+                                        //Triggers
+                                        if (config_action == AutoSurrenderAction.Surrender)
+                                        {
+                                            config_triggers_min = 20;
+                                            //Add modification based on ticket count
+                                            if (losingTeam.TeamTicketCount <= 600)
                                             {
-                                                string completionPercentage = Math.Round((_surrenderAutoTriggerCountCurrent / (Double)requiredTriggers) * 100.0) + "%";
-                                                if (resumed)
+                                                config_triggers_min -= (600 - losingTeam.TeamTicketCount) / 30;
+                                            }
+                                            //Add modification based on automatic assist
+                                            if (_PlayersAutoAssistedThisRound)
+                                            {
+                                                config_triggers_min *= 2;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            config_triggers_min = 4;
+                                        }
+                                    }
+                                    //Set custom values based on the user
+                                    else
+                                    {
+                                        //Tickets
+                                        config_tickets_min = _surrenderAutoMinimumTicketCount;
+                                        config_tickets_max = _surrenderAutoMaximumTicketCount;
+                                        config_tickets_gap_min = _surrenderAutoMinimumTicketGap;
+
+                                        //Rates
+                                        config_mapDown_rate_max = _surrenderAutoLosingRateMax;
+                                        config_mapDown_rate_min = _surrenderAutoLosingRateMin;
+                                        config_mapUp_rate_max = _surrenderAutoWinningRateMax;
+                                        config_mapUp_rate_min = _surrenderAutoWinningRateMin;
+
+                                        //Triggers
+                                        config_triggers_min = _surrenderAutoTriggerCountToSurrender;
+                                    }
+                                    
+                                    //Add modification based on population
+                                    if (config_action == AutoSurrenderAction.Nuke && 
+                                        config_triggers_min < 5 &&
+                                        (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium))
+                                    {
+                                        config_triggers_min = 5;
+                                    }
+
+                                    int playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
+                                    int neededPlayers = Math.Min(_surrenderAutoMinimumPlayers - playerCount, 0);
+                                    if (canFire && 
+                                        neededPlayers > 0)
+                                    {
+                                        canFire = false;
+                                        denyReason = neededPlayers + " more players needed.";
+                                    }
+
+                                    var downRate = mapDownTeam.GetTicketDifferenceRate();
+                                    var upRate = mapUpTeam.GetTicketDifferenceRate();
+                                    if (downRate <= config_mapDown_rate_max &&
+                                        downRate >= config_mapDown_rate_min &&
+                                        upRate <= config_mapUp_rate_max &&
+                                        upRate >= config_mapUp_rate_min)
+                                    {
+                                        //Fire triggers
+                                        _lastAutoSurrenderTriggerTime = UtcNow();
+                                        _surrenderAutoTriggerCountCurrent++;
+
+                                        readyPercentage = Math.Round(Math.Min((_surrenderAutoTriggerCountCurrent / (Double)config_triggers_min) * 100.0, 100)) + "%";
+
+                                        if (canFire &&
+                                            config_action == AutoSurrenderAction.Nuke &&
+                                            _currentRoundNukes > 0 &&
+                                            NowDuration(_surrenderAutoNukeLast).TotalSeconds < _surrenderAutoNukeMinBetween)
+                                        {
+                                            canFire = false;
+                                            denyReason = "~" + FormatNowDuration(_surrenderAutoNukeLast.AddSeconds(_surrenderAutoNukeMinBetween), 2) + " till it can fire again.";
+                                        }
+                                        
+                                        if (canFire &&
+                                            _surrenderAutoTriggerCountCurrent < config_triggers_min)
+                                        {
+                                            canFire = false;
+                                            TimeSpan remaining = TimeSpan.FromSeconds((config_triggers_min - _surrenderAutoTriggerCountCurrent) * 10);
+                                            denyReason = "~" + FormatTimeString(remaining, 2) + " till it can fire.";
+                                        }
+
+                                        var gap = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount);
+                                        if (canFire && gap < config_tickets_gap_min)
+                                        {
+                                            canFire = false;
+                                            denyReason = "Less than " + config_tickets_gap_min + " tickets between teams. (" + gap + ")";
+                                        }
+                                        
+                                        if (canFire && winningTeam.TeamTicketCount > config_tickets_max)
+                                        {
+                                            canFire = false;
+                                            denyReason = winningTeam.TeamKey + " has more than " + config_tickets_max + " tickets. (" + winningTeam.TeamTicketCount + ")";
+                                        }
+                                        
+                                        if (canFire && losingTeam.TeamTicketCount < config_tickets_min)
+                                        {
+                                            canFire = false;
+                                            denyReason = losingTeam.TeamKey + " has less than " + config_tickets_min + " tickets. (" + losingTeam.TeamTicketCount + ")";
+                                        }
+
+                                        if (canFire && 
+                                            config_action == AutoSurrenderAction.Nuke && 
+                                            mapUpTeam != winningTeam)
+                                        {
+                                            //Losing team is the one with all flags capped
+                                            if (_surrenderAutoNukeLosingTeams)
+                                            {
+                                                if (gap > _surrenderAutoNukeLosingMaxDiff)
                                                 {
-                                                    if (shouldNuke())
+                                                    canFire = false;
+                                                    denyReason = mapUpTeam.TeamKey + " losing by more than " + _surrenderAutoNukeLosingMaxDiff + " tickets.";
+                                                }
+                                            }
+                                            else
+                                            {
+                                                canFire = false;
+                                                denyReason = mapUpTeam.TeamKey + " is losing.";
+                                            }
+                                        }
+                                        
+                                        if (canFire)
+                                        {
+                                            fired = true;
+                                            switch (config_action)
+                                            {
+                                                case AutoSurrenderAction.Surrender:
+                                                    baserapingTeam = winningTeam;
+                                                    baserapedTeam = losingTeam;
+                                                    break;
+                                                case AutoSurrenderAction.Nuke:
+                                                    if (_surrenderAutoNukeLosingTeams)
                                                     {
-                                                        AdminSayMessage("Auto-nuke resumed at " + completionPercentage + "." + neededMessage);
+                                                        baserapingTeam = mapUpTeam;
+                                                        baserapedTeam = mapDownTeam;
                                                     }
                                                     else
                                                     {
-                                                        OnlineAdminSayMessage("Auto-surrender resumed at " + completionPercentage + "." + neededMessage);
+                                                        baserapingTeam = winningTeam;
+                                                        baserapedTeam = losingTeam;
                                                     }
-                                                }
-                                                else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || shouldNuke() || _surrenderAutoTriggerVote)
+                                                    break;
+                                                case AutoSurrenderAction.Vote:
+                                                    baserapingTeam = winningTeam;
+                                                    baserapedTeam = losingTeam;
+                                                    break;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (config_resumed)
+                                            {
+                                                if (config_action == AutoSurrenderAction.Nuke)
                                                 {
-                                                    if (shouldNuke()) {
-                                                        if (_surrenderAutoAnnounceNukePrep) {
-                                                            AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
+                                                    AdminSayMessage("Auto-nuke resumed at " + readyPercentage + "." + denyReason);
+                                                }
+                                                else
+                                                {
+                                                    OnlineAdminSayMessage("Auto-surrender resumed at " + readyPercentage + "." + denyReason);
+                                                }
+                                            }
+                                            //How often the message should be displayed
+                                            else if (_surrenderAutoTriggerCountCurrent == 1 || 
+                                                     _surrenderAutoTriggerCountCurrent % 3 == 0 ||
+                                                     (config_action == AutoSurrenderAction.Nuke && neededPlayers <= 10) ||
+                                                     _surrenderAutoTriggerVote)
+                                            {
+                                                if (_surrenderAutoTriggerCountCurrent < config_triggers_min)
+                                                {
+                                                    if (config_action == AutoSurrenderAction.Nuke)
+                                                    {
+                                                        if (_surrenderAutoAnnounceNukePrep)
+                                                        {
+                                                            AdminSayMessage("Auto-nuke " + (_currentRoundNukes + 1) + " " + readyPercentage + " ready. " + denyReason);
                                                         }
                                                     }
                                                     else
                                                     {
-                                                        OnlineAdminSayMessage("Preparing auto-surrender. " + completionPercentage + " ready." + neededMessage);
+                                                        OnlineAdminSayMessage("Auto-surrender " + readyPercentage + " ready. " + denyReason);
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    if (config_action == AutoSurrenderAction.Nuke)
+                                                    {
+                                                        if (_surrenderAutoAnnounceNukePrep)
+                                                        {
+                                                            AdminSayMessage("Auto-nuke " + (_currentRoundNukes + 1) + " ready and waiting. " + denyReason);
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        OnlineAdminSayMessage("Auto-surrender ready and waiting. " + denyReason);
                                                     }
                                                 }
                                             }
-                                            if (!_Team1MoveQueue.Any() && !_Team2MoveQueue.Any() && _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 && (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
+
+                                            if (!_Team1MoveQueue.Any() &&
+                                                !_Team2MoveQueue.Any() &&
+                                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 120)
                                             {
                                                 Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
                                                 //Get players from the auto-assist blacklist
-                                                foreach (AdKatsPlayer aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(aPlayer => 
+                                                foreach (AdKatsPlayer aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(aPlayer =>
                                                     aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
                                                 {
                                                     if (!auaPlayers.ContainsKey(aPlayer.player_name))
@@ -9319,8 +9561,10 @@ namespace PRoConEvents
                                                         }
                                                     }
                                                 }
-                                                foreach (AdKatsPlayer aPlayer in auaPlayers.Values) {
-                                                    if (PlayerIsAdmin(aPlayer)) {
+                                                foreach (AdKatsPlayer aPlayer in auaPlayers.Values)
+                                                {
+                                                    if (PlayerIsAdmin(aPlayer))
+                                                    {
                                                         continue;
                                                     }
                                                     OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
@@ -9335,21 +9579,23 @@ namespace PRoConEvents
                                                         command_action = GetCommandByKey("self_assist_unconfirmed"),
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
-                                                        source_name = "BaserapeMonitor",
+                                                        source_name = "AUAManager",
                                                         record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
                                                         record_time = UtcNow()
                                                     });
                                                 }
                                             }
                                         }
-                                    }
+                                    } 
                                     else
                                     {
+                                        //Server is outside of auto-surrender window, send update messages if needed
+                                        readyPercentage = Math.Round((Math.Min(_surrenderAutoTriggerCountCurrent, config_triggers_min) / (Double)config_triggers_min) * 100.0) + "%";
                                         if (_surrenderAutoResetTriggerCountOnCancel)
                                         {
-                                            if (_surrenderAutoTriggerCountCurrent > 0 && neededPlayers <= 10)
+                                            if (_surrenderAutoTriggerCountCurrent > 0)
                                             {
-                                                if (shouldNuke())
+                                                if (config_action == AutoSurrenderAction.Nuke)
                                                 {
                                                     AdminSayMessage("Auto-nuke cancelled.");
                                                 }
@@ -9362,663 +9608,108 @@ namespace PRoConEvents
                                         }
                                         else
                                         {
-                                            string completionPercentage = Math.Round((_surrenderAutoTriggerCountCurrent / (Double)requiredTriggers) * 100.0) + "%";
                                             if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                             {
                                                 _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
-                                                if (neededPlayers <= 10)
+                                                if (_surrenderAutoTriggerCountCurrent < config_triggers_min)
                                                 {
-                                                    if (_surrenderAutoTriggerCountCurrent < requiredTriggers)
+                                                    if (config_action == AutoSurrenderAction.Nuke)
                                                     {
-                                                        if (shouldNuke())
-                                                        {
-                                                            AdminSayMessage("Auto-nuke paused at " + completionPercentage + "." + neededMessage);
-                                                        }
-                                                        else
-                                                        {
-                                                            OnlineAdminSayMessage("Auto-surrender paused at " + completionPercentage + "." + neededMessage);
-                                                        }
+                                                        AdminSayMessage("Auto-nuke paused at " + readyPercentage + "." + denyReason);
                                                     }
                                                     else
                                                     {
-                                                        if (shouldNuke())
-                                                        {
-                                                            AdminSayMessage("Auto-nuke paused." + neededMessage);
-                                                        }
-                                                        else
-                                                        {
-                                                            OnlineAdminSayMessage("Auto-surrender paused." + neededMessage);
-                                                        }
+                                                        OnlineAdminSayMessage("Auto-surrender paused at " + readyPercentage + "." + denyReason);
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    if (config_action == AutoSurrenderAction.Nuke)
+                                                    {
+                                                        AdminSayMessage("Auto-nuke paused." + denyReason);
+                                                    }
+                                                    else
+                                                    {
+                                                        OnlineAdminSayMessage("Auto-surrender paused." + denyReason);
                                                     }
                                                 }
                                             }
                                         }
                                     }
-                                }
-                                else if (_surrenderAutoUseLockerValues && 
-                                         Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 && 
-                                         losingTeam.TeamTicketCount > 100 && 
-                                         winningTeam.TeamTicketDifferenceRate < 0 && 
-                                         losingTeam.TeamTicketDifferenceRate < 0)
-                                {
-                                    //Set base required triggers
-                                    Int32 requiredTriggers = ((shouldNuke() || _surrenderAutoTriggerVote) ? (4) : ((_isTestingAuthorized) ? (25) : (20)));
-                                    if (!shouldNuke())
+
+                                    if (fired)
                                     {
-                                        //Add modification based on ticket count
-                                        requiredTriggers -= ((losingTeam.TeamTicketCount <= 500) ? ((500 - losingTeam.TeamTicketCount) / 30) : (0));
-                                        //Add modification based on automatic assist
-                                        requiredTriggers = ((_PlayersAutoAssistedThisRound) ? (requiredTriggers * 2) : (requiredTriggers));
-                                    }
-                                    else if (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium)
-                                    {
-                                        requiredTriggers += 3;
-                                    }
-                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < ((_isTestingAuthorized) ? (-45) : (-50)) && winningTeam.TeamAdjustedTicketDifferenceRate > -5) ||
-                                        //Allow either team to be nuked if that setting is enabled
-                                        (_surrenderAutoNukeLosingTeams && (losingTeam.TeamAdjustedTicketDifferenceRate < ((_isTestingAuthorized) ? (-45) : (-50)) || winningTeam.TeamAdjustedTicketDifferenceRate < ((_isTestingAuthorized) ? (-45) : (-50)))))
-                                    {
-                                        _lastAutoSurrenderTriggerTime = UtcNow();
-                                        bool resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
-                                        if (++_surrenderAutoTriggerCountCurrent >= requiredTriggers)
+                                        if (config_action == AutoSurrenderAction.Nuke)
                                         {
-                                            if (neededPlayers <= 0)
+                                            string autoNukeMessage = _surrenderAutoNukeMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
+                                            _currentRoundNukes++;
+                                            _surrenderAutoNukeLast = UtcNow();
+                                            _surrenderAutoNukeLastTeam = baserapingTeam;
+                                            QueueRecordForProcessing(new AdKatsRecord
                                             {
-                                                baserapingTeam = winningTeam;
-                                                baserapedTeam = losingTeam;
-                                                if (shouldNuke() &&
-                                                    _surrenderAutoNukeLosingTeams &&
-                                                    baserapingTeam.TeamAdjustedTicketDifferenceRate < baserapedTeam.TeamAdjustedTicketDifferenceRate)
-                                                {
-                                                    //If we are allowed to nuke losing teams, make sure the team marked baseraping is the one with most flags
-                                                    var swap = baserapedTeam;
-                                                    baserapedTeam = baserapingTeam;
-                                                    baserapingTeam = swap;
-                                                }
-                                            }
-                                            else if (neededPlayers <= 10)
-                                            {
-                                                OnlineAdminSayMessage("Auto-" + ((shouldNuke()) ? ("nuke") : ("surrender")) + " ready." + neededMessage);
-                                            }
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("server_nuke"),
+                                                command_numeric = baserapingTeam.TeamID,
+                                                target_name = baserapingTeam.TeamName,
+                                                source_name = "RoundManager",
+                                                record_message = autoNukeMessage,
+                                                record_time = UtcNow()
+                                            });
                                         }
-                                        else
+                                        else if (_surrenderAutoTriggerVote)
                                         {
-                                            if (neededPlayers <= 10)
+                                            QueueRecordForProcessing(new AdKatsRecord
                                             {
-                                                string completionPercentage = Math.Round((_surrenderAutoTriggerCountCurrent / (Double)requiredTriggers) * 100.0) + "%";
-                                                if (resumed)
-                                                {
-                                                    if (shouldNuke())
-                                                    {
-                                                        AdminSayMessage("Auto-nuke resumed at " + completionPercentage + "." + neededMessage);
-                                                    }
-                                                    else
-                                                    {
-                                                        OnlineAdminSayMessage("Auto-surrender resumed at " + completionPercentage + "." + neededMessage);
-                                                    }
-                                                }
-                                                else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || shouldNuke() || _surrenderAutoTriggerVote)
-                                                {
-                                                    if (shouldNuke()) {
-                                                        if (_surrenderAutoAnnounceNukePrep) {
-                                                            AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
-                                                        }
-                                                    }
-                                                    else
-                                                    {
-                                                        OnlineAdminSayMessage("Preparing auto-surrender. " + completionPercentage + " ready." + neededMessage);
-                                                    }
-                                                }
-                                            }
-                                            if (!_Team1MoveQueue.Any() && !_Team2MoveQueue.Any() && _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 && (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("self_votenext"),
+                                                command_numeric = 0,
+                                                target_name = "RoundManager",
+                                                source_name = "RoundManager",
+                                                record_message = "Auto-Starting Surrender Vote",
+                                                record_time = UtcNow()
+                                            });
+                                        }
+                                        else if (!_endingRound)
+                                        {
+                                            _endingRound = true;
+                                            _surrenderAutoSucceeded = true;
+                                            Thread roundEndDelayThread = new Thread(new ThreadStart(delegate
                                             {
-                                                Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
-                                                //Get players from the auto-assist blacklist
-                                                foreach (AdKatsPlayer aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                Log.Debug(() => "Starting a round end delay thread.", 5);
+                                                try
                                                 {
-                                                    if (!auaPlayers.ContainsKey(aPlayer.player_name))
+                                                    Thread.CurrentThread.Name = "RoundEndDelay";
+                                                    string autoSurrenderMessage = _surrenderAutoMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
+                                                    for (int i = 0; i < 8; i++)
                                                     {
-                                                        auaPlayers[aPlayer.player_name] = aPlayer;
+                                                        AdminTellMessage(autoSurrenderMessage);
+                                                        Thread.Sleep(50);
                                                     }
-                                                }
-                                                if (!_UseTopPlayerMonitor)
-                                                {
-                                                    //Get players from those who have assisted to the now winning team
-                                                    foreach (AdKatsRecord aRecord in _roundAssists.Values.Where(dRecord => dRecord.target_player.player_online && dRecord.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
-                                                    {
-                                                        if (!auaPlayers.ContainsKey(aRecord.target_player.player_name))
-                                                        {
-                                                            auaPlayers[aRecord.target_player.player_name] = aRecord.target_player;
-                                                        }
-                                                    }
-                                                }
-                                                foreach (AdKatsPlayer aPlayer in auaPlayers.Values) {
-                                                    if (PlayerIsAdmin(aPlayer)) {
-                                                        continue;
-                                                    }
-                                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
-                                                    PlayerTellMessage(aPlayer.player_name, "You are being automatically assisted to the weak team.");
-                                                    Thread.Sleep(2000);
-                                                    _PlayersAutoAssistedThisRound = true;
-                                                    QueueRecordForProcessing(new AdKatsRecord
+                                                    _threadMasterWaitHandle.WaitOne(1000 * _YellDuration);
+                                                    AdKatsRecord repRecord = new AdKatsRecord
                                                     {
                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                                         server_id = _serverInfo.ServerID,
-                                                        command_type = GetCommandByKey("self_assist"),
-                                                        command_action = GetCommandByKey("self_assist_unconfirmed"),
-                                                        target_name = aPlayer.player_name,
-                                                        target_player = aPlayer,
-                                                        source_name = "BaserapeMonitor",
-                                                        record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
+                                                        command_type = GetCommandByKey("round_end"),
+                                                        command_numeric = baserapingTeam.TeamID,
+                                                        target_name = baserapingTeam.TeamName,
+                                                        source_name = "RoundManager",
+                                                        record_message = "Auto-Surrender (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")",
                                                         record_time = UtcNow()
-                                                    });
+                                                    };
+                                                    QueueRecordForProcessing(repRecord);
                                                 }
-                                            }
+                                                catch (Exception)
+                                                {
+                                                    HandleException(new AdKatsException("Error while running round end delay."));
+                                                }
+                                                Log.Debug(() => "Exiting a round end delay thread.", 5);
+                                                LogThreadExit();
+                                            }));
+                                            StartAndLogThread(roundEndDelayThread);
                                         }
-                                    }
-                                    else
-                                    {
-                                        if (_surrenderAutoResetTriggerCountOnCancel)
-                                        {
-                                            if (_surrenderAutoTriggerCountCurrent > 0 && neededPlayers <= 10)
-                                            {
-                                                if (shouldNuke())
-                                                {
-                                                    AdminSayMessage("Auto-nuke cancelled.");
-                                                }
-                                                else
-                                                {
-                                                    OnlineAdminSayMessage("Auto-surrender cancelled.");
-                                                }
-                                            }
-                                            _surrenderAutoTriggerCountCurrent = 0;
-                                        }
-                                        else
-                                        {
-                                            string completionPercentage = Math.Round((_surrenderAutoTriggerCountCurrent / (Double)requiredTriggers) * 100.0) + "%";
-                                            if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
-                                            {
-                                                _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
-                                                if (neededPlayers <= 10)
-                                                {
-                                                    if (_surrenderAutoTriggerCountCurrent < requiredTriggers)
-                                                    {
-                                                        if (shouldNuke())
-                                                        {
-                                                            AdminSayMessage("Auto-nuke paused at " + completionPercentage + "." + neededMessage);
-                                                        }
-                                                        else
-                                                        {
-                                                            OnlineAdminSayMessage("Auto-surrender paused at " + completionPercentage + "." + neededMessage);
-                                                        }
-                                                    }
-                                                    else
-                                                    {
-                                                        if (shouldNuke())
-                                                        {
-                                                            AdminSayMessage("Auto-nuke paused." + neededMessage);
-                                                        }
-                                                        else
-                                                        {
-                                                            OnlineAdminSayMessage("Auto-surrender paused." + neededMessage);
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > _surrenderAutoMinimumTicketGap && 
-                                        Math.Max(team1.TeamTicketCount, team2.TeamTicketCount) < _surrenderAutoMaximumTicketCount &&
-                                        Math.Min(team1.TeamTicketCount, team2.TeamTicketCount) > _surrenderAutoMinimumTicketCount)
-                                    {
-                                        if (_surrenderAutoUseAdjustedTicketRates)
-                                        {
-                                            if (winningTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoWinningRateMax && 
-                                                winningTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoWinningRateMin && 
-                                                losingTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoLosingRateMax && 
-                                                losingTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoLosingRateMin ||
-                                                //Allow either team to be nuked if that setting is enabled
-                                                (shouldNuke() && 
-                                                 _surrenderAutoNukeLosingTeams && 
-                                                 winningTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoLosingRateMax &&
-                                                 winningTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoLosingRateMin &&
-                                                 losingTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoWinningRateMax &&
-                                                 losingTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoWinningRateMin))
-                                            {
-                                                // Increment triggers
-                                                _surrenderAutoTriggerCountCurrent++;
-                                                _lastAutoSurrenderTriggerTime = UtcNow();
-
-                                                bool resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
-
-                                                var requiredTriggers = _surrenderAutoTriggerCountToSurrender;
-                                                if (_PlayersAutoAssistedThisRound)
-                                                {
-                                                    requiredTriggers *= 2;
-                                                }
-                                                if (shouldNuke() && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium))
-                                                {
-                                                    requiredTriggers += 3;
-                                                }
-                                                if (_surrenderAutoTriggerCountCurrent >= requiredTriggers)
-                                                {
-                                                    if (neededPlayers <= 0)
-                                                    {
-                                                        baserapingTeam = winningTeam;
-                                                        baserapedTeam = losingTeam;
-                                                        if (shouldNuke() &&
-                                                            _surrenderAutoNukeLosingTeams &&
-                                                            baserapingTeam.TeamAdjustedTicketDifferenceRate < baserapedTeam.TeamAdjustedTicketDifferenceRate)
-                                                        {
-                                                            //If we are allowed to nuke losing teams, make sure the team marked baseraping is the one with most flags
-                                                            var swap = baserapedTeam;
-                                                            baserapedTeam = baserapingTeam;
-                                                            baserapingTeam = swap;
-                                                        }
-                                                    }
-                                                    else if (neededPlayers <= 10)
-                                                    {
-                                                        OnlineAdminSayMessage("Auto-" + ((shouldNuke()) ? ("nuke") : ("surrender")) + " ready." + neededMessage);
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    if (neededPlayers <= 10)
-                                                    {
-                                                        string completionPercentage = Math.Round((_surrenderAutoTriggerCountCurrent / (Double)((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender))) * 100.0) + "%";
-                                                        if (resumed)
-                                                        {
-                                                            if (shouldNuke())
-                                                            {
-                                                                AdminSayMessage("Auto-nuke resumed at " + completionPercentage + "." + neededMessage);
-                                                            }
-                                                            else
-                                                            {
-                                                                OnlineAdminSayMessage("Auto-surrender resumed at " + completionPercentage + "." + neededMessage);
-                                                            }
-                                                        }
-                                                        else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || shouldNuke() || _surrenderAutoTriggerVote)
-                                                        {
-                                                            if (shouldNuke()) {
-                                                                if (_surrenderAutoAnnounceNukePrep) {
-                                                                    AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
-                                                                }
-                                                            }
-                                                            else
-                                                            {
-                                                                OnlineAdminSayMessage("Preparing auto-surrender. " + completionPercentage + " ready." + neededMessage);
-                                                            }
-                                                        }
-                                                    }
-                                                    if (!_Team1MoveQueue.Any() && !_Team2MoveQueue.Any() && _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 && (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
-                                                    {
-                                                        Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
-                                                        //Get players from the auto-assist blacklist
-                                                        foreach (AdKatsPlayer aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
-                                                        {
-                                                            if (!auaPlayers.ContainsKey(aPlayer.player_name))
-                                                            {
-                                                                auaPlayers[aPlayer.player_name] = aPlayer;
-                                                            }
-                                                        }
-                                                        if (!_UseTopPlayerMonitor)
-                                                        {
-                                                            //Get players from those who have assisted to the now winning team
-                                                            foreach (AdKatsRecord aRecord in _roundAssists.Values.Where(dRecord => dRecord.target_player.player_online && dRecord.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
-                                                            {
-                                                                if (!auaPlayers.ContainsKey(aRecord.target_player.player_name))
-                                                                {
-                                                                    auaPlayers[aRecord.target_player.player_name] = aRecord.target_player;
-                                                                }
-                                                            }
-                                                        }
-                                                        foreach (AdKatsPlayer aPlayer in auaPlayers.Values) {
-                                                            if (PlayerIsAdmin(aPlayer)) {
-                                                                continue;
-                                                            }
-                                                            OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
-                                                            PlayerTellMessage(aPlayer.player_name, "You are being automatically assisted to the weak team.");
-                                                            Thread.Sleep(2000);
-                                                            _PlayersAutoAssistedThisRound = true;
-                                                            QueueRecordForProcessing(new AdKatsRecord
-                                                            {
-                                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                                server_id = _serverInfo.ServerID,
-                                                                command_type = GetCommandByKey("self_assist"),
-                                                                command_action = GetCommandByKey("self_assist_unconfirmed"),
-                                                                target_name = aPlayer.player_name,
-                                                                target_player = aPlayer,
-                                                                source_name = "BaserapeMonitor",
-                                                                record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
-                                                                record_time = UtcNow()
-                                                            });
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            else
-                                            {
-                                                if (_surrenderAutoResetTriggerCountOnCancel)
-                                                {
-                                                    if (_surrenderAutoTriggerCountCurrent > 0 && neededPlayers <= 10)
-                                                    {
-                                                        if (shouldNuke())
-                                                        {
-                                                            AdminSayMessage("Auto-nuke cancelled.");
-                                                        }
-                                                        else
-                                                        {
-                                                            OnlineAdminSayMessage("Auto-surrender cancelled.");
-                                                        }
-                                                    }
-                                                    _surrenderAutoTriggerCountCurrent = 0;
-                                                }
-                                                else
-                                                {
-                                                    string completionPercentage = Math.Round((_surrenderAutoTriggerCountCurrent / (Double)((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender))) * 100.0) + "%";
-                                                    if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
-                                                    {
-                                                        _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
-                                                        if (neededPlayers <= 10)
-                                                        {
-                                                            if (_surrenderAutoTriggerCountCurrent < ((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender)))
-                                                            {
-                                                                if (shouldNuke())
-                                                                {
-                                                                    AdminSayMessage("Auto-nuke paused at " + completionPercentage + "." + neededMessage);
-                                                                }
-                                                                else
-                                                                {
-                                                                    OnlineAdminSayMessage("Auto-surrender paused at " + completionPercentage + "." + neededMessage);
-                                                                }
-                                                            }
-                                                            else
-                                                            {
-                                                                if (shouldNuke())
-                                                                {
-                                                                    AdminSayMessage("Auto-nuke paused." + neededMessage);
-                                                                }
-                                                                else
-                                                                {
-                                                                    OnlineAdminSayMessage("Auto-surrender paused." + neededMessage);
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        else
-                                        {
-                                            if (winningTeam.TeamTicketDifferenceRate < _surrenderAutoWinningRateMax && 
-                                                winningTeam.TeamTicketDifferenceRate > _surrenderAutoWinningRateMin && 
-                                                losingTeam.TeamTicketDifferenceRate < _surrenderAutoLosingRateMax && 
-                                                losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin ||
-                                                //Allow either team to be nuked if that setting is enabled
-                                                (shouldNuke() &&
-                                                 _surrenderAutoNukeLosingTeams &&
-                                                 winningTeam.TeamTicketDifferenceRate < _surrenderAutoLosingRateMax &&
-                                                 winningTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin &&
-                                                 losingTeam.TeamTicketDifferenceRate < _surrenderAutoWinningRateMax &&
-                                                 losingTeam.TeamTicketDifferenceRate > _surrenderAutoWinningRateMin))
-                                            {
-                                                // Increment triggers
-                                                _surrenderAutoTriggerCountCurrent++;
-                                                _lastAutoSurrenderTriggerTime = UtcNow();
-
-                                                bool resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
-
-                                                var requiredTriggers = _surrenderAutoTriggerCountToSurrender;
-                                                if (_PlayersAutoAssistedThisRound)
-                                                {
-                                                    requiredTriggers *= 2;
-                                                }
-                                                if (shouldNuke() && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium))
-                                                {
-                                                    requiredTriggers += 3;
-                                                }
-                                                if (_surrenderAutoTriggerCountCurrent >= requiredTriggers)
-                                                {
-                                                    if (neededPlayers <= 0)
-                                                    {
-                                                        baserapingTeam = winningTeam;
-                                                        baserapedTeam = losingTeam;
-                                                        if (shouldNuke() &&
-                                                            _surrenderAutoNukeLosingTeams &&
-                                                            baserapingTeam.TeamTicketDifferenceRate < baserapedTeam.TeamTicketDifferenceRate)
-                                                        {
-                                                            //If we are allowed to nuke losing teams, make sure the team marked baseraping is the one with most flags
-                                                            var swap = baserapedTeam;
-                                                            baserapedTeam = baserapingTeam;
-                                                            baserapingTeam = swap;
-                                                        }
-                                                    }
-                                                    else if (neededPlayers <= 10)
-                                                    {
-                                                        OnlineAdminSayMessage("Auto-" + ((shouldNuke()) ? ("nuke") : ("surrender")) + " ready." + neededMessage);
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    if (neededPlayers <= 10)
-                                                    {
-                                                        string completionPercentage = Math.Round((_surrenderAutoTriggerCountCurrent / (Double)((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender))) * 100.0) + "%";
-                                                        if (resumed)
-                                                        {
-                                                            if (shouldNuke())
-                                                            {
-                                                                AdminSayMessage("Auto-nuke resumed at " + completionPercentage + "." + neededMessage);
-                                                            }
-                                                            else
-                                                            {
-                                                                OnlineAdminSayMessage("Auto-surrender resumed at " + completionPercentage + "." + neededMessage);
-                                                            }
-                                                        }
-                                                        else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || shouldNuke() || _surrenderAutoTriggerVote)
-                                                        {
-                                                            if (shouldNuke()) {
-                                                                if (_surrenderAutoAnnounceNukePrep) {
-                                                                    AdminSayMessage("Preparing auto-nuke " + (_currentRoundNukes + 1) + ". " + completionPercentage + " ready." + neededMessage);
-                                                                }
-                                                            }
-                                                            else
-                                                            {
-                                                                OnlineAdminSayMessage("Preparing auto-surrender. " + completionPercentage + " ready." + neededMessage);
-                                                            }
-                                                        }
-                                                    }
-                                                    if (!_Team1MoveQueue.Any() && !_Team2MoveQueue.Any() && _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 && (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
-                                                    {
-                                                        Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
-                                                        //Get players from the auto-assist blacklist
-                                                        foreach (AdKatsPlayer aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
-                                                        {
-                                                            if (!auaPlayers.ContainsKey(aPlayer.player_name))
-                                                            {
-                                                                auaPlayers[aPlayer.player_name] = aPlayer;
-                                                            }
-                                                        }
-                                                        if (!_UseTopPlayerMonitor)
-                                                        {
-                                                            //Get players from those who have assisted to the now winning team
-                                                            foreach (AdKatsRecord aRecord in _roundAssists.Values.Where(dRecord => dRecord.target_player.player_online && dRecord.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
-                                                            {
-                                                                if (!auaPlayers.ContainsKey(aRecord.target_player.player_name))
-                                                                {
-                                                                    auaPlayers[aRecord.target_player.player_name] = aRecord.target_player;
-                                                                }
-                                                            }
-                                                        }
-                                                        foreach (AdKatsPlayer aPlayer in auaPlayers.Values)
-                                                        {
-                                                            if (PlayerIsAdmin(aPlayer)) {
-                                                                continue;
-                                                            }
-                                                            OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
-                                                            PlayerTellMessage(aPlayer.player_name, "You are being automatically assisted to the weak team.");
-                                                            Thread.Sleep(2000);
-                                                            _PlayersAutoAssistedThisRound = true;
-                                                            QueueRecordForProcessing(new AdKatsRecord
-                                                            {
-                                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                                server_id = _serverInfo.ServerID,
-                                                                command_type = GetCommandByKey("self_assist"),
-                                                                command_action = GetCommandByKey("self_assist_unconfirmed"),
-                                                                target_name = aPlayer.player_name,
-                                                                target_player = aPlayer,
-                                                                source_name = "BaserapeMonitor",
-                                                                record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
-                                                                record_time = UtcNow()
-                                                            });
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            else
-                                            {
-                                                if (_surrenderAutoResetTriggerCountOnCancel)
-                                                {
-                                                    if (_surrenderAutoTriggerCountCurrent > 0 && neededPlayers <= 10)
-                                                    {
-                                                        if (shouldNuke())
-                                                        {
-                                                            AdminSayMessage("Auto-nuke cancelled.");
-                                                        }
-                                                        else
-                                                        {
-                                                            OnlineAdminSayMessage("Auto-surrender cancelled.");
-                                                        }
-                                                    }
-                                                    _surrenderAutoTriggerCountCurrent = 0;
-                                                }
-                                                else
-                                                {
-                                                    string completionPercentage = Math.Round((_surrenderAutoTriggerCountCurrent / (Double)((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender))) * 100.0) + "%";
-                                                    if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
-                                                    {
-                                                        _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
-                                                        if (neededPlayers <= 10)
-                                                        {
-                                                            if (_surrenderAutoTriggerCountCurrent < ((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender)))
-                                                            {
-                                                                if (shouldNuke())
-                                                                {
-                                                                    AdminSayMessage("Auto-nuke paused at " + completionPercentage + "." + neededMessage);
-                                                                }
-                                                                else
-                                                                {
-                                                                    OnlineAdminSayMessage("Auto-surrender paused at " + completionPercentage + "." + neededMessage);
-                                                                }
-                                                            }
-                                                            else
-                                                            {
-                                                                if (shouldNuke())
-                                                                {
-                                                                    AdminSayMessage("Auto-nuke paused." + neededMessage);
-                                                                }
-                                                                else
-                                                                {
-                                                                    OnlineAdminSayMessage("Auto-surrender paused." + neededMessage);
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (_roundState == RoundState.Playing && _surrenderAutoTriggerCountCurrent > 0 && neededPlayers <= 10)
-                                        {
-                                            if (shouldNuke())
-                                            {
-                                                AdminSayMessage("Auto-nuke cancelled.");
-                                            }
-                                            else
-                                            {
-                                                OnlineAdminSayMessage("Auto-surrender cancelled.");
-                                            }
-                                        }
-                                        _surrenderAutoTriggerCountCurrent = 0;
-                                        _surrenderAutoTriggerCountPause = 0;
-                                    }
-                                }
-                                if (baserapingTeam != null)
-                                {
-                                    if (shouldNuke())
-                                    {
-                                        string autoNukeMessage = _surrenderAutoNukeMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
-                                        _currentRoundNukes++;
-                                        _surrenderAutoNukeLast = UtcNow();
-                                        _surrenderAutoNukeLastTeam = baserapingTeam;
-                                        QueueRecordForProcessing(new AdKatsRecord
-                                        {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("server_nuke"),
-                                            command_numeric = baserapingTeam.TeamID,
-                                            target_name = baserapingTeam.TeamName,
-                                            source_name = "RoundManager",
-                                            record_message = autoNukeMessage,
-                                            record_time = UtcNow()
-                                        });
-                                    }
-                                    else if (_surrenderAutoTriggerVote)
-                                    {
-                                        QueueRecordForProcessing(new AdKatsRecord
-                                        {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("self_votenext"),
-                                            command_numeric = 0,
-                                            target_name = "RoundManager",
-                                            source_name = "RoundManager",
-                                            record_message = "Auto-Starting Surrender Vote",
-                                            record_time = UtcNow()
-                                        });
-                                    }
-                                    else if (!_endingRound)
-                                    {
-                                        _endingRound = true;
-                                        _surrenderAutoSucceeded = true;
-                                        Thread roundEndDelayThread = new Thread(new ThreadStart(delegate
-                                        {
-                                            Log.Debug(() => "Starting a round end delay thread.", 5);
-                                            try
-                                            {
-                                                Thread.CurrentThread.Name = "RoundEndDelay";
-                                                string autoSurrenderMessage = _surrenderAutoMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
-                                                for (int i = 0; i < 8; i++)
-                                                {
-                                                    AdminTellMessage(autoSurrenderMessage);
-                                                    Thread.Sleep(50);
-                                                }
-                                                _threadMasterWaitHandle.WaitOne(1000 * _YellDuration);
-                                                AdKatsRecord repRecord = new AdKatsRecord
-                                                {
-                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
-                                                    command_type = GetCommandByKey("round_end"),
-                                                    command_numeric = baserapingTeam.TeamID,
-                                                    target_name = baserapingTeam.TeamName,
-                                                    source_name = "RoundManager",
-                                                    record_message = "Auto-Surrender (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")",
-                                                    record_time = UtcNow()
-                                                };
-                                                QueueRecordForProcessing(repRecord);
-                                            }
-                                            catch (Exception)
-                                            {
-                                                HandleException(new AdKatsException("Error while running round end delay."));
-                                            }
-                                            Log.Debug(() => "Exiting a round end delay thread.", 5);
-                                            LogThreadExit();
-                                        }));
-                                        StartAndLogThread(roundEndDelayThread);
                                     }
                                 }
                             }
@@ -10055,11 +9746,6 @@ namespace PRoConEvents
                                         _surrenderAutoEnable = true;
                                         _surrenderAutoUseMetroValues = true;
                                     }
-                                    else if (_serverInfo.ServerName.Contains("#6") && _gameVersion == GameVersion.BF4)
-                                    {
-                                        _surrenderAutoEnable = true;
-                                        _surrenderAutoUseLockerValues = true;
-                                    }
                                     _spamBotExcludeAdminsAndWhitelist = true;
                                 }
                                 _DisplayTicketRatesInProconChat = true;
@@ -10086,12 +9772,6 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while processing server info.", e));
             }
             Log.Debug(() => "Exiting OnServerInfo", 7);
-        }
-
-        private Boolean shouldNuke()
-        {
-            return _surrenderAutoNukeInstead &&
-                   (_currentRoundNukes < _surrenderAutoMaxNukesEachRound || !_surrenderAutoNukeResolveAfterMax);
         }
 
         public override void OnSoldierHealth(Int32 limit) {
@@ -10190,7 +9870,7 @@ namespace PRoConEvents
                         stat_time = UtcNow()
                     });
                 }
-                if (_surrenderAutoTriggerCountCurrent > 0 && winningTeam.TeamTicketDifferenceRate > losingTeam.TeamTicketDifferenceRate)
+                if (_surrenderAutoTriggerCountCurrent > 0 && winningTeam.GetTicketDifferenceRate() > losingTeam.GetTicketDifferenceRate())
                 {
                     foreach (AdKatsPlayer aPlayer in WinningPlayers.Take((Int32)(WinningPlayers.Count / 3.5)).ToList())
                     {
@@ -15062,7 +14742,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Double ticketRateGap = Math.Abs(team1.TeamTicketDifferenceRate - team2.TeamTicketDifferenceRate);
+                                    Double ticketRateGap = Math.Abs(team1.GetTicketDifferenceRate() - team2.GetTicketDifferenceRate());
                                     if (_surrenderVoteTicketRateGapEnable && ticketRateGap < _surrenderVoteMinimumTicketRateGap)
                                     {
                                         SendMessageToSource(record, _surrenderVoteMinimumTicketRateGap + " ticket rate gap needed to start Surrender Vote. Current: " + Math.Round(ticketRateGap, 2));
@@ -16046,7 +15726,7 @@ namespace PRoConEvents
                             var newPowerDiff = Math.Round(Math.Abs(enemyTeam.getTeamPower(null, record.target_player) - friendlyTeam.getTeamPower(record.target_player, null)));
                             var oldPowerDiff = Math.Round(Math.Abs(enemyTeam.getTeamPower() - friendlyTeam.getTeamPower()));
                             Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
-                            Boolean enemyMapPower = enemyTeam.TeamTicketDifferenceRate > friendlyTeam.TeamTicketDifferenceRate;
+                            Boolean enemyMapPower = enemyTeam.GetTicketDifferenceRate() > friendlyTeam.GetTicketDifferenceRate();
                             Boolean ticketBypass = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > (_startingTicketCount > 0 ? (_startingTicketCount / 4.0) : 250);
                             if (enemyWinning)
                             {
@@ -27500,7 +27180,7 @@ namespace PRoConEvents
                         FinalizeRecord(record);
                         return;
                     }
-                    Double ticketRateGap = Math.Abs(team1.TeamTicketDifferenceRate - team2.TeamTicketDifferenceRate);
+                    Double ticketRateGap = Math.Abs(team1.GetTicketDifferenceRate() - team2.GetTicketDifferenceRate());
                     if (_surrenderVoteTicketRateGapEnable && ticketRateGap < _surrenderVoteMinimumTicketRateGap)
                     {
                         SendMessageToSource(record, _surrenderVoteMinimumTicketRateGap + " ticket rate gap needed to start Surrender Vote. Current: " + Math.Round(ticketRateGap, 2));
@@ -30250,12 +29930,12 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
-                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Adjusted Ticket Rates", typeof(Boolean), _surrenderAutoUseAdjustedTicketRates));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Reset Trigger Count on Cancel", typeof(Boolean), _surrenderAutoResetTriggerCountOnCancel));
                 QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeInstead));
                 QueueSettingForUpload(new CPluginVariable(@"Switch to surrender after max nukes", typeof(Boolean), _surrenderAutoNukeResolveAfterMax));
                 QueueSettingForUpload(new CPluginVariable(@"Announce Nuke Preparation to Players", typeof(Boolean), _surrenderAutoAnnounceNukePrep));
                 QueueSettingForUpload(new CPluginVariable(@"Allow Auto-Nuke to fire on losing teams", typeof(Boolean), _surrenderAutoNukeLosingTeams));
+                QueueSettingForUpload(new CPluginVariable(@"Maximum Nuke Ticket Difference for Losing Team", typeof(Int32), _surrenderAutoNukeLosingMaxDiff));
                 QueueSettingForUpload(new CPluginVariable(@"Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Count", typeof(Int32), _surrenderAutoMinimumTicketCount));
@@ -42524,7 +42204,7 @@ namespace PRoConEvents
 
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamTicketCounts;
             public Boolean TeamTicketCountsFull { get; private set; }
-            public Double TeamTicketDifferenceRate { get; private set; }
+            private Double TeamTicketDifferenceRate;
             public Int32 TeamTicketCount { get; private set; }
             public DateTime TeamTicketsTime { get; private set; }
             public Boolean TeamTicketsAdded { get; private set; }
@@ -42532,13 +42212,11 @@ namespace PRoConEvents
             //Ticket Adjustments
             private Int32 TeamTicketAdjustment;
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamAdjustedTicketCounts;
-            public Boolean TeamAdjustedTicketCountsFull { get; private set; }
             public Int32 TeamAdjustedTicketCount { get; private set; }
             public DateTime TeamAdjustedTicketsTime { get; private set; }
             public Boolean TeamAdjustedTicketsAdded { get; private set; }
-            public Double TeamAdjustedTicketDifferenceRate { get; private set; }
+            private Double TeamAdjustedTicketDifferenceRate;
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamAdjustedTicketDifferenceRates;
-            public Boolean TeamAdjustedTicketDifferenceRatesFull { get; private set; }
             public Double TeamAdjustedTicketAccellerationRate { get; private set; }
 
             //Score
@@ -42561,9 +42239,7 @@ namespace PRoConEvents
                 TeamTicketCounts = new Queue<KeyValuePair<Double, DateTime>>();
                 TeamTicketCountsFull = false;
                 TeamAdjustedTicketCounts = new Queue<KeyValuePair<Double, DateTime>>();
-                TeamAdjustedTicketCountsFull = false;
                 TeamAdjustedTicketDifferenceRates = new Queue<KeyValuePair<Double, DateTime>>();
-                TeamAdjustedTicketDifferenceRatesFull = false;
             }
 
             public Int32 TeamID { get; private set; }
@@ -42574,6 +42250,11 @@ namespace PRoConEvents
             //Live Vars
             public Boolean Populated { get; private set; }
             public Int32 TeamPlayerCount { get; set; }
+
+            public Double GetTicketDifferenceRate()
+            {
+                return TeamTicketDifferenceRate >= 0 ? TeamTicketDifferenceRate : TeamAdjustedTicketDifferenceRate;
+            }
 
             public void UpdatePlayerCount(Int32 playerCount)
             {
@@ -42675,7 +42356,7 @@ namespace PRoConEvents
                         return;
                     }
 
-                    //Remove old values (more than 60 seconds ago)
+                    //Remove old values (more than 45 seconds ago)
                     Boolean removed = false;
                     do
                     {
@@ -42683,13 +42364,11 @@ namespace PRoConEvents
                         if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcNow() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 45)
                         {
                             TeamAdjustedTicketCounts.Dequeue();
-                            TeamAdjustedTicketCountsFull = true;
                             removed = true;
                         }
                         if (TeamAdjustedTicketDifferenceRates.Any() && (Plugin.UtcNow() - TeamAdjustedTicketDifferenceRates.Peek().Value).TotalSeconds > 45)
                         {
                             TeamAdjustedTicketDifferenceRates.Dequeue();
-                            TeamAdjustedTicketDifferenceRatesFull = true;
                             removed = true;
                         }
                     } while (removed);
@@ -42893,8 +42572,6 @@ namespace PRoConEvents
                     TeamTotalScoresAdded = false;
                     TeamTotalScoresFull = false;
                     TeamTicketCountsFull = false;
-                    TeamAdjustedTicketCountsFull = false;
-                    TeamAdjustedTicketDifferenceRatesFull = false;
                 }
                 catch (Exception e)
                 {
