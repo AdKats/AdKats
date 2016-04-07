@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.87
+ * Version 6.8.1.88
  * 7-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.87</version_code>
+ * <version_code>6.8.1.88</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.87";
+        private const String PluginVersion = "6.8.1.88";
 
         public enum GameVersion
         {
@@ -40503,6 +40503,11 @@ namespace PRoConEvents
         {
             try
             {
+                // Temporary patch for FPSG's memory issues
+                if (!manual && _serverInfo.ServerName.ToUpper().Contains("FPSG"))
+                {
+                    return;
+                }
                 if ((_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled && !_pluginUpdatePatched) || 
                     _pluginVersionStatus == VersionStatus.TestBuild || 
                     (_isTestingAuthorized) || 
