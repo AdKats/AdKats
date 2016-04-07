@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.85
- * 3-APR-2016
+ * Version 6.8.1.86
+ * 6-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.85</version_code>
+ * <version_code>6.8.1.86</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.85";
+        private const String PluginVersion = "6.8.1.86";
 
         public enum GameVersion
         {
@@ -1343,6 +1343,7 @@ namespace PRoConEvents
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Maximum Auto-Nukes Each Round", typeof(Int32), _surrenderAutoMaxNukesEachRound));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Switch to surrender after max nukes", typeof(Boolean), _surrenderAutoNukeResolveAfterMax));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Minimum Seconds Between Nukes", typeof(Int32), _surrenderAutoNukeMinBetween));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Countdown Duration before a Nuke is fired", typeof(int), _NukeCountdownDurationSeconds));
                                 if (_isTestingAuthorized)
                                 {
                                     lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Announce Nuke Preparation to Players", typeof(Boolean), _surrenderAutoAnnounceNukePrep));
@@ -4258,9 +4259,9 @@ namespace PRoConEvents
                         {
                             _NukeCountdownDurationSeconds = 0;
                         }
-                        if (_NukeCountdownDurationSeconds > 10)
+                        if (_NukeCountdownDurationSeconds > 30)
                         {
-                            _NukeCountdownDurationSeconds = 10;
+                            _NukeCountdownDurationSeconds = 30;
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Countdown Duration before a Nuke is fired", typeof(Int32), _NukeCountdownDurationSeconds));
@@ -9396,7 +9397,8 @@ namespace PRoConEvents
                                     if (downRate <= config_mapDown_rate_max &&
                                         downRate >= config_mapDown_rate_min &&
                                         upRate <= config_mapUp_rate_max &&
-                                        upRate >= config_mapUp_rate_min)
+                                        upRate >= config_mapUp_rate_min && 
+                                        (config_action == AutoSurrenderAction.Nuke || winningTeam == mapUpTeam))
                                     {
                                         //Fire triggers
                                         _lastAutoSurrenderTriggerTime = UtcNow();
@@ -39331,7 +39333,7 @@ namespace PRoConEvents
                 StartAndLogThread(new Thread(new ThreadStart(delegate
                 {
                     Thread.CurrentThread.Name = "SQLUpdater";
-                    Thread.Sleep(250);
+                    Thread.Sleep(TimeSpan.FromMilliseconds(250));
                     RunSQLUpdates();
                     LogThreadExit();
                 })));
