@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.86
- * 6-APR-2016
+ * Version 6.8.1.87
+ * 7-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.86</version_code>
+ * <version_code>6.8.1.87</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.86";
+        private const String PluginVersion = "6.8.1.87";
 
         public enum GameVersion
         {
@@ -6519,12 +6519,13 @@ namespace PRoConEvents
                     DateTime lastLongKeepAliveCheck = UtcNow();
                     ExecuteCommand("procon.protected.send", "serverInfo");
                     DateTime lastServerInfoRequest = UtcNow();
+                    DateTime lastMemoryWarning = UtcNow();
                     while (true)
                     {
                         try
                         {
                             Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
-                            if (_isTestingAuthorized)
+                            if (NowDuration(lastMemoryWarning).TotalSeconds > 30)
                             {
                                 if (MBUsed > 750 && (UtcNow() - _AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete)
                                 {
@@ -6540,12 +6541,12 @@ namespace PRoConEvents
                                         record_message = MBUsed + "MB estimated memory used",
                                         record_time = UtcNow()
                                     });
-                                    Thread.Sleep(TimeSpan.FromSeconds(10));
+                                    lastMemoryWarning = UtcNow();
                                 }
                                 else if (MBUsed > 250)
                                 {
-                                    Log.Warn(MBUsed + "MB estimated memory used");
-                                    Thread.Sleep(TimeSpan.FromSeconds(10));
+                                    Log.Warn(MBUsed + "MB estimated memory used.");
+                                    lastMemoryWarning = UtcNow();
                                 }
                             }
 
