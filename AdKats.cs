@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.88
+ * Version 6.8.1.89
  * 7-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.88</version_code>
+ * <version_code>6.8.1.89</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.88";
+        private const String PluginVersion = "6.8.1.89";
 
         public enum GameVersion
         {
@@ -515,6 +515,7 @@ namespace PRoConEvents
         private Double _surrenderAutoWinningRateMin = 999;
         private Int32 _surrenderAutoTriggerCountToSurrender = 10;
         private Boolean _surrenderAutoResetTriggerCountOnCancel = true;
+        private Boolean _surrenderAutoResetTriggerCountOnFire = true;
         private Int32 _surrenderAutoTriggerCountCurrent;
         private Int32 _surrenderAutoTriggerCountPause;
         private Int32 _surrenderAutoMinimumPlayers = 10;
@@ -1341,6 +1342,7 @@ namespace PRoConEvents
                             if (_surrenderAutoNukeInstead)
                             {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Maximum Auto-Nukes Each Round", typeof(Int32), _surrenderAutoMaxNukesEachRound));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Reset Auto-Nuke Trigger Count on Fire", typeof(Boolean), _surrenderAutoResetTriggerCountOnFire));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Switch to surrender after max nukes", typeof(Boolean), _surrenderAutoNukeResolveAfterMax));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Minimum Seconds Between Nukes", typeof(Int32), _surrenderAutoNukeMinBetween));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Countdown Duration before a Nuke is fired", typeof(int), _NukeCountdownDurationSeconds));
@@ -2608,6 +2610,16 @@ namespace PRoConEvents
                         _surrenderAutoResetTriggerCountOnCancel = surrenderAutoResetTriggerCountOnCancel;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Reset Trigger Count on Cancel", typeof(Boolean), _surrenderAutoResetTriggerCountOnCancel));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Reset Auto-Nuke Trigger Count on Fire").Success)
+                {
+                    Boolean surrenderAutoResetTriggerCountOnFire = Boolean.Parse(strValue);
+                    if (surrenderAutoResetTriggerCountOnFire != _surrenderAutoResetTriggerCountOnFire)
+                    {
+                        _surrenderAutoResetTriggerCountOnFire = surrenderAutoResetTriggerCountOnFire;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Reset Auto-Nuke Trigger Count on Fire", typeof(Boolean), _surrenderAutoResetTriggerCountOnFire));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Nuke Winning Team Instead of Surrendering Losing Team").Success)
@@ -9642,6 +9654,11 @@ namespace PRoConEvents
 
                                     if (fired)
                                     {
+                                        if (_surrenderAutoResetTriggerCountOnFire)
+                                        {
+                                            _surrenderAutoTriggerCountCurrent = 0;
+                                            _surrenderAutoTriggerCountPause = 0;
+                                        }
                                         if (config_action == AutoSurrenderAction.Nuke)
                                         {
                                             string autoNukeMessage = _surrenderAutoNukeMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
@@ -29934,6 +29951,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Reset Trigger Count on Cancel", typeof(Boolean), _surrenderAutoResetTriggerCountOnCancel));
+                QueueSettingForUpload(new CPluginVariable(@"Reset Auto-Nuke Trigger Count on Fire", typeof(Boolean), _surrenderAutoResetTriggerCountOnFire));
                 QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeInstead));
                 QueueSettingForUpload(new CPluginVariable(@"Switch to surrender after max nukes", typeof(Boolean), _surrenderAutoNukeResolveAfterMax));
                 QueueSettingForUpload(new CPluginVariable(@"Announce Nuke Preparation to Players", typeof(Boolean), _surrenderAutoAnnounceNukePrep));
