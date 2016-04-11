@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.89
- * 7-APR-2016
+ * Version 6.8.1.90
+ * 10-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.89</version_code>
+ * <version_code>6.8.1.90</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.89";
+        private const String PluginVersion = "6.8.1.90";
 
         public enum GameVersion
         {
@@ -6788,8 +6788,21 @@ namespace PRoConEvents
                                         .Where(aPlayer =>
                                             _topPlayers.ContainsKey(aPlayer.player_name));
                                     AdKatsTeam t1, t2;
-                                    if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
-                                        var message = "TeamPower: " + t1.TeamKey + ": (" + t1.getTeamPower() + ") / " + t2.TeamKey + ": (" + t2.getTeamPower() + ")";
+                                    if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2))
+                                    {
+                                        Double t1Power = t1.getTeamPower();
+                                        Double t2Power = t2.getTeamPower();
+                                        Double percDiff = Math.Abs(t1Power - t2Power) / ((t1Power + t2Power) / 2.0) * 100.0;
+                                        String message = "TeamPower: ";
+                                        if (t1Power > t2Power)
+                                        {
+                                            message += t1.TeamKey + " up " + Math.Round(((t1Power - t2Power) / t2Power) * 100) + "% ";
+                                        }
+                                        else
+                                        {
+                                            message += t2.TeamKey + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
+                                        }
+                                        message += "(" + t1.TeamKey + ":" + t1.getTeamPower() + " / " + t2.TeamKey + ":" + t2.getTeamPower() + ")";
                                         ProconChatWrite(Log.FBold(message));
                                         if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
                                             PlayerSayMessage("ColColonCleaner", message);
@@ -37484,25 +37497,34 @@ namespace PRoConEvents
                     Log.Debug(() => "No players under special player group slot_spectator.", 5);
                 }
                 //All players fetched, update the server lists
-                //Remove soldiers from the list where needed
-                foreach (String playerName in _CurrentSpectatorListPlayers)
+                if (allowedSpectatorSlotPlayers.Count() < 15)
                 {
-                    if (!allowedSpectatorSlotPlayers.Contains(playerName))
+                    //Remove soldiers from the list where needed
+                    foreach (String playerName in _CurrentSpectatorListPlayers)
                     {
-                        Log.Debug(() => playerName + " in server spectator slots, but not in allowed spectator players. Removing.", 3);
-                        ExecuteCommand("procon.protected.send", "spectatorList.remove", playerName);
-                        _threadMasterWaitHandle.WaitOne(5);
+                        if (!allowedSpectatorSlotPlayers.Contains(playerName))
+                        {
+                            Log.Debug(() => playerName + " in server spectator slots, but not in allowed spectator players. Removing.", 3);
+                            ExecuteCommand("procon.protected.send", "spectatorList.remove", playerName);
+                            _threadMasterWaitHandle.WaitOne(5);
+                        }
+                    }
+                    //Add soldiers to the list where needed
+                    foreach (String playerName in allowedSpectatorSlotPlayers)
+                    {
+                        if (!_CurrentSpectatorListPlayers.Contains(playerName))
+                        {
+                            Log.Debug(() => playerName + " in allowed spectator players, but not in server spectator slots. Adding.", 3);
+                            ExecuteCommand("procon.protected.send", "spectatorList.add", playerName);
+                            _threadMasterWaitHandle.WaitOne(5);
+                        }
                     }
                 }
-                //Add soldiers to the list where needed
-                foreach (String playerName in allowedSpectatorSlotPlayers)
+                else
                 {
-                    if (!_CurrentSpectatorListPlayers.Contains(playerName))
-                    {
-                        Log.Debug(() => playerName + " in allowed spectator players, but not in server spectator slots. Adding.", 3);
-                        ExecuteCommand("procon.protected.send", "spectatorList.add", playerName);
-                        _threadMasterWaitHandle.WaitOne(5);
-                    }
+                    //If there are 15 or more players in the list, don't push to the server
+                    //The server cannot take over 15 players in the spectator list, yay DICE
+                    ExecuteCommand("procon.protected.send", "spectatorList.clear");
                 }
                 //Save the list
                 ExecuteCommand("procon.protected.send", "spectatorList.save");
