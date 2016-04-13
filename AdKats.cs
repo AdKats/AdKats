@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.91
- * 11-APR-2016
+ * Version 6.8.1.92
+ * 12-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.91</version_code>
+ * <version_code>6.8.1.92</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.91";
+        private const String PluginVersion = "6.8.1.92";
 
         public enum GameVersion
         {
@@ -10615,10 +10615,15 @@ namespace PRoConEvents
 
         public void RunFactionRandomizer()
         {
+            Log.Debug(() => "Entering RunFactionRandomizer", 6);
             //Faction Randomizer
             //Credit to LumPenPacK
             if (_factionRandomizerEnable && _gameVersion == GameVersion.BF4)
             {
+                if (_isTestingAuthorized)
+                {
+                    Log.Info("RUNNING FACTION RANDOMIZER");
+                }
                 var nextMap = _serverInfo.GetNextMap();
                 if (((_serverInfo.InfoObject.CurrentRound + 1) >= _serverInfo.InfoObject.TotalRounds) && 
                     (nextMap != null && (nextMap.MapFileName == "XP3_UrbanGdn" || nextMap.MapFileName == "X0_Oman")))
@@ -10637,7 +10642,12 @@ namespace PRoConEvents
                 Int32 RU = 1;
                 Int32 CN = 2;
 
-                while (!selectionValid && ++attempts < 1000) {
+                while (!selectionValid && ++attempts < 1000)
+                {
+                    if (_isTestingAuthorized)
+                    {
+                        Log.Info("FACTION RANDOMIZER ATTEMPT " + attempts);
+                    }
 
                     switch (_factionRandomizerRestriction)
                     {
@@ -10740,12 +10750,17 @@ namespace PRoConEvents
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "2", Convert.ToString(team2Selection));
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "3", Convert.ToString(team1Selection));
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "4", Convert.ToString(team2Selection));
+                    if (_isTestingAuthorized)
+                    {
+                        Log.Success("FACTION RANDOMIZER " + team1Selection + " | " + team2Selection);
+                    }
                 }
                 else
                 {
                     Log.Error("Faction randomizer failed!");
                 }
             }
+            Log.Debug(() => "Exiting RunFactionRandomizer", 6);
         }
 
         public override void OnRunNextLevel()
