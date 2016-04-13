@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.90
- * 10-APR-2016
+ * Version 6.8.1.91
+ * 11-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.90</version_code>
+ * <version_code>6.8.1.91</version_code>
  */
 
 using System;
@@ -50,20 +50,24 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
+
 using Microsoft.CSharp;
+
 using MySql.Data.MySqlClient;
+
 using PRoCon.Core;
 using PRoCon.Core.Players;
 using PRoCon.Core.Players.Items;
 using PRoCon.Core.Plugin;
 using PRoCon.Core.Plugin.Commands;
+using PRoCon.Core.Maps;
 
 namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.90";
+        private const String PluginVersion = "6.8.1.91";
 
         public enum GameVersion
         {
@@ -680,6 +684,28 @@ namespace PRoConEvents
         private Int32 _battlecryMaxLength = 100;
         private String[] _battlecryDeniedWords = { };
 
+        //Faction randomizer
+        public enum FactionRandomizerRestriction
+        {
+            NoRestriction,
+            NeverSameFaction,
+            AlwaysSameFaction,
+            AlwaysBothUS,
+            AlwaysBothRU,
+            AlwaysBothCN,
+            AlwaysUSvsX,
+            AlwaysRUvsX,
+            AlwaysCNvsX,
+            NeverUSvsX,
+            NeverRUvsX,
+            NeverCNvsX
+        }
+        private Boolean _factionRandomizerEnable = false;
+        private FactionRandomizerRestriction _factionRandomizerRestriction = FactionRandomizerRestriction.NoRestriction;
+        private Boolean _factionRandomizerAllowRepeatSelection = true;
+        private Int32 _currentTeam1Selection = 0;
+        private Int32 _currentTeam2Selection = 0;
+
         //Weapon stats
         private readonly Dictionary<String, AdKatsWeaponName> _weaponNames = new Dictionary<String, AdKatsWeaponName>();
         private StatLibrary _StatLibrary;
@@ -758,6 +784,7 @@ namespace PRoConEvents
             AddSettingSection("A15", "VOIP Settings");
             AddSettingSection("A16", "Orchestration Settings");
             AddSettingSection("A17", "Round Settings");
+            AddSettingSection("A17-2", "Round Faction Randomizer Settings - Thanks FPSG");
             AddSettingSection("A18", "Internal Hacker-Checker Settings");
             AddSettingSection("A19", "Server Rules Settings");
             AddSettingSection("B20", "AFK Settings");
@@ -1139,9 +1166,9 @@ namespace PRoConEvents
 
                     if (IsActiveSettingSection("A12-3"))
                     {
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Player Battlecry Volume", "enum.battlecryVolumeEnum(Disabled|Say|Yell|Tell)", _battlecryVolume.ToString()));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Player Battlecry Max Length", typeof(Int32), _battlecryMaxLength));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Player Battlecry Denied Words", typeof(String[]), _battlecryDeniedWords));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Player Battlecry Volume", "enum.battlecryVolumeEnum(Disabled|Say|Yell|Tell)", _battlecryVolume.ToString()));
                     }
 
                     if (IsActiveSettingSection("A13")) {
@@ -1217,6 +1244,13 @@ namespace PRoConEvents
                         if (_useRoundTimer) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A17") + t + "Round Timer: Round Duration Minutes", typeof(Double), _maxRoundTimeMinutes));
                         }
+                    }
+
+                    if (IsActiveSettingSection("A17-2") && _gameVersion == GameVersion.BF4)
+                    {
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Enable", typeof(Boolean), _factionRandomizerEnable));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Restriction", "enum.factionRandomizerRestrictionEnum(No Restriction|Never Same Faction|Always Same Faction|Always Both US|Always Both RU|Always Both CN|Always US vs X|Always RU vs X|Always CN vs X|Never US vs X|Never RU vs X|Never CN vs X)", _factionRandomizerRestriction.ToString()));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Allow Repeat Team Selections", typeof(Boolean), _factionRandomizerAllowRepeatSelection));
                     }
 
                     if (IsActiveSettingSection("A18")) {
@@ -3926,6 +3960,87 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof(Double), _maxRoundTimeMinutes));
                     }
                 }
+                else if (Regex.Match(strVariable, @"Faction Randomizer: Enable").Success)
+                {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("Faction Randomizer cannot be enabled on official servers.");
+                        return;
+                    }
+                    Boolean useRandomizer = Boolean.Parse(strValue);
+                    if (useRandomizer != _factionRandomizerEnable)
+                    {
+                        _factionRandomizerEnable = useRandomizer;
+                        if (_factionRandomizerEnable)
+                        {
+                            if (_threadsReady)
+                            {
+                                Log.Info("Faction randomizer activated, will activate on next round.");
+                            }
+                        }
+                        else
+                        {
+                            Log.Info("Faction randomizer disabled.");
+                        }
+                        QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Enable", typeof(Boolean), _factionRandomizerEnable));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Faction Randomizer: Restriction").Success)
+                {
+                    switch (strValue)
+                    {
+                        case "No Restriction":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.NoRestriction;
+                            break;
+                        case "Never Same Faction":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.NeverSameFaction;
+                            break;
+                        case "Always Same Faction":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysSameFaction;
+                            break;
+                        case "Always Both US":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysBothUS;
+                            break;
+                        case "Always Both RU":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysBothRU;
+                            break;
+                        case "Always Both CN":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysBothCN;
+                            break;
+                        case "Always US vs X":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysUSvsX;
+                            break;
+                        case "Always RU vs X":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysRUvsX;
+                            break;
+                        case "Always CN vs X":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysCNvsX;
+                            break;
+                        case "Never US vs X":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.NeverUSvsX;
+                            break;
+                        case "Never RU vs X":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.NeverRUvsX;
+                            break;
+                        case "Never CN vs X":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.NeverCNvsX;
+                            break;
+                        default:
+                            Log.Error("Unknown setting when updating faction randomizer restriction.");
+                            return;
+                    }
+                    QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Restriction", typeof(String), _factionRandomizerRestriction.ToString()));
+                }
+                else if (Regex.Match(strVariable, @"Faction Randomizer: Allow Repeat Team Selections").Success)
+                {
+                    Boolean allowRepeatSelections = Boolean.Parse(strValue);
+                    if (allowRepeatSelections != _factionRandomizerAllowRepeatSelection)
+                    {
+                        _factionRandomizerAllowRepeatSelection = allowRepeatSelections;
+                        QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Allow Repeat Team Selections", typeof(Boolean), _factionRandomizerAllowRepeatSelection));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Use NO EXPLOSIVES Limiter").Success)
                 {
                     if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
@@ -5915,7 +6030,15 @@ namespace PRoConEvents
                     "OnServerType", 
                     "OnMaxSpectators", 
                     "OnTeamFactionOverride",
-                    "OnPlayerPingedByAdmin");
+                    "OnPlayerPingedByAdmin",
+                    "OnMapListList",
+                    "OnMaplistLoad",
+                    "OnMaplistSave",
+                    "OnMaplistCleared",
+                    "OnMaplistMapAppended",
+                    "OnMaplistNextLevelIndex",
+                    "OnMaplistMapRemoved",
+                    "OnMaplistMapInserted");
             }
             catch (Exception e)
             {
@@ -7293,6 +7416,20 @@ namespace PRoConEvents
             }
             try
             {
+                if (_gameVersion == GameVersion.BF4)
+                {
+                    switch (targetTeamID)
+                    {
+                        case 0:
+                            _currentTeam1Selection = overrideTeamId;
+                            break;
+                        case 1:
+                            _currentTeam2Selection = overrideTeamId;
+                            break;
+                        default:
+                            break;
+                    }
+                }
                 switch (overrideTeamId)
                 {
                     case -1:
@@ -7621,6 +7758,76 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while running faction updates.", e));
             }
+        }
+
+        public override void OnMaplistLoad() {
+            getMapInfo();
+        }
+
+        public override void OnMaplistSave() {
+            getMapInfo();
+        }
+
+        public override void OnMaplistCleared() {
+            getMapInfo();
+        }
+
+        public override void OnMaplistMapAppended(string mapFileName) {
+            getMapInfo();
+        }
+
+        public override void OnMaplistNextLevelIndex(int mapIndex) {
+            getMapInfo();
+        }
+
+        public override void OnMaplistMapRemoved(int mapIndex) {
+            getMapInfo();
+        }
+
+        public override void OnMaplistMapInserted(int mapIndex, string mapFileName) {
+            getMapInfo();
+        }
+
+        public void getMapInfo()
+        {
+            getMapList();
+            getMapIndices();
+        }
+
+        public void getMapList()
+        {
+            ExecuteCommand("procon.protected.send", "mapList.list");
+        }
+
+        public void getMapIndices()
+        {
+            ExecuteCommand("procon.protected.send", "mapList.getMapIndices");
+        }
+
+        public override void OnMaplistList(List<MaplistEntry> lstMaplist)
+        {
+            Log.Debug(() => "Entering OnMaplistList", 5);
+            if (!_pluginEnabled || _serverInfo == null)
+            {
+                return;
+            }
+
+            _serverInfo.SetMapList(lstMaplist);
+
+            Log.Debug(() => "Exiting OnMaplistList", 7);
+        }
+
+        public override void OnMaplistGetMapIndices(int mapIndex, int nextIndex)
+        {
+            Log.Debug(() => "Entering OnMaplistGetMapIndices", 5);
+            if (!_pluginEnabled || _serverInfo == null)
+            {
+                return;
+            }
+
+            _serverInfo.SetMapListIndicies(mapIndex, nextIndex);
+
+            Log.Debug(() => "Exiting OnMaplistGetMapIndices", 7);
         }
 
         public override void OnPlayerTeamChange(String soldierName, Int32 teamId, Int32 squadId)
@@ -9967,6 +10174,7 @@ namespace PRoConEvents
                     _unmatchedRoundDeaths.Clear();
                     //Update the factions 
                     UpdateFactions();
+                    getMapInfo();
                     StartRoundTicketLogger(0);
                 }
             }
@@ -10362,6 +10570,7 @@ namespace PRoConEvents
                     //Unassign round over players, wait for next round
                     _roundOverPlayers = null;
                 }
+
                 //Stat refresh
                 List<AdKatsPlayer> roundPlayerObjects;
                 HashSet<Int64> roundPlayers;
@@ -10389,6 +10598,9 @@ namespace PRoConEvents
                         LogThreadExit();
                     })));
                 }
+
+                RunFactionRandomizer();
+
                 FetchRoundID(true);
                 _roundState = RoundState.Ended;
                 _pingKicksThisRound = 0;
@@ -10401,9 +10613,146 @@ namespace PRoConEvents
             }
         }
 
+        public void RunFactionRandomizer()
+        {
+            //Faction Randomizer
+            //Credit to LumPenPacK
+            if (_factionRandomizerEnable && _gameVersion == GameVersion.BF4)
+            {
+                var nextMap = _serverInfo.GetNextMap();
+                if (((_serverInfo.InfoObject.CurrentRound + 1) >= _serverInfo.InfoObject.TotalRounds) && 
+                    (nextMap != null && (nextMap.MapFileName == "XP3_UrbanGdn" || nextMap.MapFileName == "X0_Oman")))
+                {
+                    //Cannot change things on urban garden or oman
+                    Log.Info("Cannot run faction randomizer on urban garden or gulf of oman.");
+                    return;
+                }
+
+                var team1Selection = 0;
+                var team2Selection = 1;
+                var selectionValid = false;
+                var attempts = 0;
+                Random rnd = new Random();
+                Int32 US = 0;
+                Int32 RU = 1;
+                Int32 CN = 2;
+
+                while (!selectionValid && ++attempts < 1000) {
+
+                    switch (_factionRandomizerRestriction)
+                    {
+                        case FactionRandomizerRestriction.NoRestriction:
+                            team1Selection = rnd.Next(0, 3);
+                            team2Selection = rnd.Next(0, 3);
+                            break;
+                        case FactionRandomizerRestriction.NeverSameFaction:
+                            team1Selection = rnd.Next(0, 3);
+                            team2Selection = rnd.Next(0, 3);
+                            if (team1Selection == team2Selection)
+                            {
+                                continue;
+                            }
+                            break;
+                        case FactionRandomizerRestriction.AlwaysSameFaction:
+                            team1Selection = rnd.Next(0, 3);
+                            team2Selection = team1Selection;
+                            break;
+                        case FactionRandomizerRestriction.AlwaysBothUS:
+                            team1Selection = US;
+                            team2Selection = US;
+                            break;
+                        case FactionRandomizerRestriction.AlwaysBothRU:
+                            team1Selection = RU;
+                            team2Selection = RU;
+                            break;
+                        case FactionRandomizerRestriction.AlwaysBothCN:
+                            team1Selection = CN;
+                            team2Selection = CN;
+                            break;
+                        case FactionRandomizerRestriction.AlwaysUSvsX:
+                            team1Selection = rnd.Next(0, 3);
+                            team2Selection = rnd.Next(0, 3);
+                            if (team1Selection != US && team2Selection != US)
+                            {
+                                continue;
+                            }
+                            break;
+                        case FactionRandomizerRestriction.AlwaysRUvsX:
+                            team1Selection = rnd.Next(0, 3);
+                            team2Selection = rnd.Next(0, 3);
+                            if (team1Selection != RU && team2Selection != RU)
+                            {
+                                continue;
+                            }
+                            break;
+                        case FactionRandomizerRestriction.AlwaysCNvsX:
+                            team1Selection = rnd.Next(0, 3);
+                            team2Selection = rnd.Next(0, 3);
+                            if (team1Selection != CN && team2Selection != CN)
+                            {
+                                continue;
+                            }
+                            break;
+                        case FactionRandomizerRestriction.NeverUSvsX:
+                            team1Selection = rnd.Next(0, 3);
+                            team2Selection = rnd.Next(0, 3);
+                            if (team1Selection == US || team2Selection == US)
+                            {
+                                continue;
+                            }
+                            break;
+                        case FactionRandomizerRestriction.NeverRUvsX:
+                            team1Selection = rnd.Next(0, 3);
+                            team2Selection = rnd.Next(0, 3);
+                            if (team1Selection == RU || team2Selection == RU)
+                            {
+                                continue;
+                            }
+                            break;
+                        case FactionRandomizerRestriction.NeverCNvsX:
+                            team1Selection = rnd.Next(0, 3);
+                            team2Selection = rnd.Next(0, 3);
+                            if (team1Selection == CN || team2Selection == CN)
+                            {
+                                continue;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+
+                    if (!_factionRandomizerAllowRepeatSelection)
+                    {
+                        //We cannot allow the same teams to be pitted against each other
+                        if ((_currentTeam1Selection == team1Selection && _currentTeam2Selection == team2Selection) ||
+                            (_currentTeam1Selection == team2Selection && _currentTeam2Selection == team1Selection))
+                        {
+                            continue;
+                        }
+                    }
+
+                    selectionValid = true;
+                }
+
+                if (selectionValid)
+                {
+                    ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "1", Convert.ToString(team1Selection));
+                    ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "2", Convert.ToString(team2Selection));
+                    ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "3", Convert.ToString(team1Selection));
+                    ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "4", Convert.ToString(team2Selection));
+                }
+                else
+                {
+                    Log.Error("Faction randomizer failed!");
+                }
+            }
+        }
+
         public override void OnRunNextLevel()
         {
-            if (_roundState != RoundState.Ended) {
+            if (_roundState != RoundState.Ended)
+            {
+                getMapInfo();
                 _roundState = RoundState.Ended;
                 _pingKicksThisRound = 0;
                 foreach (AdKatsPlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
@@ -29987,6 +30336,9 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke High Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationHigh));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Medium Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationMed));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Low Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationLow));
+                QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Enable", typeof(Boolean), _factionRandomizerEnable));
+                QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Restriction", typeof(String), _factionRandomizerRestriction.ToString()));
+                QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Allow Repeat Team Selections", typeof(Boolean), _factionRandomizerAllowRepeatSelection));
                 Log.Debug(() => "uploadAllSettings finished!", 6);
             }
             catch (Exception e)
@@ -33638,7 +33990,7 @@ namespace PRoConEvents
                             started = true;
                             query += "(`tbl_playerdata`.`EAGUID` = '" + player.player_guid + "' AND `adkats_bans`.`ban_enforceGUID` = 'Y')";
                         }
-                        if (!String.IsNullOrEmpty(player.player_ip))
+                        if (!String.IsNullOrEmpty(player.player_ip) && player.player_ip != "127.0.0.1")
                         {
                             if (started)
                             {
@@ -41956,6 +42308,9 @@ namespace PRoConEvents
             public Int32 MaxSpectators = -1;
             public CServerInfo InfoObject { get; private set; }
             private DateTime infoObjectTime = DateTime.UtcNow;
+            private List<MaplistEntry> MapList;
+            private Int32 MapIndex;
+            private Int32 NextMapIndex;
 
             private readonly AdKats Plugin;
 
@@ -41978,6 +42333,59 @@ namespace PRoConEvents
                     return TimeSpan.Zero;
                 }
                 return TimeSpan.FromSeconds(InfoObject.RoundTime) + (Plugin.UtcNow() - infoObjectTime);
+            }
+
+            public void SetMapList(List<MaplistEntry> MapList)
+            {
+                if (this.MapList == null )
+                {
+                    this.MapList = MapList;
+                }
+                else
+                {
+                    lock (this.MapList)
+                    {
+                        this.MapList = MapList;
+                    }
+                }
+            }
+
+            public List<MaplistEntry> GetMapList()
+            {
+                List<MaplistEntry> ret;
+                if (this.MapList == null)
+                {
+                    this.MapList = new List<MaplistEntry>();
+                }
+                lock (this.MapList)
+                {
+                    ret = MapList;
+                }
+                return ret;
+            }
+
+            public void SetMapListIndicies(Int32 current, Int32 next)
+            {
+                this.MapIndex = current;
+                this.NextMapIndex = next;
+            }
+
+            public MaplistEntry GetNextMap()
+            {
+                if (MapList == null)
+                {
+                    return null;
+                }
+                return MapList.FirstOrDefault(entry => entry.Index == this.NextMapIndex);
+            }
+
+            public MaplistEntry GetMap()
+            {
+                if (MapList == null)
+                {
+                    return null;
+                }
+                return MapList.FirstOrDefault(entry => entry.Index == this.MapIndex);
             }
         }
 
