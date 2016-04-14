@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.93
- * 12-APR-2016
+ * Version 6.8.1.94
+ * 13-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.93</version_code>
+ * <version_code>6.8.1.94</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.93";
+        private const String PluginVersion = "6.8.1.94";
 
         public enum GameVersion
         {
@@ -1249,47 +1249,7 @@ namespace PRoConEvents
                     if (IsActiveSettingSection("A17-2") && _gameVersion == GameVersion.BF4)
                     {
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Enable", typeof(Boolean), _factionRandomizerEnable));
-                        var restriction = "No Restriction";
-                        switch (_factionRandomizerRestriction)
-                        {
-                            case FactionRandomizerRestriction.NoRestriction:
-                                restriction = "No Restriction";
-                                break;
-                            case FactionRandomizerRestriction.NeverSameFaction:
-                                restriction = "Never Same Faction";
-                                break;
-                            case FactionRandomizerRestriction.AlwaysSameFaction:
-                                restriction = "Always Same Faction";
-                                break;
-                            case FactionRandomizerRestriction.AlwaysBothUS:
-                                restriction = "Always Both US";
-                                break;
-                            case FactionRandomizerRestriction.AlwaysBothRU:
-                                restriction = "Always Both RU";
-                                break;
-                            case FactionRandomizerRestriction.AlwaysBothCN:
-                                restriction = "Always Both CN";
-                                break;
-                            case FactionRandomizerRestriction.AlwaysUSvsX:
-                                restriction = "Always US vs X";
-                                break;
-                            case FactionRandomizerRestriction.AlwaysRUvsX:
-                                restriction = "Always RU vs X";
-                                break;
-                            case FactionRandomizerRestriction.AlwaysCNvsX:
-                                restriction = "Always CN vs X";
-                                break;
-                            case FactionRandomizerRestriction.NeverUSvsX:
-                                restriction = "Never US vs X";
-                                break;
-                            case FactionRandomizerRestriction.NeverRUvsX:
-                                restriction = "Never RU vs X";
-                                break;
-                            case FactionRandomizerRestriction.NeverCNvsX:
-                                restriction = "Never CN vs X";
-                                break;
-                        }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Restriction", "enum.factionRandomizerRestrictionEnum(No Restriction|Never Same Faction|Always Same Faction|Always Both US|Always Both RU|Always Both CN|Always US vs X|Always RU vs X|Always CN vs X|Never US vs X|Never RU vs X|Never CN vs X)", restriction));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Restriction", "enum.factionRandomizerRestrictionEnum(NoRestriction|NeverSameFaction|AlwaysSameFaction|AlwaysBothUS|AlwaysBothRU|AlwaysBothCN|AlwaysUSvsX|AlwaysRUvsX|AlwaysCNvsX|NeverUSvsX|NeverRUvsX|NeverCNvsX)", _factionRandomizerRestriction.ToString()));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Allow Repeat Team Selections", typeof(Boolean), _factionRandomizerAllowRepeatSelection));
                     }
 
@@ -4030,45 +3990,42 @@ namespace PRoConEvents
                 {
                     switch (strValue)
                     {
-                        case "No Restriction":
+                        case "NoRestriction":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.NoRestriction;
                             break;
-                        case "Never Same Faction":
+                        case "NeverSameFaction":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.NeverSameFaction;
                             break;
-                        case "Always Same Faction":
+                        case "AlwaysSameFaction":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysSameFaction;
                             break;
-                        case "Always Both US":
+                        case "AlwaysBothUS":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysBothUS;
                             break;
-                        case "Always Both RU":
+                        case "AlwaysBothRU":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysBothRU;
                             break;
-                        case "Always Both CN":
+                        case "AlwaysBothCN":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysBothCN;
                             break;
-                        case "Always US vs X":
+                        case "AlwaysUSvsX":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysUSvsX;
                             break;
-                        case "Always RU vs X":
+                        case "AlwaysRUvsX":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysRUvsX;
                             break;
-                        case "Always CN vs X":
+                        case "AlwaysCNvsX":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysCNvsX;
                             break;
-                        case "Never US vs X":
+                        case "NeverUSvsX":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.NeverUSvsX;
                             break;
-                        case "Never RU vs X":
+                        case "NeverRUvsX":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.NeverRUvsX;
                             break;
-                        case "Never CN vs X":
+                        case "NeverCNvsX":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.NeverCNvsX;
                             break;
-                        default:
-                            Log.Error("Unknown setting when updating faction randomizer restriction.");
-                            return;
                     }
                     QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Restriction", typeof(String), _factionRandomizerRestriction.ToString()));
                 }
@@ -30419,7 +30376,7 @@ namespace PRoConEvents
                         //Check for length too great
                         if (var.Value.Length > 2999)
                         {
-                            Log.Error("Unable to upload setting, length of setting too great. Really dude? It's 3000+ chars. This is battlefield, not a book club.");
+                            Log.Error("Unable to upload setting, length of setting too great. Really dude? It's 3000+ characters. This is battlefield, not a book club.");
                             return;
                         }
                         Log.Debug(() => var.Value, 7);
@@ -31118,7 +31075,7 @@ namespace PRoConEvents
 
                 if (success)
                 {
-                    Log.Debug(() => aStat.stat_type + " stat upload for " + aStat.target_name + " SUCCESSFUL!", 3);
+                    Log.Debug(() => aStat.stat_type + " stat upload for " + aStat.target_name + " SUCCESSFUL!", 4);
                 }
                 else
                 {
