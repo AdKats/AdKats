@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.95
+ * Version 6.8.1.97
  * 14-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.95</version_code>
+ * <version_code>6.8.1.97</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.95";
+        private const String PluginVersion = "6.8.1.97";
 
         public enum GameVersion
         {
@@ -527,6 +527,7 @@ namespace PRoConEvents
         private Boolean _surrenderAutoNukeInstead;
         private Int32 _surrenderAutoNukeDurationHigh = 0;
         private Boolean _autoNukeActive = false;
+        private Int32 _autoNukeDuration = 0;
         private Int32 _surrenderAutoNukeDurationMed = 0;
         private Int32 _surrenderAutoNukeDurationLow = 0;
         private Int32 _surrenderAutoNukeMinBetween = 60;
@@ -7162,25 +7163,35 @@ namespace PRoConEvents
 
                             //Auto-Nuke Slay Duration
                             var duration = NowDuration(_surrenderAutoNukeLast);
-                            Double slayDuration = 0;
-                            switch (_populationStatus)
+                            var nukeInfoMessage = "";
+                            if (!_autoNukeActive)
                             {
-                                case PopulationState.High:
-                                    slayDuration = _surrenderAutoNukeDurationHigh;
-                                    break;
-                                case PopulationState.Medium:
-                                    slayDuration = _surrenderAutoNukeDurationMed;
-                                    break;
-                                case PopulationState.Low:
-                                    slayDuration = _surrenderAutoNukeDurationLow;
-                                    break;
-                            }
-                            if (_surrenderAutoNukeLastTeam != null && slayDuration > 0)
-                            {
-                                if (duration.TotalSeconds < slayDuration)
+                                switch (_populationStatus)
                                 {
+                                    case PopulationState.High:
+                                        _autoNukeDuration = _surrenderAutoNukeDurationHigh;
+                                        nukeInfoMessage = "High population nuke: " + _autoNukeDuration + " seconds.";
+                                        break;
+                                    case PopulationState.Medium:
+                                        _autoNukeDuration = _surrenderAutoNukeDurationMed;
+                                        nukeInfoMessage = "Medium population nuke: " + _autoNukeDuration + " seconds.";
+                                        break;
+                                    case PopulationState.Low:
+                                        _autoNukeDuration = _surrenderAutoNukeDurationLow;
+                                        nukeInfoMessage = "Low population nuke: " + _autoNukeDuration + " seconds.";
+                                        break;
+                                }
+                            }
+                            if (_surrenderAutoNukeLastTeam != null && _autoNukeDuration > 0)
+                            {
+                                if (duration.TotalSeconds < _autoNukeDuration)
+                                {
+                                    if (!_autoNukeActive)
+                                    {
+                                        OnlineAdminSayMessage(nukeInfoMessage);
+                                    }
                                     _autoNukeActive = true;
-                                    Int32 endDuration = (int)NowDuration(_surrenderAutoNukeLast.AddSeconds(_surrenderAutoNukeDurationHigh)).TotalSeconds;
+                                    Int32 endDuration = (int)NowDuration(_surrenderAutoNukeLast.AddSeconds(_autoNukeDuration)).TotalSeconds;
                                     if (endDuration > 0 && endDuration % 2 == 0)
                                     {
                                         AdminTellMessage(_surrenderAutoNukeLastTeam.TeamKey + " nuke active for " + endDuration + " seconds!");
@@ -7189,6 +7200,7 @@ namespace PRoConEvents
                                 else if (_autoNukeActive)
                                 {
                                     _autoNukeActive = false;
+                                    _autoNukeDuration = 0;
                                     AdminTellMessage(_surrenderAutoNukeLastTeam.TeamKey + " nuke has ended!");
                                 }
                             }
