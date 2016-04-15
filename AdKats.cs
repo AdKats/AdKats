@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.94
- * 13-APR-2016
+ * Version 6.8.1.95
+ * 14-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.94</version_code>
+ * <version_code>6.8.1.95</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.94";
+        private const String PluginVersion = "6.8.1.95";
 
         public enum GameVersion
         {
@@ -690,6 +690,9 @@ namespace PRoConEvents
             NoRestriction,
             NeverSameFaction,
             AlwaysSameFaction,
+            AlwaysSwapUSvsRU,
+            AlwaysSwapUSvsCN,
+            AlwaysSwapRUvsCN,
             AlwaysBothUS,
             AlwaysBothRU,
             AlwaysBothCN,
@@ -1249,7 +1252,7 @@ namespace PRoConEvents
                     if (IsActiveSettingSection("A17-2") && _gameVersion == GameVersion.BF4)
                     {
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Enable", typeof(Boolean), _factionRandomizerEnable));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Restriction", "enum.factionRandomizerRestrictionsEnum(NoRestriction|NeverSameFaction|AlwaysSameFaction|AlwaysBothUS|AlwaysBothRU|AlwaysBothCN|AlwaysUSvsX|AlwaysRUvsX|AlwaysCNvsX|NeverUSvsX|NeverRUvsX|NeverCNvsX)", _factionRandomizerRestriction.ToString()));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Restriction", "enum.factionRandomizerRestriction2Enum(NoRestriction|NeverSameFaction|AlwaysSameFaction|AlwaysSwapUSvsRU|AlwaysSwapUSvsCN|AlwaysSwapRUvsCN|AlwaysBothUS|AlwaysBothRU|AlwaysBothCN|AlwaysUSvsX|AlwaysRUvsX|AlwaysCNvsX|NeverUSvsX|NeverRUvsX|NeverCNvsX)", _factionRandomizerRestriction.ToString()));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Allow Repeat Team Selections", typeof(Boolean), _factionRandomizerAllowRepeatSelection));
                     }
 
@@ -3998,6 +4001,15 @@ namespace PRoConEvents
                             break;
                         case "AlwaysSameFaction":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysSameFaction;
+                            break;
+                        case "AlwaysSwapUSvsRU":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysSwapUSvsRU;
+                            break;
+                        case "AlwaysSwapUSvsCN":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysSwapUSvsCN;
+                            break;
+                        case "AlwaysSwapRUvsCN":
+                            _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysSwapRUvsCN;
                             break;
                         case "AlwaysBothUS":
                             _factionRandomizerRestriction = FactionRandomizerRestriction.AlwaysBothUS;
@@ -8991,7 +9003,7 @@ namespace PRoConEvents
                             QueueRecordForProcessing(record);
                         }
                     }
-                    aPlayer.player_ip = player_ip;
+                    aPlayer.SetIP(player_ip);
 
                     if (aPlayer.location == null || aPlayer.location.status != "success" || aPlayer.location.IP != aPlayer.player_ip)
                     {
@@ -10663,6 +10675,45 @@ namespace PRoConEvents
                         case FactionRandomizerRestriction.AlwaysSameFaction:
                             team1Selection = rnd.Next(0, 3);
                             team2Selection = team1Selection;
+                            break;
+                        case FactionRandomizerRestriction.AlwaysSwapUSvsRU:
+                            if (_currentTeam1Selection == US && 
+                                _currentTeam2Selection == RU)
+                            {
+                                team1Selection = RU;
+                                team2Selection = US;
+                            }
+                            else
+                            {
+                                team1Selection = US;
+                                team2Selection = RU;
+                            }
+                            break;
+                        case FactionRandomizerRestriction.AlwaysSwapUSvsCN:
+                            if (_currentTeam1Selection == US &&
+                                _currentTeam2Selection == CN)
+                            {
+                                team1Selection = CN;
+                                team2Selection = US;
+                            }
+                            else
+                            {
+                                team1Selection = US;
+                                team2Selection = CN;
+                            }
+                            break;
+                        case FactionRandomizerRestriction.AlwaysSwapRUvsCN:
+                            if (_currentTeam1Selection == RU &&
+                                _currentTeam2Selection == CN)
+                            {
+                                team1Selection = CN;
+                                team2Selection = RU;
+                            }
+                            else
+                            {
+                                team1Selection = RU;
+                                team2Selection = CN;
+                            }
                             break;
                         case FactionRandomizerRestriction.AlwaysBothUS:
                             team1Selection = US;
@@ -33069,9 +33120,9 @@ namespace PRoConEvents
                     game_id = _serverInfo.GameID,
                     player_name = playerName,
                     player_guid = playerGUID,
-                    player_ip = playerIP,
                     LastUsage = UtcNow()
                 };
+                aPlayer.SetIP(playerIP);
                 AssignPlayerRole(aPlayer);
                 return aPlayer;
             }
@@ -33205,7 +33256,7 @@ namespace PRoConEvents
                                     }
                                     if (!reader.IsDBNull(4))
                                     {
-                                        aPlayer.player_ip = reader.GetString("player_ip");
+                                        aPlayer.SetIP(reader.GetString("player_ip"));
                                     }
                                     if (!reader.IsDBNull(5))
                                     {
@@ -33300,9 +33351,9 @@ namespace PRoConEvents
                                         {
                                             player_id = command.LastInsertedId,
                                             player_name = playerName,
-                                            player_guid = playerGUID,
-                                            player_ip = playerIP
+                                            player_guid = playerGUID
                                         };
+                                        aPlayer.SetIP(playerIP);
                                         if (useableGameID != null)
                                         {
                                             aPlayer.game_id = (long)useableGameID;
@@ -33479,7 +33530,7 @@ namespace PRoConEvents
                             command.Parameters.AddWithValue("@player_name", aPlayer.player_name);
                             command.Parameters.AddWithValue("@player_guid", aPlayer.player_guid);
                             command.Parameters.AddWithValue("@player_clanTag", aPlayer.player_clanTag);
-                            command.Parameters.AddWithValue("@player_ip", aPlayer.player_ip);
+                            command.Parameters.AddWithValue("@player_ip", String.IsNullOrEmpty(aPlayer.player_ip) ? null : aPlayer.player_ip);
                             //Attempt to execute the query
                             if (SafeExecuteNonQuery(command) > 0)
                             {
@@ -36653,7 +36704,7 @@ namespace PRoConEvents
                                             aPlayer.player_clanTag = clanTag;
                                             aPlayer.player_name = playerName;
                                             aPlayer.player_guid = playerGUID;
-                                            aPlayer.player_ip = playerIP;
+                                            aPlayer.SetIP(playerIP);
                                             aPlayer.LastUsage = UtcNow();
                                         }
                                         else {
@@ -36768,13 +36819,6 @@ namespace PRoConEvents
                                         }
                                         DateTime playerEffective = reader.GetDateTime("player_effective"); //6
                                         DateTime playerExpiration = reader.GetDateTime("player_expiration"); //7
-
-                                        //TODO: Finish this
-                                        //Check for existing special player object
-//                                        AdKatsSpecialPlayer oldASPlayer;
-//                                        if (_baseSpecialPlayerCache.TryGetValue(specialPlayerID, out oldASPlayer)) {
-//                                            if(_specialPlayerGroupKeyDictionary[playerGroup])
-//                                        }
 
                                         //Build new Special Player Object
                                         asPlayer = new AdKatsSpecialPlayer();
@@ -42096,7 +42140,7 @@ namespace PRoConEvents
             public Boolean player_aa_told = false;
             public String player_guid = null;
             public Int64 player_id = -1;
-            public String player_ip = null;
+            public String player_ip { get; private set; }
             public String player_name = null;
             public String player_name_previous = null;
             public String player_battlecry = null;
@@ -42152,6 +42196,11 @@ namespace PRoConEvents
                 player_pings = new Queue<KeyValuePair<Double, DateTime>>();
                 TargetedRecords = new List<AdKatsRecord>();
                 LastUsage = DateTime.UtcNow;
+            }
+
+            public void SetIP(String ip)
+            {
+                this.player_ip = (String.IsNullOrEmpty(ip) ? (null) : (ip));
             }
 
             public String GetVerboseName()
