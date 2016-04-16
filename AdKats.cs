@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.99
+ * Version 6.8.1.100
  * 16-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.99</version_code>
+ * <version_code>6.8.1.100</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.99";
+        private const String PluginVersion = "6.8.1.100";
 
         public enum GameVersion
         {
@@ -7186,7 +7186,6 @@ namespace PRoConEvents
                             //Auto-Nuke Slay Duration
                             var duration = NowDuration(_surrenderAutoNukeLast);
                             var nukeInfoMessage = "";
-                            var durationIncrease = _surrenderAutoNukeDurationIncrease * _autoNukesThisRound;
                             if (!_autoNukeActive)
                             {
                                 switch (_populationStatus)
