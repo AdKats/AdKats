@@ -7186,7 +7186,7 @@ namespace PRoConEvents
                             //Auto-Nuke Slay Duration
                             var duration = NowDuration(_surrenderAutoNukeLast);
                             var nukeInfoMessage = "";
-                            var durationIncrease = _surrenderAutoNukeDurationIncrease * Math.Min(_autoNukesThisRound - 1, 0);
+                            var durationIncrease = _surrenderAutoNukeDurationIncrease * Math.Max(_autoNukesThisRound - 1, 0);
                             if (!_autoNukeActive)
                             {
                                 switch (_populationStatus)
