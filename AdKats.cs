@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.97
- * 14-APR-2016
+ * Version 6.8.1.99
+ * 16-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.97</version_code>
+ * <version_code>6.8.1.99</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.97";
+        private const String PluginVersion = "6.8.1.99";
 
         public enum GameVersion
         {
@@ -525,11 +525,12 @@ namespace PRoConEvents
         private Int32 _surrenderAutoMinimumPlayers = 10;
         private String _surrenderAutoMessage = "Auto-Resolving Round. %WinnerName% Wins!";
         private Boolean _surrenderAutoNukeInstead;
-        private Int32 _surrenderAutoNukeDurationHigh = 0;
         private Boolean _autoNukeActive = false;
-        private Int32 _autoNukeDuration = 0;
+        private Int32 _surrenderAutoNukeDurationHigh = 0;
         private Int32 _surrenderAutoNukeDurationMed = 0;
         private Int32 _surrenderAutoNukeDurationLow = 0;
+        private Int32 _autoNukeDuration = 0;
+        private Int32 _surrenderAutoNukeDurationIncrease = 0;
         private Int32 _surrenderAutoNukeMinBetween = 60;
         private DateTime _surrenderAutoNukeLast = DateTime.UtcNow - TimeSpan.FromMinutes(10);
         private AdKatsTeam _surrenderAutoNukeLastTeam;
@@ -538,7 +539,7 @@ namespace PRoConEvents
         private Int32 _surrenderAutoNukeLosingMaxDiff = 200;
         private Boolean _surrenderAutoNukeResolveAfterMax = false;
         private Int32 _surrenderAutoMaxNukesEachRound = 4;
-        private Int32 _currentRoundNukes = 0;
+        private Int32 _autoNukesThisRound = 0;
         private Boolean _surrenderAutoTriggerVote;
         private String _surrenderAutoNukeMessage = "Nuking %WinnerName% for baserape!";
 
@@ -1395,6 +1396,7 @@ namespace PRoConEvents
                                     lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke High Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationHigh));
                                     lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Medium Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationMed));
                                     lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Low Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationLow));
+                                    lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Consecutive Duration Increase", typeof(Int32), _surrenderAutoNukeDurationIncrease));
                                 }
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
@@ -2993,6 +2995,26 @@ namespace PRoConEvents
                         _surrenderAutoNukeDurationLow = surrenderAutoNukeDuration;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Low Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationLow));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Nuke Consecutive Duration Increase").Success)
+                {
+                    Int32 surrenderAutoNukeDurationIncrease = Int32.Parse(strValue);
+                    if (_surrenderAutoNukeDurationIncrease != surrenderAutoNukeDurationIncrease)
+                    {
+                        if (surrenderAutoNukeDurationIncrease < 0)
+                        {
+                            Log.Error("Auto-nuke consecutive duration increase must be non-negative.");
+                            surrenderAutoNukeDurationIncrease = 0;
+                        }
+                        if (surrenderAutoNukeDurationIncrease > 60)
+                        {
+                            Log.Error("Auto-nuke duration cannot be longer than 60 seconds.");
+                            surrenderAutoNukeDurationIncrease = 60;
+                        }
+                        _surrenderAutoNukeDurationIncrease = surrenderAutoNukeDurationIncrease;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Consecutive Duration Increase", typeof(Int32), _surrenderAutoNukeDurationIncrease));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Player Lock Manual Duration Minutes").Success)
@@ -6454,7 +6476,7 @@ namespace PRoConEvents
                         _surrenderAutoSucceeded = false;
                         _surrenderAutoTriggerCountCurrent = 0;
                         _surrenderAutoTriggerCountPause = 0;
-                        _currentRoundNukes = 0;
+                        _autoNukesThisRound = 0;
                         _roundAssists.Clear();
                         _slowmo = false;
                         _pluginUpdateServerInfoChecked = false;
@@ -7164,21 +7186,22 @@ namespace PRoConEvents
                             //Auto-Nuke Slay Duration
                             var duration = NowDuration(_surrenderAutoNukeLast);
                             var nukeInfoMessage = "";
+                            var durationIncrease = _surrenderAutoNukeDurationIncrease * _autoNukesThisRound;
                             if (!_autoNukeActive)
                             {
                                 switch (_populationStatus)
                                 {
                                     case PopulationState.High:
-                                        _autoNukeDuration = _surrenderAutoNukeDurationHigh;
-                                        nukeInfoMessage = "High population nuke: " + _autoNukeDuration + " seconds.";
+                                        _autoNukeDuration = _surrenderAutoNukeDurationHigh + durationIncrease;
+                                        nukeInfoMessage = "High population nuke: " + _surrenderAutoNukeDurationHigh + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
                                         break;
                                     case PopulationState.Medium:
-                                        _autoNukeDuration = _surrenderAutoNukeDurationMed;
-                                        nukeInfoMessage = "Medium population nuke: " + _autoNukeDuration + " seconds.";
+                                        _autoNukeDuration = _surrenderAutoNukeDurationMed + durationIncrease;
+                                        nukeInfoMessage = "Medium population nuke: " + _surrenderAutoNukeDurationMed + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
                                         break;
                                     case PopulationState.Low:
-                                        _autoNukeDuration = _surrenderAutoNukeDurationLow;
-                                        nukeInfoMessage = "Low population nuke: " + _autoNukeDuration + " seconds.";
+                                        _autoNukeDuration = _surrenderAutoNukeDurationLow + durationIncrease;
+                                        nukeInfoMessage = "Low population nuke: " + _surrenderAutoNukeDurationLow + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
                                         break;
                                 }
                             }
@@ -9489,7 +9512,7 @@ namespace PRoConEvents
                                 (UtcNow() - _AdKatsRunningTime).TotalMinutes > 2.5 &&
                                 _firstPlayerListComplete &&
                                 //Block system if all possible actions have already taken place this round
-                                (_currentRoundNukes < _surrenderAutoMaxNukesEachRound || _surrenderAutoNukeResolveAfterMax) &&
+                                (_autoNukesThisRound < _surrenderAutoMaxNukesEachRound || _surrenderAutoNukeResolveAfterMax) &&
                                 //Block system while a nuke is active
                                 NowDuration(_surrenderAutoNukeLast).TotalSeconds > _surrenderAutoNukeDurationHigh)
                             {
@@ -9502,7 +9525,7 @@ namespace PRoConEvents
                                 AutoSurrenderAction config_action = AutoSurrenderAction.None;
                                 if (_surrenderAutoNukeInstead)
                                 {
-                                    if (_currentRoundNukes < _surrenderAutoMaxNukesEachRound)
+                                    if (_autoNukesThisRound < _surrenderAutoMaxNukesEachRound)
                                     {
                                         config_action = AutoSurrenderAction.Nuke;
                                     }
@@ -9662,7 +9685,7 @@ namespace PRoConEvents
 
                                         if (canFire &&
                                             config_action == AutoSurrenderAction.Nuke &&
-                                            _currentRoundNukes > 0 &&
+                                            _autoNukesThisRound > 0 &&
                                             NowDuration(_surrenderAutoNukeLast).TotalSeconds < _surrenderAutoNukeMinBetween)
                                         {
                                             canFire = false;
@@ -9749,11 +9772,11 @@ namespace PRoConEvents
                                             {
                                                 if (config_action == AutoSurrenderAction.Nuke)
                                                 {
-                                                    AdminSayMessage("Auto-nuke resumed at " + readyPercentage + "." + denyReason);
+                                                    AdminSayMessage("Auto-nuke countdown resumed at " + readyPercentage + "." + denyReason);
                                                 }
                                                 else
                                                 {
-                                                    OnlineAdminSayMessage("Auto-surrender resumed at " + readyPercentage + "." + denyReason);
+                                                    OnlineAdminSayMessage("Auto-surrender countdown resumed at " + readyPercentage + "." + denyReason);
                                                 }
                                             }
                                             //How often the message should be displayed
@@ -9768,7 +9791,7 @@ namespace PRoConEvents
                                                     {
                                                         if (_surrenderAutoAnnounceNukePrep)
                                                         {
-                                                            AdminSayMessage("Auto-nuke " + (_currentRoundNukes + 1) + " " + readyPercentage + " ready. " + denyReason);
+                                                            AdminSayMessage("Auto-nuke " + (_autoNukesThisRound + 1) + " " + readyPercentage + " ready. " + denyReason);
                                                         }
                                                     }
                                                     else
@@ -9782,7 +9805,7 @@ namespace PRoConEvents
                                                     {
                                                         if (_surrenderAutoAnnounceNukePrep)
                                                         {
-                                                            AdminSayMessage("Auto-nuke " + (_currentRoundNukes + 1) + " ready and waiting. " + denyReason);
+                                                            AdminSayMessage("Auto-nuke " + (_autoNukesThisRound + 1) + " ready and waiting. " + denyReason);
                                                         }
                                                     }
                                                     else
@@ -9853,11 +9876,11 @@ namespace PRoConEvents
                                             {
                                                 if (config_action == AutoSurrenderAction.Nuke)
                                                 {
-                                                    AdminSayMessage("Auto-nuke cancelled.");
+                                                    AdminSayMessage("Auto-nuke countdown cancelled.");
                                                 }
                                                 else
                                                 {
-                                                    OnlineAdminSayMessage("Auto-surrender cancelled.");
+                                                    OnlineAdminSayMessage("Auto-surrender countdown cancelled.");
                                                 }
                                             }
                                             _surrenderAutoTriggerCountCurrent = 0;
@@ -9871,22 +9894,22 @@ namespace PRoConEvents
                                                 {
                                                     if (config_action == AutoSurrenderAction.Nuke)
                                                     {
-                                                        AdminSayMessage("Auto-nuke paused at " + readyPercentage + "." + denyReason);
+                                                        AdminSayMessage("Auto-nuke countdown paused at " + readyPercentage + "." + denyReason);
                                                     }
                                                     else
                                                     {
-                                                        OnlineAdminSayMessage("Auto-surrender paused at " + readyPercentage + "." + denyReason);
+                                                        OnlineAdminSayMessage("Auto-surrender countdown paused at " + readyPercentage + "." + denyReason);
                                                     }
                                                 }
                                                 else
                                                 {
                                                     if (config_action == AutoSurrenderAction.Nuke)
                                                     {
-                                                        AdminSayMessage("Auto-nuke paused." + denyReason);
+                                                        AdminSayMessage("Auto-nuke countdown paused." + denyReason);
                                                     }
                                                     else
                                                     {
-                                                        OnlineAdminSayMessage("Auto-surrender paused." + denyReason);
+                                                        OnlineAdminSayMessage("Auto-surrender countdown paused." + denyReason);
                                                     }
                                                 }
                                             }
@@ -9903,7 +9926,7 @@ namespace PRoConEvents
                                         if (config_action == AutoSurrenderAction.Nuke)
                                         {
                                             string autoNukeMessage = _surrenderAutoNukeMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
-                                            _currentRoundNukes++;
+                                            _autoNukesThisRound++;
                                             _surrenderAutoNukeLast = UtcNow();
                                             _surrenderAutoNukeLastTeam = baserapingTeam;
                                             QueueRecordForProcessing(new AdKatsRecord
@@ -10178,7 +10201,7 @@ namespace PRoConEvents
                     _surrenderAutoSucceeded = false;
                     _surrenderAutoTriggerCountCurrent = 0;
                     _surrenderAutoTriggerCountPause = 0;
-                    _currentRoundNukes = 0;
+                    _autoNukesThisRound = 0;
                     _roundAssists.Clear();
                     _PlayersAutoAssistedThisRound = false;
                     _RoundReports.Clear();
@@ -10810,10 +10833,7 @@ namespace PRoConEvents
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "2", Convert.ToString(team2Selection));
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "3", Convert.ToString(team1Selection));
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "4", Convert.ToString(team2Selection));
-                    if (_isTestingAuthorized)
-                    {
-                        Log.Success("FACTION RANDOMIZER " + team1Selection + " | " + team2Selection);
-                    }
+                    Log.Success("Faction randomizer selected " + team1Selection + " vs " + team2Selection);
                 }
                 else
                 {
@@ -12153,11 +12173,11 @@ namespace PRoConEvents
 
                     //Auto-Nuke Slay Duration
                     var duration = NowDuration(_surrenderAutoNukeLast);
-                    if (duration.TotalSeconds < _surrenderAutoNukeDurationHigh &&
+                    if (duration.TotalSeconds < _autoNukeDuration && 
                         _surrenderAutoNukeLastTeam != null && 
                         aPlayer.frostbitePlayerInfo.TeamID == _surrenderAutoNukeLastTeam.TeamID)
                     {
-                        var endDuration = NowDuration(_surrenderAutoNukeLast.AddSeconds(_surrenderAutoNukeDurationHigh));
+                        var endDuration = NowDuration(_surrenderAutoNukeLast.AddSeconds(_autoNukeDuration));
                         PlayerTellMessage(aPlayer.player_name, _surrenderAutoNukeLastTeam.TeamKey + " nuke active for " + Math.Round(endDuration.TotalSeconds, 1) + " seconds!");
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", aPlayer.player_name);
                     }
@@ -14437,10 +14457,8 @@ namespace PRoConEvents
                                         string lowerM = " " + messageObject.Message.ToLower() + " ";
                                         if (lowerM.Contains(" ping")) {
                                             if (!PlayerIsAdmin(aPlayer)) {
-                                                if (_serverInfo.ServerID == 1) {
+                                                if (_serverInfo.ServerID == 1 || _serverInfo.ServerID == 6) {
                                                     PlayerTellMessage(messageObject.Speaker, "Ping limit is 150 during US primetime and missing pings are kicked when the server is full.");
-                                                } else if (_serverInfo.ServerID == 6) {
-                                                    PlayerTellMessage(messageObject.Speaker, "Ping limit is 175 during US primetime and missing pings are kicked when the server is full.");
                                                 } else {
                                                     PlayerTellMessage(messageObject.Speaker, "Ping limit is 300 and missing pings are kicked when the server is full.");
                                                 }
@@ -30411,6 +30429,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke High Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationHigh));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Medium Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationMed));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Low Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationLow));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Consecutive Duration Increase", typeof(Int32), _surrenderAutoNukeDurationIncrease));
                 QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Enable", typeof(Boolean), _factionRandomizerEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Restriction", typeof(String), _factionRandomizerRestriction.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Allow Repeat Team Selections", typeof(Boolean), _factionRandomizerAllowRepeatSelection));
