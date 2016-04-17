@@ -53,26 +53,32 @@ CREATE TRIGGER `tbl_chatlog_player_id_insert` BEFORE INSERT ON `tbl_chatlog`
 $$
 
 DROP TRIGGER IF EXISTS `Player_Update_BlankDataFix`$$
-CREATE TRIGGER
-  Player_Update_BlankDataFix
-BEFORE UPDATE ON
-  tbl_playerdata
-FOR EACH ROW
-BEGIN
-  IF (NEW.SoldierName IS NULL OR CHAR_LENGTH(NEW.SoldierName) = 0) AND OLD.SoldierName IS NOT NULL
-    THEN SET NEW.SoldierName = OLD.SoldierName;
-  END IF;
-  IF (NEW.EAGUID IS NULL OR CHAR_LENGTH(NEW.EAGUID) = 0) AND OLD.EAGUID IS NOT NULL
-    THEN SET NEW.EAGUID = OLD.EAGUID;
-  END IF;
-  IF (NEW.PBGUID IS NULL OR CHAR_LENGTH(NEW.PBGUID) = 0) AND OLD.PBGUID IS NOT NULL
-    THEN SET NEW.PBGUID = OLD.PBGUID;
-  END IF;
-  IF (NEW.IP_Address IS NULL OR CHAR_LENGTH(NEW.IP_Address) = 0) AND OLD.IP_Address IS NOT NULL
-    THEN SET NEW.IP_Address = OLD.IP_Address;
-  END IF;
-END;
-$$
+CREATE TRIGGER `Player_Update_BlankDataFix` BEFORE UPDATE ON `tbl_playerdata`
+ FOR EACH ROW BEGIN
+    IF (NEW.SoldierName IS NULL OR CHAR_LENGTH(NEW.SoldierName) = 0) 
+       AND OLD.SoldierName IS NOT NULL
+       AND CHAR_LENGTH(OLD.SoldierName) > 0
+        THEN SET NEW.SoldierName = OLD.SoldierName;
+    END IF;
+    IF (NEW.EAGUID IS NULL OR CHAR_LENGTH(NEW.EAGUID) = 0)
+        AND OLD.EAGUID IS NOT NULL 
+        AND CHAR_LENGTH(OLD.EAGUID) > 0
+        THEN SET NEW.EAGUID = OLD.EAGUID;
+    END IF;
+    IF (NEW.PBGUID IS NULL OR CHAR_LENGTH(NEW.PBGUID) = 0)
+        AND OLD.PBGUID IS NOT NULL 
+        AND CHAR_LENGTH(OLD.PBGUID) > 0
+        THEN SET NEW.PBGUID = OLD.PBGUID;
+    END IF;
+    IF (NEW.IP_Address IS NULL OR CHAR_LENGTH(NEW.IP_Address) = 0)
+        AND OLD.IP_Address IS NOT NULL 
+        AND CHAR_LENGTH(OLD.IP_Address) > 0
+        THEN SET NEW.IP_Address = OLD.IP_Address;
+    END IF;
+    IF CHAR_LENGTH(NEW.ClanTag) = 0
+        THEN SET NEW.ClanTag = NULL;
+    END IF;
+END$$
 
 DELIMITER ;
 
