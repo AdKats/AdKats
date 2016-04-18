@@ -73,7 +73,7 @@ CREATE TRIGGER `Player_Update_BlankDataFix` BEFORE UPDATE ON `tbl_playerdata`
     IF (NEW.IP_Address IS NULL OR CHAR_LENGTH(NEW.IP_Address) = 0)
         AND OLD.IP_Address IS NOT NULL 
         AND CHAR_LENGTH(OLD.IP_Address) > 0
-        AND OLD.IP_Address != '127.0.0.1'
+        AND OLD.IP_Address <> '127.0.0.1'
         THEN SET NEW.IP_Address = OLD.IP_Address;
     END IF;
     IF CHAR_LENGTH(NEW.ClanTag) = 0
