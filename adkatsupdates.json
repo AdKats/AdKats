@@ -118,11 +118,11 @@
 			"message_failure":"Failed to fix empty player IPs",
 			"update_checks_hasResults":true,
 			"update_checks":[
-				"SELECT * FROM `%DATABASENAME%`.`tbl_playerdata` WHERE `IP_Address` IN ('127.0.0.1', '')"
+				"SELECT * FROM `%DATABASENAME%`.`tbl_playerdata` WHERE `IP_Address` IN ('127.0.0.1', '', '100.100.100.100')"
 			],
 			"update_execute_requiresModRows":true,
 			"update_execute":[
-				"UPDATE `%DATABASENAME%`.`tbl_playerdata` SET `IP_Address` = NULL WHERE `IP_Address` IN ('127.0.0.1', '');"
+				"UPDATE `%DATABASENAME%`.`tbl_playerdata` SET `IP_Address` = NULL WHERE `IP_Address` IN ('127.0.0.1', '', '100.100.100.100');"
 			],
 			"update_success":[],
 			"update_failure":[]
