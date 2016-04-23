@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.100
- * 16-APR-2016
+ * Version 6.8.1.101
+ * 22-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.100</version_code>
+ * <version_code>6.8.1.101</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.100";
+        private const String PluginVersion = "6.8.1.101";
 
         public enum GameVersion
         {
@@ -43082,14 +43082,23 @@ namespace PRoConEvents
                             var teamTotalDeaths = teamFInfo.Sum(aPlayer => aPlayer.frostbitePlayerInfo.Deaths);
                             //Calculate total team K/D
                             kdPowerSum = (teamTotalKills / Math.Max(teamTotalDeaths, 1.0));
-                            //Coerce to 1-3.5
+                            //Coerce to 0.75-3.5
                             kdPowerSum = Math.Min(Math.Max(kdPowerSum, 0.75), 3.5);
                         }
                     }
                     var playerSum = Math.Sqrt(teamPlayers.Count());
-                    var totalPower = Math.Round(topPowerSum * kdPowerSum * playerSum);
+                    var ticketPower = 1.0;
+                    Double current = TeamTicketCount;
+                    Double start = Plugin._startingTicketCount;
+                    if (start > 0 && current < start)
+                    {
+                        Double remainingPerc = current / start;
+                        Double lostPerc = (start - current) / start;
+                        ticketPower = remainingPerc + (lostPerc / 2.0);
+                    }
+                    var totalPower = Math.Round(topPowerSum * kdPowerSum * playerSum * ticketPower);
                     if (Plugin._isTestingAuthorized) {
-                        //Plugin.Log.Info(TeamKey + " Power: " + totalPower + " = (top)" + Math.Round(topPowerSum, 2) + " * (kd)" + Math.Round(kdPowerSum, 2) + " * (count)" + Math.Round(playerSum, 2));
+                        Plugin.Log.Info(TeamKey + " Power: " + totalPower + " = (top)" + Math.Round(topPowerSum, 2) + " * (kd)" + Math.Round(kdPowerSum, 2) + " * (count)" + Math.Round(playerSum, 2) + " * (ticket)" + Math.Round(ticketPower, 2));
                     }
                     return totalPower;
                 }
