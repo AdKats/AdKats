@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.101
- * 22-APR-2016
+ * Version 6.8.1.102
+ * 23-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.101</version_code>
+ * <version_code>6.8.1.102</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.101";
+        private const String PluginVersion = "6.8.1.102";
 
         public enum GameVersion
         {
@@ -708,8 +708,6 @@ namespace PRoConEvents
         private Boolean _factionRandomizerEnable = false;
         private FactionRandomizerRestriction _factionRandomizerRestriction = FactionRandomizerRestriction.NoRestriction;
         private Boolean _factionRandomizerAllowRepeatSelection = true;
-        private Int32 _currentTeam1Selection = 0;
-        private Int32 _currentTeam2Selection = 0;
 
         //Weapon stats
         private readonly Dictionary<String, AdKatsWeaponName> _weaponNames = new Dictionary<String, AdKatsWeaponName>();
@@ -7460,20 +7458,6 @@ namespace PRoConEvents
             }
             try
             {
-                if (_gameVersion == GameVersion.BF4)
-                {
-                    switch (targetTeamID)
-                    {
-                        case 0:
-                            _currentTeam1Selection = overrideTeamId;
-                            break;
-                        case 1:
-                            _currentTeam2Selection = overrideTeamId;
-                            break;
-                        default:
-                            break;
-                    }
-                }
                 switch (overrideTeamId)
                 {
                     case -1:
@@ -7901,10 +7885,6 @@ namespace PRoConEvents
                         }
                         return;
                     }
-                    if (_isTestingAuthorized)
-                    {
-                        Log.Write(aPlayer.GetVerboseName() + " moved from " + oldTeam.TeamKey + ":" + oldTeam.TeamID + " to " + newTeam.TeamKey + ":" + newTeam.TeamID);
-                    }
                     if (aPlayer.RequiredTeam != null && 
                         aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey && 
                         oldTeam.TeamKey != "Neutral" &&
@@ -7973,9 +7953,6 @@ namespace PRoConEvents
                             Log.Error("Error fetching new team on team change.");
                         }
                         return;
-                    }
-                    if (_isTestingAuthorized) {
-                        Log.Write(aPlayer.GetVerboseName() + " squad moved from " + oldTeam.TeamKey + ":" + oldTeam.TeamID + " to " + newTeam.TeamKey + ":" + newTeam.TeamID);
                     }
                     Int32 oldSquad = aPlayer.frostbitePlayerInfo.SquadID;
                     aPlayer.frostbitePlayerInfo.SquadID = squadId;
@@ -10677,6 +10654,12 @@ namespace PRoConEvents
                     return;
                 }
 
+                AdKatsTeam team1, team2;
+                if (!GetTeamByID(1, out team1) || !GetTeamByID(2, out team2))
+                {
+                    Log.Error("Faction randomizer failed! Current teams not loaded.");
+                    return;
+                }
                 var team1Selection = 0;
                 var team2Selection = 1;
                 var selectionValid = false;
@@ -10712,8 +10695,8 @@ namespace PRoConEvents
                             team2Selection = team1Selection;
                             break;
                         case FactionRandomizerRestriction.AlwaysSwapUSvsRU:
-                            if (_currentTeam1Selection == US && 
-                                _currentTeam2Selection == RU)
+                            if (team1.TeamID == US && 
+                                team2.TeamID == RU)
                             {
                                 team1Selection = RU;
                                 team2Selection = US;
@@ -10725,8 +10708,8 @@ namespace PRoConEvents
                             }
                             break;
                         case FactionRandomizerRestriction.AlwaysSwapUSvsCN:
-                            if (_currentTeam1Selection == US &&
-                                _currentTeam2Selection == CN)
+                            if (team1.TeamID == US &&
+                                team2.TeamID == CN)
                             {
                                 team1Selection = CN;
                                 team2Selection = US;
@@ -10738,8 +10721,8 @@ namespace PRoConEvents
                             }
                             break;
                         case FactionRandomizerRestriction.AlwaysSwapRUvsCN:
-                            if (_currentTeam1Selection == RU &&
-                                _currentTeam2Selection == CN)
+                            if (team1.TeamID == RU &&
+                                team2.TeamID == CN)
                             {
                                 team1Selection = CN;
                                 team2Selection = RU;
@@ -10816,9 +10799,8 @@ namespace PRoConEvents
 
                     if (!_factionRandomizerAllowRepeatSelection)
                     {
-                        //We cannot allow the same teams to be pitted against each other
-                        if ((_currentTeam1Selection == team1Selection && _currentTeam2Selection == team2Selection) ||
-                            (_currentTeam1Selection == team2Selection && _currentTeam2Selection == team1Selection))
+                        //We cannot allow the same teams to be selected again
+                        if (team1.TeamID == team1Selection && team2.TeamID == team2Selection)
                         {
                             continue;
                         }
