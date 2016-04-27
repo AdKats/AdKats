@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.103
+ * Version 6.8.1.104
  * 27-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.103</version_code>
+ * <version_code>6.8.1.104</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.103";
+        private const String PluginVersion = "6.8.1.104";
 
         public enum GameVersion
         {
@@ -12097,7 +12097,7 @@ namespace PRoConEvents
                                     //Send perk expiration notification
                                     if (_UsePerkExpirationNotify)
                                     {
-                                        var groups = GetMatchingASPlayers(aPlayer);
+                                        var groups = GetMatchingVerboseASPlayers(aPlayer);
                                         var expiringGroups = groups.Where(group => NowDuration(group.player_expiration).TotalDays < _PerkExpirationNotifyDays);
                                         if (expiringGroups.Any())
                                         {
@@ -12765,6 +12765,32 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching matching special players.", e));
             }
             Log.Debug(() => "Exiting GetMatchingASPlayers", 8);
+            return null;
+        }
+
+        public List<AdKatsSpecialPlayer> GetMatchingVerboseASPlayers(AdKatsPlayer aPlayer)
+        {
+            Log.Debug(() => "Entering GetMatchingVerboseASPlayers", 8);
+            try
+            {
+                lock (_baseSpecialPlayerCache)
+                {
+                    List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
+                    matchingSpecialPlayers.AddRange(_verboseSpecialPlayerCache.Values.Where(
+                        asPlayer => asPlayer.player_group != null &&
+                                    asPlayer.player_object != null &&
+                                    (asPlayer.player_object.player_id == aPlayer.player_id ||
+                                     asPlayer.player_identifier == aPlayer.player_name ||
+                                     asPlayer.player_identifier == aPlayer.player_guid ||
+                                     asPlayer.player_identifier == aPlayer.player_ip)));
+                    return matchingSpecialPlayers;
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching matching verbose special players.", e));
+            }
+            Log.Debug(() => "Exiting GetMatchingVerboseASPlayers", 8);
             return null;
         }
 
@@ -28455,10 +28481,17 @@ namespace PRoConEvents
                             return;
                         }
                         _threadMasterWaitHandle.WaitOne(500);
-                        var asPlayers = GetMatchingASPlayers(record.target_player);
+                        var asPlayers = GetMatchingVerboseASPlayers(record.target_player);
                         if (!asPlayers.Any())
                         {
-                            SendMessageToSource(record, "You do not have any active perks. Contact your admin for more information!");
+                            if (record.source_name == record.target_name)
+                            {
+                                SendMessageToSource(record, "You do not have any active perks. Contact your admin for more information!");
+                            }
+                            else
+                            {
+                                SendMessageToSource(record, record.target_player.GetVerboseName()+ " does not have any active perks.");
+                            }
                             FinalizeRecord(record);
                             return;
                         }
