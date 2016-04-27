@@ -8,17 +8,17 @@
 		{
 			"group_id":1,
 			"group_key":"whitelist_multibalancer",
-			"group_name":"MULTIBalancer Whitelist"
+			"group_name":"Auto-Balance Whitelist"
 		},
 		{
 			"group_id":2,
 			"group_key":"whitelist_ping",
-			"group_name":"Latency Whitelist"
+			"group_name":"Ping Kick Whitelist"
 		},
 		{
 			"group_id":3,
 			"group_key":"blacklist_dispersion",
-			"group_name":"MULTIBalancer Dispersion List"
+			"group_name":"Auto-Balance Dispersion List"
 		},
 		{
 			"group_id":4,
@@ -28,7 +28,7 @@
 		{
 			"group_id":5,
 			"group_key":"slot_spectator",
-			"group_name":"Spectator Slot"
+			"group_name":"Spectator Whitelist"
 		},
 		{
 			"group_id":6,
@@ -43,12 +43,12 @@
 		{
 			"group_id":8,
 			"group_key":"whitelist_teamswap",
-			"group_name":"TeamSwap Whitelist"
+			"group_name":"TeamSwap Command Whitelist"
 		},
 		{
 			"group_id":9,
 			"group_key":"whitelist_report",
-			"group_name":"Report Whitelist"
+			"group_name":"Player Report Whitelist"
 		},
 		{
 			"group_id":10,
@@ -58,7 +58,7 @@
 		{
 			"group_id":11,
 			"group_key":"whitelist_teamkill",
-			"group_name":"TeamKillTracker Whitelist"
+			"group_name":"TeamKill Punishment Whitelist"
 		},
 		{
 			"group_id":12,
