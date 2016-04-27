@@ -36267,6 +36267,7 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_loadout_force"] = "If AdKatsLRT is installed the targeted player is elevated to trigger level loadout enforcement.";
             _CommandDescriptionDictionary["self_battlecry"] = "Sets a new battlecry for your player.";
             _CommandDescriptionDictionary["player_battlecry"] = "Sets a new battlecry for the given player.";
+            _CommandDescriptionDictionary["player_perks"] = "Displays the active perks a player has, and how long until those perks expire.";
         }
 
         private void FillReadableMapModeDictionaries() {
