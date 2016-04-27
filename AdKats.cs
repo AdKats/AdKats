@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.102
- * 23-APR-2016
+ * Version 6.8.1.103
+ * 27-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.102</version_code>
+ * <version_code>6.8.1.103</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.102";
+        private const String PluginVersion = "6.8.1.103";
 
         public enum GameVersion
         {
@@ -551,6 +551,21 @@ namespace PRoConEvents
         private PushBulletHandler _PushBulletHandler;
         private Boolean _PushBulletReportsOnlyWhenAdminless;
 
+        //Perks
+        private String[] _PerkSpecialPlayerGroups = {
+            "slot_reserved",
+            "slot_spectator",
+            "whitelist_report",
+            "whitelist_spambot",
+            "whitelist_adminassistant",
+            "whitelist_ping",
+            "whitelist_hackerchecker",
+            "whitelist_multibalancer",
+            "whitelist_populator",
+            "whitelist_teamkill"
+        };
+        private Boolean _UsePerkExpirationNotify = false;
+        private Int32 _PerkExpirationNotifyDays = 7;
         //Orchestration
         private List<String> _CurrentReservedSlotPlayers;
         private List<String> _CurrentSpectatorListPlayers;
@@ -821,7 +836,6 @@ namespace PRoConEvents
             _SettingSectionEnum += ")";
             //Set default setting section
             _CurrentSettingSection = GetSettingSection("*");
-
 
             //Init the punishment severity index
             _PunishmentSeverityIndex = new List<String> {
@@ -1152,6 +1166,11 @@ namespace PRoConEvents
                         if (_UseFirstSpawnMessage) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "First spawn message text", typeof(String), _FirstSpawnMessage));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use First Spawn Reputation and Infraction Message", typeof(Boolean), _useFirstSpawnRepMessage));
+                        }
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use Perk Expiration Notification", typeof(Boolean), _UsePerkExpirationNotify));
+                        if (_UsePerkExpirationNotify)
+                        {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Perk Expiration Notify Days Remaining", typeof(Int32), _PerkExpirationNotifyDays));
                         }
                     }
 
@@ -5688,6 +5707,34 @@ namespace PRoConEvents
                         _useFirstSpawnRepMessage = UseFirstSpawnRepMessage;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use First Spawn Reputation and Infraction Message", typeof(Boolean), _useFirstSpawnRepMessage));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Use Perk Expiration Notification").Success)
+                {
+                    Boolean UsePerkExpirationNotify = Boolean.Parse(strValue);
+                    if (UsePerkExpirationNotify != _UsePerkExpirationNotify)
+                    {
+                        _UsePerkExpirationNotify = UsePerkExpirationNotify;
+                        QueueSettingForUpload(new CPluginVariable(@"Use Perk Expiration Notification", typeof(Boolean), _UsePerkExpirationNotify));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Perk Expiration Notify Days Remaining").Success)
+                {
+                    Int32 PerkExpirationNotifyDays = Int32.Parse(strValue);
+                    if (_PerkExpirationNotifyDays != PerkExpirationNotifyDays)
+                    {
+                        if (PerkExpirationNotifyDays <= 0)
+                        {
+                            Log.Error("Notify duration must be a positive number of days.");
+                            return;
+                        }
+                        if (PerkExpirationNotifyDays > 90)
+                        {
+                            Log.Error("Notify duration cannot be longer than 90 days.");
+                            return;
+                        }
+                        _PerkExpirationNotifyDays = PerkExpirationNotifyDays;
+                        QueueSettingForUpload(new CPluginVariable(@"Perk Expiration Notify Days Remaining", typeof(Int32), _PerkExpirationNotifyDays));
                     }
                 }
                 else if (Regex.Match(strVariable, @"SpamBot Enable").Success)
@@ -12032,7 +12079,10 @@ namespace PRoConEvents
                         {
                             OnlineAdminSayMessage(aPlayer.GetVerboseName() + " just joined this server group for the first time!");
                         }
-                        if (_UseFirstSpawnMessage || (_battlecryVolume != BattlecryVolume.Disabled && !String.IsNullOrEmpty(aPlayer.player_battlecry)))
+
+                        if (_UseFirstSpawnMessage || 
+                            (_battlecryVolume != BattlecryVolume.Disabled && !String.IsNullOrEmpty(aPlayer.player_battlecry)) ||
+                            _UsePerkExpirationNotify)
                         {
                             Thread spawnPrinter = new Thread(new ThreadStart(delegate
                             {
@@ -12040,9 +12090,24 @@ namespace PRoConEvents
                                 try
                                 {
                                     Thread.CurrentThread.Name = "SpawnPrinter";
+
                                     //Wait 2 seconds
                                     _threadMasterWaitHandle.WaitOne(2000);
-                                    if (!String.IsNullOrEmpty(aPlayer.player_battlecry))
+                                    
+                                    //Send perk expiration notification
+                                    if (_UsePerkExpirationNotify)
+                                    {
+                                        var groups = GetMatchingASPlayers(aPlayer);
+                                        var expiringGroups = groups.Where(group => NowDuration(group.player_expiration).TotalDays < _PerkExpirationNotifyDays);
+                                        if (expiringGroups.Any())
+                                        {
+                                            PlayerTellMessage(aPlayer.player_name, "You have perks expiring soon. Use !" + GetCommandByKey("player_perks").command_text + " to see your perks!");
+                                            _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(_YellDuration));
+                                        }
+                                    }
+
+                                    if (_battlecryVolume != BattlecryVolume.Disabled && 
+                                        !String.IsNullOrEmpty(aPlayer.player_battlecry))
                                     {
                                         switch (_battlecryVolume)
                                         {
@@ -12056,16 +12121,18 @@ namespace PRoConEvents
                                                 AdminTellMessage(aPlayer.player_battlecry);
                                                 break;
                                         }
+                                        _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(_YellDuration));
                                     }
-                                    else
+                                    else if (_UseFirstSpawnMessage)
                                     {
                                         PlayerTellMessage(aPlayer.player_name, _FirstSpawnMessage);
+                                        _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(_YellDuration));
                                     }
+
                                     int points = FetchPoints(aPlayer, false, true);
                                     if (_useFirstSpawnRepMessage)
                                     {
                                         Boolean isAdmin = PlayerIsAdmin(aPlayer);
-                                        _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(_YellDuration));
                                         String repMessage = "Your server reputation is " + ((!isAdmin || !_isTestingAuthorized) ? (Math.Round(aPlayer.player_reputation, 2) + "") : (aPlayer.player_role.role_name)) + ", with ";
                                         if (points > 0)
                                         {
@@ -12675,6 +12742,32 @@ namespace PRoConEvents
             return null;
         }
 
+        public List<AdKatsSpecialPlayer> GetMatchingASPlayers(AdKatsPlayer aPlayer)
+        {
+            Log.Debug(() => "Entering GetMatchingASPlayers", 8);
+            try
+            {
+                lock (_baseSpecialPlayerCache)
+                {
+                    List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
+                    matchingSpecialPlayers.AddRange(_baseSpecialPlayerCache.Values.Where(
+                        asPlayer => asPlayer.player_group != null && 
+                                    asPlayer.player_object != null && 
+                                    (asPlayer.player_object.player_id == aPlayer.player_id || 
+                                     asPlayer.player_identifier == aPlayer.player_name || 
+                                     asPlayer.player_identifier == aPlayer.player_guid || 
+                                     asPlayer.player_identifier == aPlayer.player_ip)));
+                    return matchingSpecialPlayers;
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching matching special players.", e));
+            }
+            Log.Debug(() => "Exiting GetMatchingASPlayers", 8);
+            return null;
+        }
+
         public List<AdKatsSpecialPlayer> GetMatchingASPlayersOfGroup(String specialPlayerGroup, AdKatsPlayer aPlayer)
         {
             Log.Debug(() => "Entering GetMatchingASPlayersOfGroup", 8);
@@ -12689,7 +12782,7 @@ namespace PRoConEvents
             }
             catch (Exception e)
             {
-                HandleException(new AdKatsException("Error while fetching matching special players.", e));
+                HandleException(new AdKatsException("Error while fetching matching special players of group.", e));
             }
             Log.Debug(() => "Exiting GetMatchingASPlayersOfGroup", 8);
             return null;
@@ -18816,6 +18909,40 @@ namespace PRoConEvents
                             }
                         }
                         break;
+                    case "player_perks":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 1:
+                                    if (record.source_player != null && !PlayerIsAdmin(record.source_player))
+                                    {
+                                        SendMessageToSource(record, "You cannot see another player's perks. Admin only.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Fetching Player Perks";
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                default:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Fetching Own Perks";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false, false);
+                                    break;
+                            }
+                        }
+                        break;
                     case "player_chat":
                         {
                             /*
@@ -22804,6 +22931,9 @@ namespace PRoConEvents
                     case "player_info":
                         SendTargetInfo(record);
                         break;
+                    case "player_perks":
+                        SendTargetPerks(record);
+                        break;
                     case "player_chat":
                         SendTargetChat(record);
                         break;
@@ -23765,7 +23895,7 @@ namespace PRoConEvents
                         //If ban time > 1000 days just say perm
                         TimeSpan remainingTime = GetRemainingBanTime(aBan);
                         TimeSpan totalTime = aBan.ban_endTime.Subtract(aBan.ban_startTime);
-                        if (remainingTime.TotalDays > 365)
+                        if (remainingTime.TotalDays > 500.0)
                         {
                             banDurationString = "permanent";
                         }
@@ -28307,6 +28437,71 @@ namespace PRoConEvents
             Log.Debug(() => "Exiting SendTargetInfo", 6);
         }
 
+        public void SendTargetPerks(AdKatsRecord record)
+        {
+            Log.Debug(() => "Entering SendTargetPerks", 6);
+            try
+            {
+                record.record_action_executed = true;
+                Thread perkPrinter = new Thread(new ThreadStart(delegate
+                {
+                    Log.Debug(() => "Starting a player perk printer thread.", 5);
+                    try
+                    {
+                        Thread.CurrentThread.Name = "PlayerPerkPrinter";
+                        if (record.target_player == null)
+                        {
+                            Log.Error("Player null in player perk printer.");
+                            return;
+                        }
+                        _threadMasterWaitHandle.WaitOne(500);
+                        var asPlayers = GetMatchingASPlayers(record.target_player);
+                        if (!asPlayers.Any())
+                        {
+                            SendMessageToSource(record, "You do not have any active perks. Contact your admin for more information!");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.source_name == record.target_name)
+                        {
+                            SendMessageToSource(record, "Showing your active perks:");
+                        }
+                        else
+                        {
+                            SendMessageToSource(record, "Showing " + record.target_player.GetVerboseName() + "'s active perks:");
+                        }
+                        foreach (var groupKey in _PerkSpecialPlayerGroups)
+                        {
+                            var asPlayer = asPlayers.FirstOrDefault(dPlayer => dPlayer.player_group.group_key == groupKey);
+                            if (asPlayer != null)
+                            {
+                                _threadMasterWaitHandle.WaitOne(1000);
+                                var expireDuration = NowDuration(asPlayer.player_expiration);
+                                String expiration = (expireDuration.TotalDays > 500.0) ? ("Permanent") : (FormatTimeString(expireDuration, 3));
+                                SendMessageToSource(record, asPlayer.player_group.group_name + ": " + expiration);
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        HandleException(new AdKatsException("Error while printing player perks"));
+                    }
+                    Log.Debug(() => "Exiting a player perk printer.", 5);
+                    LogThreadExit();
+                }));
+
+                //Start the thread
+                StartAndLogThread(perkPrinter);
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while sending player perks.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting SendTargetPerks", 6);
+        }
+
         public void SendTargetChat(AdKatsRecord record)
         {
             Log.Debug(() => "Entering SendTargetChat", 6);
@@ -30326,6 +30521,8 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
                 QueueSettingForUpload(new CPluginVariable(@"First spawn message text", typeof(String), _FirstSpawnMessage));
                 QueueSettingForUpload(new CPluginVariable(@"Use First Spawn Reputation and Infraction Message", typeof(Boolean), _useFirstSpawnRepMessage));
+                QueueSettingForUpload(new CPluginVariable(@"Use Perk Expiration Notification", typeof(Boolean), _UsePerkExpirationNotify));
+                QueueSettingForUpload(new CPluginVariable(@"Perk Expiration Notify Days Remaining", typeof(Int32), _PerkExpirationNotifyDays));
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Enable", typeof(Boolean), _spamBotEnabled));
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Say List", typeof(String), CPluginVariable.EncodeStringArray(_spamBotSayList.ToArray())));
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Say Delay Seconds", typeof(Int32), _spamBotSayDelaySeconds));
@@ -35919,6 +36116,11 @@ namespace PRoConEvents
                                 if (!_CommandIDDictionary.ContainsKey(122))
                                 {
                                     SendNonQuery("Adding command player_battlecry", "INSERT INTO `adkats_commands` VALUES(122, 'Active', 'player_battlecry', 'Log', 'Set Player Battlecry', 'setbattlecry', TRUE, 'AnyHidden')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(123))
+                                {
+                                    SendNonQuery("Adding command player_perks", "INSERT INTO `adkats_commands` VALUES(123, 'Active', 'player_perks', 'Log', 'Fetch Player Perks', 'perks', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (newCommands)
@@ -43076,7 +43278,7 @@ namespace PRoConEvents
                     {
                         Double remainingPerc = current / start;
                         Double lostPerc = (start - current) / start;
-                        ticketPower = remainingPerc + (lostPerc / 2.0);
+                        ticketPower = remainingPerc + (lostPerc / 3.0);
                     }
                     var totalPower = Math.Round(topPowerSum * kdPowerSum * playerSum * ticketPower);
                     if (Plugin._isTestingAuthorized) {
