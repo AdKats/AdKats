@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.104
+ * Version 6.8.1.105
  * 27-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.104</version_code>
+ * <version_code>6.8.1.105</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.104";
+        private const String PluginVersion = "6.8.1.105";
 
         public enum GameVersion
         {
@@ -723,6 +723,8 @@ namespace PRoConEvents
         private Boolean _factionRandomizerEnable = false;
         private FactionRandomizerRestriction _factionRandomizerRestriction = FactionRandomizerRestriction.NoRestriction;
         private Boolean _factionRandomizerAllowRepeatSelection = true;
+        private Int32 _factionRandomizerCurrentTeam1 = 0;
+        private Int32 _factionRandomizerCurrentTeam2 = 1;
 
         //Weapon stats
         private readonly Dictionary<String, AdKatsWeaponName> _weaponNames = new Dictionary<String, AdKatsWeaponName>();
@@ -10701,12 +10703,6 @@ namespace PRoConEvents
                     return;
                 }
 
-                AdKatsTeam team1, team2;
-                if (!GetTeamByID(1, out team1) || !GetTeamByID(2, out team2))
-                {
-                    Log.Error("Faction randomizer failed! Current teams not loaded.");
-                    return;
-                }
                 var team1Selection = 0;
                 var team2Selection = 1;
                 var selectionValid = false;
@@ -10742,8 +10738,8 @@ namespace PRoConEvents
                             team2Selection = team1Selection;
                             break;
                         case FactionRandomizerRestriction.AlwaysSwapUSvsRU:
-                            if (team1.TeamID == US && 
-                                team2.TeamID == RU)
+                            if (_factionRandomizerCurrentTeam1 == US &&
+                                _factionRandomizerCurrentTeam2 == RU)
                             {
                                 team1Selection = RU;
                                 team2Selection = US;
@@ -10755,8 +10751,8 @@ namespace PRoConEvents
                             }
                             break;
                         case FactionRandomizerRestriction.AlwaysSwapUSvsCN:
-                            if (team1.TeamID == US &&
-                                team2.TeamID == CN)
+                            if (_factionRandomizerCurrentTeam1 == US &&
+                                _factionRandomizerCurrentTeam2 == CN)
                             {
                                 team1Selection = CN;
                                 team2Selection = US;
@@ -10768,8 +10764,8 @@ namespace PRoConEvents
                             }
                             break;
                         case FactionRandomizerRestriction.AlwaysSwapRUvsCN:
-                            if (team1.TeamID == RU &&
-                                team2.TeamID == CN)
+                            if (_factionRandomizerCurrentTeam1 == RU &&
+                                _factionRandomizerCurrentTeam2 == CN)
                             {
                                 team1Selection = CN;
                                 team2Selection = RU;
@@ -10847,7 +10843,8 @@ namespace PRoConEvents
                     if (!_factionRandomizerAllowRepeatSelection)
                     {
                         //We cannot allow the same teams to be selected again
-                        if (team1.TeamID == team1Selection && team2.TeamID == team2Selection)
+                        if (_factionRandomizerCurrentTeam1 == team1Selection &&
+                            _factionRandomizerCurrentTeam2 == team2Selection)
                         {
                             continue;
                         }
@@ -10858,11 +10855,16 @@ namespace PRoConEvents
 
                 if (selectionValid)
                 {
+                    _factionRandomizerCurrentTeam1 = team1Selection;
+                    _factionRandomizerCurrentTeam2 = team2Selection;
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "1", Convert.ToString(team1Selection));
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "2", Convert.ToString(team2Selection));
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "3", Convert.ToString(team1Selection));
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "4", Convert.ToString(team2Selection));
-                    Log.Success("Faction randomizer selected " + team1Selection + " vs " + team2Selection);
+                    if (_isTestingAuthorized)
+                    {
+                        Log.Success("Faction randomizer selected " + team1Selection + " vs " + team2Selection);
+                    }
                 }
                 else
                 {
