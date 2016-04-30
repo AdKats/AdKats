@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.105
- * 27-APR-2016
+ * Version 6.8.1.106
+ * 29-APR-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.105</version_code>
+ * <version_code>6.8.1.106</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.105";
+        private const String PluginVersion = "6.8.1.106";
 
         public enum GameVersion
         {
@@ -125,6 +125,41 @@ namespace PRoConEvents
         }
 
         //State
+        public static String[] _SquadNames = new String[] {
+            "None",
+            "Alpha",
+            "Bravo",
+            "Charlie",
+            "Delta",
+            "Echo",
+            "Foxtrot",
+            "Golf",
+            "Hotel",
+            "India",
+            "Juliet",
+            "Kilo",
+            "Lima",
+            "Mike",
+            "November",
+            "Oscar",
+            "Papa",
+            "Quebec",
+            "Romeo",
+            "Sierra",
+            "Tango",
+            "Uniform",
+            "Victor",
+            "Whiskey",
+            "Xray",
+            "Yankee",
+            "Zulu",
+            "Haggard",
+            "Sweetwater",
+            "Preston",
+            "Redford",
+            "Faith",
+            "Celeste"
+        };
         private const Boolean FullDebug = false;
         private const Boolean SlowMoOnException = false;
         private Boolean _slowmo;
@@ -395,6 +430,7 @@ namespace PRoConEvents
 
         //Players
         private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
+
         private readonly Dictionary<String, AdKatsPlayer> _PlayerLeftDictionary = new Dictionary<String, AdKatsPlayer>();
         private readonly Dictionary<Int64, AdKatsPlayer> _FetchedPlayers = new Dictionary<Int64, AdKatsPlayer>();
         private readonly Dictionary<Int64, HashSet<Int64>> _RoundPlayerIDs = new Dictionary<Int64, HashSet<Int64>>();
@@ -7977,6 +8013,27 @@ namespace PRoConEvents
             Log.Debug(() => "Exiting OnPlayerTeamChange", 7);
         }
 
+        public List<AdKatsPlayer> GetSquadPlayers(AdKatsPlayer aPlayer)
+        {
+            return GetSquadPlayers(aPlayer.frostbitePlayerInfo.SquadID);
+        }
+
+        public List<AdKatsPlayer> GetSquadPlayers(Int32 squadID)
+        {
+            return _PlayerDictionary.Values.ToList().Where(
+                aPlayer => aPlayer.frostbitePlayerInfo.SquadID == squadID).ToList();
+        }
+
+        public String GetSquadName(Int32 squadID)
+        {
+            if (squadID < 0 || squadID >= _SquadNames.Length)
+            {
+                Log.Error("Invalid squad ID " + squadID + ", unable to get squad name.");
+                return squadID.ToString();
+            }
+            return _SquadNames[squadID];
+        }
+
         public override void OnPlayerSquadChange(string soldierName, int teamId, int squadId)
         {
             Log.Debug(() => "Entering OnPlayerSquadChange", 7);
@@ -11200,7 +11257,7 @@ namespace PRoConEvents
                     int highCountBan = 
                         ((_gameVersion == GameVersion.BF3) ? (40) : (32)) -
                         ((aKill.killer.frostbitePlayerInfo.Rank <= 15) ? (8) : (0));
-                    if (lowCountRecent >= highCountBan && !PlayerProtected(aKill.killer)) {
+                    if (highCountRecent >= highCountBan && !PlayerProtected(aKill.killer)) {
                         QueueRecordForProcessing(new AdKatsRecord {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
                             server_id = _serverInfo.ServerID,
@@ -13279,7 +13336,7 @@ namespace PRoConEvents
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
                                                         source_name = "AutoAdmin",
-                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE]" + (killStatsValid ? "" : "[CAUTION]") + "[" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]",
+                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE]" + (killStatsValid ? "" : "[CAUTION]") + "[4-" + formattedName + "-" + (int) liveDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "-" + (int) hitDiff + "]",
                                                         record_time = UtcNow()
                                                     });
                                                 }
@@ -13375,7 +13432,7 @@ namespace PRoConEvents
                                             target_name = aPlayer.player_name,
                                             target_player = aPlayer,
                                             source_name = "AutoAdmin",
-                                            record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]",
+                                            record_message = _HackerCheckerDPSBanMessage + " [4-" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]",
                                             record_time = UtcNow()
                                         };
                                         //Process the record
@@ -13409,7 +13466,7 @@ namespace PRoConEvents
                                 target_name = aPlayer.player_name,
                                 target_player = aPlayer,
                                 source_name = "AutoAdmin",
-                                record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]",
+                                record_message = _HackerCheckerDPSBanMessage + " [4-" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "-" + (int)actedWeapon.Hits + "]",
                                 record_time = UtcNow()
                             };
                             //Process the record
