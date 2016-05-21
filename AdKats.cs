@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.106
- * 29-APR-2016
+ * Version 6.8.1.107
+ * 21-MAY-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.106</version_code>
+ * <version_code>6.8.1.107</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.106";
+        private const String PluginVersion = "6.8.1.107";
 
         public enum GameVersion
         {
@@ -430,7 +430,7 @@ namespace PRoConEvents
 
         //Players
         private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
-
+        private readonly Dictionary<Int32, List<AdKatsPlayer>> _RoundOverSquads = new Dictionary<Int32, List<AdKatsPlayer>>();
         private readonly Dictionary<String, AdKatsPlayer> _PlayerLeftDictionary = new Dictionary<String, AdKatsPlayer>();
         private readonly Dictionary<Int64, AdKatsPlayer> _FetchedPlayers = new Dictionary<Int64, AdKatsPlayer>();
         private readonly Dictionary<Int64, HashSet<Int64>> _RoundPlayerIDs = new Dictionary<Int64, HashSet<Int64>>();
@@ -7784,35 +7784,120 @@ namespace PRoConEvents
                                 Thread.Sleep(TimeSpan.FromSeconds(0.5));
                                 continue;
                             }
+                            AdKatsTeam team1, team2;
+                            if (!GetTeamByID(1, out team1))
+                            {
+                                Log.Info("Team 1 was not found, waiting.");
+                                continue;
+                            }
+                            if (!GetTeamByID(2, out team2))
+                            {
+                                Log.Info("Team 2 was not found, waiting.");
+                                continue;
+                            }
                             if (_UseTopPlayerMonitor && _firstPlayerListComplete)
                             {
-                                //Update team assignment of top players
+                                Boolean team1Set = currentStartingTeam1;
+                                currentStartingTeam1 = !currentStartingTeam1;
+
+                                Dictionary<Int32, Boolean> team1AvailableSquads = new Dictionary<int, bool>();
+                                Dictionary<Int32, Boolean> team2AvailableSquads = new Dictionary<int, bool>();
+                                //Loop over the available squads from last to first
+                                for (int squadID = _SquadNames.Length - 1; squadID > 0; squadID--)
+                                {
+                                    team1AvailableSquads[squadID] = true;
+                                    team2AvailableSquads[squadID] = true;
+                                }
+
+                                if (_RoundOverSquads.Any())
+                                {
+                                    //First process squads from the previous round, ordering most powerful squads first
+                                    Boolean first = true;
+                                    foreach (var squad in _RoundOverSquads.OrderByDescending(squad => squad.Value.Sum(member => member.TopStats.TopRoundRatio)))
+                                    {
+                                        Int32 squadID = squad.Key;
+                                        List<AdKatsPlayer> members = squad.Value;
+                                        String squadName = GetSquadName(squadID);
+
+                                        //Decide where to send this squad
+                                        Boolean targetTeam1;
+                                        if (first)
+                                        {
+                                            targetTeam1 = team1Set;
+                                            first = false;
+                                        }
+                                        else
+                                        {
+                                            targetTeam1 = team1.getTeamPower() < team2.getTeamPower();
+                                        }
+
+                                        //Get the needed information for the target
+                                        AdKatsTeam targetTeam;
+                                        Int32 availableSquadID;
+                                        String availableSquadName;
+                                        if (targetTeam1)
+                                        {
+                                            targetTeam = team1;
+                                            availableSquadID = team1AvailableSquads.First(aSquad => aSquad.Value == true).Key;
+                                            team1AvailableSquads[availableSquadID] = false;
+                                        }
+                                        else
+                                        {
+                                            targetTeam = team2;
+                                            availableSquadID = team2AvailableSquads.First(aSquad => aSquad.Value == true).Key;
+                                            team2AvailableSquads[availableSquadID] = false;
+                                        }
+                                        availableSquadName = GetSquadName(availableSquadID);
+
+                                        var message = "Squad " + availableSquadName + " |";
+                                        //Loop over each member in the squad and assign them to the same team/squad
+                                        foreach (var member in members)
+                                        {
+                                            //Assign their squad
+                                            member.AssignedSquad = availableSquadID;
+                                            message += member.player_name + "|";
+                                            //If they are being monitored, set their required team
+                                            if (member.TopStats.TopRoundRatio > 0)
+                                            {
+                                                member.RequiredTeam = targetTeam;
+                                            }
+                                            //tell colon what's up
+                                            if (member.player_name == _debugSoldierName)
+                                            {
+                                                PlayerTellMessage(member.player_name, "Your squad " + availableSquadName + " was assigned to " + targetTeam.TeamKey + " for round " + _roundID);
+                                            }
+                                            //Move them to the team/squad
+                                            ExecuteCommand("procon.protected.send", "admin.movePlayer", member.player_name, targetTeam.TeamID + "", member.AssignedSquad + "", "false");
+                                            Thread.Sleep(TimeSpan.FromMilliseconds(50));
+                                        }
+                                        if (_isTestingAuthorized)
+                                        {
+                                            Log.Info(message + " assigned to " + targetTeam.TeamKey + " for " + targetTeam.getTeamPower() + " team power.");
+                                        }
+                                    }
+                                }
+                                else if (_isTestingAuthorized)
+                                {
+                                    Log.Info("No squads remembered; can't do squad dispersion.");
+                                }
+                                _RoundOverSquads.Clear();
+
+                                //Update team assignment of remaining players not assigned through squads
                                 List<AdKatsPlayer> orderedTopPlayers = _PlayerDictionary.Values
                                     .Where(dPlayer =>
                                         dPlayer.player_type == PlayerType.Player &&
-                                        _topPlayers.ContainsKey(dPlayer.player_name))
+                                        _topPlayers.ContainsKey(dPlayer.player_name) && 
+                                        dPlayer.RequiredTeam == null &&
+                                        dPlayer.AssignedSquad == 0)
                                     .OrderByDescending(dPlayer =>
                                         dPlayer.TopStats.TopRoundRatio)
                                     .ToList();
                                 if (orderedTopPlayers.Count > 1)
                                 {
-                                    AdKatsTeam team1;
-                                    AdKatsTeam team2;
-                                    if (!_teamDictionary.TryGetValue(1, out team1))
-                                    {
-                                        Log.Info("Team 1 was not found, waiting.");
-                                        continue;
-                                    }
-                                    if (!_teamDictionary.TryGetValue(2, out team2))
-                                    {
-                                        Log.Info("Team 2 was not found, waiting.");
-                                        continue;
-                                    }
-                                    Boolean team1Set = currentStartingTeam1;
-                                    currentStartingTeam1 = !currentStartingTeam1;
                                     foreach (AdKatsPlayer aPlayer in orderedTopPlayers)
                                     {
-                                        aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
+                                        //Fill in the remaining players based on teampower
+                                        aPlayer.RequiredTeam = team1.getTeamPower() < team2.getTeamPower() ? team1 : team2;
                                         if (_isTestingAuthorized)
                                         {
                                             ProconChatWrite("Initial Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
@@ -7824,41 +7909,49 @@ namespace PRoConEvents
                                         {
                                             PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                         }
-                                        team1Set = !team1Set;
                                     }
-                                    //Confirm they remain on the team they were assigned, yay DICE's mandatory balancer
-                                    var start = UtcNow();
-                                    while (NowDuration(start).TotalSeconds < _TopPlayersTeamConfirmationDuration && _pluginEnabled && _roundState != RoundState.Playing)
+                                }
+                                else if (_isTestingAuthorized)
+                                {
+                                    Log.Info("Not enough extra top players online to do dispersion.");
+                                }
+
+                                //Confirm they remain on the team they were assigned, yay DICE's mandatory balancer
+                                var start = UtcNow();
+                                while (NowDuration(start).TotalSeconds < _TopPlayersTeamConfirmationDuration && 
+                                       _pluginEnabled && 
+                                       _roundState != RoundState.Playing)
+                                {
+                                    foreach (AdKatsPlayer aPlayer in orderedTopPlayers)
                                     {
-                                        foreach (AdKatsPlayer aPlayer in orderedTopPlayers)
+                                        if (!_pluginEnabled ||
+                                            _roundState == RoundState.Playing ||
+                                            NowDuration(start).TotalSeconds > _TopPlayersTeamConfirmationDuration)
                                         {
-                                            if (!_pluginEnabled || 
-                                                _roundState == RoundState.Playing || 
-                                                NowDuration(start).TotalSeconds > _TopPlayersTeamConfirmationDuration)
+                                            break;
+                                        }
+                                        Thread.Sleep(TimeSpan.FromMilliseconds(50));
+                                        if (aPlayer.RequiredTeam != null)
+                                        {
+                                            ExecuteCommand("procon.protected.send",
+                                                           "admin.movePlayer",
+                                                           aPlayer.player_name,
+                                                           aPlayer.RequiredTeam.TeamID + "", (aPlayer.AssignedSquad == 0 ? aPlayer.frostbitePlayerInfo.SquadID : aPlayer.AssignedSquad) + "",
+                                                           "true");
+                                            if (_isTestingAuthorized)
                                             {
-                                                break;
-                                            }
-                                            Thread.Sleep(TimeSpan.FromMilliseconds(50));
-                                            if (aPlayer.RequiredTeam != null)
-                                            {
-                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
-                                                if (_isTestingAuthorized)
-                                                {
-                                                    ProconChatWrite("Upkeep Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
-                                                }
+                                                ProconChatWrite("Upkeep Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
                                             }
                                         }
-                                        Thread.Sleep(TimeSpan.FromSeconds(1));
                                     }
-                                    if (_isTestingAuthorized)
-                                    {
-                                        ProconChatWrite("Stopped confirming player positions.");
-                                    }
+                                    Thread.Sleep(TimeSpan.FromSeconds(1));
                                 }
-                                else
+                                if (_isTestingAuthorized)
                                 {
-                                    Log.Debug(() => "Not enough top players online to do splitting.", 3);
+                                    ProconChatWrite("Stopped confirming player positions.");
                                 }
+
+                                //Update top player information
                                 FetchAllAccess(true);
                             }
                             break;
@@ -10679,7 +10772,13 @@ namespace PRoConEvents
                 while (_roundOverPlayers == null && (UtcNow() - start).TotalSeconds < 10) {
                     Thread.Sleep(100);
                 }
+                if ((UtcNow() - start).TotalSeconds >= 10)
+                {
+                    Log.Error("Round over players waiting timed out!");
+                }
                 if (_roundOverPlayers != null) {
+                    //Clear out the round over squad list
+                    _RoundOverSquads.Clear();
                     //Update all players with their final stats
                     foreach (var player in _roundOverPlayers) {
                         AdKatsPlayer aPlayer;
@@ -10689,6 +10788,15 @@ namespace PRoConEvents
                             if (aPlayer.RoundStats.TryGetValue(_roundID, out aStats)) {
                                 aStats.LiveStats = player;
                             }
+                            // If the squad isn't loaded yet, load it
+                            if (!_RoundOverSquads.ContainsKey(aPlayer.frostbitePlayerInfo.SquadID))
+                            {
+                                _RoundOverSquads[aPlayer.frostbitePlayerInfo.SquadID] = new List<AdKatsPlayer>();
+                            }
+                            // Store which squad the player is in
+                            _RoundOverSquads[aPlayer.frostbitePlayerInfo.SquadID].Add(aPlayer);
+                            // Remove the player's current squad
+                            ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.frostbitePlayerInfo.TeamID + "", "0", "true");
                         }
                     }
                     if (_isTestingAuthorized) {
@@ -10696,6 +10804,10 @@ namespace PRoConEvents
                     }
                     //Unassign round over players, wait for next round
                     _roundOverPlayers = null;
+                }
+                else
+                {
+                    Log.Error("Round over players not found/ready! Contact ColColonCleaner.");
                 }
 
                 //Stat refresh
@@ -10733,6 +10845,7 @@ namespace PRoConEvents
                 _pingKicksThisRound = 0;
                 foreach (AdKatsPlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
                     aPlayer.RequiredTeam = null;
+                    aPlayer.AssignedSquad = 0;
                 }
             }
             catch (Exception e) {
@@ -42473,6 +42586,7 @@ namespace PRoConEvents
             public AdKatsRecord LastPunishment = null;
             public AdKatsRecord LastForgive = null;
             public AdKatsTeam RequiredTeam = null;
+            public Int32 AssignedSquad = 0;
             public readonly Queue<KeyValuePair<Double, DateTime>> player_pings;
             public Boolean player_pings_full { get; private set; }
             public Double player_ping_avg { get; private set; }
