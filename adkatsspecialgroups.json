@@ -79,6 +79,16 @@
 			"group_id":15,
 			"group_key":"blacklist_autoassist",
 			"group_name":"Auto-Assist Blacklist" 
+		},
+		{
+			"group_id":16,
+			"group_key":"whitelist_squadsplit",
+			"group_name":"Squad Split Whitelist"
+		},
+		{
+			"group_id":17,
+			"group_key":"whitelist_squadsplit_advanced",
+			"group_name":"Advanced Squad Split Whitelist"
 		}
 	]
 }
