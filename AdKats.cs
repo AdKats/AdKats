@@ -43488,7 +43488,7 @@ namespace PRoConEvents
                     }
                     var totalPower = Math.Round(topPowerSum * kdPowerSum * playerSum * ticketPower);
                     if (Plugin._isTestingAuthorized) {
-                        Plugin.Log.Info(TeamKey + " Power: " + totalPower + " = (top)" + Math.Round(topPowerSum, 2) + " * (kd)" + Math.Round(kdPowerSum, 2) + " * (count)" + Math.Round(playerSum, 2) + " * (ticket)" + Math.Round(ticketPower, 2));
+                        //Plugin.Log.Info(TeamKey + " Power: " + totalPower + " = (top)" + Math.Round(topPowerSum, 2) + " * (kd)" + Math.Round(kdPowerSum, 2) + " * (count)" + Math.Round(playerSum, 2) + " * (ticket)" + Math.Round(ticketPower, 2));
                     }
                     return totalPower;
                 }
