@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.108
+ * Version 6.8.1.109
  * 21-MAY-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.108</version_code>
+ * <version_code>6.8.1.109</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.108";
+        private const String PluginVersion = "6.8.1.109";
 
         public enum GameVersion
         {
@@ -142,7 +142,7 @@ namespace PRoConEvents
             "Mike",
             "November",
             "Oscar",
-            "Papa",
+            "Papa"/*,
             "Quebec",
             "Romeo",
             "Sierra",
@@ -158,7 +158,7 @@ namespace PRoConEvents
             "Preston",
             "Redford",
             "Faith",
-            "Celeste"
+            "Celeste"*/
         };
         private const Boolean FullDebug = false;
         private const Boolean SlowMoOnException = false;
@@ -7847,7 +7847,7 @@ namespace PRoConEvents
                                         }
                                         availableSquadName = GetSquadName(availableSquadID);
 
-                                        var message = "Squad " + availableSquadName + " |";
+                                        var message = "Squad " + availableSquadName + ":" + availableSquadID + " |";
                                         //Loop over each member in the squad and assign them to the same team/squad
                                         foreach (var member in members)
                                         {
@@ -7862,7 +7862,7 @@ namespace PRoConEvents
                                             //tell colon what's up
                                             if (member.player_name == _debugSoldierName)
                                             {
-                                                PlayerTellMessage(member.player_name, "Your squad " + availableSquadName + " was assigned to " + targetTeam.TeamKey + " for round " + _roundID);
+                                                PlayerTellMessage(member.player_name, "Your squad " + availableSquadName + ":" + availableSquadID + " was assigned to " + targetTeam.TeamKey + " for round " + _roundID);
                                             }
                                             //Move them to the team/squad
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", member.player_name, targetTeam.TeamID + "", member.AssignedSquad + "", "false");
