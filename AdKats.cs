@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.107
+ * Version 6.8.1.108
  * 21-MAY-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.107</version_code>
+ * <version_code>6.8.1.108</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.107";
+        private const String PluginVersion = "6.8.1.108";
 
         public enum GameVersion
         {
@@ -430,7 +430,7 @@ namespace PRoConEvents
 
         //Players
         private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
-        private readonly Dictionary<Int32, List<AdKatsPlayer>> _RoundOverSquads = new Dictionary<Int32, List<AdKatsPlayer>>();
+        private readonly Dictionary<String, List<AdKatsPlayer>> _RoundOverSquads = new Dictionary<String, List<AdKatsPlayer>>();
         private readonly Dictionary<String, AdKatsPlayer> _PlayerLeftDictionary = new Dictionary<String, AdKatsPlayer>();
         private readonly Dictionary<Int64, AdKatsPlayer> _FetchedPlayers = new Dictionary<Int64, AdKatsPlayer>();
         private readonly Dictionary<Int64, HashSet<Int64>> _RoundPlayerIDs = new Dictionary<Int64, HashSet<Int64>>();
@@ -7815,9 +7815,7 @@ namespace PRoConEvents
                                     Boolean first = true;
                                     foreach (var squad in _RoundOverSquads.OrderByDescending(squad => squad.Value.Sum(member => member.TopStats.TopRoundRatio)))
                                     {
-                                        Int32 squadID = squad.Key;
                                         List<AdKatsPlayer> members = squad.Value;
-                                        String squadName = GetSquadName(squadID);
 
                                         //Decide where to send this squad
                                         Boolean targetTeam1;
@@ -10788,13 +10786,14 @@ namespace PRoConEvents
                             if (aPlayer.RoundStats.TryGetValue(_roundID, out aStats)) {
                                 aStats.LiveStats = player;
                             }
+                            var squadIdentifier = aPlayer.frostbitePlayerInfo.TeamID.ToString() + aPlayer.frostbitePlayerInfo.SquadID.ToString();
                             // If the squad isn't loaded yet, load it
-                            if (!_RoundOverSquads.ContainsKey(aPlayer.frostbitePlayerInfo.SquadID))
+                            if (!_RoundOverSquads.ContainsKey(squadIdentifier))
                             {
-                                _RoundOverSquads[aPlayer.frostbitePlayerInfo.SquadID] = new List<AdKatsPlayer>();
+                                _RoundOverSquads[squadIdentifier] = new List<AdKatsPlayer>();
                             }
                             // Store which squad the player is in
-                            _RoundOverSquads[aPlayer.frostbitePlayerInfo.SquadID].Add(aPlayer);
+                            _RoundOverSquads[squadIdentifier].Add(aPlayer);
                             // Remove the player's current squad
                             ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.frostbitePlayerInfo.TeamID + "", "0", "true");
                         }
