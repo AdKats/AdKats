@@ -111,7 +111,7 @@
 		},		
 		{		
 			"update_id":"fixEmptyPlayerIPs",
-			"version_minimum":"6.8.1.56",
+			"version_minimum":"6.8.1.109",
 			"version_maximum":null,
 			"message_name":"Fixing empty player IPs",
 			"message_success":"Fixed empty player IPs",
