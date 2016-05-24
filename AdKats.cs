@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.109
- * 21-MAY-2016
+ * Version 6.8.1.110
+ * 23-MAY-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.109</version_code>
+ * <version_code>6.8.1.110</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.109";
+        private const String PluginVersion = "6.8.1.110";
 
         public enum GameVersion
         {
@@ -10794,8 +10794,11 @@ namespace PRoConEvents
                             }
                             // Store which squad the player is in
                             _RoundOverSquads[squadIdentifier].Add(aPlayer);
-                            // Remove the player's current squad
-                            ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.frostbitePlayerInfo.TeamID + "", "0", "true");
+                            if (_UseTopPlayerMonitor)
+                            {
+                                // Remove the player's current squad
+                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.frostbitePlayerInfo.TeamID + "", "0", "true");
+                            }
                         }
                     }
                     if (_isTestingAuthorized) {
