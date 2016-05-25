@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.110
- * 23-MAY-2016
+ * Version 6.8.1.111
+ * 24-MAY-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.110</version_code>
+ * <version_code>6.8.1.111</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.110";
+        private const String PluginVersion = "6.8.1.111";
 
         public enum GameVersion
         {
@@ -8542,7 +8542,7 @@ namespace PRoConEvents
                                             if (_pingEnforcerEnable && 
                                                 aPlayer.player_type == PlayerType.Player && 
                                                 !PlayerIsAdmin(aPlayer) && 
-                                                (!_isTestingAuthorized || aPlayer.player_reputation < 150) &&
+                                                (!_isTestingAuthorized || aPlayer.player_reputation < 150 || aPlayer.player_ping >= 200) &&
                                                 !GetMatchingVerboseASPlayersOfGroup("whitelist_ping", aPlayer).Any() && 
                                                 !_pingEnforcerIgnoreRoles.Contains(aPlayer.player_role.role_key) && 
                                                 !(_pingEnforcerIgnoreUserList && 
