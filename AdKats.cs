@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.111
- * 24-MAY-2016
+ * Version 6.8.1.112
+ * 6-JUN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.111</version_code>
+ * <version_code>6.8.1.112</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.111";
+        private const String PluginVersion = "6.8.1.112";
 
         public enum GameVersion
         {
@@ -192,6 +192,7 @@ namespace PRoConEvents
         private Boolean _firstUserListComplete;
         private Boolean _firstPlayerListStarted;
         private Boolean _firstPlayerListComplete;
+        private Boolean _enforceSingleInstance = true;
         private GameVersion _gameVersion = GameVersion.BF3;
         private Boolean _isTestingAuthorized;
         private Boolean _endingRound;
@@ -1558,6 +1559,7 @@ namespace PRoConEvents
                         //Debug settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug level", typeof(int), Log.DebugLevel));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug Soldier Name", typeof(String), _debugSoldierName));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Enforce Single Instance", typeof(Boolean), _enforceSingleInstance));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Command Entry", typeof(String), ""));
@@ -1821,6 +1823,7 @@ namespace PRoConEvents
 
             lstReturn.Add(new CPluginVariable(GetSettingSection("D98") + sept + "Override Timing Confirmation", typeof(Boolean), _timingValidOverride));
 
+            lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Enforce Single Instance", typeof(Boolean), _enforceSingleInstance));
             lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Debug level", typeof(Int32), Log.DebugLevel));
             lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
             lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
@@ -2143,6 +2146,23 @@ namespace PRoConEvents
                         _automaticUpdatesDisabled = disableAutomaticUpdates;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Enforce Single Instance").Success)
+                {
+                    Boolean enforceSingleInstance = Boolean.Parse(strValue);
+                    if (enforceSingleInstance != _enforceSingleInstance)
+                    {
+                        _enforceSingleInstance = enforceSingleInstance;
+                        if (!_enforceSingleInstance)
+                        {
+                            var message = "Running multiple instances of AdKats on the same server is a very bad idea. If you are sure this won't happen, it's safe to disable this setting.";
+                            Log.Warn(message);
+                            Log.Warn(message);
+                            Log.Warn(message);
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Enforce Single Instance", typeof(Boolean), _enforceSingleInstance));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Disable Version Tracking - Required For TEST Builds").Success)
@@ -7188,7 +7208,7 @@ namespace PRoConEvents
                                     }
                                 }
 
-                                if (_pluginEnabled && _threadsReady && _firstPlayerListComplete)
+                                if (_pluginEnabled && _threadsReady && _firstPlayerListComplete && _enforceSingleInstance)
                                 {
                                     AdminSayMessage("/AdKatsInstanceCheck " + _instanceKey + " " + Math.Round((UtcNow() - _AdKatsRunningTime).TotalSeconds), false);
                                 }
@@ -10774,43 +10794,55 @@ namespace PRoConEvents
                 {
                     Log.Error("Round over players waiting timed out!");
                 }
-                if (_roundOverPlayers != null) {
-                    //Clear out the round over squad list
-                    _RoundOverSquads.Clear();
-                    //Update all players with their final stats
-                    foreach (var player in _roundOverPlayers) {
-                        AdKatsPlayer aPlayer;
-                        if (_PlayerDictionary.TryGetValue(player.SoldierName, out aPlayer)) {
-                            aPlayer.frostbitePlayerInfo = player;
-                            AdKatsPlayerStats aStats;
-                            if (aPlayer.RoundStats.TryGetValue(_roundID, out aStats)) {
-                                aStats.LiveStats = player;
-                            }
-                            var squadIdentifier = aPlayer.frostbitePlayerInfo.TeamID.ToString() + aPlayer.frostbitePlayerInfo.SquadID.ToString();
-                            // If the squad isn't loaded yet, load it
-                            if (!_RoundOverSquads.ContainsKey(squadIdentifier))
+
+                //Queue players for stats refresh
+                StartAndLogThread(new Thread(new ThreadStart(delegate {
+                    Thread.CurrentThread.Name = "SquadGrab";
+                    Thread.Sleep(TimeSpan.FromSeconds(5));
+                    if (_roundOverPlayers != null)
+                    {
+                        //Clear out the round over squad list
+                        _RoundOverSquads.Clear();
+                        //Update all players with their final stats
+                        foreach (var player in _roundOverPlayers)
+                        {
+                            AdKatsPlayer aPlayer;
+                            if (_PlayerDictionary.TryGetValue(player.SoldierName, out aPlayer))
                             {
-                                _RoundOverSquads[squadIdentifier] = new List<AdKatsPlayer>();
-                            }
-                            // Store which squad the player is in
-                            _RoundOverSquads[squadIdentifier].Add(aPlayer);
-                            if (_UseTopPlayerMonitor)
-                            {
-                                // Remove the player's current squad
-                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.frostbitePlayerInfo.TeamID + "", "0", "true");
+                                aPlayer.frostbitePlayerInfo = player;
+                                AdKatsPlayerStats aStats;
+                                if (aPlayer.RoundStats.TryGetValue(_roundID, out aStats))
+                                {
+                                    aStats.LiveStats = player;
+                                }
+                                var squadIdentifier = aPlayer.frostbitePlayerInfo.TeamID.ToString() + aPlayer.frostbitePlayerInfo.SquadID.ToString();
+                                // If the squad isn't loaded yet, load it
+                                if (!_RoundOverSquads.ContainsKey(squadIdentifier))
+                                {
+                                    _RoundOverSquads[squadIdentifier] = new List<AdKatsPlayer>();
+                                }
+                                // Store which squad the player is in
+                                _RoundOverSquads[squadIdentifier].Add(aPlayer);
+                                if (_UseTopPlayerMonitor)
+                                {
+                                    // Remove the player's current squad
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.frostbitePlayerInfo.TeamID + "", "0", "true");
+                                }
                             }
                         }
+                        if (_isTestingAuthorized)
+                        {
+                            Log.Success("Updated round over players.");
+                        }
+                        //Unassign round over players, wait for next round
+                        _roundOverPlayers = null;
                     }
-                    if (_isTestingAuthorized) {
-                        Log.Success("Updated round over players.");
+                    else
+                    {
+                        Log.Error("Round over players not found/ready! Contact ColColonCleaner.");
                     }
-                    //Unassign round over players, wait for next round
-                    _roundOverPlayers = null;
-                }
-                else
-                {
-                    Log.Error("Round over players not found/ready! Contact ColColonCleaner.");
-                }
+                    LogThreadExit();
+                })));
 
                 //Stat refresh
                 List<AdKatsPlayer> roundPlayerObjects;
@@ -14639,7 +14671,7 @@ namespace PRoConEvents
                             if (isCommand && _threadsReady && _firstPlayerListComplete)
                             {
                                 String[] splitMessage = messageObject.Message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                                if (splitMessage.Length == 3 && splitMessage[0] == "AdKatsInstanceCheck")
+                                if (splitMessage.Length == 3 && splitMessage[0] == "AdKatsInstanceCheck" && _enforceSingleInstance)
                                 {
                                     //Message is an instance check, confirm it is from this instance
                                     if (splitMessage[1] == _instanceKey)
@@ -30750,6 +30782,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Inform admins of admin joins", typeof(Boolean), _InformAdminsOfAdminJoins));
                 QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
+                QueueSettingForUpload(new CPluginVariable(@"Enforce Single Instance", typeof(Boolean), _enforceSingleInstance));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
                 QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKManagerEnable));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
