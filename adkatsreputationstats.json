@@ -704,4 +704,19 @@
     "target_weight": 0,
     "source_weight": 0
   }
+  {
+    "command_typeaction": "121|121",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "122|122",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "123|123",
+    "target_weight": 0,
+    "source_weight": 0
+  }
 ] 
