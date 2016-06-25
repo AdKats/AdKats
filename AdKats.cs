@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.113
+ * Version 6.8.1.114
  * 25-JUN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.113</version_code>
+ * <version_code>6.8.1.114</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.113";
+        private const String PluginVersion = "6.8.1.114";
 
         public enum GameVersion
         {
@@ -47101,7 +47101,7 @@ namespace PRoConEvents
                             TeamspeakClient parsedTsClient = new TeamspeakClient();
                             parsedTsClient.TsName = (String)tsClient["client_nickname"];
                             parsedTsClient.AdvIpAddress = (String)tsClient["connection_client_ip"];
-                            parsedTsClient.MedChannelId = Int32.Parse((String)tsClient["client_nickname"]);
+                            parsedTsClient.MedChannelId = Int32.Parse((String)tsClient["cid"]);
                             parsedTsClient.MedChannelName = (String)tsClient["channel_name"];
 
                             // Only add the client to the list of online clients if they are in a monitored channel
