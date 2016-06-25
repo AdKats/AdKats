@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.112
- * 6-JUN-2016
+ * Version 6.8.1.113
+ * 25-JUN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.112</version_code>
+ * <version_code>6.8.1.113</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.112";
+        private const String PluginVersion = "6.8.1.113";
 
         public enum GameVersion
         {
@@ -623,6 +623,7 @@ namespace PRoConEvents
         private Boolean _MULTIBalancerUnswitcherDisabled;
         public readonly String[] _subscriptionGroups = { "OnlineSoldiers" };
         private readonly List<AdKatsClient> _subscribedClients = new List<AdKatsClient>();
+        private String[] _BannedTags = { };
         //Top Players
         private Boolean _UseTopPlayerMonitor;
         private Boolean currentStartingTeam1 = true;
@@ -652,7 +653,6 @@ namespace PRoConEvents
         private Boolean _TeamspeakPlayerPerksBalanceWhitelist;
         private Boolean _TeamspeakPlayerPerksPingWhitelist;
         private Boolean _TeamspeakPlayerPerksTeamKillTrackerWhitelist;
-        private String[] _BannedTags = { };
 
 
         //Hacker-checker
@@ -1498,12 +1498,20 @@ namespace PRoConEvents
                         if (_TeamspeakPlayerMonitorView) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "[" + _tsPlayers.Count() + "] Teamspeak Players (Display)", typeof(String[]), _tsPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Server IP", typeof(String), _tsViewer.Ts3ServerIp));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Server Port", typeof(Int32), _tsViewer.Ts3ServerPort));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Server Query Port", typeof(Int32), _tsViewer.Ts3QueryPort));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Server Query Username", typeof(String), _tsViewer.Ts3QueryUsername));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Server Query Password", typeof(String), _tsViewer.Ts3QueryPassword));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Server Query Nickname", typeof(String), _tsViewer.Ts3QueryNickname));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Use Custom Teamspeak Web Service", typeof(Boolean), _tsViewer.UseWebService));
+                            if (_tsViewer.UseWebService)
+                            {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Web Service URL", typeof(String), _tsViewer.WebServiceURL));
+                            } 
+                            else
+                            {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Server IP", typeof(String), _tsViewer.Ts3ServerIp));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Server Port", typeof(Int32), _tsViewer.Ts3ServerPort));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Server Query Port", typeof(Int32), _tsViewer.Ts3QueryPort));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Server Query Username", typeof(String), _tsViewer.Ts3QueryUsername));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Server Query Password", typeof(String), _tsViewer.Ts3QueryPassword));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Server Query Nickname", typeof(String), _tsViewer.Ts3QueryNickname));
+                            }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Main Channel Name", typeof(String), _tsViewer.Ts3MainChannelName));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Secondary Channel Names", typeof(String[]), _tsViewer.Ts3SubChannelNames));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Debug Display Teamspeak Clients", typeof(Boolean), _tsViewer.DbgClients));
@@ -3718,6 +3726,34 @@ namespace PRoConEvents
                         //No Notification
                         //Upload change to database
                         QueueSettingForUpload(new CPluginVariable(@"Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Use Custom Teamspeak Web Service").Success)
+                {
+                    //Initial parse
+                    Boolean UseWebService = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (UseWebService != _tsViewer.UseWebService)
+                    {
+                        if (_threadsReady && !UseWebService && _tsViewer.UseWebService && _tsViewer.Enabled())
+                        {
+                            Log.Warn("Switching TS monitor modes, it must be re-enabled manually.");
+                            _TeamspeakPlayerMonitorEnable = false;
+                            _tsViewer.Disable();
+                        }
+                        //Assignment
+                        _tsViewer.UseWebService = UseWebService;
+                        //Upload change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Use Custom Teamspeak Web Service", typeof(Boolean), _tsViewer.UseWebService));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Teamspeak Web Service URL").Success)
+                {
+                    if (_tsViewer.WebServiceURL != strValue)
+                    {
+                        _tsViewer.WebServiceURL = strValue;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Web Service URL", typeof(String), _tsViewer.WebServiceURL));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Teamspeak Server IP").Success)
@@ -30667,6 +30703,9 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Populator Perks - TeamKillTracker Whitelist", typeof(Boolean), _PopulatorPerksTeamKillTrackerWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Monitor Teamspeak Players", typeof(Boolean), _TeamspeakPlayerMonitorView));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
+                QueueSettingForUpload(new CPluginVariable(@"Use Custom Teamspeak Web Service", typeof(Boolean), _tsViewer.UseWebService));
+                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Web Service URL", typeof(String), _tsViewer.WebServiceURL));
+                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server IP", typeof(String), _tsViewer.Ts3ServerIp));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Port", typeof(Int32), _tsViewer.Ts3ServerPort));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Port", typeof(Int32), _tsViewer.Ts3QueryPort));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Username", typeof(String), _tsViewer.Ts3QueryUsername));
@@ -44827,7 +44866,7 @@ namespace PRoConEvents
         //Directly pulled from TeamSpeak3Sync and adapted into inline library
         public class TeamSpeakClientViewer
         {
-            public TeamSpeakClientViewer(PRoConPluginAPI plugin)
+            public TeamSpeakClientViewer(AdKats plugin)
             {
                 _plugin = plugin;
 
@@ -44847,6 +44886,11 @@ namespace PRoConEvents
 
                 Ts3QueryNickname = "TeamSpeakClientViewer";
                 Ts3SubChannelNames = new String[] { };
+            }
+
+            public Boolean Enabled()
+            {
+                return _mEnabled;
             }
 
             public void Enable()
@@ -44871,7 +44915,7 @@ namespace PRoConEvents
                 return _mClientTsInfo.ToList();
             }
 
-            private readonly PRoConPluginAPI _plugin;
+            private readonly AdKats _plugin;
 
             private Boolean _mEnabled;
 
@@ -44884,6 +44928,7 @@ namespace PRoConEvents
             public String Ts3MainChannelName { get; set; }
             public String[] Ts3SubChannelNames { get; set; }
             public Boolean DbgClients { get; set; }
+            private Object _teamspeakLocker = new Object();
 
             public enum JoinDisplayType {
                 Disabled,
@@ -44895,6 +44940,8 @@ namespace PRoConEvents
             public JoinDisplayType JoinDisplay = JoinDisplayType.Disabled;
             public String JoinDisplayMessage = "%player% joined teamspeak! Welcome!";
             public Int32 UpdateIntervalSeconds = 30;
+            public Boolean UseWebService = false;
+            public String WebServiceURL = "";
 
             private const Int32 SynDelayQueriesAmount = 1000;
             private const Int32 ErrReconnectOnErrorAttempts = 20;
@@ -45916,6 +45963,7 @@ namespace PRoConEvents
 
                 public Int32? MedDatabaseId = null; //client_database_id
                 public Int32? MedChannelId = null; //cid
+                public String MedChannelName = null;
                 public Int32? MedType = null; //client_type
 
                 public String AdvLoginName = null; //client_login_name
@@ -46738,6 +46786,7 @@ namespace PRoConEvents
                     _mCurrentAction = _mActions.Dequeue();
                     _mActionMutex.ReleaseMutex();
 
+                    // If we are disabled, and the incoming command can't change that, skip processing
                     if (!_mEnabled && _mCurrentAction.Command != Commands.ClientEnabled && _mCurrentAction.Command != Commands.ClientDisabled)
                     {
                         continue;
@@ -46754,7 +46803,14 @@ namespace PRoConEvents
                                 PerformCloseConnection();
                                 break;
                             case Commands.UpdateTsClientInfo:
-                                UpdateTsInfo();
+                                if (UseWebService)
+                                {
+                                    UpdateTsInfoFromService();
+                                }
+                                else
+                                {
+                                    UpdateTsInfo();
+                                }
                                 break;
                         }
                     }
@@ -46782,75 +46838,78 @@ namespace PRoConEvents
 
             private void PerformOpenConnection()
             {
-                for (int secondsSlept = 0; secondsSlept < 10 && Ts3ServerIp == "Teamspeak Ip"; secondsSlept++)
+                if (!UseWebService)
                 {
-                    Thread.Sleep(1000);
-                }
-
-                ConsoleWrite("[Connection] Establishing a connection to a Teamspeak 3 Server.");
-                _mTsResponse = _mTsConnection.Open(Ts3ServerIp, Ts3QueryPort);
-                if (!PerformResponseHandling(Queries.OpenConnectionEstablish))
-                {
-                    return;
-                }
-                ConsoleWrite("[Connection] ^2Established a connection to {0}:{1}.", Ts3ServerIp, Ts3QueryPort);
-
-                ConsoleWrite("[Connection] Attempting to login as a Server Query Client.");
-                SendTeamspeakQuery(TeamspeakQuery.BuildLoginQuery(Ts3QueryUsername, Ts3QueryPassword));
-                if (!PerformResponseHandling(Queries.OpenConnectionLogin))
-                {
-                    return;
-                }
-                ConsoleWrite("[Connection] ^2Logged in as {0}.", Ts3QueryUsername);
-
-                ConsoleWrite("[Connection] Attempting to select the correct virtual server.");
-                SendTeamspeakQuery(TeamspeakQuery.BuildUsePortQuery(Ts3ServerPort));
-                if (!PerformResponseHandling(Queries.OpenConnectionUse))
-                {
-                    return;
-                }
-                ConsoleWrite("[Connection] ^2Selected the virtual server using port {0}.", Ts3ServerPort);
-
-                ConsoleWrite("[Connection] Attempting to find the main channel.");
-                SendTeamspeakQuery(TeamspeakQuery.BuildChannelFindQuery(Ts3MainChannelName));
-                if (!PerformResponseHandling(Queries.OpenConnectionMain))
-                {
-                    return;
-                }
-                _mMainChannel.SetBasicData(_mTsResponse.Sections[0].Groups[0]);
-                ConsoleWrite("[Connection] ^2Found the channel named {0}.", _mMainChannel.TsName);
-
-                ConsoleWrite("[Connection] Attempting to alter the Server Query Client's name.");
-                SendTeamspeakQuery(TeamspeakQuery.BuildChangeNicknameQuery(Ts3QueryNickname));
-                if (!PerformResponseHandling(Queries.OpenConnectionNickname))
-                {
-                    return;
-                }
-                if (_mTsResponse.Id != "513")
-                {
-                    ConsoleWrite("[Connection] ^2Changed the Server Query Client's name to {0}.", Ts3QueryNickname);
-                }
-                _mTsResponse = new TeamspeakResponse("error id=0 msg=ok");
-
-                ConsoleWrite("[Connection] Attempting to find existing pickup, team, and squad channels.");
-                SendTeamspeakQuery(TeamspeakQuery.BuildChannelListQuery());
-                List<TeamspeakChannel> tsChannels = new List<TeamspeakChannel>();
-                foreach (TeamspeakResponseSection tsResponseSection in _mTsResponse.Sections)
-                {
-                    foreach (TeamspeakResponseGroup tsResponseGroup in tsResponseSection.Groups)
+                    for (int secondsSlept = 0; secondsSlept < 10 && Ts3ServerIp == "Teamspeak Ip"; secondsSlept++)
                     {
-                        tsChannels.Add(new TeamspeakChannel(tsResponseGroup));
+                        Thread.Sleep(1000);
                     }
-                }
-                foreach (TeamspeakChannel tsChannel in tsChannels)
-                {
-                    foreach (String tsName in Ts3SubChannelNames)
+
+                    ConsoleWrite("[Connection] Establishing a connection to a Teamspeak 3 Server.");
+                    _mTsResponse = _mTsConnection.Open(Ts3ServerIp, Ts3QueryPort);
+                    if (!PerformResponseHandling(Queries.OpenConnectionEstablish))
                     {
-                        if (tsChannel.TsName == tsName)
+                        return;
+                    }
+                    ConsoleWrite("[Connection] ^2Established a connection to {0}:{1}.", Ts3ServerIp, Ts3QueryPort);
+
+                    ConsoleWrite("[Connection] Attempting to login as a Server Query Client.");
+                    SendTeamspeakQuery(TeamspeakQuery.BuildLoginQuery(Ts3QueryUsername, Ts3QueryPassword));
+                    if (!PerformResponseHandling(Queries.OpenConnectionLogin))
+                    {
+                        return;
+                    }
+                    ConsoleWrite("[Connection] ^2Logged in as {0}.", Ts3QueryUsername);
+
+                    ConsoleWrite("[Connection] Attempting to select the correct virtual server.");
+                    SendTeamspeakQuery(TeamspeakQuery.BuildUsePortQuery(Ts3ServerPort));
+                    if (!PerformResponseHandling(Queries.OpenConnectionUse))
+                    {
+                        return;
+                    }
+                    ConsoleWrite("[Connection] ^2Selected the virtual server using port {0}.", Ts3ServerPort);
+
+                    ConsoleWrite("[Connection] Attempting to find the main channel.");
+                    SendTeamspeakQuery(TeamspeakQuery.BuildChannelFindQuery(Ts3MainChannelName));
+                    if (!PerformResponseHandling(Queries.OpenConnectionMain))
+                    {
+                        return;
+                    }
+                    _mMainChannel.SetBasicData(_mTsResponse.Sections[0].Groups[0]);
+                    ConsoleWrite("[Connection] ^2Found the channel named {0}.", _mMainChannel.TsName);
+
+                    ConsoleWrite("[Connection] Attempting to alter the Server Query Client's name.");
+                    SendTeamspeakQuery(TeamspeakQuery.BuildChangeNicknameQuery(Ts3QueryNickname));
+                    if (!PerformResponseHandling(Queries.OpenConnectionNickname))
+                    {
+                        return;
+                    }
+                    if (_mTsResponse.Id != "513")
+                    {
+                        ConsoleWrite("[Connection] ^2Changed the Server Query Client's name to {0}.", Ts3QueryNickname);
+                    }
+                    _mTsResponse = new TeamspeakResponse("error id=0 msg=ok");
+
+                    ConsoleWrite("[Connection] Attempting to find existing pickup, team, and squad channels.");
+                    SendTeamspeakQuery(TeamspeakQuery.BuildChannelListQuery());
+                    List<TeamspeakChannel> tsChannels = new List<TeamspeakChannel>();
+                    foreach (TeamspeakResponseSection tsResponseSection in _mTsResponse.Sections)
+                    {
+                        foreach (TeamspeakResponseGroup tsResponseGroup in tsResponseSection.Groups)
                         {
-                            _mPickupChannels.Add(tsChannel);
-                            ConsoleWrite("[Connection] ^2Found ^bPickup^n Channel: {0} ({1}).", tsChannel.TsName, tsChannel.TsId);
-                            break;
+                            tsChannels.Add(new TeamspeakChannel(tsResponseGroup));
+                        }
+                    }
+                    foreach (TeamspeakChannel tsChannel in tsChannels)
+                    {
+                        foreach (String tsName in Ts3SubChannelNames)
+                        {
+                            if (tsChannel.TsName == tsName)
+                            {
+                                _mPickupChannels.Add(tsChannel);
+                                ConsoleWrite("[Connection] ^2Found ^bPickup^n Channel: {0} ({1}).", tsChannel.TsName, tsChannel.TsId);
+                                break;
+                            }
                         }
                     }
                 }
@@ -46862,7 +46921,11 @@ namespace PRoConEvents
             private void PerformCloseConnection()
             {
                 ConsoleWrite("[Closing] Shutting down TSCV.");
-                _mTsConnection.Close();
+
+                if (!UseWebService)
+                {
+                    _mTsConnection.Close();
+                }
 
                 ConsoleWrite("[Closing] Cleaning up resources.");
                 _mClientTsInfo.Clear();
@@ -47015,6 +47078,56 @@ namespace PRoConEvents
                 }
                 _mTsReconnecting = false;
                 return false;
+            }
+
+            public void UpdateTsInfoFromService()
+            {
+                _plugin.Log.Debug(() => "Preparing to fetch information from teamspeak web service.", 7);
+                if (String.IsNullOrEmpty(WebServiceURL))
+                {
+                    _plugin.Log.Error("Cannot fetch from teamspeak web service, no URL provided.");
+                    return;
+                }
+
+                using (WebClient client = new WebClient())
+                {
+                    try
+                    {
+                        List<TeamspeakClient> clientInfo = new List<TeamspeakClient>();
+                        String clientResponse = _plugin.ClientDownloadTimer(client, WebServiceURL);
+                        ArrayList tsClientList = (ArrayList)JSON.JsonDecode(clientResponse);
+                        foreach (Hashtable tsClient in tsClientList)
+                        {
+                            TeamspeakClient parsedTsClient = new TeamspeakClient();
+                            parsedTsClient.TsName = (String)tsClient["client_nickname"];
+                            parsedTsClient.AdvIpAddress = (String)tsClient["connection_client_ip"];
+                            parsedTsClient.MedChannelId = Int32.Parse((String)tsClient["client_nickname"]);
+                            parsedTsClient.MedChannelName = (String)tsClient["channel_name"];
+
+                            // Only add the client to the list of online clients if they are in a monitored channel
+                            if (parsedTsClient.MedChannelName == Ts3MainChannelName || 
+                                Ts3SubChannelNames.Contains(parsedTsClient.MedChannelName))
+                            {
+                                clientInfo.Add(parsedTsClient);
+                            }
+                        }
+                        _mClientTsInfo = clientInfo;
+                        if (_plugin._isTestingAuthorized)
+                        {
+                            _plugin.Log.Info("TS Clients Fetched:" + tsClientList.Count + " Monitored:" + _mClientTsInfo.Count);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        if (e is WebException)
+                        {
+                            _plugin.Log.Warn("Issue connecting to teamspeak web service.");
+                            return;
+                        }
+                        _plugin.HandleException(new AdKatsException("Error while parsing teamspeak web service data.", e));
+                        return;
+                    }
+                }
             }
 
             private void UpdateTsInfo()
