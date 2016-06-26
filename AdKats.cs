@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.114
- * 25-JUN-2016
+ * Version 6.8.1.115
+ * 26-JUN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.114</version_code>
+ * <version_code>6.8.1.115</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.114";
+        private const String PluginVersion = "6.8.1.115";
 
         public enum GameVersion
         {
@@ -12384,7 +12384,8 @@ namespace PRoConEvents
                                         {
                                             repMessage += "a clean infraction record. ";
                                         }
-                                        if (!isAdmin && _isTestingAuthorized)
+                                        //TODO add this back
+                                        if (!isAdmin && _isTestingAuthorized && false)
                                         {
                                             repMessage += Environment.NewLine;
                                             if (aPlayer.player_reputation < _reputationThresholdGood)
@@ -14133,7 +14134,7 @@ namespace PRoConEvents
         {
             Boolean nonAdminsTold = false;
             Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
-            if (_isTestingAuthorized) {
+            if (_isTestingAuthorized && false) {
                 foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()){
                     if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
                         if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) || 
@@ -14206,7 +14207,7 @@ namespace PRoConEvents
         {
             Boolean nonAdminsTold = false;
             Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
-            if (_isTestingAuthorized) {
+            if (_isTestingAuthorized && false) {
                 foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
                     if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
                         if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
@@ -14279,7 +14280,7 @@ namespace PRoConEvents
         {
             Boolean nonAdminsTold = false;
             Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
-            if (_isTestingAuthorized) {
+            if (_isTestingAuthorized && false) {
                 foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
                     if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
                         if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
