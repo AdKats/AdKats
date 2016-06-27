@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.116
+ * Version 6.8.1.117
  * 26-JUN-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.116</version_code>
+ * <version_code>6.8.1.117</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.116";
+        private const String PluginVersion = "6.8.1.117";
 
         public enum GameVersion
         {
@@ -14404,6 +14404,11 @@ namespace PRoConEvents
                     message = message.Replace("[SpamBotMessage]", "");
                     spambotMessage = true;
                 }
+                const string bypassPrefix = "[whitelistbypass]";
+                while (message.Contains(bypassPrefix))
+                {
+                    message = message.Replace(bypassPrefix, "");
+                }
                 if (displayProconChat) {
                     ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Say > " + message);
                 }
@@ -14446,6 +14451,11 @@ namespace PRoConEvents
                 if (message.Contains("[SpamBotMessage]")) {
                     message = message.Replace("[SpamBotMessage]", "");
                     spambotMessage = true;
+                }
+                const string bypassPrefix = "[whitelistbypass]";
+                while (message.Contains(bypassPrefix))
+                {
+                    message = message.Replace(bypassPrefix, "");
                 }
                 if (displayProconChat) {
                     ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Say > " + target + " > " + message);
@@ -14490,6 +14500,11 @@ namespace PRoConEvents
                     message = message.Replace("[SpamBotMessage]", "");
                     spambotMessage = true;
                 }
+                const string bypassPrefix = "[whitelistbypass]";
+                while (message.Contains(bypassPrefix))
+                {
+                    message = message.Replace(bypassPrefix, "");
+                }
                 if (displayProconChat) {
                     ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Yell[" + _YellDuration + "s] > " + message);
                 }
@@ -14522,6 +14537,11 @@ namespace PRoConEvents
                     message = message.Replace("[SpamBotMessage]", "");
                     spambotMessage = true;
                 }
+                const string bypassPrefix = "[whitelistbypass]";
+                while (message.Contains(bypassPrefix))
+                {
+                    message = message.Replace(bypassPrefix, "");
+                }
                 if (displayProconChat) {
                     ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Yell[" + _YellDuration + "s] > " + target + " > " + message);
                 }
@@ -14549,6 +14569,11 @@ namespace PRoConEvents
                 message = message.Replace("[SpamBotMessage]", "");
                 spambotMessage = true;
             }
+            const string bypassPrefix = "[whitelistbypass]";
+            while (message.Contains(bypassPrefix))
+            {
+                message = message.Replace(bypassPrefix, "");
+            }
             if (displayProconChat) {
                 ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + message);
             }
@@ -14566,6 +14591,11 @@ namespace PRoConEvents
             if (message.Contains("[SpamBotMessage]")) {
                 message = message.Replace("[SpamBotMessage]", "");
                 spambotMessage = true;
+            }
+            const string bypassPrefix = "[whitelistbypass]";
+            while (message.Contains(bypassPrefix))
+            {
+                message = message.Replace(bypassPrefix, "");
             }
             if (displayProconChat) {
                 ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + target + " > " + message);
