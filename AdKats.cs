@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.117
- * 26-JUN-2016
+ * Version 6.8.1.118
+ * 30-JUL-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.117</version_code>
+ * <version_code>6.8.1.118</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.117";
+        private const String PluginVersion = "6.8.1.118";
 
         public enum GameVersion
         {
@@ -10384,23 +10384,6 @@ namespace PRoConEvents
                         stat_comment = aPlayer.player_name + " top player in position " + (WinningPlayers.IndexOf(aPlayer) + 1),
                         stat_time = UtcNow()
                     });
-                }
-                if (_surrenderAutoTriggerCountCurrent > 0 && winningTeam.GetTicketDifferenceRate() > losingTeam.GetTicketDifferenceRate())
-                {
-                    foreach (AdKatsPlayer aPlayer in WinningPlayers.Take((Int32)(WinningPlayers.Count / 3.5)).ToList())
-                    {
-                        QueueStatisticForProcessing(new AdKatsStatistic()
-                        {
-                            stat_type = AdKatsStatistic.StatisticType.player_baserape,
-                            server_id = _serverInfo.ServerID,
-                            round_id = _roundID,
-                            target_name = aPlayer.player_name,
-                            target_player = aPlayer,
-                            stat_value = aPlayer.frostbitePlayerInfo.SquadID,
-                            stat_comment = aPlayer.player_name + " baseraped from " + GetPlayerTeamKey(aPlayer) + " in position " + (WinningPlayers.IndexOf(aPlayer) + 1),
-                            stat_time = UtcNow()
-                        });
-                    }
                 }
             }
             catch (Exception e)
@@ -37397,12 +37380,13 @@ namespace PRoConEvents
                                 }
                             }
                         }
-                        if (_PopulatorMonitor) {
-                            UpdatePopulatorPlayers();
-                        }
-                        if (_UseTopPlayerMonitor) {
-                            UpdateTopPlayers();
-                        }
+
+                        //Fetch populator players
+                        UpdatePopulatorPlayers();
+
+                        //Fetch top players
+                        UpdateTopPlayers();
+
                         //Update the verbose special player cache
                         List<String> validVerboseSpecialPlayers = new List<String>();
                         foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name))
@@ -43170,7 +43154,6 @@ namespace PRoConEvents
                 map_detriment,
                 player_win,
                 player_loss,
-                player_baserape,
                 player_top,
                 round_quality,
                 battlelog_requestfreq,
@@ -43352,7 +43335,7 @@ namespace PRoConEvents
                     do
                     {
                         removed = false;
-                        if (TeamTicketCounts.Any() && (Plugin.UtcNow() - TeamTicketCounts.Peek().Value).TotalSeconds > 60)
+                        if (TeamTicketCounts.Any() && (Plugin.UtcNow() - TeamTicketCounts.Peek().Value).TotalSeconds > 90)
                         {
                             TeamTicketCounts.Dequeue();
                             TeamTicketCountsFull = true;
