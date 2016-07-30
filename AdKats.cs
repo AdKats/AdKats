@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.118
+ * Version 6.8.1.119
  * 30-JUL-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.118</version_code>
+ * <version_code>6.8.1.119</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.118";
+        private const String PluginVersion = "6.8.1.119";
 
         public enum GameVersion
         {
@@ -262,6 +262,7 @@ namespace PRoConEvents
         private DateTime _lastIPAPIError = DateTime.UtcNow;
         private DateTime _lastBattlelogFrequencyMessage = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private Queue<DateTime> _BattlelogActionTimes = new Queue<DateTime>();
+        private List<TimeSpan> _startupDurations = new List<TimeSpan>();
 
         //Server
         private PopulationState _populationStatus = PopulationState.Unknown;
@@ -1835,6 +1836,7 @@ namespace PRoConEvents
             lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Debug level", typeof(Int32), Log.DebugLevel));
             lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
             lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
+            lstReturn.Add(new CPluginVariable("startup_durations", typeof(String[]), _startupDurations.Select(duration => ((int)duration.TotalSeconds).ToString()).Take(5).ToArray()));
 
             return lstReturn;
         }
@@ -1850,6 +1852,11 @@ namespace PRoConEvents
                 if (strVariable == "UpdateSettings")
                 {
                     //Do nothing. Settings page will be updated after return.
+                }
+                else if (strVariable == "startup_durations")
+                {
+                    var stringDurations = CPluginVariable.DecodeStringArray(strValue);
+                    _startupDurations = stringDurations.Select(stringDuration => TimeSpan.FromSeconds(Int32.Parse(stringDuration))).ToList();
                 }
                 else if (Regex.Match(strVariable, @"Auto-Enable/Keep-Alive").Success)
                 {
@@ -7194,8 +7201,11 @@ namespace PRoConEvents
                                     foreach (TeamSpeakClientViewer.TeamspeakClient client in _tsViewer.GetPlayersOnTs())
                                     {
                                         IEnumerable<AdKatsPlayer> matching = _PlayerDictionary.Values.ToList().Where(dPlayer => 
-                                            (!String.IsNullOrEmpty(client.AdvIpAddress) && !String.IsNullOrEmpty(dPlayer.player_ip) && client.AdvIpAddress == dPlayer.player_ip) || 
-                                            ((String.IsNullOrEmpty(client.AdvIpAddress) || String.IsNullOrEmpty(dPlayer.player_ip)) && PercentMatch(client.TsName, dPlayer.player_name) > 80));
+                                            // Do not include spectators in this list
+                                            dPlayer.player_type != PlayerType.Spectator &&
+                                            // Match by IP or by name (only if no IP is available), percent matching over 80%
+                                            ((!String.IsNullOrEmpty(client.AdvIpAddress) && !String.IsNullOrEmpty(dPlayer.player_ip) && client.AdvIpAddress == dPlayer.player_ip) || 
+                                             ((String.IsNullOrEmpty(client.AdvIpAddress) || String.IsNullOrEmpty(dPlayer.player_ip)) && PercentMatch(client.TsName, dPlayer.player_name) > 80)));
                                         if (_tsViewer.DbgClients)
                                         {
                                             Log.Info("TSClient: " + client.TsName + " | " + client.AdvIpAddress + " | " + ((matching.Any()) ? (matching.Count() + " online players match client.") : ("No matching online players.")));
@@ -9195,7 +9205,15 @@ namespace PRoConEvents
                             RegisterCommand(_fetchAuthorizedSoldiersMatchCommand);
                             _threadMasterWaitHandle.WaitOne(500);
 
-                            OnlineAdminTellMessage("AdKats startup complete [" + FormatTimeString(UtcNow() - _AdKatsStartTime, 3) + "]. Commands are now online.");
+                            var startupDuration = NowDuration(_AdKatsStartTime);
+                            _startupDurations.Add(startupDuration);
+                            var averageStartupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds));
+                            var averageDurationString = "";
+                            if (_isTestingAuthorized)
+                            {
+                                averageDurationString = "(" + FormatTimeString(averageStartupDuration, 3) + ":" + _startupDurations.Count() + ")";
+                            }
+                            OnlineAdminTellMessage("AdKats startup complete [" + FormatTimeString(startupDuration, 3) + "]" + averageDurationString + ". Commands are now online.");
                             foreach (String playerName in _PlayersRequestingCommands)
                             {
                                 AdKatsPlayer aPlayer;
@@ -9203,7 +9221,7 @@ namespace PRoConEvents
                                 {
                                     if (!PlayerIsAdmin(aPlayer))
                                     {
-                                        PlayerTellMessage(aPlayer.player_name, "Commands are now online. Thank you for your patience.");
+                                        PlayerTellMessage(aPlayer.player_name, "AdKats commands now online. Thank you for your patience.");
                                     }
                                 }
                             }
@@ -16233,13 +16251,33 @@ namespace PRoConEvents
                     {
                         _PlayersRequestingCommands.Add(record.source_name);
                     }
-                    if (!_firstUserListComplete)
+                    if (_startupDurations.Count() >= 2)
                     {
-                        SendMessageToSource(record, "Command startup in progress, 1/3 complete, " + FormatTimeString(UtcNow() - _AdKatsStartTime, 3) + " elapsed.");
+                        var averageStartupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds));
+                        var currentStartupDuration = NowDuration(_AdKatsStartTime);
+                        if (averageStartupDuration > currentStartupDuration)
+                        {
+                            //Give estimated remaining time
+                            SendMessageToSource(record, "AdKats starting up; ~" + 
+                                Math.Round(currentStartupDuration.TotalSeconds / averageStartupDuration.TotalSeconds * 100) + "% ready, ~" + 
+                                FormatTimeString(averageStartupDuration - currentStartupDuration, 3) + " remaining.");
+                        }
+                        else
+                        {
+                            //Just say 'shortly'
+                            SendMessageToSource(record, "AdKats starting up; Ready shortly.");
+                        }
                     }
                     else
                     {
-                        SendMessageToSource(record, "Command startup in progress, 2/3 complete, " + FormatTimeString(UtcNow() - _AdKatsStartTime, 3) + " elapsed.");
+                        if (!_firstUserListComplete)
+                        {
+                            SendMessageToSource(record, "AdKats starting up; 1/3 ready, " + FormatTimeString(UtcNow() - _AdKatsStartTime, 3) + " elapsed.");
+                        }
+                        else
+                        {
+                            SendMessageToSource(record, "AdKats starting up; 2/3 ready, " + FormatTimeString(UtcNow() - _AdKatsStartTime, 3) + " elapsed.");
+                        }
                     }
                     FinalizeRecord(record);
                     return;
@@ -40843,7 +40881,7 @@ namespace PRoConEvents
                 return false;
             }
         }
-
+        
         public TimeSpan NowDuration(DateTime diff) {
             return (UtcNow() - diff).Duration();
         }
