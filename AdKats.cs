@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.121
- * 30-JUL-2016
+ * Version 6.8.1.123
+ * 31-JUL-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.121</version_code>
+ * <version_code>6.8.1.123</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.121";
+        private const String PluginVersion = "6.8.1.123";
 
         public enum GameVersion
         {
@@ -614,6 +614,7 @@ namespace PRoConEvents
         private Boolean _FeedTeamKillTrackerWhitelist_Admins;
         private Boolean _FeedServerReservedSlots;
         private Boolean _FeedServerReservedSlots_Admins = true;
+        private Boolean _FeedServerReservedSlots_Admins_Online = false;
         private Boolean _FeedServerSpectatorList;
         private Boolean _FeedServerSpectatorList_Admins;
         private Boolean _FeedStatLoggerSettings;
@@ -650,7 +651,7 @@ namespace PRoConEvents
         private Boolean _TeamspeakPlayerMonitorEnable;
         private readonly Dictionary<String, AdKatsPlayer> _tsPlayers = new Dictionary<String, AdKatsPlayer>();
         private Boolean _TeamspeakPlayerPerksEnable;
-        private Boolean _TeamspeakPlayerPerksReservedSlot;
+        private Boolean _TeamspeakPlayerPerksVIPKickWhitelist;
         private Boolean _TeamspeakPlayerPerksBalanceWhitelist;
         private Boolean _TeamspeakPlayerPerksPingWhitelist;
         private Boolean _TeamspeakPlayerPerksTeamKillTrackerWhitelist;
@@ -1287,6 +1288,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed Server Reserved Slots", typeof(Boolean), _FeedServerReservedSlots));
                         if (_FeedServerReservedSlots) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic VIP Kick Whitelist for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins_Online));
                         }
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
                         if (_FeedServerSpectatorList) {
@@ -1530,7 +1532,7 @@ namespace PRoConEvents
                                 _tsViewer.UpdateIntervalSeconds));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Enable Teamspeak Player Perks", typeof(Boolean), _TeamspeakPlayerPerksEnable));
                             if (_TeamspeakPlayerPerksEnable) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Player Perks - Reserved Slot", typeof(Boolean), _TeamspeakPlayerPerksReservedSlot));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Player Perks - VIP Kick Whitelist", typeof(Boolean), _TeamspeakPlayerPerksVIPKickWhitelist));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Player Perks - Autobalance Whitelist", typeof(Boolean), _TeamspeakPlayerPerksBalanceWhitelist));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Player Perks - Ping Whitelist", typeof(Boolean), _TeamspeakPlayerPerksPingWhitelist));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
@@ -1746,7 +1748,15 @@ namespace PRoConEvents
                                     lock (_specialPlayerGroupKeyDictionary) {
                                         Random random = new Random();
                                         String rolePrefix = GetSettingSection("4-2") + t + "RLE" + aRole.role_id + s + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + s;
-                                        lstReturn.AddRange(from aGroup in _specialPlayerGroupKeyDictionary.Values let allowed = aRole.RoleSetGroups.ContainsKey(aGroup.group_key) || (aGroup.group_key == "slot_reserved" && _FeedServerReservedSlots && _FeedServerReservedSlots_Admins && RoleIsAdmin(aRole)) || (aGroup.group_key == "slot_spectator" && _FeedServerSpectatorList && _FeedServerSpectatorList_Admins && RoleIsAdmin(aRole)) || (aGroup.group_key == "whitelist_multibalancer" && _FeedMultiBalancerWhitelist && _FeedMultiBalancerWhitelist_Admins && RoleIsAdmin(aRole)) || (aGroup.group_key == "whitelist_teamkill" && _FeedTeamKillTrackerWhitelist && _FeedTeamKillTrackerWhitelist_Admins && RoleIsAdmin(aRole)) || (aGroup.group_key == "whitelist_spambot" && _spamBotExcludeAdminsAndWhitelist && RoleIsAdmin(aRole)) let display = rolePrefix + "GPE" + aGroup.group_id + s + aGroup.group_name select new CPluginVariable(display, "enum.roleSetGroupEnum(Assign|Ignore)", allowed ? ("Assign") : ("Ignore")));
+                                        lstReturn.AddRange(from aGroup in _specialPlayerGroupKeyDictionary.Values let allowed = 
+                                                           aRole.RoleSetGroups.ContainsKey(aGroup.group_key) || 
+                                                           (aGroup.group_key == "slot_reserved" && _FeedServerReservedSlots && _FeedServerReservedSlots_Admins && RoleIsAdmin(aRole)) || 
+                                                           (aGroup.group_key == "slot_spectator" && _FeedServerSpectatorList && _FeedServerSpectatorList_Admins && RoleIsAdmin(aRole)) || 
+                                                           (aGroup.group_key == "whitelist_multibalancer" && _FeedMultiBalancerWhitelist && _FeedMultiBalancerWhitelist_Admins && RoleIsAdmin(aRole)) || 
+                                                           (aGroup.group_key == "whitelist_teamkill" && _FeedTeamKillTrackerWhitelist && _FeedTeamKillTrackerWhitelist_Admins && RoleIsAdmin(aRole)) || 
+                                                           (aGroup.group_key == "whitelist_spambot" && _spamBotExcludeAdminsAndWhitelist && RoleIsAdmin(aRole))
+                                                           let display = rolePrefix + "GPE" + aGroup.group_id + s + aGroup.group_name
+                                                           select new CPluginVariable(display, "enum.roleSetGroupEnum(Assign|Ignore)", allowed ? ("Assign") : ("Ignore")));
                                     }
                                 }
                             }
@@ -3273,6 +3283,17 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins));
                     }
                 }
+                else if (Regex.Match(strVariable, @"Automatic VIP Kick Whitelist for Admins").Success)
+                {
+                    Boolean feedSRSUser = Boolean.Parse(strValue);
+                    if (feedSRSUser != _FeedServerReservedSlots_Admins_Online)
+                    {
+                        _FeedServerReservedSlots_Admins_Online = feedSRSUser;
+                        FetchAllAccess(true);
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic VIP Kick Whitelist for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins_Online));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Feed Server Spectator List").Success)
                 {
                     Boolean feedSSL = Boolean.Parse(strValue);
@@ -3906,36 +3927,36 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Enable Teamspeak Player Perks", typeof(Boolean), _TeamspeakPlayerPerksEnable));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Teamspeak Player Perks - Reserved Slot").Success)
+                else if (Regex.Match(strVariable, @"Teamspeak Player Perks - VIP Kick Whitelist").Success)
                 {
                     //Initial parse
                     Boolean TeamspeakPlayerPerksReservedSlot = Boolean.Parse(strValue);
                     //Check for changed value
-                    if (TeamspeakPlayerPerksReservedSlot != _TeamspeakPlayerPerksReservedSlot)
+                    if (TeamspeakPlayerPerksReservedSlot != _TeamspeakPlayerPerksVIPKickWhitelist)
                     {
                         //Rejection cases
                         if (_threadsReady && !_FeedServerReservedSlots && TeamspeakPlayerPerksReservedSlot)
                         {
-                            Log.Error("'Teamspeak Player Perks - Reserved Slot' cannot be enabled when 'Feed Server Reserved Slots' is disabled.");
+                            Log.Error("'Teamspeak Player Perks - VIP Kick Whitelist' cannot be enabled when 'Feed Server Reserved Slots' is disabled.");
                             return;
                         }
                         //Assignment
-                        _TeamspeakPlayerPerksReservedSlot = TeamspeakPlayerPerksReservedSlot;
+                        _TeamspeakPlayerPerksVIPKickWhitelist = TeamspeakPlayerPerksReservedSlot;
                         //Notification
                         if (_threadsReady)
                         {
-                            if (_TeamspeakPlayerPerksReservedSlot)
+                            if (_TeamspeakPlayerPerksVIPKickWhitelist)
                             {
-                                Log.Info("Teamspeak Player perks now include reserved slot.");
+                                Log.Info("Teamspeak Player perks now include VIP Kick Whitelist.");
                             }
                             else
                             {
-                                Log.Info("Teamspeak Player perks no longer include reserved slot.");
+                                Log.Info("Teamspeak Player perks no longer include VIP Kick Whitelist.");
                             }
                             FetchAllAccess(true);
                         }
-                        //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Reserved Slot", typeof(Boolean), _TeamspeakPlayerPerksReservedSlot));
+                        //Upload change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - VIP Kick Whitelist", typeof(Boolean), _TeamspeakPlayerPerksVIPKickWhitelist));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Teamspeak Player Perks - Autobalance Whitelist").Success)
@@ -8507,6 +8528,7 @@ namespace PRoConEvents
                                 removedPlayers.Add(playerInfo.SoldierName);
                             }
                             List<string> validPlayers = new List<String>();
+                            var fetchAccessAfterList = false;
                             if (inboundPlayerList.Count > 0)
                             {
                                 Log.Debug(() => "Listing Players", 5);
@@ -8805,10 +8827,10 @@ namespace PRoConEvents
                                                 };
                                                 QueueRecordForProcessing(record);
                                             }
-                                        } 
+                                        }
+                                        bool isAdmin = PlayerIsAdmin(aPlayer);
                                         if (_firstPlayerListComplete)
                                         {
-                                            bool isAdmin = PlayerIsAdmin(aPlayer);
                                             //Notify reputable players
                                             if (isAdmin || aPlayer.player_aa)
                                             {
@@ -8847,6 +8869,11 @@ namespace PRoConEvents
                                         aPlayer.lastAction = UtcNow();
                                         //Add them to the dictionary
                                         _PlayerDictionary.Add(playerInfo.SoldierName, aPlayer);
+                                        //If they are an admin, and if we protect admins from VIP kicks, update the user list
+                                        if (_firstPlayerListComplete && isAdmin && _FeedServerReservedSlots && _FeedServerReservedSlots_Admins_Online)
+                                        {
+                                            fetchAccessAfterList = true;
+                                        }
                                         //Update rep
                                         UpdatePlayerReputation(aPlayer, false);
                                         //If using ban enforcer, check the player's ban status
@@ -9042,6 +9069,10 @@ namespace PRoConEvents
                                     //Clear populators
                                     _populationPopulatingPlayers.Clear();
                                 }
+                            }
+                            if (fetchAccessAfterList)
+                            {
+                                FetchAllAccess(true);
                             }
                             if (_PlayerRoleRefetch)
                             {
@@ -30739,6 +30770,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Feed TeamKillTracker Whitelist", typeof(Boolean), _FeedTeamKillTrackerWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic TeamKillTracker Whitelist for Admins", typeof(Boolean), _FeedTeamKillTrackerWhitelist_Admins));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic VIP Kick Whitelist for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins_Online));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Spectator Slot for Admins", typeof(Boolean), _FeedServerSpectatorList_Admins));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof(Boolean), _FeedServerReservedSlots));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
@@ -30774,7 +30806,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Message", typeof(String), _tsViewer.JoinDisplayMessage));
                 QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Update Seconds", typeof(Int32), _tsViewer.UpdateIntervalSeconds));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Teamspeak Player Perks", typeof(Boolean), _TeamspeakPlayerPerksEnable));
-                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Reserved Slot", typeof(Boolean), _TeamspeakPlayerPerksReservedSlot));
+                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - VIP Kick Whitelist", typeof(Boolean), _TeamspeakPlayerPerksVIPKickWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Autobalance Whitelist", typeof(Boolean), _TeamspeakPlayerPerksBalanceWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Ping Whitelist", typeof(Boolean), _TeamspeakPlayerPerksPingWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
@@ -37487,6 +37519,27 @@ namespace PRoConEvents
                                             });
                                         }
                                     }
+                                    //Pull players from automatic VIP kick protection
+                                    if (_userCache.Count > 0 && _FeedServerReservedSlots && _FeedServerReservedSlots_Admins_Online)
+                                    {
+                                        foreach (AdKatsPlayer aPlayer in FetchOnlineAdminSoldiers().Where(aPlayer => 
+                                            aPlayer.game_id == _serverInfo.GameID && 
+                                            !tempASPlayers.Any(asp => 
+                                                asp.player_object != null && 
+                                                asp.player_object.player_id == aPlayer.player_id)))
+                                        {
+                                            tempASPlayers.Add(new AdKatsSpecialPlayer()
+                                            {
+                                                player_game = (int)_serverInfo.GameID,
+                                                player_server = (int)_serverInfo.ServerID,
+                                                player_group = asGroup,
+                                                player_identifier = aPlayer.player_name,
+                                                player_object = aPlayer,
+                                                player_effective = UtcNow(),
+                                                player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
+                                            });
+                                        }
+                                    }
                                     //Pull players from perk list
                                     if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksReservedSlot)
                                     {
@@ -37507,7 +37560,7 @@ namespace PRoConEvents
                                             }
                                         }
                                     }
-                                    if (_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksReservedSlot)
+                                    if (_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksVIPKickWhitelist)
                                     {
                                         lock (_tsPlayers)
                                         {
@@ -43474,8 +43527,8 @@ namespace PRoConEvents
                         }
                         if (Plugin._serverInfo.InfoObject.GameMode == "ConquestLarge0")
                         {
-                            //On conquest large, only allow the value to change by +-8.0t/m with each tick, helps with auto-nuke
-                            var change = 8.0;
+                            //On conquest large, only allow the value to change by +-5.0t/m with each tick, helps with auto-nuke
+                            var change = 5.0;
                             if (Math.Abs(TeamAdjustedTicketDifferenceRate - newAdjustedRate) <= change)
                             {
                                 TeamAdjustedTicketDifferenceRate = newAdjustedRate;
