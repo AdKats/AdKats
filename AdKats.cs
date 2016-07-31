@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.120
+ * Version 6.8.1.121
  * 30-JUL-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.120</version_code>
+ * <version_code>6.8.1.121</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.120";
+        private const String PluginVersion = "6.8.1.121";
 
         public enum GameVersion
         {
@@ -43467,10 +43467,34 @@ namespace PRoConEvents
                         }
                         ticketDifferences.Sort();
                         //Convert to tickets/min
-                        TeamAdjustedTicketDifferenceRate = (ticketDifferences.Sum() / ticketDifferences.Count) * 60;
-                        if (Double.IsNaN(TeamAdjustedTicketDifferenceRate) || TeamAdjustedTicketDifferenceRate > 0)
+                        var newAdjustedRate = (ticketDifferences.Sum() / ticketDifferences.Count) * 60;
+                        if (Double.IsNaN(newAdjustedRate) || newAdjustedRate > 0)
                         {
-                            TeamAdjustedTicketDifferenceRate = 0;
+                            newAdjustedRate = 0;
+                        }
+                        if (Plugin._serverInfo.InfoObject.GameMode == "ConquestLarge0")
+                        {
+                            //On conquest large, only allow the value to change by +-8.0t/m with each tick, helps with auto-nuke
+                            var change = 8.0;
+                            if (Math.Abs(TeamAdjustedTicketDifferenceRate - newAdjustedRate) <= change)
+                            {
+                                TeamAdjustedTicketDifferenceRate = newAdjustedRate;
+                            }
+                            else
+                            {
+                                if (newAdjustedRate > TeamAdjustedTicketDifferenceRate)
+                                {
+                                    TeamAdjustedTicketDifferenceRate += change;
+                                }
+                                else
+                                {
+                                    TeamAdjustedTicketDifferenceRate -= change;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            TeamAdjustedTicketDifferenceRate = newAdjustedRate;
                         }
                         TeamAdjustedTicketDifferenceRates.Enqueue(new KeyValuePair<double, DateTime>(TeamAdjustedTicketDifferenceRate, subTicketTime));
 
