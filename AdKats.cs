@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.123
- * 31-JUL-2016
+ * Version 6.8.1.124
+ * 1-AUG-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.123</version_code>
+ * <version_code>6.8.1.124</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.123";
+        private const String PluginVersion = "6.8.1.124";
 
         public enum GameVersion
         {
@@ -43421,7 +43421,7 @@ namespace PRoConEvents
                         TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
                     }
 
-                    //Remove old values (more than 60 seconds ago)
+                    //Remove old values (more than 90 seconds ago)
                     Boolean removed = false;
                     do
                     {
@@ -43478,17 +43478,17 @@ namespace PRoConEvents
                         return;
                     }
 
-                    //Remove old values (more than 45 seconds ago)
+                    //Remove old values (more than 90 seconds ago)
                     Boolean removed = false;
                     do
                     {
                         removed = false;
-                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcNow() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 45)
+                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcNow() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 90)
                         {
                             TeamAdjustedTicketCounts.Dequeue();
                             removed = true;
                         }
-                        if (TeamAdjustedTicketDifferenceRates.Any() && (Plugin.UtcNow() - TeamAdjustedTicketDifferenceRates.Peek().Value).TotalSeconds > 45)
+                        if (TeamAdjustedTicketDifferenceRates.Any() && (Plugin.UtcNow() - TeamAdjustedTicketDifferenceRates.Peek().Value).TotalSeconds > 90)
                         {
                             TeamAdjustedTicketDifferenceRates.Dequeue();
                             removed = true;
@@ -43525,24 +43525,29 @@ namespace PRoConEvents
                         {
                             newAdjustedRate = 0;
                         }
-                        if (Plugin._serverInfo.InfoObject.GameMode == "ConquestLarge0")
+                        if (Plugin._serverInfo.InfoObject.GameMode == "ConquestLarge0" && Plugin._gameVersion == GameVersion.BF4)
                         {
-                            //On conquest large, only allow the value to change by +-5.0t/m with each tick, helps with auto-nuke
-                            var change = 5.0;
-                            if (Math.Abs(TeamAdjustedTicketDifferenceRate - newAdjustedRate) <= change)
+                            //On conquest large, only allow the value to change by 
+                            //2.5t/m away from zero with each tick, and 
+                            //10.0t/m toward zero with each tick, helps with auto-nuke
+                            var outChange = 2.5;
+                            var inChange = 10.0;
+
+                            var maxOut = Math.Max(TeamAdjustedTicketDifferenceRate - outChange, -999);
+                            var maxIn = Math.Min(TeamAdjustedTicketDifferenceRate + inChange, 0);
+                            
+                            //Is the new rate more out?
+                            if (newAdjustedRate < TeamAdjustedTicketDifferenceRate)
                             {
-                                TeamAdjustedTicketDifferenceRate = newAdjustedRate;
+                                TeamAdjustedTicketDifferenceRate = Math.Max(newAdjustedRate, maxOut);
                             }
                             else
                             {
-                                if (newAdjustedRate > TeamAdjustedTicketDifferenceRate)
-                                {
-                                    TeamAdjustedTicketDifferenceRate += change;
-                                }
-                                else
-                                {
-                                    TeamAdjustedTicketDifferenceRate -= change;
-                                }
+                                TeamAdjustedTicketDifferenceRate = Math.Min(newAdjustedRate, maxIn);
+                            }
+                            if (Plugin._isTestingAuthorized)
+                            {
+                                Plugin.Log.Success(this.TeamKey + " new rate: " + Math.Round(TeamAdjustedTicketDifferenceRate));
                             }
                         }
                         else
