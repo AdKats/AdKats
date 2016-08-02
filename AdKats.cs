@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.126
- * 1-AUG-2016
+ * Version 6.8.1.127
+ * 2-AUG-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.126</version_code>
+ * <version_code>6.8.1.127</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.126";
+        private const String PluginVersion = "6.8.1.127";
 
         public enum GameVersion
         {
@@ -6853,7 +6853,6 @@ namespace PRoConEvents
                     DateTime lastShortKeepAliveCheck = UtcNow();
                     DateTime lastLongKeepAliveCheck = UtcNow();
                     ExecuteCommand("procon.protected.send", "serverInfo");
-                    DateTime lastServerInfoRequest = UtcNow();
                     DateTime lastMemoryWarning = UtcNow();
                     while (true)
                     {
@@ -7348,11 +7347,10 @@ namespace PRoConEvents
                                 lastShortKeepAliveCheck = UtcNow();
                             }
 
-                            if (_threadsReady && (UtcNow() - lastServerInfoRequest).TotalSeconds > 10)
+                            if (_threadsReady && NowDuration(_LastServerInfoFire).TotalSeconds > 9.5)
                             {
                                 ExecuteCommand("procon.protected.send", "serverInfo");
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
-                                lastServerInfoRequest = UtcNow();
                             }
 
                             //Auto-Nuke Slay Duration
@@ -9604,10 +9602,6 @@ namespace PRoConEvents
                         if (serverInfo != null)
                         {
                             //Get the server info
-                            if (NowDuration(_LastServerInfoFire).TotalSeconds < 9.5)
-                            {
-                                return;
-                            }
                             _LastServerInfoFire = UtcNow();
                             _serverInfo.SetInfoObject(serverInfo);
                             if (serverInfo.TeamScores != null)
@@ -43501,6 +43495,8 @@ namespace PRoConEvents
                         }
                     } while (removed);
 
+                    Double oldAdjustedDifferenceRate = TeamAdjustedTicketDifferenceRate;
+
                     //Interpolation
                     DateTime oldTicketTime = TeamAdjustedTicketsTime;
                     Double oldTicketValue = TeamAdjustedTicketCount;
@@ -43526,40 +43522,10 @@ namespace PRoConEvents
                         }
                         ticketDifferences.Sort();
                         //Convert to tickets/min
-                        var newAdjustedRate = (ticketDifferences.Sum() / ticketDifferences.Count) * 60;
-                        if (Double.IsNaN(newAdjustedRate) || newAdjustedRate > 0)
+                        var TeamAdjustedTicketDifferenceRate = (ticketDifferences.Sum() / ticketDifferences.Count) * 60;
+                        if (Double.IsNaN(TeamAdjustedTicketDifferenceRate) || TeamAdjustedTicketDifferenceRate > 0)
                         {
-                            newAdjustedRate = 0;
-                        }
-                        if (Plugin._serverInfo.InfoObject.GameMode == "ConquestLarge0" && Plugin._gameVersion == GameVersion.BF4)
-                        {
-                            //On conquest large, only allow the value to change by 
-                            //2.5t/m away from zero with each tick, and 
-                            //10.0t/m toward zero with each tick, helps with auto-nuke
-                            var outChange = 2.5;
-                            var inChange = 10.0;
-
-                            var maxOut = Math.Max(TeamAdjustedTicketDifferenceRate - outChange, -999);
-                            var maxIn = Math.Min(TeamAdjustedTicketDifferenceRate + inChange, 0);
-                            
-                            if (newAdjustedRate < TeamAdjustedTicketDifferenceRate)
-                            {
-                                newAdjustedRate = Math.Max(newAdjustedRate, maxOut);
-                            }
-                            else
-                            {
-                                newAdjustedRate = Math.Min(newAdjustedRate, maxIn);
-                            }
-                            double diff = newAdjustedRate - TeamAdjustedTicketDifferenceRate;
-                            TeamAdjustedTicketDifferenceRate = newAdjustedRate;
-                            if (Plugin._isTestingAuthorized && (TeamID == 1 || TeamID == 2))
-                            {
-                                Plugin.Log.Success(TeamKey + TeamID + " new rate: " + Math.Round(TeamAdjustedTicketDifferenceRate, 1) + " diff: " + Math.Round(diff, 1));
-                            }
-                        }
-                        else
-                        {
-                            TeamAdjustedTicketDifferenceRate = newAdjustedRate;
+                            TeamAdjustedTicketDifferenceRate = 0;
                         }
                         TeamAdjustedTicketDifferenceRates.Enqueue(new KeyValuePair<double, DateTime>(TeamAdjustedTicketDifferenceRate, subTicketTime));
 
@@ -43576,6 +43542,39 @@ namespace PRoConEvents
                         if (Double.IsNaN(TeamAdjustedTicketAccellerationRate))
                         {
                             TeamAdjustedTicketAccellerationRate = 0;
+                        }
+                    }
+
+                    if (Plugin._isTestingAuthorized && Plugin._serverInfo.InfoObject.GameMode == "ConquestLarge0" && Plugin._gameVersion == GameVersion.BF4)
+                    {
+                        //On conquest large, only allow the value to change by 
+                        //2.5t/m away from zero with each tick, and 
+                        //10.0t/m toward zero with each tick, helps with auto-nuke
+                        var outChange = 2.5;
+                        var inChange = 10.0;
+
+                        //Grab the new rate
+                        var newAdjustedRate = TeamAdjustedTicketDifferenceRate;
+
+                        var maxOut = Math.Max(oldAdjustedDifferenceRate - outChange, -999);
+                        var maxIn = Math.Min(oldAdjustedDifferenceRate + inChange, 0);
+
+                        if (newAdjustedRate < oldAdjustedDifferenceRate)
+                        {
+                            newAdjustedRate = Math.Max(newAdjustedRate, maxOut);
+                        }
+                        else
+                        {
+                            newAdjustedRate = Math.Min(newAdjustedRate, maxIn);
+                        }
+                        double diff = newAdjustedRate - oldAdjustedDifferenceRate;
+
+                        //Set the new rate
+                        TeamAdjustedTicketDifferenceRate = newAdjustedRate;
+
+                        if (TeamID == 1 || TeamID == 2)
+                        {
+                            Plugin.Log.Success(TeamKey + TeamID + " new rate: " + Math.Round(TeamAdjustedTicketDifferenceRate, 1) + " diff: " + Math.Round(diff, 1));
                         }
                     }
 
