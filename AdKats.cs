@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.124
+ * Version 6.8.1.125
  * 1-AUG-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.124</version_code>
+ * <version_code>6.8.1.125</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.124";
+        private const String PluginVersion = "6.8.1.125";
 
         public enum GameVersion
         {
@@ -9773,7 +9773,7 @@ namespace PRoConEvents
                                 {
                                     _LastTicketRateDisplay = UtcNow();
                                     _currentFlagMessage = flagMessage;
-                                    ProconChatWrite(Log.FBold(team1.TeamKey + " Rate: " + Math.Round(team1.GetTicketDifferenceRate(), 2) + " t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.GetTicketDifferenceRate(), 2) + " t/m" + flagMessage));
+                                    ProconChatWrite(Log.FBold(team1.TeamKey + " Rate: " + Math.Round(team1.GetTicketDifferenceRate(), 1) + " t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.GetTicketDifferenceRate(), 1) + " t/m" + flagMessage));
                                 }
                             }
 
@@ -43536,18 +43536,19 @@ namespace PRoConEvents
                             var maxOut = Math.Max(TeamAdjustedTicketDifferenceRate - outChange, -999);
                             var maxIn = Math.Min(TeamAdjustedTicketDifferenceRate + inChange, 0);
                             
-                            //Is the new rate more out?
                             if (newAdjustedRate < TeamAdjustedTicketDifferenceRate)
                             {
-                                TeamAdjustedTicketDifferenceRate = Math.Max(newAdjustedRate, maxOut);
+                                newAdjustedRate = Math.Max(newAdjustedRate, maxOut);
                             }
                             else
                             {
-                                TeamAdjustedTicketDifferenceRate = Math.Min(newAdjustedRate, maxIn);
+                                newAdjustedRate = Math.Min(newAdjustedRate, maxIn);
                             }
-                            if (Plugin._isTestingAuthorized)
+                            double diff = newAdjustedRate - TeamAdjustedTicketDifferenceRate;
+                            TeamAdjustedTicketDifferenceRate = newAdjustedRate;
+                            if (Plugin._isTestingAuthorized && (TeamID == 1 || TeamID == 2))
                             {
-                                Plugin.Log.Success(this.TeamKey + " new rate: " + Math.Round(TeamAdjustedTicketDifferenceRate));
+                                Plugin.Log.Success(TeamKey + TeamID + " new rate: " + Math.Round(TeamAdjustedTicketDifferenceRate, 1) + " diff: " + Math.Round(diff, 1));
                             }
                         }
                         else
