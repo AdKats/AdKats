@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.125
+ * Version 6.8.1.126
  * 1-AUG-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.125</version_code>
+ * <version_code>6.8.1.126</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.125";
+        private const String PluginVersion = "6.8.1.126";
 
         public enum GameVersion
         {
@@ -250,6 +250,7 @@ namespace PRoConEvents
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
         private DateTime _LastBattlelogIssue = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+        private DateTime _LastServerInfoFire = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private Object _battlelogLocker = new Object();
         private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(2.5);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
@@ -9603,6 +9604,11 @@ namespace PRoConEvents
                         if (serverInfo != null)
                         {
                             //Get the server info
+                            if (NowDuration(_LastServerInfoFire).TotalSeconds < 9.5)
+                            {
+                                return;
+                            }
+                            _LastServerInfoFire = UtcNow();
                             _serverInfo.SetInfoObject(serverInfo);
                             if (serverInfo.TeamScores != null)
                             {
