@@ -43522,7 +43522,7 @@ namespace PRoConEvents
                         }
                         ticketDifferences.Sort();
                         //Convert to tickets/min
-                        var TeamAdjustedTicketDifferenceRate = (ticketDifferences.Sum() / ticketDifferences.Count) * 60;
+                        TeamAdjustedTicketDifferenceRate = (ticketDifferences.Sum() / ticketDifferences.Count) * 60;
                         if (Double.IsNaN(TeamAdjustedTicketDifferenceRate) || TeamAdjustedTicketDifferenceRate > 0)
                         {
                             TeamAdjustedTicketDifferenceRate = 0;
