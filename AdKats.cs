@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.127
- * 2-AUG-2016
+ * Version 6.8.1.128
+ * 3-AUG-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.127</version_code>
+ * <version_code>6.8.1.128</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.127";
+        private const String PluginVersion = "6.8.1.128";
 
         public enum GameVersion
         {
@@ -251,6 +251,7 @@ namespace PRoConEvents
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
         private DateTime _LastBattlelogIssue = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private DateTime _LastServerInfoFire = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+        private DateTime _LastPlayerListFire = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private Object _battlelogLocker = new Object();
         private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(2.5);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
@@ -263,7 +264,7 @@ namespace PRoConEvents
         private DateTime _lastIPAPIError = DateTime.UtcNow;
         private DateTime _lastBattlelogFrequencyMessage = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private Queue<DateTime> _BattlelogActionTimes = new Queue<DateTime>();
-        private List<TimeSpan> _startupDurations = new List<TimeSpan>();
+        private Queue<TimeSpan> _startupDurations = new Queue<TimeSpan>();
 
         //Server
         private PopulationState _populationStatus = PopulationState.Unknown;
@@ -1496,6 +1497,10 @@ namespace PRoConEvents
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + t + "Populator Perks - TeamKillTracker Whitelist", typeof(Boolean), _PopulatorPerksTeamKillTrackerWhitelist));
                             }
                         }
+                        else
+                        {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + t + "Populator monitor must be enabled in section B27 to view these settings.", typeof(String), ""));
+                        }
                     }
 
                     if (IsActiveSettingSection("B27-3")) {
@@ -1539,6 +1544,10 @@ namespace PRoConEvents
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
                             }
                         }
+                        else
+                        {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + t + "Teamspeak monitor must be enabled in section B27 to view these settings.", typeof(String), ""));
+                        }
                     }
 
                     if (IsActiveSettingSection("B27-4")) {
@@ -1563,6 +1572,10 @@ namespace PRoConEvents
                                 .ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + t + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above|Marginal and Above|Most Players)", _TopPlayersAffected));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + t + "Top player team confirmation duration", typeof(Int32), _TopPlayersTeamConfirmationDuration));
+                        }
+                        else
+                        {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + t + "Top player monitor must be enabled in section B27 to view these settings.", typeof(String), ""));
                         }
                     }
 
@@ -1847,7 +1860,7 @@ namespace PRoConEvents
             lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Debug level", typeof(Int32), Log.DebugLevel));
             lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
             lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
-            lstReturn.Add(new CPluginVariable("startup_durations", typeof(String[]), _startupDurations.Select(duration => ((int)duration.TotalSeconds).ToString()).Take(5).ToArray()));
+            lstReturn.Add(new CPluginVariable("startup_durations", typeof(String[]), _startupDurations.Select(duration => ((int)duration.TotalSeconds).ToString()).ToArray()));
 
             return lstReturn;
         }
@@ -1867,7 +1880,11 @@ namespace PRoConEvents
                 else if (strVariable == "startup_durations")
                 {
                     var stringDurations = CPluginVariable.DecodeStringArray(strValue);
-                    _startupDurations = stringDurations.Select(stringDuration => TimeSpan.FromSeconds(Int32.Parse(stringDuration))).ToList();
+                    _startupDurations.Clear();
+                    foreach(String stringDuration in stringDurations)
+                    {
+                        _startupDurations.Enqueue(TimeSpan.FromSeconds(Int32.Parse(stringDuration)));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Auto-Enable/Keep-Alive").Success)
                 {
@@ -3406,7 +3423,8 @@ namespace PRoConEvents
                         //Notification
                         if (_threadsReady) {
                             if (_UseTopPlayerMonitor) {
-                                Log.Info("Top players now being automatically dispersed between rounds.");
+                                Log.Info("Top players now being automatically controlled between rounds.");
+                                UpdateTopPlayers();
                             } else {
                                 Log.Info("Top players no longer being dispersed.");
                             }
@@ -3449,6 +3467,7 @@ namespace PRoConEvents
                             if (_PopulatorMonitor)
                             {
                                 Log.Info("Populator players are now being monitored.");
+                                UpdatePopulatorPlayers();
                             }
                             else
                             {
@@ -7350,6 +7369,10 @@ namespace PRoConEvents
                             if (_threadsReady && NowDuration(_LastServerInfoFire).TotalSeconds > 9.5)
                             {
                                 ExecuteCommand("procon.protected.send", "serverInfo");
+                            }
+
+                            if (_threadsReady && NowDuration(_LastPlayerListFire).TotalSeconds > 9.5)
+                            {
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
 
@@ -8257,6 +8280,7 @@ namespace PRoConEvents
                 //Only handle the list if it is an "All players" list
                 if (cpsSubset.Subset == CPlayerSubset.PlayerSubsetType.All)
                 {
+                    _LastPlayerListFire = UtcNow();
                     //Return if small duration (5 seconds) since last player list
                     if ((UtcNow() - _lastSuccessfulPlayerList) < TimeSpan.FromSeconds(5))
                     {
@@ -9236,7 +9260,11 @@ namespace PRoConEvents
                             _threadMasterWaitHandle.WaitOne(500);
 
                             var startupDuration = NowDuration(_AdKatsStartTime);
-                            _startupDurations.Add(startupDuration);
+                            _startupDurations.Enqueue(startupDuration);
+                            while(_startupDurations.Count() > 5)
+                            {
+                                _startupDurations.Dequeue();
+                            }
                             var averageStartupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds));
                             var averageDurationString = "";
                             if (_isTestingAuthorized)
@@ -34218,7 +34246,7 @@ namespace PRoConEvents
                         AND
 	                        `top_count`/REPLACE(`round_count`, 0, 1) >= @toproundratio_minimum
                         ORDER BY
-	                        `top_round_ratio` DESC, 
+	                        `top_round_ratio` DESC,
 	                        `player_name` ASC
                         LIMIT 6000";
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
@@ -37452,10 +37480,16 @@ namespace PRoConEvents
                         }
 
                         //Fetch populator players
-                        UpdatePopulatorPlayers();
+                        if (_PopulatorMonitor)
+                        {
+                            UpdatePopulatorPlayers();
+                        }
 
                         //Fetch top players
-                        UpdateTopPlayers();
+                        if (_UseTopPlayerMonitor)
+                        {
+                            UpdateTopPlayers();
+                        }
 
                         //Update the verbose special player cache
                         List<String> validVerboseSpecialPlayers = new List<String>();
