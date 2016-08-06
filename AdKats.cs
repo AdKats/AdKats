@@ -9646,6 +9646,10 @@ namespace PRoConEvents
                         if (serverInfo != null)
                         {
                             //Get the server info
+                            if (NowDuration(_LastServerInfoFire).TotalSeconds < 9.5)
+                            {
+                                return;
+                            }
                             _LastServerInfoFire = UtcNow();
                             _serverInfo.SetInfoObject(serverInfo);
                             if (serverInfo.TeamScores != null)
