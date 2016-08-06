@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.129
+ * Version 6.8.1.130
  * 6-AUG-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.129</version_code>
+ * <version_code>6.8.1.130</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.129";
+        private const String PluginVersion = "6.8.1.130";
 
         public enum GameVersion
         {
@@ -773,9 +773,6 @@ namespace PRoConEvents
         private StatLibrary _StatLibrary;
         HashSet<String> _hackerCheckedPlayers = new HashSet<String>();
         HashSet<String> _hackerCheckedPlayersStats = new HashSet<String>();
-
-        //Events
-        Dictionary<String, AdKatsEvent> _events = new Dictionary<String, AdKatsEvent>();
 
         //Experimental
         private Boolean _useExperimentalTools;
@@ -6914,7 +6911,44 @@ namespace PRoConEvents
                                 }
                                 else if (MBUsed > 250)
                                 {
-                                    Log.Warn(MBUsed + "MB estimated memory used.");
+                                    String mm = " MAP: ";
+                                    mm += "1:" + _aliveThreads.Count() + ", ";
+                                    mm += "2:" + _populationPopulatingPlayers.Count() + ", ";
+                                    mm += "3:" + _ActOnIsAliveDictionary.Count() + ", ";
+                                    mm += "4:" + _ActOnSpawnDictionary.Count() + ", ";
+                                    mm += "5:" + _LoadoutConfirmDictionary.Count() + ", ";
+                                    mm += "6:" + _ActionConfirmDic.Count() + ", ";
+                                    mm += "7:" + _RoundReports.Count() + ", ";
+                                    mm += "8:" + _userCache.Count() + ", ";
+                                    mm += "9:" + _specialPlayerGroupIDDictionary.Count() + ", ";
+                                    mm += "10:" + _specialPlayerGroupKeyDictionary.Count() + ", ";
+                                    mm += "11:" + _baseSpecialPlayerCache.Count() + ", ";
+                                    mm += "12:" + _verboseSpecialPlayerCache.Count() + ", ";
+                                    mm += "13:" + _roundAssists.Count() + ", ";
+                                    mm += "14:" + _PlayerDictionary.Count() + ", ";
+                                    mm += "15:" + _RoundOverSquads.Count() + ", ";
+                                    mm += "16:" + _PlayerLeftDictionary.Count() + ", ";
+                                    mm += "17:" + _FetchedPlayers.Count() + ", ";
+                                    mm += "18:" + _topPlayers.Count() + ", ";
+                                    mm += "19:" + _populatorPlayers.Count() + ", ";
+                                    mm += "20:" + _tsPlayers.Count() + ", ";
+                                    mm += "21:" + _RoundCookers.Count() + ", ";
+                                    mm += "22:" + _BanEnforcerCheckingQueue.Count() + ", ";
+                                    mm += "23:" + _HackerCheckerQueue.Count() + ", ";
+                                    mm += "24:" + _KillProcessingQueue.Count() + ", ";
+                                    mm += "25:" + _PlayerListProcessingQueue.Count() + ", ";
+                                    mm += "26:" + _PlayerRemovalProcessingQueue.Count() + ", ";
+                                    mm += "27:" + _SettingUploadQueue.Count() + ", ";
+                                    mm += "28:" + _UnparsedCommandQueue.Count() + ", ";
+                                    mm += "29:" + _UnparsedMessageQueue.Count() + ", ";
+                                    mm += "30:" + _UnprocessedActionQueue.Count() + ", ";
+                                    mm += "31:" + _UnprocessedRecordQueue.Count() + ", ";
+                                    mm += "32:" + _UnprocessedStatisticQueue.Count() + ", ";
+                                    mm += "33:" + _UserRemovalQueue.Count() + ", ";
+                                    mm += "34:" + _UserUploadQueue.Count() + ", ";
+                                    mm += "35:" + _BattlelogFetchQueue.Count() + ", ";
+                                    mm += "36:" + _IPInfoFetchQueue.Count() + ", ";
+                                    Log.Warn(MBUsed + "MB estimated memory used." + mm);
                                     lastMemoryWarning = UtcNow();
                                 }
                             }
@@ -6950,7 +6984,9 @@ namespace PRoConEvents
                                 _MULTIBalancerUnswitcherDisabled = false;
                             }
 
-                            if (_isTestingAuthorized && 
+                            //Disabled to find memory issues
+                            if (false &&
+                                _isTestingAuthorized && 
                                 (UtcNow() - _proconStartTime).TotalHours > 24 && 
                                 _populationStatus != PopulationState.High &&
                                 !_databaseConnectionCriticalState) {
