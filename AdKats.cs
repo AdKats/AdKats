@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.128
- * 3-AUG-2016
+ * Version 6.8.1.129
+ * 6-AUG-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.128</version_code>
+ * <version_code>6.8.1.129</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.128";
+        private const String PluginVersion = "6.8.1.129";
 
         public enum GameVersion
         {
@@ -405,7 +405,6 @@ namespace PRoConEvents
         private Int32 _RequiredReasonLength = 4;
         //Commands specific
         private String _ServerVoipAddress = "(TS3) TS.ADKGamers.com:3796";
-        private Int32 _NukeCountdownDurationSeconds = 0;
         //Dynamic access
         public Func<AdKats, AdKatsPlayer, Boolean> AAPerkFunc = ((plugin, aPlayer) => ((plugin._EnableAdminAssistantPerk && aPlayer.player_aa) || (aPlayer.player_reputation > _reputationThresholdGood)));
         public Func<AdKats, AdKatsPlayer, Boolean> TeamSwapFunc = ((plugin, aPlayer) => ((plugin._EnableAdminAssistantPerk && aPlayer.player_aa) || plugin.GetMatchingVerboseASPlayersOfGroup("whitelist_teamswap", aPlayer).Any()));
@@ -582,6 +581,8 @@ namespace PRoConEvents
         private Int32 _autoNukesThisRound = 0;
         private Boolean _surrenderAutoTriggerVote;
         private String _surrenderAutoNukeMessage = "Nuking %WinnerName% for baserape!";
+        private Int32 _NukeCountdownDurationSeconds = 0;
+        private Int32 _NukeWinningTeamUpTicketCount = 9999;
 
         //EmailHandler
         private EmailHandler _EmailHandler;
@@ -1445,7 +1446,8 @@ namespace PRoConEvents
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Reset Auto-Nuke Trigger Count on Fire", typeof(Boolean), _surrenderAutoResetTriggerCountOnFire));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Switch to surrender after max nukes", typeof(Boolean), _surrenderAutoNukeResolveAfterMax));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Minimum Seconds Between Nukes", typeof(Int32), _surrenderAutoNukeMinBetween));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Countdown Duration before a Nuke is fired", typeof(int), _NukeCountdownDurationSeconds));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Countdown Duration before a Nuke is fired", typeof(Int32), _NukeCountdownDurationSeconds));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Fire Nuke Triggers if Winning Team up by X Tickets", typeof(Int32), _NukeWinningTeamUpTicketCount));
                                 if (_isTestingAuthorized)
                                 {
                                     lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Announce Nuke Preparation to Players", typeof(Boolean), _surrenderAutoAnnounceNukePrep));
@@ -2792,6 +2794,20 @@ namespace PRoConEvents
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeInstead));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Fire Nuke Triggers if Winning Team up by X Tickets").Success)
+                {
+                    Int32 ticketCount = Int32.Parse(strValue);
+                    if (_NukeWinningTeamUpTicketCount != ticketCount)
+                    {
+                        _NukeWinningTeamUpTicketCount = ticketCount;
+                        if (_NukeWinningTeamUpTicketCount < 1)
+                        {
+                            _NukeWinningTeamUpTicketCount = 1;
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Fire Nuke Triggers if Winning Team up by X Tickets", typeof(Int32), _NukeWinningTeamUpTicketCount));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Maximum Auto-Nukes Each Round").Success)
@@ -9970,6 +9986,8 @@ namespace PRoConEvents
 
                                     int playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
                                     int neededPlayers = Math.Min(_surrenderAutoMinimumPlayers - playerCount, 0);
+                                    var ticketGap = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount);
+
                                     if (canFire && 
                                         neededPlayers > 0)
                                     {
@@ -9979,11 +9997,18 @@ namespace PRoConEvents
 
                                     var downRate = mapDownTeam.GetTicketDifferenceRate();
                                     var upRate = mapUpTeam.GetTicketDifferenceRate();
-                                    if (downRate <= config_mapDown_rate_max &&
-                                        downRate >= config_mapDown_rate_min &&
-                                        upRate <= config_mapUp_rate_max &&
-                                        upRate >= config_mapUp_rate_min && 
-                                        (config_action == AutoSurrenderAction.Nuke || winningTeam == mapUpTeam))
+
+                                    var validRateWindow = downRate <= config_mapDown_rate_max &&
+                                                          downRate >= config_mapDown_rate_min &&
+                                                          upRate <= config_mapUp_rate_max &&
+                                                          upRate >= config_mapUp_rate_min;
+                                    var validTicketBasedNuke = config_action == AutoSurrenderAction.Nuke &&
+                                                               mapUpTeam == winningTeam &&
+                                                               ticketGap > _NukeWinningTeamUpTicketCount;
+                                    var validTeams = config_action == AutoSurrenderAction.Nuke ||
+                                                     winningTeam == mapUpTeam;
+                                    if ((validRateWindow || validTicketBasedNuke) &&
+                                        validTeams)
                                     {
                                         //Fire triggers
                                         _lastAutoSurrenderTriggerTime = UtcNow();
@@ -10007,12 +10032,10 @@ namespace PRoConEvents
                                             TimeSpan remaining = TimeSpan.FromSeconds((config_triggers_min - _surrenderAutoTriggerCountCurrent) * 10);
                                             denyReason = "~" + FormatTimeString(remaining, 2) + " till it can fire.";
                                         }
-
-                                        var gap = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount);
-                                        if (canFire && gap < config_tickets_gap_min)
+                                        if (canFire && ticketGap < config_tickets_gap_min)
                                         {
                                             canFire = false;
-                                            denyReason = "Less than " + config_tickets_gap_min + " tickets between teams. (" + gap + ")";
+                                            denyReason = "Less than " + config_tickets_gap_min + " tickets between teams. (" + ticketGap + ")";
                                         }
                                         
                                         if (canFire && winningTeam.TeamTicketCount > config_tickets_max)
@@ -10034,7 +10057,7 @@ namespace PRoConEvents
                                             //Losing team is the one with all flags capped
                                             if (_surrenderAutoNukeLosingTeams)
                                             {
-                                                if (gap > _surrenderAutoNukeLosingMaxDiff)
+                                                if (ticketGap > _surrenderAutoNukeLosingMaxDiff)
                                                 {
                                                     canFire = false;
                                                     denyReason = mapUpTeam.TeamKey + " losing by more than " + _surrenderAutoNukeLosingMaxDiff + " tickets.";
@@ -30982,6 +31005,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Reset Trigger Count on Cancel", typeof(Boolean), _surrenderAutoResetTriggerCountOnCancel));
                 QueueSettingForUpload(new CPluginVariable(@"Reset Auto-Nuke Trigger Count on Fire", typeof(Boolean), _surrenderAutoResetTriggerCountOnFire));
                 QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeInstead));
+                QueueSettingForUpload(new CPluginVariable(@"Fire Nuke Triggers if Winning Team up by X Tickets", typeof(Int32), _NukeWinningTeamUpTicketCount));
                 QueueSettingForUpload(new CPluginVariable(@"Switch to surrender after max nukes", typeof(Boolean), _surrenderAutoNukeResolveAfterMax));
                 QueueSettingForUpload(new CPluginVariable(@"Announce Nuke Preparation to Players", typeof(Boolean), _surrenderAutoAnnounceNukePrep));
                 QueueSettingForUpload(new CPluginVariable(@"Allow Auto-Nuke to fire on losing teams", typeof(Boolean), _surrenderAutoNukeLosingTeams));
