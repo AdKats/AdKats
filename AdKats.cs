@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.130
- * 6-AUG-2016
+ * Version 6.8.1.131
+ * 7-AUG-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.130</version_code>
+ * <version_code>6.8.1.131</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.130";
+        private const String PluginVersion = "6.8.1.131";
 
         public enum GameVersion
         {
@@ -22980,6 +22980,24 @@ namespace PRoConEvents
                 Log.Debug(() => "Preparing to queue player for IP info fetch.", 6);
                 lock (_IPInfoFetchQueue)
                 {
+                    if (_IPInfoFetchQueue.Count() > 70) {
+                        //There are more players in the queue than can exist in the server, empty the queue
+                        //If players require an info fetch, they will be re-queued by player listing
+                        _IPInfoFetchQueue.Clear();
+                    }
+                    if (//Player is already in the queue, don't re-queue them
+                        _IPInfoFetchQueue.Any(qPlayer => 
+                        aPlayer.player_id == qPlayer.player_id || 
+                        aPlayer.player_guid == qPlayer.player_guid) ||
+                        //Player is marked as not online, don't re-queue them
+                        !aPlayer.player_online ||
+                        //Player is not in the online player dictionary, don't re-queue them
+                        !_PlayerDictionary.Values.Any(dPlayer =>
+                        aPlayer.player_id == dPlayer.player_id ||
+                        aPlayer.player_guid == dPlayer.player_guid))
+                    {
+                        return;
+                    }
                     _IPInfoFetchQueue.Enqueue(aPlayer);
                     Log.Debug(() => "Player queued for IP info fetch.", 6);
                     _IPInfoWaitHandle.Set();
@@ -42648,10 +42666,11 @@ namespace PRoConEvents
                 try
                 {
                     Hashtable response = null;
+                    String URL = "http://ip-api.com/json/" + aPlayer.player_ip + "?cacherand=" + Environment.TickCount;
                     try
                     {
                         DoIPAPIWait();
-                        response = (Hashtable)JSON.JsonDecode(ClientDownloadTimer(client, "http://ip-api.com/json/" + aPlayer.player_ip + "?cacherand=" + Environment.TickCount));
+                        response = (Hashtable)JSON.JsonDecode(ClientDownloadTimer(client, URL));
                     }
                     catch (Exception e)
                     {
@@ -42666,6 +42685,10 @@ namespace PRoConEvents
                     {
                         loc.message = (String)response["message"];
                         aPlayer.location = loc;
+                        if (_isTestingAuthorized)
+                        {
+                            Log.Info("Error fetching " + aPlayer.GetVerboseName() + " IP location from " + URL);
+                        }
                         return;
                     }
                     if (loc.status == "success")
@@ -42683,6 +42706,10 @@ namespace PRoConEvents
                         loc.org = (String)response["org"];
                         loc.query = (String)response["query"];
                         aPlayer.location = loc;
+                        if (_isTestingAuthorized)
+                        {
+                            Log.Success("Success fetching " + aPlayer.GetVerboseName() + " IP location " + loc.city + ", " + loc.region);
+                        }
                     }
                 }
                 catch (Exception e)
