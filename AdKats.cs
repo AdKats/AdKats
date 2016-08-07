@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.131
+ * Version 6.8.1.132
  * 7-AUG-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.131</version_code>
+ * <version_code>6.8.1.132</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.131";
+        private const String PluginVersion = "6.8.1.132";
 
         public enum GameVersion
         {
@@ -6959,7 +6959,7 @@ namespace PRoConEvents
                                     while (_BattlelogActionTimes.Any() && NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 4) {
                                         _BattlelogActionTimes.Dequeue();
                                     }
-                                    if (_isTestingAuthorized) {
+                                    if (false && _isTestingAuthorized) {
                                         var frequency = Math.Round(_BattlelogActionTimes.Count() / 4.0, 2);
                                         Log.Info("Average battlelog request frequency: " + frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count());
                                         QueueStatisticForProcessing(new AdKatsStatistic() {
@@ -7167,7 +7167,7 @@ namespace PRoConEvents
                                             stat_comment = over200t,
                                             stat_time = UtcNow()
                                         });
-                                        Log.Info(over100t + ", " + over150t + ", " + over200t);
+                                        //Log.Info(over100t + ", " + over150t + ", " + over200t);
                                     }
                                 }
 
@@ -10053,6 +10053,12 @@ namespace PRoConEvents
                                         //Fire triggers
                                         _lastAutoSurrenderTriggerTime = UtcNow();
                                         _surrenderAutoTriggerCountCurrent++;
+
+                                        //Log
+                                        if (_isTestingAuthorized)
+                                        {
+                                            Log.Warn("FIRING NUKE TRIGGERS: UP/" + mapUpTeam.TeamKey + "/" + upRate + " | DOWN/" + mapDownTeam.TeamKey + "/" + downRate);
+                                        }
 
                                         readyPercentage = Math.Round(Math.Min((_surrenderAutoTriggerCountCurrent / (Double)config_triggers_min) * 100.0, 100)) + "%";
 
@@ -43670,7 +43676,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (Plugin._isTestingAuthorized && Plugin._serverInfo.InfoObject.GameMode == "ConquestLarge0" && Plugin._gameVersion == GameVersion.BF4)
+                    if (false && Plugin._isTestingAuthorized && Plugin._serverInfo.InfoObject.GameMode == "ConquestLarge0" && Plugin._gameVersion == GameVersion.BF4)
                     {
                         //On conquest large, only allow the value to change by 
                         //2.5t/m away from zero with each tick, and 
@@ -47381,10 +47387,6 @@ namespace PRoConEvents
                             }
                         }
                         _mClientTsInfo = clientInfo;
-                        if (_plugin._isTestingAuthorized)
-                        {
-                            _plugin.Log.Info("TS Clients Fetched:" + tsClientList.Count + " Monitored:" + _mClientTsInfo.Count);
-                        }
                     }
                     catch (Exception e)
                     {
