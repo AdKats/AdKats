@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.132
- * 7-AUG-2016
+ * Version 6.8.1.133
+ * 20-AUG-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.132</version_code>
+ * <version_code>6.8.1.133</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.132";
+        private const String PluginVersion = "6.8.1.133";
 
         public enum GameVersion
         {
@@ -6983,10 +6983,8 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
                                 _MULTIBalancerUnswitcherDisabled = false;
                             }
-
-                            //Disabled to find memory issues
-                            if (false &&
-                                _isTestingAuthorized && 
+                            
+                            if (_isTestingAuthorized && 
                                 (UtcNow() - _proconStartTime).TotalHours > 24 && 
                                 _populationStatus != PopulationState.High &&
                                 !_databaseConnectionCriticalState) {
@@ -12137,8 +12135,8 @@ namespace PRoConEvents
                             }
                         }
                     } else if (_isTestingAuthorized && 
-                        _gameVersion == GameVersion.BF4 && 
-                        aKill.killerCPI.TeamID == aKill.victimCPI.TeamID && 
+                        _gameVersion == GameVersion.BF4 &&
+                        aKill.IsTeamkill &&
                         !aKill.IsSuicide)
                     {
                         //Case for valid medkit teamkills
