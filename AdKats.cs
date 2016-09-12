@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.133
- * 20-AUG-2016
+ * Version 6.8.1.134
+ * 12-SEP-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.133</version_code>
+ * <version_code>6.8.1.134</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.133";
+        private const String PluginVersion = "6.8.1.134";
 
         public enum GameVersion
         {
@@ -23652,7 +23652,7 @@ namespace PRoConEvents
                     default:
                         record.record_action_executed = true;
                         SendMessageToSource(record, "Command not recognized when running " + record.command_action.command_key + " action.");
-                        record.record_exception = HandleException(new AdKatsException("Command " + record.command_action + " not found in runAction"));
+                        record.record_exception = HandleException(new AdKatsException("Command " + record.command_action + " not found in runAction. Record ID " + record.record_id));
                         FinalizeRecord(record);
                         break;
                 }
