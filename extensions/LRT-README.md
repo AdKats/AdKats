@@ -90,19 +90,12 @@
         <b>Optionally Install AdKats.</b>
         AdKatsLRT can run independently from the AdKats base plugin, but certain advanced functions cannot be used as a result.         To install the latest version of AdKats, view the
         <a href="https://github.com/AdKats/AdKats#install" target="_blank">AdKats Install Instructions.</a>
-        After install make sure you are running version 6.5.0.0 or later. If you are not, download the <a href="http://api.gamerethos.net/adkats/fetch/test?force=1" target="_blank">Latest Test Version</a>.
+        After install make sure you are running version 6.9.0.0 or later.
     </li>
     <li>
-        <b>Purchase AdKatsLRT, and aquire an extension token.</b>
-        AdKatsLRT is $15 for up to 5 servers running it, one-time fee, with free updates for the duration of the project. Payments accepted through <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=danielgradinjan%40gmail%2ecom&lc=US&item_name=AdKatsLRT%20%2d%20On%2dSpawn%20Loadout%20Enforcer%20for%20Procon%20Frostbite%20%2d%205%20Server%20Purchase&amount=15%2e00&currency_code=USD&no_note=0&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%3aNonHostedGuest" target="_blank">PayPal (Click here for purchase)</a>. After payment, <a href="https://forum.myrcon.com/private.php?do=newpm&u=15312" target="_blank">private message ColColonCleaner</a> on the MyRCON forums about getting the plugin. Include links to the servers you will be running the loadout enforcer on, and your username on this site (Github.com) to access the plugin and any available updates.
-    </li>
-    <li>
-        <b>Install the plugin. (With AdKats Installed)</b>
-        Simple. You will be given an extension token on purchase, simply paste the token in AdKats setting "A14. External Command Settings | AdKatsLRT Extension Token". The plugin will be automatically downloaded and installed onto your procon instance. Restart procon to see the plugin.
-    </li>
-    <li>
-        <b>Install the plugin. (WITHOUT AdKats Installed)</b>
-        Once purchased, you will be given access to the private repository where AdKatsLRT is hosted. A github account is required to access the repository, simply send ColColonCleaner your github username and details will be provided at that time. The plugin is installed like any other procon plugin.
+        <b>Download and install AdKatsLRT.</b>
+        Download the plugin from here: https://github.com/AdKats/AdKats-LRT/archive/master.zip. 
+        The plugin is installed like any other procon plugin.
     </li>
     <li>
         <b>Enable AdKatsLRT.</b>
