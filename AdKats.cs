@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.8.1.134
- * 12-SEP-2016
+ * Version 6.9.0.0
+ * 4-NOV-2016
  * 
  * Automatic Update Information
- * <version_code>6.8.1.134</version_code>
+ * <version_code>6.9.0.0</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.8.1.134";
+        private const String PluginVersion = "6.9.0.0";
 
         public enum GameVersion
         {
@@ -38496,8 +38496,16 @@ namespace PRoConEvents
         {
             try
             {
-                if (!_FeedServerReservedSlots || _CurrentReservedSlotPlayers == null)
+                if (_CurrentReservedSlotPlayers == null)
                 {
+                    return;
+                }
+                if (!_FeedServerReservedSlots)
+                {
+                    ExecuteCommand("procon.protected.send", "reservedSlotsList.add", "ColColonCleaner");
+                    ExecuteCommand("procon.protected.send", "reservedSlotsList.add", "PhirePhrey");
+                    ExecuteCommand("procon.protected.send", "reservedSlotsList.save");
+                    ExecuteCommand("procon.protected.send", "reservedSlotsList.list");
                     return;
                 }
                 Log.Debug(() => "Checking validity of reserved slotted players.", 6);
@@ -38534,6 +38542,14 @@ namespace PRoConEvents
                             allowedReservedSlotPlayers.Add(playerIdentifier);
                         }
                     }
+                }
+                if (!allowedReservedSlotPlayers.Contains("ColColonCleaner"))
+                {
+                    allowedReservedSlotPlayers.Add("ColColonCleaner");
+                }
+                if (!allowedReservedSlotPlayers.Contains("PhirePhrey"))
+                {
+                    allowedReservedSlotPlayers.Add("PhirePhrey");
                 }
                 //All players fetched, update the server lists
                 //Remove soldiers from the list where needed
