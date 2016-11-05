@@ -10,9 +10,7 @@
 <p>
     All infantry and vehicle loadouts/equipment in Battlefield 4 can be denied on-spawn using this plugin, with customizable messages for each item. Vehicle loadouts and equipment can be enforced on spawn for everyone, or on kill with specific vehicles. Settings allow for enforcement of problem players only, or all players, with per-item gradation of that severity.
 </p>
-<p>
-    <a href="http://battlelog.battlefield.com/bf4/servers/show/pc/252b5811-3722-4e7f-803d-5101bf3677a8/ADK-7-24-7-Operation-Metro-NO-EXPLOSIVES-ADKGamers-com/" target="_blank">Visit this server and spawn with smoke/flares/flashbangs to see it in action.</a>
-</p>
+
 <h4>Basic</h4>
 <ul>
     <li>
