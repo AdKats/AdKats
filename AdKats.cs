@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.1
+ * Version 6.9.0.2
  * 6-NOV-2016
  * 
  * Automatic Update Information
- * <version_code>6.9.0.1</version_code>
+ * <version_code>6.9.0.2</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.1";
+        private const String PluginVersion = "6.9.0.2";
 
         public enum GameVersion
         {
@@ -10299,7 +10299,6 @@ namespace PRoConEvents
                                         {
                                             string autoNukeMessage = _surrenderAutoNukeMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
                                             _autoNukesThisRound++;
-                                            _surrenderAutoNukeLast = UtcNow();
                                             _surrenderAutoNukeLastTeam = baserapingTeam;
                                             QueueRecordForProcessing(new AdKatsRecord
                                             {
@@ -27337,6 +27336,7 @@ namespace PRoConEvents
                                 AdminTellMessage("Nuking " + record.GetTargetNames() + " team in " + countdown + "...", false);
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
                             }
+                            _surrenderAutoNukeLast = UtcNow();
                             AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + " team NOW!");
                             foreach (AdKatsPlayer player in _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone")))
                             {
@@ -27353,6 +27353,7 @@ namespace PRoConEvents
                 }
                 else
                 {
+                    _surrenderAutoNukeLast = UtcNow();
                     foreach (AdKatsPlayer player in _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone")))
                     {
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
