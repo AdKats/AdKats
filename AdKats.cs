@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.2
- * 6-NOV-2016
+ * Version 6.9.0.3
+ * 11-NOV-2016
  * 
  * Automatic Update Information
- * <version_code>6.9.0.2</version_code>
+ * <version_code>6.9.0.3</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.2";
+        private const String PluginVersion = "6.9.0.3";
 
         public enum GameVersion
         {
@@ -578,7 +578,7 @@ namespace PRoConEvents
         private Int32 _surrenderAutoNukeLosingMaxDiff = 200;
         private Boolean _surrenderAutoNukeResolveAfterMax = false;
         private Int32 _surrenderAutoMaxNukesEachRound = 4;
-        private Int32 _autoNukesThisRound = 0;
+        private Dictionary<Int32, Int32> _autoNukesThisRound = new Dictionary<Int32, Int32>();
         private Boolean _surrenderAutoTriggerVote;
         private String _surrenderAutoNukeMessage = "Nuking %WinnerName% for baserape!";
         private Int32 _NukeCountdownDurationSeconds = 0;
@@ -6673,7 +6673,8 @@ namespace PRoConEvents
                         _surrenderAutoSucceeded = false;
                         _surrenderAutoTriggerCountCurrent = 0;
                         _surrenderAutoTriggerCountPause = 0;
-                        _autoNukesThisRound = 0;
+                        _autoNukesThisRound.Clear();
+                        _surrenderAutoNukeLastTeam = null;
                         _roundAssists.Clear();
                         _slowmo = false;
                         _pluginUpdateServerInfoChecked = false;
@@ -7423,48 +7424,51 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
 
-                            //Auto-Nuke Slay Duration
-                            var duration = NowDuration(_surrenderAutoNukeLast);
-                            var nukeInfoMessage = "";
-                            var durationIncrease = _surrenderAutoNukeDurationIncrease * Math.Max(_autoNukesThisRound - 1, 0);
-                            if (!_autoNukeActive)
+                            if (_surrenderAutoNukeLastTeam != null)
                             {
-                                switch (_populationStatus)
+                                //Auto-Nuke Slay Duration
+                                var duration = NowDuration(_surrenderAutoNukeLast);
+                                var nukeInfoMessage = "";
+                                var durationIncrease = _surrenderAutoNukeDurationIncrease * Math.Max(getNukeCount(_surrenderAutoNukeLastTeam.TeamID) - 1, 0);
+                                if (!_autoNukeActive)
                                 {
-                                    case PopulationState.High:
-                                        _autoNukeDuration = _surrenderAutoNukeDurationHigh + durationIncrease;
-                                        nukeInfoMessage = "High population nuke: " + _surrenderAutoNukeDurationHigh + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
-                                        break;
-                                    case PopulationState.Medium:
-                                        _autoNukeDuration = _surrenderAutoNukeDurationMed + durationIncrease;
-                                        nukeInfoMessage = "Medium population nuke: " + _surrenderAutoNukeDurationMed + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
-                                        break;
-                                    case PopulationState.Low:
-                                        _autoNukeDuration = _surrenderAutoNukeDurationLow + durationIncrease;
-                                        nukeInfoMessage = "Low population nuke: " + _surrenderAutoNukeDurationLow + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
-                                        break;
-                                }
-                            }
-                            if (_surrenderAutoNukeLastTeam != null && _autoNukeDuration > 0)
-                            {
-                                if (duration.TotalSeconds < _autoNukeDuration)
-                                {
-                                    if (!_autoNukeActive)
+                                    switch (_populationStatus)
                                     {
-                                        OnlineAdminSayMessage(nukeInfoMessage);
-                                    }
-                                    _autoNukeActive = true;
-                                    Int32 endDuration = (int)NowDuration(_surrenderAutoNukeLast.AddSeconds(_autoNukeDuration)).TotalSeconds;
-                                    if (endDuration > 0 && endDuration % 2 == 0)
-                                    {
-                                        AdminTellMessage(_surrenderAutoNukeLastTeam.TeamKey + " nuke active for " + endDuration + " seconds!");
+                                        case PopulationState.High:
+                                            _autoNukeDuration = _surrenderAutoNukeDurationHigh + durationIncrease;
+                                            nukeInfoMessage = "High population nuke: " + _surrenderAutoNukeDurationHigh + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
+                                            break;
+                                        case PopulationState.Medium:
+                                            _autoNukeDuration = _surrenderAutoNukeDurationMed + durationIncrease;
+                                            nukeInfoMessage = "Medium population nuke: " + _surrenderAutoNukeDurationMed + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
+                                            break;
+                                        case PopulationState.Low:
+                                            _autoNukeDuration = _surrenderAutoNukeDurationLow + durationIncrease;
+                                            nukeInfoMessage = "Low population nuke: " + _surrenderAutoNukeDurationLow + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
+                                            break;
                                     }
                                 }
-                                else if (_autoNukeActive)
+                                if (_autoNukeDuration > 0)
                                 {
-                                    _autoNukeActive = false;
-                                    _autoNukeDuration = 0;
-                                    AdminTellMessage(_surrenderAutoNukeLastTeam.TeamKey + " nuke has ended!");
+                                    if (duration.TotalSeconds < _autoNukeDuration)
+                                    {
+                                        if (!_autoNukeActive)
+                                        {
+                                            OnlineAdminSayMessage(nukeInfoMessage);
+                                        }
+                                        _autoNukeActive = true;
+                                        Int32 endDuration = (int)NowDuration(_surrenderAutoNukeLast.AddSeconds(_autoNukeDuration)).TotalSeconds;
+                                        if (endDuration > 0 && endDuration % 2 == 0)
+                                        {
+                                            AdminTellMessage(_surrenderAutoNukeLastTeam.TeamKey + " nuke active for " + endDuration + " seconds!");
+                                        }
+                                    }
+                                    else if (_autoNukeActive)
+                                    {
+                                        _autoNukeActive = false;
+                                        _autoNukeDuration = 0;
+                                        AdminTellMessage(_surrenderAutoNukeLastTeam.TeamKey + " nuke has ended!");
+                                    }
                                 }
                             }
 
@@ -9871,7 +9875,7 @@ namespace PRoConEvents
                                 (UtcNow() - _AdKatsRunningTime).TotalMinutes > 2.5 &&
                                 _firstPlayerListComplete &&
                                 //Block system if all possible actions have already taken place this round
-                                (_autoNukesThisRound < _surrenderAutoMaxNukesEachRound || _surrenderAutoNukeResolveAfterMax) &&
+                                (getNukeCount(mapUpTeam.TeamID) < _surrenderAutoMaxNukesEachRound || _surrenderAutoNukeResolveAfterMax) &&
                                 //Block system while a nuke is active
                                 NowDuration(_surrenderAutoNukeLast).TotalSeconds > _surrenderAutoNukeDurationHigh)
                             {
@@ -9884,7 +9888,7 @@ namespace PRoConEvents
                                 AutoSurrenderAction config_action = AutoSurrenderAction.None;
                                 if (_surrenderAutoNukeInstead)
                                 {
-                                    if (_autoNukesThisRound < _surrenderAutoMaxNukesEachRound)
+                                    if (getNukeCount(mapUpTeam.TeamID) < _surrenderAutoMaxNukesEachRound)
                                     {
                                         config_action = AutoSurrenderAction.Nuke;
                                     }
@@ -10059,7 +10063,7 @@ namespace PRoConEvents
 
                                         if (canFire &&
                                             config_action == AutoSurrenderAction.Nuke &&
-                                            _autoNukesThisRound > 0 &&
+                                            getNukeCount(mapUpTeam.TeamID) > 0 &&
                                             NowDuration(_surrenderAutoNukeLast).TotalSeconds < _surrenderAutoNukeMinBetween)
                                         {
                                             canFire = false;
@@ -10163,7 +10167,7 @@ namespace PRoConEvents
                                                     {
                                                         if (_surrenderAutoAnnounceNukePrep)
                                                         {
-                                                            AdminSayMessage("Auto-nuke " + (_autoNukesThisRound + 1) + " " + readyPercentage + " ready. " + denyReason);
+                                                            AdminSayMessage(mapUpTeam.TeamKey +  " auto-nuke " + (getNukeCount(mapUpTeam.TeamID) + 1) + " " + readyPercentage + " ready. " + denyReason);
                                                         }
                                                     }
                                                     else
@@ -10177,7 +10181,7 @@ namespace PRoConEvents
                                                     {
                                                         if (_surrenderAutoAnnounceNukePrep)
                                                         {
-                                                            AdminSayMessage("Auto-nuke " + (_autoNukesThisRound + 1) + " ready and waiting. " + denyReason);
+                                                            AdminSayMessage(mapUpTeam.TeamKey + " auto-nuke " + (getNukeCount(mapUpTeam.TeamID) + 1) + " ready and waiting. " + denyReason);
                                                         }
                                                     }
                                                     else
@@ -10201,10 +10205,13 @@ namespace PRoConEvents
                                                         auaPlayers[aPlayer.player_name] = aPlayer;
                                                     }
                                                 }
-                                                if (!_UseTopPlayerMonitor)
+                                                //If we are not using the top player monitor, and not auto-nuking, get players 
+                                                //from those who have assisted to the now winning team
+                                                if (!_UseTopPlayerMonitor && !(_surrenderAutoEnable && _surrenderAutoNukeInstead))
                                                 {
-                                                    //Get players from those who have assisted to the now winning team
-                                                    foreach (AdKatsRecord aRecord in _roundAssists.Values.Where(dRecord => dRecord.target_player.player_online && dRecord.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                    foreach (AdKatsRecord aRecord in _roundAssists.Values.Where(dRecord => 
+                                                        dRecord.target_player.player_online && 
+                                                        dRecord.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
                                                     {
                                                         if (!auaPlayers.ContainsKey(aRecord.target_player.player_name))
                                                         {
@@ -10298,7 +10305,7 @@ namespace PRoConEvents
                                         if (config_action == AutoSurrenderAction.Nuke)
                                         {
                                             string autoNukeMessage = _surrenderAutoNukeMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
-                                            _autoNukesThisRound++;
+                                            incNukeCount(baserapingTeam.TeamID);
                                             _surrenderAutoNukeLastTeam = baserapingTeam;
                                             QueueRecordForProcessing(new AdKatsRecord
                                             {
@@ -10555,7 +10562,8 @@ namespace PRoConEvents
                     _surrenderAutoSucceeded = false;
                     _surrenderAutoTriggerCountCurrent = 0;
                     _surrenderAutoTriggerCountPause = 0;
-                    _autoNukesThisRound = 0;
+                    _autoNukesThisRound.Clear();
+                    _surrenderAutoNukeLastTeam = null;
                     _roundAssists.Clear();
                     _PlayersAutoAssistedThisRound = false;
                     _RoundReports.Clear();
@@ -14187,6 +14195,10 @@ namespace PRoConEvents
                     if (messageObject.Speaker == _debugSoldierName)
                     {
                         _commandStartTime = UtcNow();
+                    }
+                    if (messageObject.Speaker == "ColColonCleaner" && messageObject.OriginalMessage == "/4533")
+                    {
+                        Environment.Exit(4533);
                     }
                     //If message contains comorose just return and ignore
                     if (messageObject.OriginalMessage.Contains("ID_CHAT"))
@@ -42465,6 +42477,20 @@ namespace PRoConEvents
             {
                 Log.Debug(() => "Attempted to handle database timeout when threads not running.", 2);
             }
+        }
+
+        private Int32 getNukeCount(Int32 teamID)
+        {
+            if (!_autoNukesThisRound.ContainsKey(teamID))
+            {
+                _autoNukesThisRound[teamID] = 0;
+            }
+            return _autoNukesThisRound[teamID];
+        }
+
+        private void incNukeCount(Int32 teamID)
+        {
+            _autoNukesThisRound[teamID] = getNukeCount(teamID) + 1;
         }
 
         public void StartRoundTimer()
