@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.3
- * 11-NOV-2016
+ * Version 6.9.0.4
+ * 15-JAN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.3</version_code>
+ * <version_code>6.9.0.4</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.3";
+        private const String PluginVersion = "6.9.0.4";
 
         public enum GameVersion
         {
@@ -8351,19 +8351,6 @@ namespace PRoConEvents
             Log.Debug(() => "Exiting OnListPlayers", 7);
         }
 
-        public override void OnPlayerPingedByAdmin(string soldierName, int ping) {
-            try {
-                AdKatsPlayer aPlayer;
-                if (_PlayerDictionary.TryGetValue(soldierName, out aPlayer) &&
-                    _roundState == RoundState.Playing) {
-                    aPlayer.AddPingEntry(ping);
-                }
-            }
-            catch (Exception e) {
-                HandleException(new AdKatsException("Error while fetching player ping.", e));
-            }
-        }
-
         private void QueuePlayerListForProcessing(List<CPlayerInfo> players)
         {
             Log.Debug(() => "Entering QueuePlayerListForProcessing", 7);
@@ -8674,32 +8661,32 @@ namespace PRoConEvents
                                         {
                                             //If this game is BF3 their ping will be loaded elsewhere
                                             Boolean proconFetched = false;
-                                            Double ping = aPlayer.player_ping;
-
-                                            if (_gameVersion != GameVersion.BF3) {
-                                                
-                                                //If this game is not BF3, their ping will be loaded through the player list
-                                                ping = aPlayer.frostbitePlayerInfo.Ping;
-                                                if (_pingEnforcerKickMissingPings &&
-                                                    _attemptManualPingWhenMissing &&
-                                                    ping < 0 &&
-                                                    !String.IsNullOrEmpty(aPlayer.player_ip)) {
-                                                    PingReply reply = null;
-                                                    try {
-                                                        reply = _pingProcessor.Send(aPlayer.player_ip, 1000);
-                                                    } catch (Exception e) {
-                                                        HandleException(new AdKatsException("Error fetching manual player ping.", e));
-                                                    }
-                                                    if (reply != null && reply.Status == IPStatus.Success) {
-                                                        ping = reply.RoundtripTime;
-                                                        proconFetched = true;
-                                                    } else {
-                                                        Log.Debug(() => "Ping status for " + aPlayer.GetVerboseName() + ": " + reply.Status, 5);
-                                                        ping = -1;
-                                                    }
+                                            Double ping = aPlayer.frostbitePlayerInfo.Ping;
+                                            if (_pingEnforcerKickMissingPings &&
+                                                _attemptManualPingWhenMissing &&
+                                                ping < 0 &&
+                                                !String.IsNullOrEmpty(aPlayer.player_ip))
+                                            {
+                                                PingReply reply = null;
+                                                try
+                                                {
+                                                    reply = _pingProcessor.Send(aPlayer.player_ip, 1000);
                                                 }
-                                                aPlayer.AddPingEntry(ping);
+                                                catch (Exception e)
+                                                {
+                                                    HandleException(new AdKatsException("Error fetching manual player ping.", e));
+                                                }
+                                                if (reply != null && reply.Status == IPStatus.Success)
+                                                {
+                                                    ping = reply.RoundtripTime;
+                                                    proconFetched = true;
+                                                }
+                                                else {
+                                                    Log.Debug(() => "Ping status for " + aPlayer.GetVerboseName() + ": " + reply.Status, 5);
+                                                    ping = -1;
+                                                }
                                             }
+                                            aPlayer.AddPingEntry(ping);
 
                                             //Automatic ping kick
                                             if (_pingEnforcerEnable && 
