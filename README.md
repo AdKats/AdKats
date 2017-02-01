@@ -321,7 +321,16 @@
 </p>
 <ul>
     <li>
-        <b>Trouble running the setup SQL script.</b>
+        <b>'You have an error in your SQL syntax' error when running the setup SQL script.</b>
+        This error is due to an issue with the latest version of PHPMyAdmin, not a database or script problem. 
+        Please use another tool such as MySQL Workbench or a previous version of PHPMyAdmin to run this script 
+        and it will execute without issue.<br/><br/>
+        The following error:<br/>
+        #1064 - You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version 
+        for the right syntax to use near 'REPLACE INTO `adkats_commands` VALUES(75, 'Active', 'player_pm_reply', 
+        'Unable',' at line 3
+    </li><li>
+        <b>Other troubles running the setup SQL script.</b>
         If this happens it is most likely your database provider has restricted your access to create triggers,
         stored procedures, or both.
         These elements are required for AdKats to properly function, and thus it cannot be run without them.
