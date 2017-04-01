@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.5
- * 31-MAR-2017
+ * Version 6.9.0.6
+ * 1-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.5</version_code>
+ * <version_code>6.9.0.6</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.5";
+        private const String PluginVersion = "6.9.0.6";
 
         public enum GameVersion
         {
@@ -8508,7 +8508,21 @@ namespace PRoConEvents
                                     Boolean toldAdmins = false;
                                     if (!aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == "player_kick" || aRecord.command_action.command_key == "player_ban_temp" || aRecord.command_action.command_key == "player_ban_perm"))
                                     {
-                                        List<AdKatsRecord> meaningfulRecords = aPlayer.TargetedRecords.Where(aRecord => aRecord.command_action.command_key != "banenforcer_enforce" && aRecord.command_action.command_key != "player_changeip" && aRecord.command_action.command_key != "player_changename" && aRecord.command_action.command_key != "player_repboost" && aRecord.command_action.command_key != "player_pm_send" && aRecord.command_action.command_key != "player_pm_reply" && aRecord.command_action.command_key != "player_pm_start" && aRecord.command_action.command_key != "player_pm_transmit" && aRecord.command_action.command_key != "player_pm_cancel" && !aRecord.command_action.command_key.Contains("self_")).ToList();
+                                        List<AdKatsRecord> meaningfulRecords = aPlayer.TargetedRecords.Where(aRecord => 
+                                        aRecord.command_action.command_key != "banenforcer_enforce" && 
+                                        aRecord.command_action.command_key != "player_changeip" && 
+                                        aRecord.command_action.command_key != "player_changename" && 
+                                        aRecord.command_action.command_key != "player_repboost" && 
+                                        aRecord.command_action.command_key != "player_pm_send" && 
+                                        aRecord.command_action.command_key != "player_pm_reply" && 
+                                        aRecord.command_action.command_key != "player_pm_start" && 
+                                        aRecord.command_action.command_key != "player_pm_transmit" &&
+                                        aRecord.command_action.command_key != "player_pm_cancel" &&
+                                        ((aRecord.command_action.command_key == "player_say" || 
+                                          aRecord.command_action.command_key == "player_yell" || 
+                                          aRecord.command_action.command_key == "player_tell") &&
+                                          aRecord.source_player != null) &&
+                                        !aRecord.command_action.command_key.Contains("self_")).ToList();
                                         if (meaningfulRecords.Any())
                                         {
                                             List<String> types = (from record in meaningfulRecords select record.command_action.command_name).Distinct().ToList();
@@ -9304,11 +9318,7 @@ namespace PRoConEvents
                                 _startupDurations.Dequeue();
                             }
                             var averageStartupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds));
-                            var averageDurationString = "";
-                            if (_isTestingAuthorized)
-                            {
-                                averageDurationString = "(" + FormatTimeString(averageStartupDuration, 3) + ":" + _startupDurations.Count() + ")";
-                            }
+                            var averageDurationString = "(" + FormatTimeString(averageStartupDuration, 3) + ":" + _startupDurations.Count() + ")";
                             OnlineAdminTellMessage("AdKats startup complete [" + FormatTimeString(startupDuration, 3) + "]" + averageDurationString + ". Commands are now online.");
                             foreach (String playerName in _PlayersRequestingCommands)
                             {
