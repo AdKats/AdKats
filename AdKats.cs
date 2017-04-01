@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.6
+ * Version 6.9.0.7
  * 1-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.6</version_code>
+ * <version_code>6.9.0.7</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.6";
+        private const String PluginVersion = "6.9.0.7";
 
         public enum GameVersion
         {
@@ -1588,19 +1588,16 @@ namespace PRoConEvents
 
 
                     if (IsActiveSettingSection("X99")) {
-                        //Experimental tools
-                        if (_isTestingAuthorized) {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use Experimental Tools", typeof(Boolean), _useExperimentalTools));
-                            if (_useExperimentalTools) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Send Query", typeof(String), ""));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Send Non-Query", typeof(String), ""));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
-                                if (_UseWeaponLimiter) {
-                                    lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "NO EXPLOSIVES Weapon String", typeof(String), _WeaponLimiterString));
-                                    lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
-                                }
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use Experimental Tools", typeof(Boolean), _useExperimentalTools));
+                        if (_useExperimentalTools) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Send Query", typeof(String), ""));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Send Non-Query", typeof(String), ""));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
+                            if (_UseWeaponLimiter) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "NO EXPLOSIVES Weapon String", typeof(String), _WeaponLimiterString));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
                             }
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                         }
                     }
 
@@ -11734,12 +11731,12 @@ namespace PRoConEvents
                     }
                 }
 
+                //Grenade cooking catcher
                 //Only add the last death if it's not a death by admin
                 if (!String.IsNullOrEmpty(aKill.killer.player_name))
                 {
                     try
                     {
-                        //ADK grenade cooking catcher
                         if (_useExperimentalTools && _UseGrenadeCookCatcher)
                         {
                             if (_RoundCookers == null)
@@ -11937,231 +11934,7 @@ namespace PRoConEvents
 
                 try
                 {
-                    if (_isTestingAuthorized &&
-                        _serverInfo.ServerID == 1 &&
-                        _roundID >= 25000 &&
-                        _roundID <= 25009) {
-                        if (aKill.killerCPI.TeamID != aKill.victimCPI.TeamID) {
-                            var killSpam = (aKill.killer.lastKill.AddSeconds(2) > UtcNow());
-                            aKill.killer.lastKill = UtcNow();
-                            switch (_roundID) {
-                                case 25000:
-                                    //Only 5 knife codes known, fuzzy match for unknown knife types
-                                    if (!aKill.weaponCode.ToLower().Contains("knife") &&
-                                        !aKill.weaponCode.ToLower().Contains("melee") &&
-                                        aKill.weaponCode != "DamageArea" &&
-                                        !killSpam) {
-                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
-                                        if (_populationStatus == PopulationState.High &&
-                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
-                                            (targetedRecord.command_numeric == _roundID) &&
-                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
-                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
-                                            aCommand = GetCommandByKey("player_kick");
-                                        }
-                                        QueueRecordForProcessing(new AdKatsRecord {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = aCommand,
-                                            command_numeric = _roundID,
-                                            target_name = aKill.killer.player_name,
-                                            target_player = aKill.killer,
-                                            source_name = "AutoAdmin",
-                                            record_time = UtcNow(),
-                                            record_message = "KNIFE ONLY! ROUND 25000 EVENT (PT 1)"
-                                        });
-                                    }
-                                    break;
-                                case 25001:
-                                    if (aKill.weaponCategory != DamageTypes.SniperRifle &&
-                                        aKill.weaponCode != "DamageArea" &&
-                                        !killSpam) {
-                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
-                                        if (_populationStatus == PopulationState.High &&
-                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
-                                            (targetedRecord.command_numeric == _roundID) &&
-                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
-                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
-                                            aCommand = GetCommandByKey("player_kick");
-                                        }
-                                        QueueRecordForProcessing(new AdKatsRecord {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = aCommand,
-                                            command_numeric = _roundID,
-                                            target_name = aKill.killer.player_name,
-                                            target_player = aKill.killer,
-                                            source_name = "AutoAdmin",
-                                            record_time = UtcNow(),
-                                            record_message = "BOLT ACTIONS ONLY! ROUND 25000 EVENT (PT 2)"
-                                        });
-                                    }
-                                    break;
-                                case 25002:
-                                    if (aKill.weaponCode != "U_SaddlegunSnp" &&
-                                        aKill.weaponCode != "DamageArea" &&
-                                        !killSpam) {
-                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
-                                        if (_populationStatus == PopulationState.High &&
-                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
-                                            (targetedRecord.command_numeric == _roundID) &&
-                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
-                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
-                                            aCommand = GetCommandByKey("player_kick");
-                                        }
-                                        QueueRecordForProcessing(new AdKatsRecord {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = aCommand,
-                                            command_numeric = _roundID,
-                                            target_name = aKill.killer.player_name,
-                                            target_player = aKill.killer,
-                                            source_name = "AutoAdmin",
-                                            record_time = UtcNow(),
-                                            record_message = "MARE'S LEG ONLY! ROUND 25000 EVENT (PT 3)"
-                                        });
-                                    }
-                                    break;
-                                case 25003:
-                                    if (aKill.weaponCode != "U_Defib" &&
-                                        aKill.weaponCode != "DamageArea" &&
-                                        !killSpam) {
-                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
-                                        if (_populationStatus == PopulationState.High &&
-                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
-                                            (targetedRecord.command_numeric == _roundID) &&
-                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
-                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
-                                            aCommand = GetCommandByKey("player_kick");
-                                        }
-                                        QueueRecordForProcessing(new AdKatsRecord {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = aCommand,
-                                            command_numeric = _roundID,
-                                            target_name = aKill.killer.player_name,
-                                            target_player = aKill.killer,
-                                            source_name = "AutoAdmin",
-                                            record_time = UtcNow(),
-                                            record_message = "DEFIBS ONLY! ROUND 25000 EVENT (PT 4)"
-                                        });
-                                    }
-                                    break;
-                                case 25004:
-                                    if (!aKill.weaponCode.ToLower().Contains("knife") &&
-                                        !aKill.weaponCode.ToLower().Contains("melee") &&
-                                        aKill.weaponCode != "dlSHTR" &&
-                                        aKill.weaponCode != "DamageArea" &&
-                                        !killSpam) {
-                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
-                                        if (_populationStatus == PopulationState.High &&
-                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
-                                            (targetedRecord.command_numeric == _roundID) &&
-                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
-                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
-                                            aCommand = GetCommandByKey("player_kick");
-                                        }
-                                        QueueRecordForProcessing(new AdKatsRecord {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = aCommand,
-                                            command_numeric = _roundID,
-                                            target_name = aKill.killer.player_name,
-                                            target_player = aKill.killer,
-                                            source_name = "AutoAdmin",
-                                            record_time = UtcNow(),
-                                            record_message = "PHANTOM BOW AND KNIVES ONLY! ROUND 25000 EVENT (PT 5)"
-                                        });
-                                    }
-                                    break;
-                                case 25005:
-                                    if (aKill.weaponCode != "U_Repairtool" &&
-                                        aKill.weaponCode != "DamageArea" &&
-                                        !killSpam) {
-                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
-                                        if (_populationStatus == PopulationState.High &&
-                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
-                                            (targetedRecord.command_numeric == _roundID) &&
-                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
-                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
-                                            aCommand = GetCommandByKey("player_kick");
-                                        }
-                                        QueueRecordForProcessing(new AdKatsRecord {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = aCommand,
-                                            command_numeric = _roundID,
-                                            target_name = aKill.killer.player_name,
-                                            target_player = aKill.killer,
-                                            source_name = "AutoAdmin",
-                                            record_time = UtcNow(),
-                                            record_message = "REPAIR TOOL ONLY! ROUND 25000 EVENT (PT 6)"
-                                        });
-                                    }
-                                    break;
-                                case 25006:
-                                    if (aKill.weaponCategory != DamageTypes.Handgun &&
-                                        aKill.weaponCode != "DamageArea" &&
-                                        !killSpam) {
-                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
-                                        if (_populationStatus == PopulationState.High &&
-                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
-                                            (targetedRecord.command_numeric == _roundID) &&
-                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
-                                            (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
-                                            aCommand = GetCommandByKey("player_kick");
-                                        }
-                                        QueueRecordForProcessing(new AdKatsRecord {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = aCommand,
-                                            command_numeric = _roundID,
-                                            target_name = aKill.killer.player_name,
-                                            target_player = aKill.killer,
-                                            source_name = "AutoAdmin",
-                                            record_time = UtcNow(),
-                                            record_message = "PISTOLS ONLY! ROUND 25000 EVENT (PT 7)"
-                                        });
-                                    }
-                                    break;
-                                case 25007:
-                                    //All weapons allowed
-                                    break;
-                                case 25008:
-                                    //All weapons allowed
-                                    break;
-                                case 25009:
-                                    //All weapons allowed
-                                    break;
-                            }
-                        }
-                    } else if (_isTestingAuthorized && 
-                        _gameVersion == GameVersion.BF4 &&
-                        aKill.IsTeamkill &&
-                        !aKill.IsSuicide)
-                    {
-                        //Case for valid medkit teamkills
-                        if (_serverInfo.ServerID == 1 && aKill.weaponCode != "U_PortableMedicpack" && aKill.weaponCode != "U_Medkit")
-                        {
-                            //Slay the teamkiller
-                            AdKatsRecord aRecord = new AdKatsRecord
-                            {
-                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                server_id = _serverInfo.ServerID,
-                                command_type = GetCommandByKey("player_kill_force"),
-                                command_numeric = 0,
-                                target_name = aKill.killer.player_name,
-                                target_player = aKill.killer,
-                                source_name = "AutoAdmin",
-                                record_message = "Teamkilling " + aKill.victim.GetVerboseName(),
-                                record_time = UtcNow()
-                            };
-                            QueueRecordForProcessing(aRecord);
-                            //Inform the victim
-                            PlayerTellMessage(aKill.victim.player_name, aKill.killer.GetVerboseName() + " was slain for teamkilling you");
-                        }
-                    }
-                    else if (_UseWeaponLimiter && !gKillHandled)
+                    if (_UseWeaponLimiter && !gKillHandled)
                     {
                         //Check for restricted weapon
                         if (Regex.Match(aKill.weaponCode, @"(?:" + _WeaponLimiterString + ")", RegexOptions.IgnoreCase).Success)
