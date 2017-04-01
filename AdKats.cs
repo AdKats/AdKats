@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.4
- * 15-JAN-2017
+ * Version 6.9.0.5
+ * 31-MAR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.4</version_code>
+ * <version_code>6.9.0.5</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.4";
+        private const String PluginVersion = "6.9.0.5";
 
         public enum GameVersion
         {
@@ -14257,15 +14257,13 @@ namespace PRoConEvents
         {
             Boolean nonAdminsTold = false;
             Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
-            if (_isTestingAuthorized) {
-                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()){
-                    if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
-                        if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) || 
-                            (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 5.0) ||
-                            (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) || 
-                            _tsPlayers.ContainsKey(aPlayer.player_name)) {
-                            whitelistedPlayers[aPlayer.player_name] = aPlayer;
-                        }
+            foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
+                if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                    if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
+                        (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 5.0) ||
+                        (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
+                        _tsPlayers.ContainsKey(aPlayer.player_name)) {
+                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
                 }
             }
@@ -14331,15 +14329,13 @@ namespace PRoConEvents
         {
             Boolean nonAdminsTold = false;
             Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
-            if (_isTestingAuthorized) {
-                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
-                    if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
-                        if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
-                            (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0) ||
-                            (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
-                            _tsPlayers.ContainsKey(aPlayer.player_name)) {
-                            whitelistedPlayers[aPlayer.player_name] = aPlayer;
-                        }
+            foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
+                if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                    if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
+                        (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0) ||
+                        (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
+                        _tsPlayers.ContainsKey(aPlayer.player_name)) {
+                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
                 }
             }
@@ -14405,15 +14401,13 @@ namespace PRoConEvents
         {
             Boolean nonAdminsTold = false;
             Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
-            if (_isTestingAuthorized) {
-                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
-                    if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
-                        if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
-                            (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0) ||
-                            (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
-                            _tsPlayers.ContainsKey(aPlayer.player_name)) {
-                            whitelistedPlayers[aPlayer.player_name] = aPlayer;
-                        }
+            foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
+                if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                    if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
+                        (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0) ||
+                        (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
+                        _tsPlayers.ContainsKey(aPlayer.player_name)) {
+                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
                 }
             }
