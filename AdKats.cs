@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.7
- * 1-APR-2017
+ * Version 6.9.0.8
+ * 2-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.7</version_code>
+ * <version_code>6.9.0.8</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.7";
+        private const String PluginVersion = "6.9.0.8";
 
         public enum GameVersion
         {
@@ -1426,8 +1426,8 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Minimum Ticket Count", typeof(Int32), _surrenderAutoMinimumTicketCount));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Maximum Ticket Count", typeof(Int32), _surrenderAutoMaximumTicketCount));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                             if (!_surrenderAutoUseMetroValues && !_surrenderAutoUseLockerValues) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
@@ -16550,7 +16550,7 @@ namespace PRoConEvents
                                     }
                                 }
                                 SendMessageToSource(record, "Queuing you to assist the weak team. Thank you.");
-                                OnlineAdminSayMessage(record.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted " + (_UseTopPlayerMonitor ? "(" + newPowerDiff + "<" + oldPowerDiff + ")" : "") + ", queueing.");
+                                OnlineAdminSayMessage(record.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTopPlayerMonitor ? " (" + newPowerDiff + "<" + oldPowerDiff + ")" : "") + ", queueing.");
                             } 
                             else
                             {
