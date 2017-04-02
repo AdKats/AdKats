@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.8
+ * Version 6.9.0.9
  * 2-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.8</version_code>
+ * <version_code>6.9.0.9</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.8";
+        private const String PluginVersion = "6.9.0.9";
 
         public enum GameVersion
         {
@@ -36375,9 +36375,10 @@ namespace PRoConEvents
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(123))
                                 {
-                                    SendNonQuery("Adding command player_perks", "INSERT INTO `adkats_commands` VALUES(123, 'Active', 'player_perks', 'Log', 'Fetch Player Perks', 'perks', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_perks", "INSERT INTO `adkats_commands` VALUES(123, 'Active', 'player_perks', 'Log', 'Fetch Player Perks', 'perks', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
+                                SendNonQuery("Updating command 123 player interaction", "UPDATE `adkats_commands` SET `command_playerInteraction` = 0 WHERE `command_id` = 123", false);
                                 if (newCommands)
                                 {
                                     FetchCommands();
