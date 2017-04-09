@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.11
+ * Version 6.9.0.12
  * 8-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.11</version_code>
+ * <version_code>6.9.0.12</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.11";
+        private const String PluginVersion = "6.9.0.12";
 
         public enum GameVersion
         {
@@ -564,15 +564,15 @@ namespace PRoConEvents
         private Int32 _surrenderAutoMinimumPlayers = 10;
         private String _surrenderAutoMessage = "Auto-Resolving Round. %WinnerName% Wins!";
         private Boolean _surrenderAutoNukeInstead;
-        private Boolean _autoNukeActive = false;
+        private Boolean _nukeAutoSlayActive = false;
         private Int32 _surrenderAutoNukeDurationHigh = 0;
         private Int32 _surrenderAutoNukeDurationMed = 0;
         private Int32 _surrenderAutoNukeDurationLow = 0;
-        private Int32 _autoNukeDuration = 0;
+        private Int32 _nukeAutoSlayActiveDuration = 0;
         private Int32 _surrenderAutoNukeDurationIncrease = 0;
         private Int32 _surrenderAutoNukeMinBetween = 60;
-        private DateTime _surrenderAutoNukeLast = DateTime.UtcNow - TimeSpan.FromMinutes(10);
-        private AdKatsTeam _surrenderAutoNukeLastTeam;
+        private DateTime _lastNukeTime = DateTime.UtcNow - TimeSpan.FromMinutes(10);
+        private AdKatsTeam _lastNukeTeam;
         private Boolean _surrenderAutoAnnounceNukePrep = true;
         private Boolean _surrenderAutoNukeLosingTeams = false;
         private Int32 _surrenderAutoNukeLosingMaxDiff = 200;
@@ -6671,7 +6671,7 @@ namespace PRoConEvents
                         _surrenderAutoTriggerCountCurrent = 0;
                         _surrenderAutoTriggerCountPause = 0;
                         _autoNukesThisRound.Clear();
-                        _surrenderAutoNukeLastTeam = null;
+                        _lastNukeTeam = null;
                         _roundAssists.Clear();
                         _slowmo = false;
                         _pluginUpdateServerInfoChecked = false;
@@ -7421,50 +7421,50 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
 
-                            if (_surrenderAutoNukeLastTeam != null)
+                            if (_lastNukeTeam != null)
                             {
                                 //Auto-Nuke Slay Duration
-                                var duration = NowDuration(_surrenderAutoNukeLast);
+                                var duration = NowDuration(_lastNukeTime);
                                 var nukeInfoMessage = "";
-                                var durationIncrease = _surrenderAutoNukeDurationIncrease * Math.Max(getNukeCount(_surrenderAutoNukeLastTeam.TeamID) - 1, 0);
-                                if (!_autoNukeActive)
+                                var durationIncrease = _surrenderAutoNukeDurationIncrease * Math.Max(getNukeCount(_lastNukeTeam.TeamID) - 1, 0);
+                                if (!_nukeAutoSlayActive)
                                 {
                                     switch (_populationStatus)
                                     {
                                         case PopulationState.High:
-                                            _autoNukeDuration = _surrenderAutoNukeDurationHigh + durationIncrease;
+                                            _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationHigh + durationIncrease;
                                             nukeInfoMessage = "High population nuke: " + _surrenderAutoNukeDurationHigh + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
                                             break;
                                         case PopulationState.Medium:
-                                            _autoNukeDuration = _surrenderAutoNukeDurationMed + durationIncrease;
+                                            _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationMed + durationIncrease;
                                             nukeInfoMessage = "Medium population nuke: " + _surrenderAutoNukeDurationMed + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
                                             break;
                                         case PopulationState.Low:
-                                            _autoNukeDuration = _surrenderAutoNukeDurationLow + durationIncrease;
+                                            _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationLow + durationIncrease;
                                             nukeInfoMessage = "Low population nuke: " + _surrenderAutoNukeDurationLow + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
                                             break;
                                     }
                                 }
-                                if (_autoNukeDuration > 0)
+                                if (_nukeAutoSlayActiveDuration > 0)
                                 {
-                                    if (duration.TotalSeconds < _autoNukeDuration)
+                                    if (duration.TotalSeconds < _nukeAutoSlayActiveDuration)
                                     {
-                                        if (!_autoNukeActive)
+                                        if (!_nukeAutoSlayActive)
                                         {
                                             OnlineAdminSayMessage(nukeInfoMessage);
                                         }
-                                        _autoNukeActive = true;
-                                        Int32 endDuration = (int)NowDuration(_surrenderAutoNukeLast.AddSeconds(_autoNukeDuration)).TotalSeconds;
+                                        _nukeAutoSlayActive = true;
+                                        Int32 endDuration = (int)NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration)).TotalSeconds;
                                         if (endDuration > 0 && endDuration % 2 == 0)
                                         {
-                                            AdminTellMessage(_surrenderAutoNukeLastTeam.TeamKey + " nuke active for " + endDuration + " seconds!");
+                                            AdminTellMessage(_lastNukeTeam.TeamKey + " nuke active for " + endDuration + " seconds!");
                                         }
                                     }
-                                    else if (_autoNukeActive)
+                                    else if (_nukeAutoSlayActive)
                                     {
-                                        _autoNukeActive = false;
-                                        _autoNukeDuration = 0;
-                                        AdminTellMessage(_surrenderAutoNukeLastTeam.TeamKey + " nuke has ended!");
+                                        _nukeAutoSlayActive = false;
+                                        _nukeAutoSlayActiveDuration = 0;
+                                        AdminTellMessage(_lastNukeTeam.TeamKey + " nuke has ended!");
                                     }
                                 }
                             }
@@ -9871,7 +9871,7 @@ namespace PRoConEvents
                                 //Block system if all possible actions have already taken place this round
                                 (getNukeCount(mapUpTeam.TeamID) < _surrenderAutoMaxNukesEachRound || _surrenderAutoNukeResolveAfterMax) &&
                                 //Block system while a nuke is active
-                                NowDuration(_surrenderAutoNukeLast).TotalSeconds > _surrenderAutoNukeDurationHigh)
+                                NowDuration(_lastNukeTime).TotalSeconds > _surrenderAutoNukeDurationHigh)
                             {
                                 Boolean canFire = true;
                                 Boolean fired = false;
@@ -10058,10 +10058,10 @@ namespace PRoConEvents
                                         if (canFire &&
                                             config_action == AutoSurrenderAction.Nuke &&
                                             getNukeCount(mapUpTeam.TeamID) > 0 &&
-                                            NowDuration(_surrenderAutoNukeLast).TotalSeconds < _surrenderAutoNukeMinBetween)
+                                            NowDuration(_lastNukeTime).TotalSeconds < _surrenderAutoNukeMinBetween)
                                         {
                                             canFire = false;
-                                            denyReason = "~" + FormatNowDuration(_surrenderAutoNukeLast.AddSeconds(_surrenderAutoNukeMinBetween), 2) + " till it can fire again.";
+                                            denyReason = "~" + FormatNowDuration(_lastNukeTime.AddSeconds(_surrenderAutoNukeMinBetween), 2) + " till it can fire again.";
                                         }
                                         
                                         if (canFire &&
@@ -10300,7 +10300,7 @@ namespace PRoConEvents
                                         {
                                             string autoNukeMessage = _surrenderAutoNukeMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
                                             incNukeCount(baserapingTeam.TeamID);
-                                            _surrenderAutoNukeLastTeam = baserapingTeam;
+                                            _lastNukeTeam = baserapingTeam;
                                             QueueRecordForProcessing(new AdKatsRecord
                                             {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -10557,7 +10557,7 @@ namespace PRoConEvents
                     _surrenderAutoTriggerCountCurrent = 0;
                     _surrenderAutoTriggerCountPause = 0;
                     _autoNukesThisRound.Clear();
-                    _surrenderAutoNukeLastTeam = null;
+                    _lastNukeTeam = null;
                     _roundAssists.Clear();
                     _PlayersAutoAssistedThisRound = false;
                     _RoundReports.Clear();
@@ -12103,13 +12103,13 @@ namespace PRoConEvents
                     }
 
                     //Auto-Nuke Slay Duration
-                    var duration = NowDuration(_surrenderAutoNukeLast);
-                    if (duration.TotalSeconds < _autoNukeDuration && 
-                        _surrenderAutoNukeLastTeam != null && 
-                        aPlayer.frostbitePlayerInfo.TeamID == _surrenderAutoNukeLastTeam.TeamID)
+                    var duration = NowDuration(_lastNukeTime);
+                    if (duration.TotalSeconds < _nukeAutoSlayActiveDuration && 
+                        _lastNukeTeam != null && 
+                        aPlayer.frostbitePlayerInfo.TeamID == _lastNukeTeam.TeamID)
                     {
-                        var endDuration = NowDuration(_surrenderAutoNukeLast.AddSeconds(_autoNukeDuration));
-                        PlayerTellMessage(aPlayer.player_name, _surrenderAutoNukeLastTeam.TeamKey + " nuke active for " + Math.Round(endDuration.TotalSeconds, 1) + " seconds!");
+                        var endDuration = NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration));
+                        PlayerTellMessage(aPlayer.player_name, _lastNukeTeam.TeamKey + " nuke active for " + Math.Round(endDuration.TotalSeconds, 1) + " seconds!");
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", aPlayer.player_name);
                     }
                 }
@@ -19338,6 +19338,7 @@ namespace PRoConEvents
                                         record.target_name = matchingTeam.TeamName;
                                         record.command_numeric = matchingTeam.TeamID;
                                         record.record_message += " (" + matchingTeam.TeamName + ")";
+                                        _lastNukeTeam = matchingTeam;
                                     }
                                     else if (targetTeam.ToLower() == "all")
                                     {
@@ -26849,10 +26850,21 @@ namespace PRoConEvents
                                 AdminTellMessage("Nuking " + record.GetTargetNames() + " team in " + countdown + "...", false);
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
                             }
-                            _surrenderAutoNukeLast = UtcNow();
-                            AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + " team NOW!");
-                            foreach (AdKatsPlayer player in _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone")))
-                            {
+                            _lastNukeTime = UtcNow();
+                            AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + " team!");
+                            var nukeTargets = _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"));
+                            foreach (AdKatsPlayer player in nukeTargets) {
+                                // Initial kills for nuke
+                                ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
+                            }
+                            Thread.Sleep(TimeSpan.FromSeconds(1));
+                            foreach (AdKatsPlayer player in nukeTargets) {
+                                // Secondary kills for nuke
+                                ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
+                            }
+                            Thread.Sleep(TimeSpan.FromSeconds(1));
+                            foreach (AdKatsPlayer player in nukeTargets) {
+                                // Tertiary kills for nuke
                                 ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
                             }
                         }
@@ -26866,12 +26878,23 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    _surrenderAutoNukeLast = UtcNow();
-                    foreach (AdKatsPlayer player in _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone")))
-                    {
+                    _lastNukeTime = UtcNow();
+                    AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + " team!");
+                    var nukeTargets = _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"));
+                    foreach (AdKatsPlayer player in nukeTargets) {
+                        // Initial kills for nuke
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
                     }
-                    AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + " team!");
+                    Thread.Sleep(TimeSpan.FromSeconds(1));
+                    foreach (AdKatsPlayer player in nukeTargets) {
+                        // Secondary kills for nuke
+                        ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
+                    }
+                    Thread.Sleep(TimeSpan.FromSeconds(1));
+                    foreach (AdKatsPlayer player in nukeTargets) {
+                        // Tertiary kills for nuke
+                        ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
+                    }
                 }
                 SendMessageToSource(record, "You NUKED " + record.GetTargetNames() + ".");
             }
