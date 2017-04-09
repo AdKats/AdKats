@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.13
+ * Version 6.9.0.14
  * 9-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.13</version_code>
+ * <version_code>6.9.0.14</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.13";
+        private const String PluginVersion = "6.9.0.14";
 
         public enum GameVersion
         {
@@ -781,6 +781,7 @@ namespace PRoConEvents
         private Boolean _WeaponCodesTableConfirmed;
         private Boolean _UseGrenadeCookCatcher;
         private Int32 _eventRoundNumber = 999999;
+        private Int32 _eventTestRoundNumber = 999999;
         private Int32 _eventAnnounceRoundDifference = 100;
         private Dictionary<String, AdKatsPlayer> _RoundCookers = new Dictionary<String, AdKatsPlayer>();
         private Boolean _UseWeaponLimiter;
@@ -1604,6 +1605,7 @@ namespace PRoConEvents
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Round Number", typeof(Int32), _eventRoundNumber));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Test Round Number", typeof(Int32), _eventTestRoundNumber));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Announce Round Difference", typeof(Int32), _eventAnnounceRoundDifference));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
@@ -4368,6 +4370,13 @@ namespace PRoConEvents
                         _eventRoundNumber = roundNumber;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Event Round Number", typeof(Boolean), _eventRoundNumber));
+                    }
+                } else if (Regex.Match(strVariable, @"Event Test Round Number").Success) {
+                    Int32 roundNumber = Int32.Parse(strValue);
+                    if (roundNumber != _eventTestRoundNumber) {
+                        _eventTestRoundNumber = roundNumber;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Boolean), _eventTestRoundNumber));
                     }
                 } else if (Regex.Match(strVariable, @"Event Announce Round Difference").Success) {
                     Int32 roundNumber = Int32.Parse(strValue);
@@ -10844,7 +10853,7 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
                             }
                         }
-                    } else if (nRound == 19991) {
+                    } else if (nRound == _eventTestRoundNumber) {
                         ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
                         ExecuteCommand("procon.protected.send", "mapList.remove", "0");
                         ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
@@ -30915,6 +30924,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                 QueueSettingForUpload(new CPluginVariable(@"Event Round Number", typeof(Boolean), _eventRoundNumber));
+                QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Boolean), _eventTestRoundNumber));
                 QueueSettingForUpload(new CPluginVariable(@"Event Announce Round Difference", typeof(Boolean), _eventAnnounceRoundDifference));
                 QueueSettingForUpload(new CPluginVariable(@"Event Base Server Name", typeof(String), _eventBaseServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Countdown Server Name", typeof(String), _eventCountdownServerName));
