@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.14
+ * Version 6.9.0.15
  * 9-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.14</version_code>
+ * <version_code>6.9.0.15</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.14";
+        private const String PluginVersion = "6.9.0.15";
 
         public enum GameVersion
         {
@@ -9112,10 +9112,10 @@ namespace PRoConEvents
 
                                 AdKatsTeam team1, team2;
                                 if (GetTeamByID(1, out team1)) {
-                                    team1.UpdatePlayerCount(_PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == 1));
+                                    team1.UpdatePlayerCount(_PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == 1 && aPlayer.player_type == PlayerType.Player));
                                 }
                                 if (GetTeamByID(2, out team2)) {
-                                    team2.UpdatePlayerCount(_PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == 2));
+                                    team2.UpdatePlayerCount(_PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == 2 && aPlayer.player_type == PlayerType.Player));
                                 }
                                 //Make sure the player dictionary is clean of any straglers
                                 Int32 straglerCount = 0;
