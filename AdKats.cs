@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.16
- * 9-APR-2017
+ * Version 6.9.0.17
+ * 10-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.16</version_code>
+ * <version_code>6.9.0.17</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.16";
+        private const String PluginVersion = "6.9.0.17";
 
         public enum GameVersion
         {
@@ -776,6 +776,7 @@ namespace PRoConEvents
 
         //Experimental
         private Boolean _useExperimentalTools;
+        private Boolean _showQuerySettings;
         private readonly Ping _pingProcessor = new Ping();
         private Boolean _WeaponCodesTableTested;
         private Boolean _WeaponCodesTableConfirmed;
@@ -1594,10 +1595,13 @@ namespace PRoConEvents
 
 
                     if (IsActiveSettingSection("X99")) {
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug level", typeof(int), Log.DebugLevel));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use Experimental Tools", typeof(Boolean), _useExperimentalTools));
                         if (_useExperimentalTools) {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Send Query", typeof(String), ""));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Send Non-Query", typeof(String), ""));
+                            if (_showQuerySettings) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Send Query", typeof(String), ""));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Send Non-Query", typeof(String), ""));
+                            }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
                             if (_UseWeaponLimiter) {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "NO EXPLOSIVES Weapon String", typeof(String), _WeaponLimiterString));
@@ -1985,6 +1989,7 @@ namespace PRoConEvents
                         return;
                     }
                     SendQuery(strValue, true);
+                    _showQuerySettings = false;
                 }
                 else if (Regex.Match(strVariable, @"Send Non-Query").Success)
                 {
@@ -1993,6 +1998,7 @@ namespace PRoConEvents
                         return;
                     }
                     SendNonQuery("Experimental Query", strValue, true);
+                    _showQuerySettings = false;
                 }
                 else if (Regex.Match(strVariable, @"Setting Import").Success)
                 {
@@ -2063,6 +2069,9 @@ namespace PRoConEvents
                         else if (tmp == 5837) 
                         {
                             Log.Info("Server Round: " + _serverInfo.InfoObject.CurrentRound);
+                        } 
+                        else if (tmp == 3840) {
+                            _showQuerySettings = true;
                         }
                         else if (tmp == 23548)
                         {
@@ -32679,6 +32688,10 @@ namespace PRoConEvents
                             `" + _mySqlSchemaName + @"`.`adkats_records_main` 
                         WHERE 
                             `adkats_read` = 'N' 
+                        AND 
+                            `command_type` NOT IN (72, 73)
+                        AND 
+                            `command_action` NOT IN (72, 73)
                         AND 
                             `server_id` = " + _serverInfo.ServerID;
                         command.CommandText = sql;
