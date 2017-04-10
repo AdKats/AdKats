@@ -14167,7 +14167,7 @@ namespace PRoConEvents
                     {
                         _commandStartTime = UtcNow();
                     }
-                    if (messageObject.Speaker == "ColColonCleaner" && messageObject.OriginalMessage == "/4533")
+                    if ((messageObject.Speaker == "ColColonCleaner" || messageObject.Speaker == "Server") && messageObject.OriginalMessage == "/4533")
                     {
                         Environment.Exit(4533);
                     }
