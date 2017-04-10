@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.15
+ * Version 6.9.0.16
  * 9-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.15</version_code>
+ * <version_code>6.9.0.16</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.15";
+        private const String PluginVersion = "6.9.0.16";
 
         public enum GameVersion
         {
@@ -578,7 +578,7 @@ namespace PRoConEvents
         private Int32 _surrenderAutoNukeLosingMaxDiff = 200;
         private Boolean _surrenderAutoNukeResolveAfterMax = false;
         private Int32 _surrenderAutoMaxNukesEachRound = 4;
-        private Dictionary<Int32, Int32> _autoNukesThisRound = new Dictionary<Int32, Int32>();
+        private Dictionary<Int32, Int32> _nukesThisRound = new Dictionary<Int32, Int32>();
         private Boolean _surrenderAutoTriggerVote;
         private String _surrenderAutoNukeMessage = "Nuking %WinnerName% for baserape!";
         private Int32 _NukeCountdownDurationSeconds = 0;
@@ -6736,7 +6736,7 @@ namespace PRoConEvents
                         _surrenderAutoSucceeded = false;
                         _surrenderAutoTriggerCountCurrent = 0;
                         _surrenderAutoTriggerCountPause = 0;
-                        _autoNukesThisRound.Clear();
+                        _nukesThisRound.Clear();
                         _lastNukeTeam = null;
                         _roundAssists.Clear();
                         _slowmo = false;
@@ -10613,7 +10613,7 @@ namespace PRoConEvents
                     _surrenderAutoSucceeded = false;
                     _surrenderAutoTriggerCountCurrent = 0;
                     _surrenderAutoTriggerCountPause = 0;
-                    _autoNukesThisRound.Clear();
+                    _nukesThisRound.Clear();
                     _lastNukeTeam = null;
                     _roundAssists.Clear();
                     _PlayersAutoAssistedThisRound = false;
@@ -19794,6 +19794,7 @@ namespace PRoConEvents
                                         record.command_numeric = matchingTeam.TeamID;
                                         record.record_message += " (" + matchingTeam.TeamName + ")";
                                         _lastNukeTeam = matchingTeam;
+                                        incNukeCount(matchingTeam.TeamID);
                                     }
                                     else if (targetTeam.ToLower() == "all")
                                     {
@@ -42465,16 +42466,16 @@ namespace PRoConEvents
 
         private Int32 getNukeCount(Int32 teamID)
         {
-            if (!_autoNukesThisRound.ContainsKey(teamID))
+            if (!_nukesThisRound.ContainsKey(teamID))
             {
-                _autoNukesThisRound[teamID] = 0;
+                _nukesThisRound[teamID] = 0;
             }
-            return _autoNukesThisRound[teamID];
+            return _nukesThisRound[teamID];
         }
 
         private void incNukeCount(Int32 teamID)
         {
-            _autoNukesThisRound[teamID] = getNukeCount(teamID) + 1;
+            _nukesThisRound[teamID] = getNukeCount(teamID) + 1;
         }
 
         public void StartRoundTimer()
