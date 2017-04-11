@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.18
+ * Version 6.9.0.19
  * 10-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.18</version_code>
+ * <version_code>6.9.0.19</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.18";
+        private const String PluginVersion = "6.9.0.19";
 
         public enum GameVersion
         {
@@ -8604,7 +8604,7 @@ namespace PRoConEvents
                                         !((aRecord.command_action.command_key == "player_say" || 
                                           aRecord.command_action.command_key == "player_yell" || 
                                           aRecord.command_action.command_key == "player_tell") &&
-                                          aRecord.source_player != null) &&
+                                          aRecord.source_player == null) &&
                                         !aRecord.command_action.command_key.Contains("self_")).ToList();
                                         if (meaningfulRecords.Any())
                                         {
@@ -42944,6 +42944,7 @@ namespace PRoConEvents
             if (active) {
                 serverName += " REPAIR TOOLS!";
             }
+            serverName = serverName.Trim();
             Int32 cutLength = serverName.Length - 62;
             if (cutLength > 0) {
                 serverName = serverName.Substring(0, serverName.Length - cutLength);
