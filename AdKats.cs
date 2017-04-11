@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.17
+ * Version 6.9.0.18
  * 10-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.17</version_code>
+ * <version_code>6.9.0.18</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.17";
+        private const String PluginVersion = "6.9.0.18";
 
         public enum GameVersion
         {
@@ -1612,8 +1612,11 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Test Round Number", typeof(Int32), _eventTestRoundNumber));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Announce Round Difference", typeof(Int32), _eventAnnounceRoundDifference));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Base Server Name (display)", typeof(String), ProcessEventServerName(_eventBaseServerName, false)));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventCountdownServerName, false)));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Active Server Name (display)", typeof(String), ProcessEventServerName(_eventActiveServerName, true)));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Current Round Number (display)", typeof(String), String.Format("{0:n0}", _roundID)));
                             if (_eventRoundNumber != 999999) {
                                 var futureDate = FetchFutureRoundDate(_eventRoundNumber);
@@ -7087,9 +7090,16 @@ namespace PRoConEvents
                             {
                                 if ((UtcNow() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotSayQueue.Peek();
-                                    if (message.Contains("%EventDate%")) {
+                                    if (message.Contains("%EventDateFull%") || message.Contains("%EventDate%")) {
                                         var futureDate = FetchFutureRoundDate(_eventRoundNumber);
-                                        message = message.Replace("%EventDate%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
+                                        message = message.Replace("%EventDateFull%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
+                                        message = message.Replace("%EventDate%", futureDate.ToShortDateString());
+                                    }
+                                    if (message.Contains("%CurrentRound%")) {
+                                        message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
+                                    }
+                                    if (message.Contains("%EventRound%")) {
+                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", _eventRoundNumber));
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -7105,9 +7115,16 @@ namespace PRoConEvents
                                 }
                                 if ((UtcNow() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds && _spamBotYellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotYellQueue.Peek();
-                                    if (message.Contains("%EventDate%")) {
+                                    if (message.Contains("%EventDateFull%") || message.Contains("%EventDate%")) {
                                         var futureDate = FetchFutureRoundDate(_eventRoundNumber);
-                                        message = message.Replace("%EventDate%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
+                                        message = message.Replace("%EventDateFull%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
+                                        message = message.Replace("%EventDate%", futureDate.ToShortDateString());
+                                    }
+                                    if (message.Contains("%CurrentRound%")) {
+                                        message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
+                                    }
+                                    if (message.Contains("%EventRound%")) {
+                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", _eventRoundNumber));
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -7123,9 +7140,16 @@ namespace PRoConEvents
                                 }
                                 if ((UtcNow() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds && _spamBotTellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotTellQueue.Peek();
-                                    if (message.Contains("%EventDate%")) {
+                                    if (message.Contains("%EventDateFull%") || message.Contains("%EventDate%")) {
                                         var futureDate = FetchFutureRoundDate(_eventRoundNumber);
-                                        message = message.Replace("%EventDate%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
+                                        message = message.Replace("%EventDateFull%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
+                                        message = message.Replace("%EventDate%", futureDate.ToShortDateString());
+                                    }
+                                    if (message.Contains("%CurrentRound%")) {
+                                        message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
+                                    }
+                                    if (message.Contains("%EventRound%")) {
+                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", _eventRoundNumber));
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -7297,13 +7321,9 @@ namespace PRoConEvents
                                     } else if (_roundID == _eventRoundNumber + 9) {
                                         serverName = _eventActiveServerName + " ALL WEAPONS!";
                                     } else {
-                                        serverName = _eventCountdownServerName + " Round " + String.Format("{0:n0}", _roundID);
+                                        serverName = _eventCountdownServerName;
                                     }
-                                    Int32 cutLength = serverName.Length - 62;
-                                    if (cutLength > 0) {
-                                        serverName = serverName.Substring(0, serverName.Length - cutLength);
-                                    }
-                                    this.ExecuteCommand("procon.protected.send", "vars.serverName", serverName);
+                                    this.ExecuteCommand("procon.protected.send", "vars.serverName", ProcessEventServerName(serverName, false));
                                 }
 
                                 //Team operations
@@ -8739,9 +8759,7 @@ namespace PRoConEvents
                                             //If this game is BF3 their ping will be loaded elsewhere
                                             Boolean proconFetched = false;
                                             Double ping = aPlayer.frostbitePlayerInfo.Ping;
-                                            if (_pingEnforcerKickMissingPings &&
-                                                _attemptManualPingWhenMissing &&
-                                                ping < 0 &&
+                                            if (((_pingEnforcerKickMissingPings && _attemptManualPingWhenMissing && ping < 0) || aPlayer.player_ping_manual) &&
                                                 !String.IsNullOrEmpty(aPlayer.player_ip))
                                             {
                                                 PingReply reply = null;
@@ -19639,6 +19657,68 @@ namespace PRoConEvents
                             }
                         }
                         break;
+                    case "player_ping": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length) {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame) {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Fetching Own Ping";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false, false);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Fetching Player Ping";
+                                    if (!HandleRoundReport(record)) {
+                                        CompleteTargetInformation(record, false, false, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_forceping": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length) {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame) {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Forcing Own Manual Ping";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false, false);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Forcing Player Manual Ping";
+                                    if (!HandleRoundReport(record)) {
+                                        CompleteTargetInformation(record, false, false, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     case "player_loadout_force": {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
@@ -23397,6 +23477,12 @@ namespace PRoConEvents
                         break;
                     case "player_loadout_force":
                         LoadoutForceTarget(record);
+                        break;
+                    case "player_ping":
+                        PingFetchTarget(record);
+                        break;
+                    case "player_forceping":
+                        ForcePingTarget(record);
                         break;
                     case "server_afk":
                         ManageAFKPlayers(record);
@@ -29235,6 +29321,57 @@ namespace PRoConEvents
                 FinalizeRecord(record);
             }
             Log.Debug(() => "Exiting LoadoutForceTarget", 6);
+        }
+
+        public void PingFetchTarget(AdKatsRecord record) {
+            Log.Debug(() => "Entering PingFetchTarget", 6);
+            try {
+                if (record.target_player == null) {
+                    Log.Error("Player null when fetching player ping.");
+                    SendMessageToSource(record, "Error fetching ping for " + record.GetTargetNames() + ".");
+                    return;
+                }
+                if (!record.target_player.player_online) {
+                    SendMessageToSource(record, record.GetTargetNames() + " is not online, ping cannot be fetched.");
+                    return;
+                }
+                record.record_action_executed = true;
+                record.command_numeric = (int)record.target_player.player_ping;
+                SendMessageToSource(record, record.target_player.GetVerboseName() + "'s Ping: " + (record.target_player.player_ping_manual ? "[M] " : "") + Math.Round(record.target_player.player_ping) + "ms (Avg: " + Math.Round(record.target_player.player_ping_avg) + "ms)");
+            } catch (Exception e) {
+                record.record_exception = new AdKatsException("Error while fetching player ping.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting PingFetchTarget", 6);
+        }
+
+        public void ForcePingTarget(AdKatsRecord record) {
+            Log.Debug(() => "Entering ForcePingTarget", 6);
+            try {
+                if (record.target_player == null) {
+                    Log.Error("Player null when forcing manual ping on player.");
+                    SendMessageToSource(record, "Error forcing manual ping on " + record.GetTargetNames() + ".");
+                    return;
+                }
+                if (!record.target_player.player_online) {
+                    SendMessageToSource(record, record.GetTargetNames() + " is not online, ping cannot be manually fetched.");
+                    return;
+                }
+                if (String.IsNullOrEmpty(record.target_player.player_ip)) {
+                    SendMessageToSource(record, "We don't have an IP for " + record.GetTargetNames() + ", we can't manually fetch their ping.");
+                    return;
+                }
+                record.record_action_executed = true;
+                record.target_player.player_ping_manual = true;
+                record.target_player.ClearPingEntries();
+                SendMessageToSource(record, record.target_player.GetVerboseName() + "'s ping will now be manually fetched. Deleting old pings for them.");
+            } catch (Exception e) {
+                record.record_exception = new AdKatsException("Error while forcing manual player ping.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting ForcePingTarget", 6);
         }
 
         public void ManageAFKPlayers(AdKatsRecord record)
@@ -36612,6 +36749,14 @@ namespace PRoConEvents
                                     newCommands = true;
                                 }
                                 SendNonQuery("Updating command 123 player interaction", "UPDATE `adkats_commands` SET `command_playerInteraction` = 0 WHERE `command_id` = 123", false);
+                                if (!_CommandIDDictionary.ContainsKey(124)) {
+                                    SendNonQuery("Adding command player_ping", "INSERT INTO `adkats_commands` VALUES(124, 'Active', 'player_ping', 'Log', 'Fetch Player Ping', 'ping', FALSE, 'Any')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(125)) {
+                                    SendNonQuery("Adding command player_forceping", "INSERT INTO `adkats_commands` VALUES(125, 'Active', 'player_forceping', 'Log', 'Force Manual Player Ping', 'fping', TRUE, 'AnyHidden')", true);
+                                    newCommands = true;
+                                }
                                 if (newCommands)
                                 {
                                     FetchCommands();
@@ -36757,6 +36902,8 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["self_battlecry"] = "Sets a new battlecry for your player.";
             _CommandDescriptionDictionary["player_battlecry"] = "Sets a new battlecry for the given player.";
             _CommandDescriptionDictionary["player_perks"] = "Displays the active perks a player has, and how long until those perks expire.";
+            _CommandDescriptionDictionary["player_ping"] = "Fetches a player's current ping, either from the server or manually if necessary.";
+            _CommandDescriptionDictionary["player_forceping"] = "Forces AdKats to manually ping a player instead of using the server ping.";
         }
 
         private void FillReadableMapModeDictionaries() {
@@ -42782,6 +42929,28 @@ namespace PRoConEvents
             return cSharpCodeProvider.CompileAssemblyFromSource(compilerParameters, pluginSource);
         }
 
+        public String ProcessEventServerName(String serverName, Boolean active) {
+            if (serverName.Contains("%EventDateFull%") || serverName.Contains("%EventDate%")) {
+                var futureDate = FetchFutureRoundDate(_eventRoundNumber);
+                serverName = serverName.Replace("%EventDateFull%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
+                serverName = serverName.Replace("%EventDate%", futureDate.ToShortDateString());
+            }
+            if (serverName.Contains("%CurrentRound%")) {
+                serverName = serverName.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
+            }
+            if (serverName.Contains("%EventRound%")) {
+                serverName = serverName.Replace("%EventRound%", String.Format("{0:n0}", _eventRoundNumber));
+            }
+            if (active) {
+                serverName += " REPAIR TOOLS!";
+            }
+            Int32 cutLength = serverName.Length - 62;
+            if (cutLength > 0) {
+                serverName = serverName.Substring(0, serverName.Length - cutLength);
+            }
+            return serverName;
+        }
+
         public class AdKatsWeaponName
         {
             public GameVersion weapon_game;
@@ -42944,6 +43113,7 @@ namespace PRoConEvents
             public Double player_ping { get; private set; }
             public DateTime player_ping_time { get; private set; }
             public Boolean player_ping_added { get; private set; }
+            public Boolean player_ping_manual = false;
             public AdKatsPlayer conversationPartner = null;
 
             public Dictionary<Int64, AdKatsPlayerStats> RoundStats;
