@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.19
+ * Version 6.9.0.20
  * 10-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.19</version_code>
+ * <version_code>6.9.0.20</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.19";
+        private const String PluginVersion = "6.9.0.20";
 
         public enum GameVersion
         {
@@ -10224,13 +10224,13 @@ namespace PRoConEvents
                                         {
                                             if (config_resumed)
                                             {
-                                                if (config_action == AutoSurrenderAction.Nuke)
+                                                if (config_action == AutoSurrenderAction.Nuke && _surrenderAutoAnnounceNukePrep)
                                                 {
-                                                    AdminSayMessage("Auto-nuke countdown resumed at " + readyPercentage + "." + denyReason);
+                                                    AdminSayMessage("Auto-nuke countdown resumed at " + readyPercentage + ". " + denyReason);
                                                 }
                                                 else
                                                 {
-                                                    OnlineAdminSayMessage("Auto-surrender countdown resumed at " + readyPercentage + "." + denyReason);
+                                                    OnlineAdminSayMessage("Auto-surrender countdown resumed at " + readyPercentage + ". " + denyReason);
                                                 }
                                             }
                                             //How often the message should be displayed
