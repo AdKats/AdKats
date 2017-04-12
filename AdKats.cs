@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.22
- * 11-APR-2017
+ * Version 6.9.0.23
+ * 12-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.22</version_code>
+ * <version_code>6.9.0.23</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.22";
+        private const String PluginVersion = "6.9.0.23";
 
         public enum GameVersion
         {
@@ -27402,11 +27402,11 @@ namespace PRoConEvents
                                     LogThreadExit();
                                     return;
                                 }
-                                AdminTellMessage("Nuking " + record.GetTargetNames() + " team in " + countdown + "...", false);
+                                AdminTellMessage("Nuking " + record.GetTargetNames() + " team in " + countdown + "...");
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
                             }
                             _lastNukeTime = UtcNow();
-                            AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + " team!");
+                            AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + "!");
                             var nukeTargets = _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"));
                             foreach (AdKatsPlayer player in nukeTargets) {
                                 // Initial kills for nuke
