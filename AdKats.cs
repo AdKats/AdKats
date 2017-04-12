@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.21
- * 10-APR-2017
+ * Version 6.9.0.22
+ * 11-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.21</version_code>
+ * <version_code>6.9.0.22</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.21";
+        private const String PluginVersion = "6.9.0.22";
 
         public enum GameVersion
         {
@@ -10224,9 +10224,10 @@ namespace PRoConEvents
                                         {
                                             if (config_resumed)
                                             {
-                                                if (config_action == AutoSurrenderAction.Nuke && _surrenderAutoAnnounceNukePrep)
-                                                {
-                                                    AdminSayMessage("Auto-nuke countdown resumed at " + readyPercentage + ". " + denyReason);
+                                                if (config_action == AutoSurrenderAction.Nuke) {
+                                                    if (_surrenderAutoAnnounceNukePrep) {
+                                                        AdminSayMessage("Auto-nuke countdown resumed at " + readyPercentage + ". " + denyReason);
+                                                    }
                                                 }
                                                 else
                                                 {
@@ -10331,9 +10332,10 @@ namespace PRoConEvents
                                         {
                                             if (_surrenderAutoTriggerCountCurrent > 0)
                                             {
-                                                if (config_action == AutoSurrenderAction.Nuke)
-                                                {
-                                                    AdminSayMessage("Auto-nuke countdown cancelled.");
+                                                if (config_action == AutoSurrenderAction.Nuke) {
+                                                    if (_surrenderAutoAnnounceNukePrep) {
+                                                        AdminSayMessage("Auto-nuke countdown cancelled.");
+                                                    }
                                                 }
                                                 else
                                                 {
@@ -10349,9 +10351,10 @@ namespace PRoConEvents
                                                 _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
                                                 if (_surrenderAutoTriggerCountCurrent < config_triggers_min)
                                                 {
-                                                    if (config_action == AutoSurrenderAction.Nuke)
-                                                    {
-                                                        AdminSayMessage("Auto-nuke countdown paused at " + readyPercentage + "." + denyReason);
+                                                    if (config_action == AutoSurrenderAction.Nuke) {
+                                                        if (_surrenderAutoAnnounceNukePrep) {
+                                                            AdminSayMessage("Auto-nuke countdown paused at " + readyPercentage + "." + denyReason);
+                                                        }
                                                     }
                                                     else
                                                     {
@@ -10360,9 +10363,10 @@ namespace PRoConEvents
                                                 }
                                                 else
                                                 {
-                                                    if (config_action == AutoSurrenderAction.Nuke)
-                                                    {
-                                                        AdminSayMessage("Auto-nuke countdown paused." + denyReason);
+                                                    if (config_action == AutoSurrenderAction.Nuke) {
+                                                        if (_surrenderAutoAnnounceNukePrep) {
+                                                            AdminSayMessage("Auto-nuke countdown paused." + denyReason);
+                                                        }
                                                     }
                                                     else
                                                     {
