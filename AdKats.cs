@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.23
+ * Version 6.9.0.24
  * 12-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.23</version_code>
+ * <version_code>6.9.0.24</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.23";
+        private const String PluginVersion = "6.9.0.24";
 
         public enum GameVersion
         {
@@ -19887,7 +19887,6 @@ namespace PRoConEvents
                                         record.command_numeric = matchingTeam.TeamID;
                                         record.record_message += " (" + matchingTeam.TeamName + ")";
                                         _lastNukeTeam = matchingTeam;
-                                        incNukeCount(matchingTeam.TeamID);
                                     }
                                     else if (targetTeam.ToLower() == "all")
                                     {
@@ -27406,6 +27405,9 @@ namespace PRoConEvents
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
                             }
                             _lastNukeTime = UtcNow();
+                            if (record.target_name != "Everyone") {
+                                incNukeCount(record.command_numeric);
+                            }
                             AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + "!");
                             var nukeTargets = _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"));
                             foreach (AdKatsPlayer player in nukeTargets) {
