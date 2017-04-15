@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.28
+ * Version 6.9.0.29
  * 15-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.28</version_code>
+ * <version_code>6.9.0.29</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.28";
+        private const String PluginVersion = "6.9.0.29";
 
         public enum GameVersion
         {
@@ -28888,13 +28888,13 @@ namespace PRoConEvents
                     String location;
                     if (rRecord.target_player.player_online)
                     {
-                        location = GetPlayerTeamKey(rRecord.target_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == rRecord.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(rRecord.target_player) + 1);
+                        location = "/" + GetPlayerTeamKey(rRecord.target_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == rRecord.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(rRecord.target_player) + 1);
                     }
                     else
                     {
-                        location = "OFFLINE";
+                        location = "";
                     }
-                    SendMessageToSource(record, "(" + rRecord.command_numeric + ")(" + FormatTimeString(UtcNow() - rRecord.record_time, 2) + ")(" + rRecord.GetTargetNames() + "/" + location + "):" + rRecord.record_message);
+                    SendMessageToSource(record, "(" + rRecord.command_numeric + ")(" + FormatTimeString(UtcNow() - rRecord.record_time, 2) + ")(" + rRecord.GetTargetNames() + location + "):" + rRecord.record_message);
                     Thread.Sleep(30);
                     listed = true;
                 }
