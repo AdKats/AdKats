@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.27
+ * Version 6.9.0.28
  * 15-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.27</version_code>
+ * <version_code>6.9.0.28</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.27";
+        private const String PluginVersion = "6.9.0.28";
 
         public enum GameVersion
         {
@@ -792,6 +792,7 @@ namespace PRoConEvents
         private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
         private String _eventBaseServerName = "Event Base Server Name";
         private String _eventCountdownServerName = "Event Countdown Server Name";
+        private String _eventConcreteCountdownServerName = "Event Concrete Countdown Server Name";
         private String _eventActiveServerName = "Event Active Server Name";
         private readonly HashSet<String> _DetectedWeaponCodes = new HashSet<String>();
         public Dictionary<String, DamageTypes> WeaponTypeDictionary = null;
@@ -1622,11 +1623,13 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Test Round Number", typeof(Int32), _eventTestRoundNumber));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Announce Day Difference", typeof(Int32), _eventAnnounceDayDifference));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Base Server Name (display)", typeof(String), ProcessEventServerName(_eventBaseServerName, false)));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Base Server Name (display)", typeof(String), ProcessEventServerName(_eventBaseServerName, false, false)));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventCountdownServerName, false)));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventCountdownServerName, false, false)));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Concrete Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventConcreteCountdownServerName, false, true)));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Active Server Name (display)", typeof(String), ProcessEventServerName(_eventActiveServerName, true)));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Active Server Name (display)", typeof(String), ProcessEventServerName(_eventActiveServerName, true, true)));
                         }
                     }
 
@@ -4350,6 +4353,16 @@ namespace PRoConEvents
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Event Countdown Server Name", typeof(String), _eventCountdownServerName));
+                    }
+                } else if (Regex.Match(strVariable, @"Event Concrete Countdown Server Name").Success) {
+                    if (_eventConcreteCountdownServerName != strValue) {
+                        if (!String.IsNullOrEmpty(strValue)) {
+                            _eventConcreteCountdownServerName = strValue;
+                        } else {
+                            Log.Error("Server name selection cannot be empty.");
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
                     }
                 } else if (Regex.Match(strVariable, @"Event Active Server Name").Success) {
                     if (_eventActiveServerName != strValue) {
@@ -7111,20 +7124,40 @@ namespace PRoConEvents
                                 if ((UtcNow() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotSayQueue.Peek();
                                     var eventDate = GetEventRoundDateTime();
-                                    if (message.Contains("%EventDateDuration%")) {
-                                        message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+                                    if (eventDate < DateTime.Now || (_currentEventRoundNumber != 999999 && _roundID < _currentEventRoundNumber)) {
+                                        message = message.Replace("%EventDateDuration%", "TBD")
+                                                         .Replace("%EventDateTime%", "TBD")
+                                                         .Replace("%EventDate%", "TBD")
+                                                         .Replace("%EventRound%", "TBD")
+                                                         .Replace("%RemainingRounds%", "TBD");
                                     }
-                                    if (message.Contains("%EventDateTime%")) {
-                                        message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
-                                    }
-                                    if (message.Contains("%EventDate%")) {
-                                        message = message.Replace("%EventDate%", eventDate.ToShortDateString());
-                                    }
-                                    if (message.Contains("%CurrentRound%")) {
-                                        message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
-                                    }
-                                    if (message.Contains("%EventRound%")) {
-                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
+                                    else {
+                                        if (message.Contains("%EventDateDuration%")) {
+                                            message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+                                        }
+                                        if (message.Contains("%EventDateTime%")) {
+                                            message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
+                                        }
+                                        if (message.Contains("%EventDate%")) {
+                                            message = message.Replace("%EventDate%", eventDate.ToShortDateString());
+                                        }
+                                        if (message.Contains("%CurrentRound%")) {
+                                            message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
+                                        }
+                                        if (message.Contains("%EventRound%")) {
+                                            if (_currentEventRoundNumber != 999999) {
+                                                message = message.Replace("%EventRound%", String.Format("{0:n0}", _currentEventRoundNumber));
+                                            } else {
+                                                message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
+                                            }
+                                        }
+                                        if (message.Contains("%RemainingRounds%")) {
+                                            if (_currentEventRoundNumber != 999999) {
+                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(_currentEventRoundNumber - _roundID - 1, 0)));
+                                            } else {
+                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(FetchEstimatedEventRoundNumber() - _roundID - 1, 0)));
+                                            }
+                                        }
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -7141,20 +7174,39 @@ namespace PRoConEvents
                                 if ((UtcNow() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds && _spamBotYellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotYellQueue.Peek();
                                     var eventDate = GetEventRoundDateTime();
-                                    if (message.Contains("%EventDateDuration%")) {
-                                        message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
-                                    }
-                                    if (message.Contains("%EventDateTime%")) {
-                                        message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
-                                    }
-                                    if (message.Contains("%EventDate%")) {
-                                        message = message.Replace("%EventDate%", eventDate.ToShortDateString());
-                                    }
-                                    if (message.Contains("%CurrentRound%")) {
-                                        message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
-                                    }
-                                    if (message.Contains("%EventRound%")) {
-                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
+                                    if (eventDate < DateTime.Now || (_currentEventRoundNumber != 999999 && _roundID < _currentEventRoundNumber)) {
+                                        message = message.Replace("%EventDateDuration%", "TBD")
+                                                         .Replace("%EventDateTime%", "TBD")
+                                                         .Replace("%EventDate%", "TBD")
+                                                         .Replace("%EventRound%", "TBD")
+                                                         .Replace("%RemainingRounds%", "TBD");
+                                    } else {
+                                        if (message.Contains("%EventDateDuration%")) {
+                                            message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+                                        }
+                                        if (message.Contains("%EventDateTime%")) {
+                                            message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
+                                        }
+                                        if (message.Contains("%EventDate%")) {
+                                            message = message.Replace("%EventDate%", eventDate.ToShortDateString());
+                                        }
+                                        if (message.Contains("%CurrentRound%")) {
+                                            message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
+                                        }
+                                        if (message.Contains("%EventRound%")) {
+                                            if (_currentEventRoundNumber != 999999) {
+                                                message = message.Replace("%EventRound%", String.Format("{0:n0}", _currentEventRoundNumber));
+                                            } else {
+                                                message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
+                                            }
+                                        }
+                                        if (message.Contains("%RemainingRounds%")) {
+                                            if (_currentEventRoundNumber != 999999) {
+                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(_currentEventRoundNumber - _roundID - 1, 0)));
+                                            } else {
+                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(FetchEstimatedEventRoundNumber() - _roundID - 1, 0)));
+                                            }
+                                        }
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -7171,20 +7223,39 @@ namespace PRoConEvents
                                 if ((UtcNow() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds && _spamBotTellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotTellQueue.Peek();
                                     var eventDate = GetEventRoundDateTime();
-                                    if (message.Contains("%EventDateDuration%")) {
-                                        message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
-                                    }
-                                    if (message.Contains("%EventDateTime%")) {
-                                        message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
-                                    }
-                                    if (message.Contains("%EventDate%")) {
-                                        message = message.Replace("%EventDate%", eventDate.ToShortDateString());
-                                    }
-                                    if (message.Contains("%CurrentRound%")) {
-                                        message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
-                                    }
-                                    if (message.Contains("%EventRound%")) {
-                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
+                                    if (eventDate < DateTime.Now || (_currentEventRoundNumber != 999999 && _roundID < _currentEventRoundNumber)) {
+                                        message = message.Replace("%EventDateDuration%", "TBD")
+                                                         .Replace("%EventDateTime%", "TBD")
+                                                         .Replace("%EventDate%", "TBD")
+                                                         .Replace("%EventRound%", "TBD")
+                                                         .Replace("%RemainingRounds%", "TBD");
+                                    } else {
+                                        if (message.Contains("%EventDateDuration%")) {
+                                            message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+                                        }
+                                        if (message.Contains("%EventDateTime%")) {
+                                            message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
+                                        }
+                                        if (message.Contains("%EventDate%")) {
+                                            message = message.Replace("%EventDate%", eventDate.ToShortDateString());
+                                        }
+                                        if (message.Contains("%CurrentRound%")) {
+                                            message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
+                                        }
+                                        if (message.Contains("%EventRound%")) {
+                                            if (_currentEventRoundNumber != 999999) {
+                                                message = message.Replace("%EventRound%", String.Format("{0:n0}", _currentEventRoundNumber));
+                                            } else {
+                                                message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
+                                            }
+                                        }
+                                        if (message.Contains("%RemainingRounds%")) {
+                                            if (_currentEventRoundNumber != 999999) {
+                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(_currentEventRoundNumber - _roundID - 1, 0)));
+                                            } else {
+                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(FetchEstimatedEventRoundNumber() - _roundID - 1, 0)));
+                                            }
+                                        }
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -7340,8 +7411,8 @@ namespace PRoConEvents
                                     if (DateTime.Now < eventDate && _currentEventRoundNumber == 999999) {
                                         // The event date is set, and in the future
                                         var estimateEventRoundNumber = FetchEstimatedEventRoundNumber();
-                                        // At 3 rounds away, lock in the round number for the event
-                                        if (Math.Abs(estimateEventRoundNumber - _roundID) <= 3) {
+                                        // At 5 rounds away, lock in the round number for the event
+                                        if (Math.Abs(estimateEventRoundNumber - _roundID) <= 5) {
                                             _currentEventRoundNumber = estimateEventRoundNumber;
                                         }
                                     }
@@ -7367,18 +7438,22 @@ namespace PRoConEvents
                                         serverName = _eventActiveServerName + " ALL WEAPONS!";
                                     } else if (_roundID == _currentEventRoundNumber + 9) {
                                         serverName = _eventActiveServerName + " ALL WEAPONS!";
-                                    } 
+                                    }
+                                    // Immediately before the event
+                                    else if (_currentEventRoundNumber != 999999 &&
+                                             _currentEventRoundNumber > _roundID) {
+                                        serverName = _eventConcreteCountdownServerName;
+                                    }
                                     // Before the event
                                     else if (DateTime.Now < eventDate && 
                                              Math.Abs((eventDate - DateTime.Now).TotalDays) < _eventAnnounceDayDifference) {
                                         serverName = _eventCountdownServerName;
                                     }
                                     //After the event, and otherwise
-                                    else if (_roundID >= _currentEventRoundNumber + 10 ||
-                                             _currentEventRoundNumber == 999999) {
+                                    else {
                                         serverName = _eventBaseServerName;
                                     }
-                                    this.ExecuteCommand("procon.protected.send", "vars.serverName", ProcessEventServerName(serverName, false));
+                                    this.ExecuteCommand("procon.protected.send", "vars.serverName", ProcessEventServerName(serverName, false, false));
                                 }
 
                                 //Team operations
@@ -31154,6 +31229,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Int32), _eventAnnounceDayDifference));
                 QueueSettingForUpload(new CPluginVariable(@"Event Base Server Name", typeof(String), _eventBaseServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Countdown Server Name", typeof(String), _eventCountdownServerName));
+                QueueSettingForUpload(new CPluginVariable(@"Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Active Server Name", typeof(String), _eventActiveServerName));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Use LIVE Anti Cheat System", typeof(Boolean), _useHackerCheckerLIVESystem));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
@@ -43065,24 +43141,45 @@ namespace PRoConEvents
             return cSharpCodeProvider.CompileAssemblyFromSource(compilerParameters, pluginSource);
         }
 
-        public String ProcessEventServerName(String serverName, Boolean active) {
+        public String ProcessEventServerName(String serverName, Boolean testActive, Boolean testConcrete) {
             var eventDate = GetEventRoundDateTime();
-            if (serverName.Contains("%EventDateDuration%")) {
-                serverName = serverName.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+            if (eventDate < DateTime.Now || (_currentEventRoundNumber != 999999 && _roundID < _currentEventRoundNumber)) {
+                serverName = serverName.Replace("%EventDateDuration%", "TBD")
+                                       .Replace("%EventDateTime%", "TBD")
+                                       .Replace("%EventDate%", "TBD")
+                                       .Replace("%EventRound%", "TBD")
+                                       .Replace("%RemainingRounds%", "TBD");
+            } else {
+                if (serverName.Contains("%EventDateDuration%")) {
+                    serverName = serverName.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+                }
+                if (serverName.Contains("%EventDateTime%")) {
+                    serverName = serverName.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
+                }
+                if (serverName.Contains("%EventDate%")) {
+                    serverName = serverName.Replace("%EventDate%", eventDate.ToShortDateString());
+                }
+                if (serverName.Contains("%CurrentRound%")) {
+                    serverName = serverName.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
+                }
+                if (serverName.Contains("%EventRound%")) {
+                    if (_currentEventRoundNumber != 999999) {
+                        serverName = serverName.Replace("%EventRound%", String.Format("{0:n0}", _currentEventRoundNumber));
+                    } else {
+                        serverName = serverName.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
+                    }
+                }
+                if (serverName.Contains("%RemainingRounds%")) {
+                    if (testConcrete) {
+                        serverName = serverName.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(5, 0)));
+                    } else if (_currentEventRoundNumber != 999999) {
+                        serverName = serverName.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(_currentEventRoundNumber - _roundID - 1, 0)));
+                    } else {
+                        serverName = serverName.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(FetchEstimatedEventRoundNumber() - _roundID - 1, 0)));
+                    }
+                }
             }
-            if (serverName.Contains("%EventDateTime%")) {
-                serverName = serverName.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
-            }
-            if (serverName.Contains("%EventDate%")) {
-                serverName = serverName.Replace("%EventDate%", eventDate.ToShortDateString());
-            }
-            if (serverName.Contains("%CurrentRound%")) {
-                serverName = serverName.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
-            }
-            if (serverName.Contains("%EventRound%")) {
-                serverName = serverName.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
-            }
-            if (active) {
+            if (testActive) {
                 serverName += " REPAIR TOOLS!";
             }
             serverName = serverName.Trim();
