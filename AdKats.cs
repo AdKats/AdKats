@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.25
+ * Version 6.9.0.26
  * 14-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.25</version_code>
+ * <version_code>6.9.0.26</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.25";
+        private const String PluginVersion = "6.9.0.26";
 
         public enum GameVersion
         {
@@ -1612,9 +1612,11 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Date", typeof(String), _eventDate.ToShortDateString()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Hour in 24 format", typeof(Int32), _eventHour));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Current Round Number (display)", typeof(String), String.Format("{0:n0}", _roundID)));
                             if (_eventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
                                 var eventDate = _eventDate.AddHours(_eventHour);
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Time Of Event (display)", typeof(String), eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString() + " (" + FormatTimeString(eventDate - UtcNow(), 3) + ")"));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Estimated Event Round Number (display)", typeof(String), String.Format("{0:n0}", FetchEstimatedEventRoundNumber())));
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Test Round Number", typeof(Int32), _eventTestRoundNumber));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Announce Day Difference", typeof(Int32), _eventAnnounceDayDifference));
@@ -1624,7 +1626,6 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventCountdownServerName, false)));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Active Server Name (display)", typeof(String), ProcessEventServerName(_eventActiveServerName, true)));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Current Round Number (display)", typeof(String), String.Format("{0:n0}", _roundID)));
                         }
                     }
 
@@ -7122,7 +7123,7 @@ namespace PRoConEvents
                                         message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
                                     }
                                     if (message.Contains("%EventRound%")) {
-                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", GetEstimateEventRoundNumber()));
+                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -7152,7 +7153,7 @@ namespace PRoConEvents
                                         message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
                                     }
                                     if (message.Contains("%EventRound%")) {
-                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", GetEstimateEventRoundNumber()));
+                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -7182,7 +7183,7 @@ namespace PRoConEvents
                                         message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
                                     }
                                     if (message.Contains("%EventRound%")) {
-                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", GetEstimateEventRoundNumber()));
+                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -7337,7 +7338,7 @@ namespace PRoConEvents
                                     var eventDate = GetEventRoundDateTime();
                                     if (DateTime.Now < eventDate && _currentEventRoundNumber == 999999) {
                                         // The event date is set, and in the future
-                                        var estimateEventRoundNumber = GetEstimateEventRoundNumber();
+                                        var estimateEventRoundNumber = FetchEstimatedEventRoundNumber();
                                         // At 3 rounds away, lock in the round number for the event
                                         if (Math.Abs(estimateEventRoundNumber - _roundID) <= 3) {
                                             _currentEventRoundNumber = estimateEventRoundNumber;
@@ -34850,13 +34851,13 @@ namespace PRoConEvents
             return aBan;
         }
 
-        private Int32 GetEstimateEventRoundNumber() {
+        private Int32 FetchEstimatedEventRoundNumber() {
             var roundDate = GetEventRoundDateTime();
             if (DateTime.Now >= roundDate) {
                 return 0;
             }
             var minutesTillEvent = roundDate.Subtract(DateTime.Now).TotalMinutes;
-            return (int)Math.Floor(minutesTillEvent / FetchAverageRoundMinutes());
+            return _roundID + (int)Math.Floor(minutesTillEvent / FetchAverageRoundMinutes());
         }
 
         private DateTime GetEventRoundDateTime() {
@@ -43078,7 +43079,7 @@ namespace PRoConEvents
                 serverName = serverName.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
             }
             if (serverName.Contains("%EventRound%")) {
-                serverName = serverName.Replace("%EventRound%", String.Format("{0:n0}", GetEstimateEventRoundNumber()));
+                serverName = serverName.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
             }
             if (active) {
                 serverName += " REPAIR TOOLS!";
