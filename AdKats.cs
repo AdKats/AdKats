@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.29
+ * Version 6.9.0.30
  * 15-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.29</version_code>
+ * <version_code>6.9.0.30</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.29";
+        private const String PluginVersion = "6.9.0.30";
 
         public enum GameVersion
         {
@@ -10517,8 +10517,6 @@ namespace PRoConEvents
                                         if (config_action == AutoSurrenderAction.Nuke)
                                         {
                                             string autoNukeMessage = _surrenderAutoNukeMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
-                                            incNukeCount(baserapingTeam.TeamID);
-                                            _lastNukeTeam = baserapingTeam;
                                             QueueRecordForProcessing(new AdKatsRecord
                                             {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -20020,7 +20018,6 @@ namespace PRoConEvents
                                         record.target_name = matchingTeam.TeamName;
                                         record.command_numeric = matchingTeam.TeamID;
                                         record.record_message += " (" + matchingTeam.TeamName + ")";
-                                        _lastNukeTeam = matchingTeam;
                                     }
                                     else if (targetTeam.ToLower() == "all")
                                     {
@@ -27554,6 +27551,9 @@ namespace PRoConEvents
                             _lastNukeTime = UtcNow();
                             if (record.target_name != "Everyone") {
                                 incNukeCount(record.command_numeric);
+                                if(!GetTeamByID(record.command_numeric, out _lastNukeTeam)) {
+                                    Log.Error("Failed to get team for nuke duration!");
+                                }
                             }
                             AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + "!");
                             var nukeTargets = _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"));
