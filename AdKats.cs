@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.26
- * 14-APR-2017
+ * Version 6.9.0.27
+ * 15-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.26</version_code>
+ * <version_code>6.9.0.27</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.26";
+        private const String PluginVersion = "6.9.0.27";
 
         public enum GameVersion
         {
@@ -1617,6 +1617,7 @@ namespace PRoConEvents
                                 var eventDate = _eventDate.AddHours(_eventHour);
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Time Of Event (display)", typeof(String), eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString() + " (" + FormatTimeString(eventDate - UtcNow(), 3) + ")"));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Estimated Event Round Number (display)", typeof(String), String.Format("{0:n0}", FetchEstimatedEventRoundNumber())));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Concrete Event Round Number (display)", typeof(String), _currentEventRoundNumber == 999999 ? "Undecided." : String.Format("{0:n0}", _currentEventRoundNumber)));
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Test Round Number", typeof(Int32), _eventTestRoundNumber));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Announce Day Difference", typeof(Int32), _eventAnnounceDayDifference));
