@@ -1614,7 +1614,7 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Hour in 24 format", typeof(Int32), _eventHour));
                             if (_eventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
                                 var eventDate = _eventDate.AddHours(_eventHour);
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Time Of Event (display)", typeof(String), eventDate.ToLongDateString() + " (" + FormatTimeString(eventDate - UtcNow(), 3) + ")"));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Time Of Event (display)", typeof(String), eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString() + " (" + FormatTimeString(eventDate - UtcNow(), 3) + ")"));
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Test Round Number", typeof(Int32), _eventTestRoundNumber));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Announce Day Difference", typeof(Int32), _eventAnnounceDayDifference));
