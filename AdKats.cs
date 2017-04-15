@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.24
- * 12-APR-2017
+ * Version 6.9.0.25
+ * 14-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.24</version_code>
+ * <version_code>6.9.0.25</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.24";
+        private const String PluginVersion = "6.9.0.25";
 
         public enum GameVersion
         {
@@ -781,9 +781,11 @@ namespace PRoConEvents
         private Boolean _WeaponCodesTableTested;
         private Boolean _WeaponCodesTableConfirmed;
         private Boolean _UseGrenadeCookCatcher;
-        private Int32 _eventRoundNumber = 999999;
+        private DateTime _eventDate = GetLocalEpochTime();
+        private Int32 _eventHour = 0;
         private Int32 _eventTestRoundNumber = 999999;
-        private Int32 _eventAnnounceRoundDifference = 100;
+        private Int32 _eventAnnounceDayDifference = 7;
+        private Int32 _currentEventRoundNumber = 999999;
         private Dictionary<String, AdKatsPlayer> _RoundCookers = new Dictionary<String, AdKatsPlayer>();
         private Boolean _UseWeaponLimiter;
         private String _WeaponLimiterExceptionString = "_Flechette|_Slug";
@@ -1608,9 +1610,14 @@ namespace PRoConEvents
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Round Number", typeof(Int32), _eventRoundNumber));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Date", typeof(String), _eventDate.ToShortDateString()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Hour in 24 format", typeof(Int32), _eventHour));
+                            if (_eventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
+                                var eventDate = _eventDate.AddHours(_eventHour);
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Time Of Event (display)", typeof(String), eventDate.ToLongDateString() + " (" + FormatTimeString(eventDate - UtcNow(), 3) + ")"));
+                            }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Test Round Number", typeof(Int32), _eventTestRoundNumber));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Announce Round Difference", typeof(Int32), _eventAnnounceRoundDifference));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Announce Day Difference", typeof(Int32), _eventAnnounceDayDifference));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Base Server Name (display)", typeof(String), ProcessEventServerName(_eventBaseServerName, false)));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
@@ -1618,10 +1625,6 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Processed Active Server Name (display)", typeof(String), ProcessEventServerName(_eventActiveServerName, true)));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Current Round Number (display)", typeof(String), String.Format("{0:n0}", _roundID)));
-                            if (_eventRoundNumber != 999999) {
-                                var futureDate = FetchFutureRoundDate(_eventRoundNumber);
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Estimate Time Of Event (display)", typeof(String), futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")"));
-                            }
                         }
                     }
 
@@ -4376,12 +4379,27 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                     }
-                } else if (Regex.Match(strVariable, @"Event Round Number").Success) {
-                    Int32 roundNumber = Int32.Parse(strValue);
-                    if (roundNumber != _eventRoundNumber) {
-                        _eventRoundNumber = roundNumber;
+                } else if (Regex.Match(strVariable, @"Event Date").Success) {
+                    DateTime eventDate = DateTime.Parse(strValue);
+                    if (eventDate.ToShortDateString() != _eventDate.ToShortDateString()) {
+                        _eventDate = eventDate;
+                        _currentEventRoundNumber = 999999;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Event Round Number", typeof(Boolean), _eventRoundNumber));
+                        QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _eventDate.ToShortDateString()));
+                    }
+                } else if (Regex.Match(strVariable, @"Event Hour in 24 format").Success) {
+                    Int32 eventHour = Int32.Parse(strValue);
+                    if (eventHour != _eventHour) {
+                        if (eventHour < 0) {
+                            eventHour = 0;
+                        }
+                        if (eventHour > 23) {
+                            eventHour = 23;
+                        }
+                        _eventHour = eventHour;
+                        _currentEventRoundNumber = 999999;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Event Hour in 24 format", typeof(Int32), _eventHour));
                     }
                 } else if (Regex.Match(strVariable, @"Event Test Round Number").Success) {
                     Int32 roundNumber = Int32.Parse(strValue);
@@ -4390,12 +4408,12 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Boolean), _eventTestRoundNumber));
                     }
-                } else if (Regex.Match(strVariable, @"Event Announce Round Difference").Success) {
-                    Int32 roundNumber = Int32.Parse(strValue);
-                    if (roundNumber != _eventAnnounceRoundDifference) {
-                        _eventAnnounceRoundDifference = roundNumber;
+                } else if (Regex.Match(strVariable, @"Event Announce Day Difference").Success) {
+                    Int32 dayDifference = Int32.Parse(strValue);
+                    if (dayDifference != _eventAnnounceDayDifference) {
+                        _eventAnnounceDayDifference = dayDifference;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Event Announce Round Difference", typeof(Boolean), _eventAnnounceRoundDifference));
+                        QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Int32), _eventAnnounceDayDifference));
                     }
                 } else if (Regex.Match(strVariable, @"HackerChecker: Whitelist").Success)
                 {
@@ -7090,16 +7108,21 @@ namespace PRoConEvents
                             {
                                 if ((UtcNow() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotSayQueue.Peek();
-                                    if (message.Contains("%EventDateFull%") || message.Contains("%EventDate%")) {
-                                        var futureDate = FetchFutureRoundDate(_eventRoundNumber);
-                                        message = message.Replace("%EventDateFull%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
-                                        message = message.Replace("%EventDate%", futureDate.ToShortDateString());
+                                    var eventDate = GetEventRoundDateTime();
+                                    if (message.Contains("%EventDateDuration%")) {
+                                        message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+                                    }
+                                    if (message.Contains("%EventDateTime%")) {
+                                        message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
+                                    }
+                                    if (message.Contains("%EventDate%")) {
+                                        message = message.Replace("%EventDate%", eventDate.ToShortDateString());
                                     }
                                     if (message.Contains("%CurrentRound%")) {
                                         message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
                                     }
                                     if (message.Contains("%EventRound%")) {
-                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", _eventRoundNumber));
+                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", GetEstimateEventRoundNumber()));
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -7115,16 +7138,21 @@ namespace PRoConEvents
                                 }
                                 if ((UtcNow() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds && _spamBotYellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotYellQueue.Peek();
-                                    if (message.Contains("%EventDateFull%") || message.Contains("%EventDate%")) {
-                                        var futureDate = FetchFutureRoundDate(_eventRoundNumber);
-                                        message = message.Replace("%EventDateFull%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
-                                        message = message.Replace("%EventDate%", futureDate.ToShortDateString());
+                                    var eventDate = GetEventRoundDateTime();
+                                    if (message.Contains("%EventDateDuration%")) {
+                                        message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+                                    }
+                                    if (message.Contains("%EventDateTime%")) {
+                                        message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
+                                    }
+                                    if (message.Contains("%EventDate%")) {
+                                        message = message.Replace("%EventDate%", eventDate.ToShortDateString());
                                     }
                                     if (message.Contains("%CurrentRound%")) {
                                         message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
                                     }
                                     if (message.Contains("%EventRound%")) {
-                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", _eventRoundNumber));
+                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", GetEstimateEventRoundNumber()));
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -7140,16 +7168,21 @@ namespace PRoConEvents
                                 }
                                 if ((UtcNow() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds && _spamBotTellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotTellQueue.Peek();
-                                    if (message.Contains("%EventDateFull%") || message.Contains("%EventDate%")) {
-                                        var futureDate = FetchFutureRoundDate(_eventRoundNumber);
-                                        message = message.Replace("%EventDateFull%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
-                                        message = message.Replace("%EventDate%", futureDate.ToShortDateString());
+                                    var eventDate = GetEventRoundDateTime();
+                                    if (message.Contains("%EventDateDuration%")) {
+                                        message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+                                    }
+                                    if (message.Contains("%EventDateTime%")) {
+                                        message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
+                                    }
+                                    if (message.Contains("%EventDate%")) {
+                                        message = message.Replace("%EventDate%", eventDate.ToShortDateString());
                                     }
                                     if (message.Contains("%CurrentRound%")) {
                                         message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
                                     }
                                     if (message.Contains("%EventRound%")) {
-                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", _eventRoundNumber));
+                                        message = message.Replace("%EventRound%", String.Format("{0:n0}", GetEstimateEventRoundNumber()));
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -7167,6 +7200,10 @@ namespace PRoConEvents
 
                             //Run long keep alive every 5 minutes
                             if ((UtcNow() - lastLongKeepAliveCheck).TotalMinutes > 5) {
+
+                                //Keep the extended round stats table clean
+                                CleanUpExtendedRoundStats();
+
                                 //Player listing check
                                 if (_pluginEnabled && 
                                     _firstPlayerListComplete && 
@@ -7296,32 +7333,48 @@ namespace PRoConEvents
                                     }
                                 }
 
-                                if (_useExperimentalTools && _eventRoundNumber != 999999) {
+                                if (_useExperimentalTools && _eventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
+                                    var eventDate = GetEventRoundDateTime();
+                                    if (DateTime.Now < eventDate && _currentEventRoundNumber == 999999) {
+                                        // The event date is set, and in the future
+                                        var estimateEventRoundNumber = GetEstimateEventRoundNumber();
+                                        // At 3 rounds away, lock in the round number for the event
+                                        if (Math.Abs(estimateEventRoundNumber - _roundID) <= 3) {
+                                            _currentEventRoundNumber = estimateEventRoundNumber;
+                                        }
+                                    }
                                     var serverName = "";
-                                    if (_roundID >= _eventRoundNumber + 10 || _roundID < _eventRoundNumber - _eventAnnounceRoundDifference) {
-                                        serverName = _eventBaseServerName;
-                                    } else if (_roundID == _eventRoundNumber) {
+                                    // During the event
+                                    if (_roundID == _currentEventRoundNumber) {
                                         serverName = _eventActiveServerName + " KNIVES!";
-                                    } else if (_roundID == _eventRoundNumber + 1) {
+                                    } else if (_roundID == _currentEventRoundNumber + 1) {
                                         serverName = _eventActiveServerName + " HC BOLT!";
-                                    } else if (_roundID == _eventRoundNumber + 2) {
+                                    } else if (_roundID == _currentEventRoundNumber + 2) {
                                         serverName = _eventActiveServerName + " MARES LEG!";
-                                    } else if (_roundID == _eventRoundNumber + 3) {
+                                    } else if (_roundID == _currentEventRoundNumber + 3) {
                                         serverName = _eventActiveServerName + " DEFIBS!";
-                                    } else if (_roundID == _eventRoundNumber + 4) {
+                                    } else if (_roundID == _currentEventRoundNumber + 4) {
                                         serverName = _eventActiveServerName + " BOW/KNIVES!";
-                                    } else if (_roundID == _eventRoundNumber + 5) {
+                                    } else if (_roundID == _currentEventRoundNumber + 5) {
                                         serverName = _eventActiveServerName + " REPAIR TOOLS!";
-                                    } else if (_roundID == _eventRoundNumber + 6) {
+                                    } else if (_roundID == _currentEventRoundNumber + 6) {
                                         serverName = _eventActiveServerName + " PISTOLS!";
-                                    } else if (_roundID == _eventRoundNumber + 7) {
+                                    } else if (_roundID == _currentEventRoundNumber + 7) {
                                         serverName = _eventActiveServerName + " ALL WEAPONS!";
-                                    } else if (_roundID == _eventRoundNumber + 8) {
+                                    } else if (_roundID == _currentEventRoundNumber + 8) {
                                         serverName = _eventActiveServerName + " ALL WEAPONS!";
-                                    } else if (_roundID == _eventRoundNumber + 9) {
+                                    } else if (_roundID == _currentEventRoundNumber + 9) {
                                         serverName = _eventActiveServerName + " ALL WEAPONS!";
-                                    } else {
+                                    } 
+                                    // Before the event
+                                    else if (DateTime.Now < eventDate && 
+                                             Math.Abs((eventDate - DateTime.Now).TotalDays) < _eventAnnounceDayDifference) {
                                         serverName = _eventCountdownServerName;
+                                    }
+                                    //After the event, and otherwise
+                                    else if (_roundID >= _currentEventRoundNumber + 10 ||
+                                             _currentEventRoundNumber == 999999) {
+                                        serverName = _eventBaseServerName;
                                     }
                                     this.ExecuteCommand("procon.protected.send", "vars.serverName", ProcessEventServerName(serverName, false));
                                 }
@@ -10714,15 +10767,15 @@ namespace PRoConEvents
                     losingTeam = team1;
                 }
 
-                if (_useExperimentalTools && _eventRoundNumber != 999999) {
+                if (_useExperimentalTools && _eventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
                     var nRound = _roundID + 1;
-                    if (nRound >= _eventRoundNumber && nRound <= _eventRoundNumber + 9) {
+                    if (nRound >= _currentEventRoundNumber && nRound <= _currentEventRoundNumber + 9) {
                         _pingEnforcerEnable = false;
                         _surrenderVoteEnable = false;
                         _surrenderAutoEnable = false;
                         ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "False");
                         for (int i = 0; i < 8; i++) {
-                            if (nRound == _eventRoundNumber) {
+                            if (nRound == _currentEventRoundNumber) {
                                 AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! KNIVES ONLY!");
                                 //Conquest 500 Knives Only
                                 ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
@@ -10738,7 +10791,7 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
-                            } else if (nRound == _eventRoundNumber + 1) {
+                            } else if (nRound == _currentEventRoundNumber + 1) {
                                 AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! HARDCORE BOLT ACTIONS!");
                                 //Domination 500 Hardcore Bolt Action Only
                                 ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
@@ -10754,7 +10807,7 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
-                            } else if (nRound == _eventRoundNumber + 2) {
+                            } else if (nRound == _currentEventRoundNumber + 2) {
                                 AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! MARE'S LEG ONLY!");
                                 //TDM 300 Mare's Leg Only
                                 ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
@@ -10770,7 +10823,7 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
-                            } else if (nRound == _eventRoundNumber + 3) {
+                            } else if (nRound == _currentEventRoundNumber + 3) {
                                 AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! DEFIBS ONLY!");
                                 //Conquest 500 Defibs Only
                                 ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
@@ -10786,7 +10839,7 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
-                            } else if (nRound == _eventRoundNumber + 4) {
+                            } else if (nRound == _currentEventRoundNumber + 4) {
                                 AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! PHANTOM BOW AND KNIVES ONLY!");
                                 //Domination 500 Phantom Bow/Knives Only
                                 ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
@@ -10802,7 +10855,7 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
-                            } else if (nRound == _eventRoundNumber + 5) {
+                            } else if (nRound == _currentEventRoundNumber + 5) {
                                 AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! REPAIR TOOL ONLY!");
                                 //Rush 300 Repair Tools Only
                                 ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
@@ -10818,7 +10871,7 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
-                            } else if (nRound == _eventRoundNumber + 6) {
+                            } else if (nRound == _currentEventRoundNumber + 6) {
                                 AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! PISTOLS ONLY!");
                                 //TDM 300 Pistols Only
                                 ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
@@ -10834,7 +10887,7 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
-                            } else if (nRound == _eventRoundNumber + 7) {
+                            } else if (nRound == _currentEventRoundNumber + 7) {
                                 AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! CONQUEST ALL WEAPONS ALLOWED!");
                                 //Conquest 2000 All Weapons
                                 ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
@@ -10850,7 +10903,7 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
-                            } else if (nRound == _eventRoundNumber + 8) {
+                            } else if (nRound == _currentEventRoundNumber + 8) {
                                 AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! DOMINATION ALL WEAPONS ALLOWED!");
                                 //Domination 1100 All Weapons
                                 ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
@@ -10866,7 +10919,7 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
                                 ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
-                            } else if (nRound == _eventRoundNumber + 9) {
+                            } else if (nRound == _currentEventRoundNumber + 9) {
                                 AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! TDM ALL WEAPONS ALLOWED!");
                                 //TDM 500 All Weapons
                                 ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
@@ -10899,6 +10952,10 @@ namespace PRoConEvents
                         ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
                         ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
                     } else {
+                        if (nRound >= _currentEventRoundNumber + 10) {
+                            // Reset the current event number, as the event has ended.
+                            _currentEventRoundNumber = 999999;
+                        }
                         _pingEnforcerEnable = true;
                         _surrenderVoteEnable = true;
                         _surrenderAutoEnable = true;
@@ -12013,12 +12070,12 @@ namespace PRoConEvents
                 try
                 {
                     if (_useExperimentalTools &&
-                        _roundID >= _eventRoundNumber &&
-                        _roundID <= _eventRoundNumber + 9) {
+                        _roundID >= _currentEventRoundNumber &&
+                        _roundID <= _currentEventRoundNumber + 9) {
                         if (aKill.killerCPI.TeamID != aKill.victimCPI.TeamID) {
                             var killSpam = (aKill.killer.lastKill.AddSeconds(2) > UtcNow());
                             aKill.killer.lastKill = UtcNow();
-                            if (_roundID == _eventRoundNumber) {
+                            if (_roundID == _currentEventRoundNumber) {
                                 // KNIFE ONLY!
                                 // Only 5 knife codes known, fuzzy match for unknown knife types
                                 if (!aKill.weaponCode.ToLower().Contains("knife") &&
@@ -12042,10 +12099,10 @@ namespace PRoConEvents
                                         target_player = aKill.killer,
                                         source_name = "AutoAdmin",
                                         record_time = UtcNow(),
-                                        record_message = "KNIFE ONLY! ROUND " + String.Format("{0:n0}", _eventRoundNumber) + " EVENT (PT 1)"
+                                        record_message = "KNIFE ONLY! ROUND " + String.Format("{0:n0}", _currentEventRoundNumber) + " EVENT (PT 1)"
                                     });
                                 }
-                            } else if (_roundID == _eventRoundNumber + 1) {
+                            } else if (_roundID == _currentEventRoundNumber + 1) {
                                 // BOLT ACTIONS ONLY!
                                 if (aKill.weaponCategory != DamageTypes.SniperRifle &&
                                     aKill.weaponCode != "DamageArea" &&
@@ -12067,10 +12124,10 @@ namespace PRoConEvents
                                         target_player = aKill.killer,
                                         source_name = "AutoAdmin",
                                         record_time = UtcNow(),
-                                        record_message = "BOLT ACTIONS ONLY! ROUND " + String.Format("{0:n0}", _eventRoundNumber) + " EVENT (PT 2)"
+                                        record_message = "BOLT ACTIONS ONLY! ROUND " + String.Format("{0:n0}", _currentEventRoundNumber) + " EVENT (PT 2)"
                                     });
                                 }
-                            } else if (_roundID == _eventRoundNumber + 2) {
+                            } else if (_roundID == _currentEventRoundNumber + 2) {
                                 // MARE'S LEG ONLY!
                                 if (aKill.weaponCode != "U_SaddlegunSnp" &&
                                     aKill.weaponCode != "DamageArea" &&
@@ -12092,10 +12149,10 @@ namespace PRoConEvents
                                         target_player = aKill.killer,
                                         source_name = "AutoAdmin",
                                         record_time = UtcNow(),
-                                        record_message = "MARE'S LEG ONLY! ROUND " + String.Format("{0:n0}", _eventRoundNumber) + " EVENT (PT 3)"
+                                        record_message = "MARE'S LEG ONLY! ROUND " + String.Format("{0:n0}", _currentEventRoundNumber) + " EVENT (PT 3)"
                                     });
                                 }
-                            } else if (_roundID == _eventRoundNumber + 3) {
+                            } else if (_roundID == _currentEventRoundNumber + 3) {
                                 // DEFIBS ONLY!
                                 if (aKill.weaponCode != "U_Defib" &&
                                     aKill.weaponCode != "DamageArea" &&
@@ -12117,10 +12174,10 @@ namespace PRoConEvents
                                         target_player = aKill.killer,
                                         source_name = "AutoAdmin",
                                         record_time = UtcNow(),
-                                        record_message = "DEFIBS ONLY! ROUND " + String.Format("{0:n0}", _eventRoundNumber) + " EVENT (PT 4)"
+                                        record_message = "DEFIBS ONLY! ROUND " + String.Format("{0:n0}", _currentEventRoundNumber) + " EVENT (PT 4)"
                                     });
                                 }
-                            } else if (_roundID == _eventRoundNumber + 4) {
+                            } else if (_roundID == _currentEventRoundNumber + 4) {
                                 // PHANTOM BOW AND KNIVES ONLY!
                                 if (!aKill.weaponCode.ToLower().Contains("knife") &&
                                         !aKill.weaponCode.ToLower().Contains("melee") &&
@@ -12144,10 +12201,10 @@ namespace PRoConEvents
                                         target_player = aKill.killer,
                                         source_name = "AutoAdmin",
                                         record_time = UtcNow(),
-                                        record_message = "PHANTOM BOW AND KNIVES ONLY! ROUND " + String.Format("{0:n0}", _eventRoundNumber) + " EVENT (PT 5)"
+                                        record_message = "PHANTOM BOW AND KNIVES ONLY! ROUND " + String.Format("{0:n0}", _currentEventRoundNumber) + " EVENT (PT 5)"
                                     });
                                 }
-                            } else if (_roundID == _eventRoundNumber + 5) {
+                            } else if (_roundID == _currentEventRoundNumber + 5) {
                                 // REPAIR TOOL ONLY!
                                 if (aKill.weaponCode != "U_Repairtool" &&
                                     aKill.weaponCode != "DamageArea" &&
@@ -12169,10 +12226,10 @@ namespace PRoConEvents
                                         target_player = aKill.killer,
                                         source_name = "AutoAdmin",
                                         record_time = UtcNow(),
-                                        record_message = "REPAIR TOOL ONLY! ROUND " + String.Format("{0:n0}", _eventRoundNumber) + " EVENT (PT 6)"
+                                        record_message = "REPAIR TOOL ONLY! ROUND " + String.Format("{0:n0}", _currentEventRoundNumber) + " EVENT (PT 6)"
                                     });
                                 }
-                            } else if (_roundID == _eventRoundNumber + 6) {
+                            } else if (_roundID == _currentEventRoundNumber + 6) {
                                 // PISTOLS ONLY!
                                 if (aKill.weaponCategory != DamageTypes.Handgun &&
                                         aKill.weaponCode != "DamageArea" &&
@@ -12194,14 +12251,14 @@ namespace PRoConEvents
                                         target_player = aKill.killer,
                                         source_name = "AutoAdmin",
                                         record_time = UtcNow(),
-                                        record_message = "PISTOLS ONLY! ROUND " + String.Format("{0:n0}", _eventRoundNumber) + " EVENT (PT 7)"
+                                        record_message = "PISTOLS ONLY! ROUND " + String.Format("{0:n0}", _currentEventRoundNumber) + " EVENT (PT 7)"
                                     });
                                 }
-                            } else if (_roundID == _eventRoundNumber + 7) {
+                            } else if (_roundID == _currentEventRoundNumber + 7) {
                                 //All weapons allowed
-                            } else if (_roundID == _eventRoundNumber + 8) {
+                            } else if (_roundID == _currentEventRoundNumber + 8) {
                                 //All weapons allowed
-                            } else if (_roundID == _eventRoundNumber + 9) {
+                            } else if (_roundID == _currentEventRoundNumber + 9) {
                                 //All weapons allowed
                             }
                         }
@@ -15512,8 +15569,8 @@ namespace PRoConEvents
                                     return;
                                 }
                                 if (_useExperimentalTools) {
-                                    if (_serverInfo.ServerID == 1 && _roundID >= _eventRoundNumber && _roundID <= _eventRoundNumber + 9) {
-                                        SendMessageToSource(record, "ROUND " + String.Format("{0:n0}", _eventRoundNumber) + " EVENT. REPORT DISABLED.");
+                                    if (_serverInfo.ServerID == 1 && _roundID >= _currentEventRoundNumber && _roundID <= _currentEventRoundNumber + 9) {
+                                        SendMessageToSource(record, "ROUND " + String.Format("{0:n0}", _currentEventRoundNumber) + " EVENT. REPORT DISABLED.");
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -27324,6 +27381,19 @@ namespace PRoConEvents
             StartAndLogThread(reportAutoHandler);
         }
 
+        public void CleanUpExtendedRoundStats() {
+            //Clean up all extended round stats older than 60 days
+            using (MySqlConnection connection = GetDatabaseConnection()) {
+                using (MySqlCommand command = connection.CreateCommand()) {
+                    command.CommandText = @"delete from tbl_extendedroundstats where tbl_extendedroundstats.roundstat_time < date_sub(sysdate(), interval 60 day)";
+                    Int32 affectedRows = SafeExecuteNonQuery(command);
+                    if (affectedRows > 0) {
+                        Log.Debug(() => "Cleaned up " + affectedRows + " extended round stats older than 60 days.", 5);
+                    }
+                }
+            }
+        }
+
         public void RestartLevel(AdKatsRecord record)
         {
             Log.Debug(() => "Entering restartLevel", 6);
@@ -31076,9 +31146,10 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
-                QueueSettingForUpload(new CPluginVariable(@"Event Round Number", typeof(Boolean), _eventRoundNumber));
+                QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _eventDate.ToShortDateString()));
+                QueueSettingForUpload(new CPluginVariable(@"Event Hour in 24 format", typeof(Int32), _eventHour));
                 QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Boolean), _eventTestRoundNumber));
-                QueueSettingForUpload(new CPluginVariable(@"Event Announce Round Difference", typeof(Boolean), _eventAnnounceRoundDifference));
+                QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Int32), _eventAnnounceDayDifference));
                 QueueSettingForUpload(new CPluginVariable(@"Event Base Server Name", typeof(String), _eventBaseServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Countdown Server Name", typeof(String), _eventCountdownServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Active Server Name", typeof(String), _eventActiveServerName));
@@ -34777,6 +34848,56 @@ namespace PRoConEvents
             }
             Log.Debug(() => "FetchBanByID finished!", 6);
             return aBan;
+        }
+
+        private Int32 GetEstimateEventRoundNumber() {
+            var roundDate = GetEventRoundDateTime();
+            if (DateTime.Now >= roundDate) {
+                return 0;
+            }
+            var minutesTillEvent = roundDate.Subtract(DateTime.Now).TotalMinutes;
+            return (int)Math.Floor(minutesTillEvent / FetchAverageRoundMinutes());
+        }
+
+        private DateTime GetEventRoundDateTime() {
+            return _eventDate.AddHours(_eventHour);
+        }
+
+        private Double FetchAverageRoundMinutes() {
+            try {
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    using (MySqlCommand command = connection.CreateCommand()) {
+                        //The most ham-handed SQL I've ever written
+                        command.CommandText = @"
+                        SELECT
+	                        TIMESTAMPDIFF(SECOND, MIN(`roundstart_time`), MAX(`roundstart_time`)) / 
+	                        (REPLACE(COUNT(`round_id`), 0, 1.0)) / 60.0 as `AvgRoundDuration`
+                        FROM
+                        (SELECT 
+	                        `round_id`, 
+	                        `roundstat_time` AS `roundstart_time`
+                        FROM 
+	                        `tbl_extendedroundstats` 
+                        WHERE 
+	                        `server_id` = @ServerID
+                        AND
+	                        TIMESTAMPDIFF(MINUTE, `roundstat_time`, UTC_TIMESTAMP()) < 15080
+                        GROUP BY 
+	                        `round_id`
+                        ORDER BY
+	                        `roundstat_id` DESC) AS `RoundStartTimes`";
+                        command.Parameters.AddWithValue("@ServerID", _serverInfo.ServerID);
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
+                            if (reader.Read()) {
+                                return reader.GetDouble("AvgRoundDuration");
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AdKatsException("Error while fetching average round duration.", e));
+            }
+            return 0;
         }
 
         private DateTime FetchFutureRoundDate(Int32 TargetRoundID) {
@@ -42126,10 +42247,17 @@ namespace PRoConEvents
             Log.Write(query);
         }
 
+        public static DateTime GetEpochTime() {
+            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc); ;
+        }
+
+        public static DateTime GetLocalEpochTime() {
+            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Local); ;
+        }
+
         public DateTime DateTimeFromEpochSeconds(Double epochSeconds)
         {
-            DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            return epoch.AddSeconds(epochSeconds);
+            return GetEpochTime().AddSeconds(epochSeconds);
         }
 
         public class Logger
@@ -42936,16 +43064,21 @@ namespace PRoConEvents
         }
 
         public String ProcessEventServerName(String serverName, Boolean active) {
-            if (serverName.Contains("%EventDateFull%") || serverName.Contains("%EventDate%")) {
-                var futureDate = FetchFutureRoundDate(_eventRoundNumber);
-                serverName = serverName.Replace("%EventDateFull%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcNow(), 2) + ")");
-                serverName = serverName.Replace("%EventDate%", futureDate.ToShortDateString());
+            var eventDate = GetEventRoundDateTime();
+            if (serverName.Contains("%EventDateDuration%")) {
+                serverName = serverName.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+            }
+            if (serverName.Contains("%EventDateTime%")) {
+                serverName = serverName.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
+            }
+            if (serverName.Contains("%EventDate%")) {
+                serverName = serverName.Replace("%EventDate%", eventDate.ToShortDateString());
             }
             if (serverName.Contains("%CurrentRound%")) {
                 serverName = serverName.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
             }
             if (serverName.Contains("%EventRound%")) {
-                serverName = serverName.Replace("%EventRound%", String.Format("{0:n0}", _eventRoundNumber));
+                serverName = serverName.Replace("%EventRound%", String.Format("{0:n0}", GetEstimateEventRoundNumber()));
             }
             if (active) {
                 serverName += " REPAIR TOOLS!";
