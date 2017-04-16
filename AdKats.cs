@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.30
- * 15-APR-2017
+ * Version 6.9.0.31
+ * 16-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.30</version_code>
+ * <version_code>6.9.0.31</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.30";
+        private const String PluginVersion = "6.9.0.31";
 
         public enum GameVersion
         {
@@ -403,6 +403,7 @@ namespace PRoConEvents
         private List<String> _ExternalAdminCommands = new List<string>();
         private List<String> _CommandTargetWhitelistCommands = new List<string>();
         private Int32 _RequiredReasonLength = 4;
+        private Int32 _minimumAssistMinutes = 5;
         //Commands specific
         private String _ServerVoipAddress = "(TS3) TS.ADKGamers.com:3796";
         //Dynamic access
@@ -630,7 +631,8 @@ namespace PRoConEvents
         private readonly List<AdKatsClient> _subscribedClients = new List<AdKatsClient>();
         private String[] _BannedTags = { };
         //Top Players
-        private Boolean _UseTopPlayerMonitor;
+        private Boolean _UseTeamPowerMonitor;
+        private Boolean _UseTeamPowerMonitorBalance = false;
         private Boolean currentStartingTeam1 = true;
         private Boolean _PlayersAutoAssistedThisRound = false;
         private Int32 _TopPlayersTeamConfirmationDuration = 5;
@@ -867,7 +869,7 @@ namespace PRoConEvents
             AddSettingSection("B27", "Player Monitor Settings");
             AddSettingSection("B27-2", "Populator Monitor Settings - Thanks CMWGaming");
             AddSettingSection("B27-3", "Teamspeak Player Monitor Settings - Thanks CMWGaming");
-            AddSettingSection("B27-4", "Top Player Monitor Settings");
+            AddSettingSection("B28", "Team Power Monitor");
             AddSettingSection("D98", "Database Timing Mismatch");
             AddSettingSection("D99", "Debugging");
             AddSettingSection("X99", "Experimental");
@@ -1485,7 +1487,6 @@ namespace PRoConEvents
                     if (IsActiveSettingSection("B27")) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + t + "Monitor Populator Players - Thanks CMWGaming", typeof(Boolean), _PopulatorMonitor));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + t + "Monitor Teamspeak Players - Thanks CMWGaming", typeof(Boolean), _TeamspeakPlayerMonitorView));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + t + "Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
                     }
 
                     if (IsActiveSettingSection("B27-2")) {
@@ -1556,8 +1557,9 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsActiveSettingSection("B27-4")) {
-                        if (_UseTopPlayerMonitor) {
+                    if (IsActiveSettingSection("B28")) {
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
+                        if (_UseTeamPowerMonitor) {
                             var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                                 .Where(aPlayer =>
                                     _topPlayers.ContainsKey(aPlayer.player_name));
@@ -1569,19 +1571,15 @@ namespace PRoConEvents
                             if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
                                 teamPower = t1.TeamKey + ": (" + t1.getTeamPower() + ") / " + t2.TeamKey + ": (" + t2.getTeamPower() + ")";
                             }
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + t + "Team Power (Display)", typeof(String), teamPower));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + t + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPLayerListing.ToArray()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + t + "[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Team Power (Display)", typeof(String), teamPower));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPLayerListing.ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values
                                 .Select(aPlayer =>
                                     ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(-) ")) + "(" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
                                 .OrderBy(item => item)
                                 .ToArray()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + t + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above|Marginal and Above|Most Players)", _TopPlayersAffected));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + t + "Top player team confirmation duration", typeof(Int32), _TopPlayersTeamConfirmationDuration));
-                        }
-                        else
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + t + "Top player monitor must be enabled in section B27 to view these settings.", typeof(String), ""));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above|Marginal and Above|Most Players)", _TopPlayersAffected));
+                            //lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Top player team confirmation duration", typeof(Int32), _TopPlayersTeamConfirmationDuration));
                         }
                     }
 
@@ -1807,6 +1805,7 @@ namespace PRoConEvents
                     if (IsActiveSettingSection("5")) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Minimum Required Reason Length", typeof(int), _RequiredReasonLength));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Minimum Report Handle Seconds", typeof(int), _MinimumReportHandleSeconds));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Minimum Minutes Into Round To Use Assist", typeof(int), _minimumAssistMinutes));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Countdown Duration before a Nuke is fired", typeof(int), _NukeCountdownDurationSeconds));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
@@ -3451,30 +3450,21 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Monitor/Disperse Top Players").Success)
+                else if (Regex.Match(strVariable, @"Enable Team Power Monitor").Success)
                 {
                     //Initial parse
-                    Boolean UseTopPlayerMonitor = Boolean.Parse(strValue);
+                    Boolean UseTeamPowerMonitor = Boolean.Parse(strValue);
                     //Check for changed value
-                    if (UseTopPlayerMonitor != _UseTopPlayerMonitor) {
+                    if (UseTeamPowerMonitor != _UseTeamPowerMonitor) {
                         //Rejection cases
-                        if (_threadsReady && !_FeedMultiBalancerWhitelist && UseTopPlayerMonitor) {
-                            Log.Error("'Monitor/Disperse Top Players' cannot be enabled when 'Feed MULTIBalancer Whitelist' is disabled.");
+                        if (_threadsReady && !_FeedMultiBalancerWhitelist && UseTeamPowerMonitor) {
+                            Log.Error("'Enable Team Power Monitor' cannot be enabled when 'Feed MULTIBalancer Whitelist' in A16 is disabled.");
                             return;
                         }
                         //Assignment
-                        _UseTopPlayerMonitor = UseTopPlayerMonitor;
-                        //Notification
-                        if (_threadsReady) {
-                            if (_UseTopPlayerMonitor) {
-                                Log.Info("Top players now being automatically controlled between rounds.");
-                                UpdateTopPlayers();
-                            } else {
-                                Log.Info("Top players no longer being dispersed.");
-                            }
-                        }
+                        _UseTeamPowerMonitor = UseTeamPowerMonitor;
                         //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
+                        QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
                     }
                 } else if (Regex.Match(strVariable, @"Affected Top Players").Success) {
                     if (strValue != _TopPlayersAffected) {
@@ -4730,8 +4720,17 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Minimum Report Handle Seconds", typeof(Int32), _MinimumReportHandleSeconds));
                     }
-                }
-                else if (Regex.Match(strVariable, @"Allow Commands from Admin Say").Success)
+                } else if (Regex.Match(strVariable, @"Minimum Minutes Into Round To Use Assist").Success) {
+                    Int32 minimumAssistMinutes = Int32.Parse(strValue);
+                    if (_minimumAssistMinutes != minimumAssistMinutes) {
+                        _minimumAssistMinutes = minimumAssistMinutes;
+                        if (_minimumAssistMinutes < 0) {
+                            _minimumAssistMinutes = 0;
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Minimum Minutes Into Round To Use Assist", typeof(Int32), _minimumAssistMinutes));
+                    }
+                } else if (Regex.Match(strVariable, @"Allow Commands from Admin Say").Success)
                 {
                     Boolean allowSayCommands = Boolean.Parse(strValue);
                     if (_AllowAdminSayCommands != allowSayCommands)
@@ -6996,6 +6995,7 @@ namespace PRoConEvents
                     {
                         try
                         {
+                            //Memory Monitor - Every 30 seconds
                             Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
                             if (NowDuration(lastMemoryWarning).TotalSeconds > 30)
                             {
@@ -7059,7 +7059,7 @@ namespace PRoConEvents
                                 }
                             }
 
-                            //Post battlelog action times
+                            //Post battlelog action times - Disabled
                             lock (_BattlelogActionTimes) {
                                 if (_BattlelogActionTimes.Any() && NowDuration(_lastBattlelogFrequencyMessage).TotalSeconds > 30) {
                                     while (_BattlelogActionTimes.Any() && NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 4) {
@@ -7082,19 +7082,12 @@ namespace PRoConEvents
                                 }
                             }
 
-                            //Check for unswitcher disable every 20 seconds
+                            //Check for unswitcher disable - every 20 seconds
                             if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (UtcNow() - _LastPlayerMoveIssued).TotalSeconds > 20)
                             {
                                 Log.Debug(() => "MULTIBalancer Unswitcher Re-Enabled", 3);
                                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
                                 _MULTIBalancerUnswitcherDisabled = false;
-                            }
-                            
-                            if (_isTestingAuthorized && 
-                                (UtcNow() - _proconStartTime).TotalHours > 24 && 
-                                _populationStatus != PopulationState.High &&
-                                !_databaseConnectionCriticalState) {
-                                Environment.Exit(4533);
                             }
 
                             //Check for plugin updates at interval
@@ -7103,19 +7096,19 @@ namespace PRoConEvents
                                 FetchPluginDocumentation();
                             }
 
-                            //Post usage stats at interval
+                            //Post usage stats - Every 60 minutes
                             if ((!_versionTrackingDisabled || _pluginVersionStatus == VersionStatus.TestBuild || _isTestingAuthorized) && (UtcNow() - _LastVersionTrackingUpdate).TotalHours > 1 && (_threadsReady || (UtcNow() - _proconStartTime).TotalSeconds > 30))
                             {
                                 PostVersionTracking();
                             }
 
-                            //Post usage stats at interval
+                            //Post weapon codes - every 20 minutes
                             if (((UtcNow() - _LastWeaponCodePost).TotalMinutes > 20 || !_PostedWeaponCodes) && _firstPlayerListComplete)
                             {
                                 PostWeaponCodes();
                             }
                             
-                            //Run SpamBot
+                            //SpamBot - Every 500ms
                             if (_pluginEnabled && 
                                 _spamBotEnabled && 
                                 _firstPlayerListComplete && 
@@ -7271,7 +7264,7 @@ namespace PRoConEvents
                                 }
                             }
 
-                            //Run long keep alive every 5 minutes
+                            //Batch long keep alive - every 5 minutes
                             if ((UtcNow() - lastLongKeepAliveCheck).TotalMinutes > 5) {
 
                                 //Keep the extended round stats table clean
@@ -7293,39 +7286,6 @@ namespace PRoConEvents
                                             record_message = "Player listing offline. Inform ColColonCleaner.",
                                             record_time = UtcNow()
                                         });
-                                    }
-                                }
-
-                                //Auto-squad-leader
-                                if (false &&
-                                    _isTestingAuthorized && 
-                                    _firstPlayerListComplete &&
-                                    _gameVersion == GameVersion.BF4 &&
-                                    _roundState == RoundState.Playing &&
-                                    _serverInfo.GetRoundElapsedTime().TotalMinutes > 1) {
-                                    var onlinePlayers = _PlayerDictionary.Values.ToList();
-                                    var squads = onlinePlayers.GroupBy(aPlayer => new {
-                                        aPlayer.frostbitePlayerInfo.TeamID,
-                                        aPlayer.frostbitePlayerInfo.SquadID
-                                    });
-                                    foreach (var squad in squads) {
-                                        Int32 topScore = 0;
-                                        AdKatsPlayer topPlayer = null;
-                                        foreach (var aPlayer in squad) {
-                                            if (aPlayer.frostbitePlayerInfo.Score > topScore) {
-                                                topScore = aPlayer.frostbitePlayerInfo.Score;
-                                                topPlayer = aPlayer;
-                                            }
-                                        }
-                                        if (topPlayer != null) {
-                                            Thread.Sleep(100);
-                                            ExecuteCommand(
-                                                "procon.protected.send", 
-                                                "squad.leader", 
-                                                topPlayer.frostbitePlayerInfo.TeamID.ToString(), 
-                                                topPlayer.frostbitePlayerInfo.SquadID.ToString(), 
-                                                topPlayer.player_name);
-                                        }
                                     }
                                 }
 
@@ -7376,10 +7336,10 @@ namespace PRoConEvents
                                 lastLongKeepAliveCheck = UtcNow();
                             }
 
-                            //Check for short keep alive every 30 seconds
+                            //Batch short keep alive - every 30 seconds
                             if ((UtcNow() - lastShortKeepAliveCheck).TotalSeconds > 30) {
 
-                                if (_UseTopPlayerMonitor && _isTestingAuthorized && _firstPlayerListComplete) {
+                                if (_UseTeamPowerMonitor && _isTestingAuthorized && _firstPlayerListComplete) {
                                     var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                                         .Where(aPlayer =>
                                             _topPlayers.ContainsKey(aPlayer.player_name));
@@ -7627,16 +7587,19 @@ namespace PRoConEvents
                                 lastShortKeepAliveCheck = UtcNow();
                             }
 
+                            //Server info fetch - every 10 seconds
                             if (_threadsReady && NowDuration(_LastServerInfoFire).TotalSeconds > 9.5)
                             {
                                 ExecuteCommand("procon.protected.send", "serverInfo");
                             }
 
+                            //Player Info fetch - every 10 seconds
                             if (_threadsReady && NowDuration(_LastPlayerListFire).TotalSeconds > 9.5)
                             {
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
 
+                            //Nuke Countdowns - Every 500ms
                             if (_lastNukeTeam != null)
                             {
                                 //Auto-Nuke Slay Duration
@@ -7685,8 +7648,8 @@ namespace PRoConEvents
                                 }
                             }
 
-                            //Sleep 1 second between loops
-                            Thread.Sleep(TimeSpan.FromSeconds(1));
+                            //Sleep half a second between loops
+                            Thread.Sleep(TimeSpan.FromMilliseconds(500));
                         }
                         catch (Exception e)
                         {
@@ -8134,8 +8097,9 @@ namespace PRoConEvents
                     _acceptingTeamUpdates = false;
                 }
 
-                //Top player monitor
-                if (_aliveThreads.Values.All(thread => thread.Name != "TopPlayerMonitorAssignment"))
+                //Team power monitor assignment code
+                //Disabled for now
+                if (_UseTeamPowerMonitorBalance && _aliveThreads.Values.All(thread => thread.Name != "TopPlayerMonitorAssignment"))
                 {
                     StartAndLogThread(new Thread(new ThreadStart(delegate
                     {
@@ -8169,7 +8133,7 @@ namespace PRoConEvents
                                 Log.Info("Team 2 was not found, waiting.");
                                 continue;
                             }
-                            if (_UseTopPlayerMonitor && _firstPlayerListComplete)
+                            if (_UseTeamPowerMonitor && _firstPlayerListComplete)
                             {
                                 Boolean team1Set = currentStartingTeam1;
                                 currentStartingTeam1 = !currentStartingTeam1;
@@ -8442,22 +8406,17 @@ namespace PRoConEvents
                     {
                         var newPowerDiff = Math.Round(Math.Abs(newTeam.getTeamPower(null, aPlayer) - oldTeam.getTeamPower(aPlayer, null)));
                         var oldPowerDiff = Math.Round(Math.Abs(newTeam.getTeamPower() - oldTeam.getTeamPower()));
-                        if (_UseTopPlayerMonitor && 
+                        if (_UseTeamPowerMonitor && 
                             aPlayer.TopStats.getTopPower() != 0 && 
                             newPowerDiff <= oldPowerDiff &&
                             _roundState == RoundState.Playing && 
                             _serverInfo.GetRoundElapsedTime().TotalSeconds > 10) {
-                            if (_isTestingAuthorized) {
-                                Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + " (" + newPowerDiff + "<" + oldPowerDiff + ").");
-                            }
+                            OnlineAdminSayMessage(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + " (" + newPowerDiff + "<" + oldPowerDiff + ").");
                             aPlayer.RequiredTeam = newTeam;
                         } else {
                             if (_roundState == RoundState.Playing && !_topPlayers.ContainsKey(aPlayer.player_name)) {
-                                OnlineAdminSayMessage(soldierName + " attempted to switch teams after being admin moved.");
+                                OnlineAdminSayMessage(soldierName + " attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamName + ".");
                                 PlayerTellMessage(soldierName, "You were assigned to " + aPlayer.RequiredTeam.TeamName + ", please remain on that team.");
-                            }
-                            if (_isTestingAuthorized) {
-                                ProconChatWrite("Anti-move Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
                             }
                             ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", "1", "false");
                         }
@@ -9208,11 +9167,12 @@ namespace PRoConEvents
                                     if (_roundState == RoundState.Playing) {
                                         aPlayer.RoundStats[_roundID].LiveStats = aPlayer.frostbitePlayerInfo;
                                     }
+
                                     try {
-                                        //Top player processing
-                                        if (_firstPlayerListComplete &&
+                                        //Top player processing - Disabled
+                                        if (_UseTeamPowerMonitorBalance && _firstPlayerListComplete &&
                                             _previousRoundDuration != TimeSpan.Zero &&
-                                            _UseTopPlayerMonitor &&
+                                            _UseTeamPowerMonitor &&
                                             aPlayer.player_type == PlayerType.Player &&
                                             _topPlayers.ContainsKey(aPlayer.player_name) && 
                                             _roundState == RoundState.Playing) {
@@ -10416,7 +10376,7 @@ namespace PRoConEvents
                                                 }
                                                 //If we are not using the top player monitor, and not auto-nuking, get players 
                                                 //from those who have assisted to the now winning team
-                                                if (!_UseTopPlayerMonitor && !(_surrenderAutoEnable && _surrenderAutoNukeInstead))
+                                                if (!_UseTeamPowerMonitorBalance && !_UseTeamPowerMonitor && !(_surrenderAutoEnable && _surrenderAutoNukeInstead))
                                                 {
                                                     foreach (AdKatsRecord aRecord in _roundAssists.Values.Where(dRecord => 
                                                         dRecord.target_player.player_online && 
@@ -10604,7 +10564,7 @@ namespace PRoConEvents
                                 {
                                     _FeedStatLoggerSettings = true;
                                     _PostStatLoggerChatManually = true;
-                                    _UseTopPlayerMonitor = true;
+                                    _UseTeamPowerMonitor = true;
 
                                     if (_serverInfo.ServerType != "OFFICIAL")
                                     {
@@ -11195,7 +11155,7 @@ namespace PRoConEvents
                                 }
                                 // Store which squad the player is in
                                 _RoundOverSquads[squadIdentifier].Add(aPlayer);
-                                if (_UseTopPlayerMonitor)
+                                if (_UseTeamPowerMonitorBalance && _UseTeamPowerMonitor)
                                 {
                                     // Remove the player's current squad
                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.frostbitePlayerInfo.TeamID + "", "0", "true");
@@ -16793,9 +16753,8 @@ namespace PRoConEvents
                                 return;
                             }
 
-                            Int32 minAssistMinutes = 4;
-                            if (_isTestingAuthorized && _serverInfo.GetRoundElapsedTime().TotalMinutes < minAssistMinutes) {
-                                SendMessageToSource(record, "Please wait at least " + minAssistMinutes + " minutes into the round to use assist. [" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "]");
+                            if (_serverInfo.GetRoundElapsedTime().TotalMinutes < _minimumAssistMinutes) {
+                                SendMessageToSource(record, "Please wait at least " + _minimumAssistMinutes + " minutes into the round to use assist. [" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "]");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16867,7 +16826,7 @@ namespace PRoConEvents
                                     rejectionMessage += "is losing ground, but still winning the match.";
                                 }
                             }
-                            else if (_UseTopPlayerMonitor)
+                            else if (_UseTeamPowerMonitor)
                             {
                                 if (newPowerDiff > oldPowerDiff)
                                 {
@@ -16895,7 +16854,7 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    Double secondTimeout = _UseTopPlayerMonitor ? 20 : 60;
+                                    Double secondTimeout = _UseTeamPowerMonitor ? 20 : 60;
                                     Double timeout = (secondTimeout - (UtcNow() - assists.Max(aRecord => aRecord.record_time_update)).TotalSeconds);
                                     if (timeout > 0)
                                     {
@@ -16905,7 +16864,7 @@ namespace PRoConEvents
                                     }
                                 }
                                 SendMessageToSource(record, "Queuing you to assist the weak team. Thank you.");
-                                OnlineAdminSayMessage(record.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTopPlayerMonitor ? " (" + newPowerDiff + "<" + oldPowerDiff + ")" : "") + ", queueing.");
+                                OnlineAdminSayMessage(record.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + newPowerDiff + "<" + oldPowerDiff + ")" : "") + ", queueing.");
                             } 
                             else
                             {
@@ -23984,7 +23943,7 @@ namespace PRoConEvents
                     record.record_message += " [Rejected]";
                     return;
                 }
-                if (friendlyTeam.TeamID == losingTeam.TeamID && !_UseTopPlayerMonitor)
+                if (friendlyTeam.TeamID == losingTeam.TeamID && !_UseTeamPowerMonitor)
                 {
                     SendMessageToSource(record, "Player already on losing team, rejecting switch attempt.");
                     record.record_message += " [Rejected]";
@@ -31212,7 +31171,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Autobalance Whitelist", typeof(Boolean), _TeamspeakPlayerPerksBalanceWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Ping Whitelist", typeof(Boolean), _TeamspeakPlayerPerksPingWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
-                QueueSettingForUpload(new CPluginVariable(@"Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
+                QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
                 QueueSettingForUpload(new CPluginVariable(@"Affected Top Players", typeof(String), _TopPlayersAffected));
                 QueueSettingForUpload(new CPluginVariable(@"Top player team confirmation duration", typeof(Int32), _TopPlayersTeamConfirmationDuration));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof(Boolean), _useRoundTimer));
@@ -31251,6 +31210,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Countdown Duration before a Nuke is fired", typeof(Int32), _NukeCountdownDurationSeconds));
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Required Reason Length", typeof(Int32), _RequiredReasonLength));
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Report Handle Seconds", typeof(Int32), _MinimumReportHandleSeconds));
+                QueueSettingForUpload(new CPluginVariable(@"Minimum Minutes Into Round To Use Assist", typeof(Int32), _minimumAssistMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Banned Tags", typeof(String), CPluginVariable.EncodeStringArray(_BannedTags)));
                 QueueSettingForUpload(new CPluginVariable(@"Punishment Hierarchy", typeof(String), CPluginVariable.EncodeStringArray(_PunishmentHierarchy)));
                 QueueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
@@ -37932,7 +37892,7 @@ namespace PRoConEvents
                         }
 
                         //Fetch top players
-                        if (_UseTopPlayerMonitor)
+                        if (_UseTeamPowerMonitor)
                         {
                             UpdateTopPlayers();
                         }
@@ -38136,7 +38096,7 @@ namespace PRoConEvents
                                             }
                                         }
                                     }
-                                    if (_UseTopPlayerMonitor) {
+                                    if (_UseTeamPowerMonitorBalance && _UseTeamPowerMonitor) {
                                         lock (_topPlayers) {
                                             foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(aPlayer => 
                                                     aPlayer.game_id == _serverInfo.GameID && 
@@ -44121,39 +44081,6 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (false && Plugin._isTestingAuthorized && Plugin._serverInfo.InfoObject.GameMode == "ConquestLarge0" && Plugin._gameVersion == GameVersion.BF4)
-                    {
-                        //On conquest large, only allow the value to change by 
-                        //2.5t/m away from zero with each tick, and 
-                        //10.0t/m toward zero with each tick, helps with auto-nuke
-                        var outChange = 2.5;
-                        var inChange = 10.0;
-
-                        //Grab the new rate
-                        var newAdjustedRate = TeamAdjustedTicketDifferenceRate;
-
-                        var maxOut = Math.Max(oldAdjustedDifferenceRate - outChange, -999);
-                        var maxIn = Math.Min(oldAdjustedDifferenceRate + inChange, 0);
-
-                        if (newAdjustedRate < oldAdjustedDifferenceRate)
-                        {
-                            newAdjustedRate = Math.Max(newAdjustedRate, maxOut);
-                        }
-                        else
-                        {
-                            newAdjustedRate = Math.Min(newAdjustedRate, maxIn);
-                        }
-                        double diff = newAdjustedRate - oldAdjustedDifferenceRate;
-
-                        //Set the new rate
-                        TeamAdjustedTicketDifferenceRate = newAdjustedRate;
-
-                        if (TeamID == 1 || TeamID == 2)
-                        {
-                            Plugin.Log.Success(TeamKey + TeamID + " new rate: " + Math.Round(TeamAdjustedTicketDifferenceRate, 1) + " diff: " + Math.Round(diff, 1));
-                        }
-                    }
-
                     //Set instance vars
                     TeamAdjustedTicketCount = (Int32)newAdjustedTicketCount;
                     TeamAdjustedTicketsTime = newAdjustedTicketTime;
@@ -44239,7 +44166,7 @@ namespace PRoConEvents
 
             public Double getTeamPower(AdKatsPlayer ignorePlayer, AdKatsPlayer includePlayer) {
                 try {
-                    if (!Plugin._PlayerDictionary.Any() || !Plugin._UseTopPlayerMonitor) {
+                    if (!Plugin._PlayerDictionary.Any() || !Plugin._UseTeamPowerMonitor) {
                         return 0;
                     }
                     List<AdKatsPlayer> teamPlayers = Plugin._PlayerDictionary.Values.ToList()
