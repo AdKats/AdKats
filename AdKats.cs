@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.34
+ * Version 6.9.0.35
  * 16-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.34</version_code>
+ * <version_code>6.9.0.35</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.34";
+        private const String PluginVersion = "6.9.0.35";
 
         public enum GameVersion
         {
@@ -194,7 +194,6 @@ namespace PRoConEvents
         private Boolean _firstPlayerListComplete;
         private Boolean _enforceSingleInstance = true;
         private GameVersion _gameVersion = GameVersion.BF3;
-        private Boolean _isTestingAuthorized;
         private Boolean _endingRound;
         private readonly AdKatsServer _serverInfo;
         private TimeSpan _previousRoundDuration = TimeSpan.Zero;
@@ -1842,9 +1841,6 @@ namespace PRoConEvents
                     }
                 }
                 timer.Stop();
-                if (_isTestingAuthorized) {
-                    Log.Info("Setting render took " + timer.ElapsedMilliseconds + "ms");
-                }
                 return lstReturn;
             }
             catch (Exception e)
@@ -2075,15 +2071,6 @@ namespace PRoConEvents
                         } 
                         else if (tmp == 3840) {
                             _showQuerySettings = true;
-                        }
-                        else if (tmp == 23548)
-                        {
-                            Boolean wasAuth = _isTestingAuthorized;
-                            _isTestingAuthorized = true;
-                            if (!wasAuth)
-                            {
-                                Log.Write("Server is priviledged for testing during this instance.");
-                            }
                         }
                         else if (tmp != Log.DebugLevel)
                         {
@@ -5042,186 +5029,6 @@ namespace PRoConEvents
                                         command.command_access = AdKatsCommand.CommandAccess.Any;
                                     }
                                     break;
-                                case "player_kill":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                        }
-                                    }
-                                    break;
-                                case "player_kick":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                        }
-                                    }
-                                    break;
-                                case "player_ban_temp":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                        }
-                                    }
-                                    break;
-                                case "player_ban_perm":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                        }
-                                    }
-                                    break;
-                                case "player_punish":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                        }
-                                    }
-                                    break;
-                                case "player_mute":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                        }
-                                    }
-                                    break;
-                                case "self_kill":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                        }
-                                    }
-                                    break;
-                                case "admin_say":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'AnyHidden'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                        }
-                                    }
-                                    break;
-                                case "player_say":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'AnyHidden'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                        }
-                                    }
-                                    break;
-                                case "admin_yell":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'AnyHidden'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                        }
-                                    }
-                                    break;
-                                case "player_yell":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'AnyHidden'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                        }
-                                    }
-                                    break;
-                                case "admin_tell":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'AnyHidden'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                        }
-                                    }
-                                    break;
-                                case "player_tell":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'AnyHidden'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                        }
-                                    }
-                                    break;
-                                case "player_ban_perm_future":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                        }
-                                    }
-                                    break;
-                                case "player_kill_force":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                        }
-                                    }
-                                    break;
-                                case "player_info":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'AnyHidden'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                        }
-                                    }
-                                    break;
-                                case "player_find":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'AnyHidden'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                        }
-                                    }
-                                    break;
-                                case "self_reportlist":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                        {
-                                            Log.Warn(command.command_name + " access must be 'AnyHidden'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                        }
-                                    }
-                                    break;
                             }
                         }
                         else
@@ -5736,11 +5543,6 @@ namespace PRoConEvents
                         //Make sure the metabans plugin is enabled
                         ExecuteCommand("procon.protected.plugins.enable", "Metabans", "True");
                         SetExternalPluginSetting("Metabans", "Ban Propagation", "Do not propagate my bans");
-                        if (_isTestingAuthorized) {
-                            SetExternalPluginSetting("Metabans", "Enforce Metabans Bans", "No");
-                            SetExternalPluginSetting("Metabans", "Announce Bans", "No");
-                            SetExternalPluginSetting("Metabans", "Debug Mode", "Off");
-                        }
                     }
                     _useMetabans = useMetabans;
                     //Once setting has been changed, upload the change to database
@@ -6633,12 +6435,7 @@ namespace PRoConEvents
                         } while (alive);
 
                         Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
-                        Boolean memDisplay = _isTestingAuthorized && MBUsed > 100;
                         //Reset all caches and storage
-                        if (memDisplay)
-                        {
-                            Log.Info("Before any: " + MBUsed + "MB");
-                        }
                         if (_UserRemovalQueue != null)
                         {
                             _UserRemovalQueue.Clear();
@@ -6712,28 +6509,13 @@ namespace PRoConEvents
                         {
                             _PlayerDictionary.Clear();
                         }
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(1));
-                            Log.Info("After _PlayerDictionary: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_PlayerLeftDictionary != null)
                         {
                             _PlayerLeftDictionary.Clear();
                         }
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(1));
-                            Log.Info("After _PlayerLeftDictionary: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_FetchedPlayers != null)
                         {
                             _FetchedPlayers.Clear();
-                        }
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(1));
-                            Log.Info("After _FetchedPlayers: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         _firstPlayerListComplete = false;
                         _firstUserListComplete = false;
@@ -6742,19 +6524,9 @@ namespace PRoConEvents
                         {
                             _userCache.Clear();
                         }
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(1));
-                            Log.Info("After _userCache: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (FrostbitePlayerInfoList != null)
                         {
                             FrostbitePlayerInfoList.Clear();
-                        }
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(1));
-                            Log.Info("After FrostbitePlayerInfoList: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_CBanProcessingQueue != null)
                         {
@@ -7076,7 +6848,7 @@ namespace PRoConEvents
                                     while (_BattlelogActionTimes.Any() && NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 4) {
                                         _BattlelogActionTimes.Dequeue();
                                     }
-                                    if (false && _isTestingAuthorized) {
+                                    if (false) {
                                         var frequency = Math.Round(_BattlelogActionTimes.Count() / 4.0, 2);
                                         Log.Info("Average battlelog request frequency: " + frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count());
                                         QueueStatisticForProcessing(new AdKatsStatistic() {
@@ -7102,13 +6874,13 @@ namespace PRoConEvents
                             }
 
                             //Check for plugin updates at interval
-                            if ((UtcNow() - _LastPluginDescFetch).TotalHours > 1 || (_isTestingAuthorized && (UtcNow() - _LastPluginDescFetch).TotalMinutes > 10))
+                            if ((UtcNow() - _LastPluginDescFetch).TotalHours > 1)
                             {
                                 FetchPluginDocumentation();
                             }
 
                             //Post usage stats - Every 60 minutes
-                            if ((!_versionTrackingDisabled || _pluginVersionStatus == VersionStatus.TestBuild || _isTestingAuthorized) && (UtcNow() - _LastVersionTrackingUpdate).TotalHours > 1 && (_threadsReady || (UtcNow() - _proconStartTime).TotalSeconds > 30))
+                            if ((!_versionTrackingDisabled || _pluginVersionStatus == VersionStatus.TestBuild) && (UtcNow() - _LastVersionTrackingUpdate).TotalHours > 1 && (_threadsReady || (UtcNow() - _proconStartTime).TotalSeconds > 30))
                             {
                                 PostVersionTracking();
                             }
@@ -7285,41 +7057,48 @@ namespace PRoConEvents
                                 if (_pluginEnabled && 
                                     _firstPlayerListComplete && 
                                     (UtcNow() - _lastSuccessfulPlayerList) > TimeSpan.FromMinutes(5)) {
-                                    if (_isTestingAuthorized) {
-                                        //Create report record
-                                        QueueRecordForProcessing(new AdKatsRecord {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("player_report"),
-                                            command_numeric = 0,
-                                            target_name = "AdKats",
-                                            source_name = "AdKats",
-                                            record_message = "Player listing offline. Inform ColColonCleaner.",
-                                            record_time = UtcNow()
-                                        });
-                                    }
+                                    //Create report record
+                                    QueueRecordForProcessing(new AdKatsRecord {
+                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("player_report"),
+                                        command_numeric = 0,
+                                        target_name = "AdKats",
+                                        source_name = "AdKats",
+                                        record_message = "Player listing offline. Inform ColColonCleaner.",
+                                        record_time = UtcNow()
+                                    });
                                 }
 
-                                if (_isTestingAuthorized && _roundState == RoundState.Playing) {
+                                if (_useExperimentalTools && _roundState == RoundState.Playing) {
                                     var players = _PlayerDictionary.Values.ToList();
                                     double total = players.Count();
                                     if (total > 0) {
+                                        double over50 = players.Count(aPlayer => aPlayer.player_ping_avg > 50);
                                         double over100 = players.Count(aPlayer => aPlayer.player_ping_avg > 100);
                                         double over150 = players.Count(aPlayer => aPlayer.player_ping_avg > 150);
-                                        double over200 = players.Count(aPlayer => aPlayer.player_ping_avg > 200);
+                                        double over50p = Math.Round(over50 / total * 100, 1);
                                         double over100p = Math.Round(over100 / total * 100, 1);
                                         double over150p = Math.Round(over150 / total * 100, 1);
-                                        double over200p = Math.Round(over200 / total * 100, 1);
-                                        string over100t = "Over 100ms: (" + Math.Round(over100) + "/" + total + ") " + over100p + "%";
-                                        string over150t = "Over 150ms: (" + Math.Round(over150) + "/" + total + ") " + over150p + "%";
-                                        string over200t = "Over 200ms: (" + Math.Round(over200) + "/" + total + ") " + over200p + "%";
+                                        string over100t = "Over 50ms: (" + Math.Round(over50) + "/" + total + ") " + over50p + "%";
+                                        string over150t = "Over 100ms: (" + Math.Round(over100) + "/" + total + ") " + over100p + "%";
+                                        string over200t = "Over 150ms: (" + Math.Round(over150) + "/" + total + ") " + over150p + "%";
+                                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                                            stat_type = AdKatsStatistic.StatisticType.ping_over50,
+                                            server_id = _serverInfo.ServerID,
+                                            round_id = _roundID,
+                                            target_name = _serverInfo.InfoObject.Map,
+                                            stat_value = over50p,
+                                            stat_comment = over100t,
+                                            stat_time = UtcNow()
+                                        });
                                         QueueStatisticForProcessing(new AdKatsStatistic() {
                                             stat_type = AdKatsStatistic.StatisticType.ping_over100,
                                             server_id = _serverInfo.ServerID,
                                             round_id = _roundID,
                                             target_name = _serverInfo.InfoObject.Map,
                                             stat_value = over100p,
-                                            stat_comment = over100t,
+                                            stat_comment = over150t,
                                             stat_time = UtcNow()
                                         });
                                         QueueStatisticForProcessing(new AdKatsStatistic() {
@@ -7328,19 +7107,9 @@ namespace PRoConEvents
                                             round_id = _roundID,
                                             target_name = _serverInfo.InfoObject.Map,
                                             stat_value = over150p,
-                                            stat_comment = over150t,
-                                            stat_time = UtcNow()
-                                        });
-                                        QueueStatisticForProcessing(new AdKatsStatistic() {
-                                            stat_type = AdKatsStatistic.StatisticType.ping_over200,
-                                            server_id = _serverInfo.ServerID,
-                                            round_id = _roundID,
-                                            target_name = _serverInfo.InfoObject.Map,
-                                            stat_value = over200p,
                                             stat_comment = over200t,
                                             stat_time = UtcNow()
                                         });
-                                        //Log.Info(over100t + ", " + over150t + ", " + over200t);
                                     }
                                 }
 
@@ -7350,11 +7119,11 @@ namespace PRoConEvents
                             //Batch short keep alive - every 30 seconds
                             if ((UtcNow() - lastShortKeepAliveCheck).TotalSeconds > 30) {
 
-                                if (_UseTeamPowerMonitor && _isTestingAuthorized && _firstPlayerListComplete) {
+                                if (_UseTeamPowerMonitor && _useExperimentalTools && _firstPlayerListComplete) {
                                     var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                                         .Where(aPlayer => aPlayer.TopStats.TopRoundRatio > 0);
                                     AdKatsTeam t1, t2;
-                                    if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2))
+                                    if (_roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2))
                                     {
                                         Double t1Power = t1.getTeamPower();
                                         Double t2Power = t2.getTeamPower();
@@ -7443,8 +7212,7 @@ namespace PRoConEvents
                                         Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 && 
                                         winningTeam.GetTicketDifferenceRate() > losingTeam.GetTicketDifferenceRate() &&
                                         !_Team1MoveQueue.Any() &&
-                                        !_Team2MoveQueue.Any() &&
-                                        (!_isTestingAuthorized || (_serverInfo.ServerID != 1 || losingTeam.TeamTicketCount > 400))) {
+                                        !_Team2MoveQueue.Any()) {
                                         foreach (var aPlayer in GetOnlinePlayerDictionaryOfGroup("blacklist_autoassist").Values
                                             .Where(dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) {
                                             Thread.Sleep(2000);
@@ -8218,13 +7986,13 @@ namespace PRoConEvents
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", member.player_name, targetTeam.TeamID + "", member.AssignedSquad + "", "false");
                                             Thread.Sleep(TimeSpan.FromMilliseconds(50));
                                         }
-                                        if (_isTestingAuthorized)
+                                        if (_UseTeamPowerMonitorBalance)
                                         {
                                             Log.Info(message + " assigned to " + targetTeam.TeamKey + " for " + targetTeam.getTeamPower() + " team power.");
                                         }
                                     }
                                 }
-                                else if (_isTestingAuthorized)
+                                else if (_UseTeamPowerMonitorBalance)
                                 {
                                     Log.Info("No squads remembered; can't do squad dispersion.");
                                 }
@@ -8246,7 +8014,7 @@ namespace PRoConEvents
                                     {
                                         //Fill in the remaining players based on teampower
                                         aPlayer.RequiredTeam = team1.getTeamPower() < team2.getTeamPower() ? team1 : team2;
-                                        if (_isTestingAuthorized)
+                                        if (_UseTeamPowerMonitorBalance)
                                         {
                                             ProconChatWrite("Initial Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
                                         }
@@ -8259,7 +8027,7 @@ namespace PRoConEvents
                                         }
                                     }
                                 }
-                                else if (_isTestingAuthorized)
+                                else if (_UseTeamPowerMonitorBalance)
                                 {
                                     Log.Info("Not enough extra top players online to do dispersion.");
                                 }
@@ -8286,7 +8054,7 @@ namespace PRoConEvents
                                                            aPlayer.player_name,
                                                            aPlayer.RequiredTeam.TeamID + "", (aPlayer.AssignedSquad == 0 ? aPlayer.frostbitePlayerInfo.SquadID : aPlayer.AssignedSquad) + "",
                                                            "true");
-                                            if (_isTestingAuthorized)
+                                            if (_UseTeamPowerMonitorBalance)
                                             {
                                                 ProconChatWrite("Upkeep Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
                                             }
@@ -8294,7 +8062,7 @@ namespace PRoConEvents
                                     }
                                     Thread.Sleep(TimeSpan.FromSeconds(1));
                                 }
-                                if (_isTestingAuthorized)
+                                if (_UseTeamPowerMonitorBalance)
                                 {
                                     ProconChatWrite("Stopped confirming player positions.");
                                 }
@@ -8888,7 +8656,6 @@ namespace PRoConEvents
                                             if (_pingEnforcerEnable && 
                                                 aPlayer.player_type == PlayerType.Player && 
                                                 !PlayerIsAdmin(aPlayer) && 
-                                                (!_isTestingAuthorized || aPlayer.player_reputation < 150 || aPlayer.player_ping >= 200) &&
                                                 !GetMatchingVerboseASPlayersOfGroup("whitelist_ping", aPlayer).Any() && 
                                                 !_pingEnforcerIgnoreRoles.Contains(aPlayer.player_role.role_key) && 
                                                 !(_pingEnforcerIgnoreUserList && 
@@ -9223,12 +8990,12 @@ namespace PRoConEvents
                                                     var currentDiff = Math.Round(Math.Abs(tf.getTeamPower() - te.getTeamPower()));
                                                     //If team power difference after reassignment would be less than the current, do it
                                                     if (reassignDiff <= currentDiff && tf.TeamKey != "Neutral") {
-                                                        if (_isTestingAuthorized) {
+                                                        if (_UseTeamPowerMonitorBalance) {
                                                             Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + tf.TeamKey + " (" + reassignDiff + "<" + currentDiff + ").");
                                                         }
                                                         aPlayer.RequiredTeam = tf;
                                                     } else {
-                                                        if (_isTestingAuthorized && tf.TeamKey != "Neutral") {
+                                                        if (_UseTeamPowerMonitorBalance && tf.TeamKey != "Neutral") {
                                                             Log.Warn(aPlayer.GetVerboseName() + " friendly power " + tf.TeamKey + " " + friendlyPower + ", enemy power " + te.TeamKey + " " + enemyPower + ".");
                                                             Log.Warn(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " but on " + tf.TeamKey + ", attempting to move.");
                                                         }
@@ -10237,12 +10004,6 @@ namespace PRoConEvents
                                         _lastAutoSurrenderTriggerTime = UtcNow();
                                         _surrenderAutoTriggerCountCurrent++;
 
-                                        //Log
-                                        if (_isTestingAuthorized)
-                                        {
-                                            Log.Warn("FIRING NUKE TRIGGERS: UP/" + mapUpTeam.TeamKey + "/" + upRate + " | DOWN/" + mapDownTeam.TeamKey + "/" + downRate);
-                                        }
-
                                         readyPercentage = Math.Round(Math.Min((_surrenderAutoTriggerCountCurrent / (Double)config_triggers_min) * 100.0, 100)) + "%";
 
                                         if (canFire &&
@@ -10569,37 +10330,7 @@ namespace PRoConEvents
                             {
                                 PostVersionTracking();
                             }
-
-                            //Only activate the following on ADK servers.
-                            Boolean wasADK = _isTestingAuthorized;
-                            _isTestingAuthorized = serverInfo.ServerName.Contains("=ADK=");
-                            if (!wasADK && _isTestingAuthorized)
-                            {
-                                Log.Info("Server is testing authorized.");
-                                if (_gameVersion != GameVersion.BF3)
-                                {
-                                    _FeedStatLoggerSettings = true;
-                                    _PostStatLoggerChatManually = true;
-                                    _UseTeamPowerMonitor = true;
-
-                                    if (_serverInfo.ServerType != "OFFICIAL")
-                                    {
-                                        _pingEnforcerEnable = true;
-                                        _pingEnforcerKickMissingPings = true;
-                                        _CMDRManagerEnable = true;
-                                        _surrenderVoteEnable = true;
-                                    }
-                                    if (_serverInfo.ServerName.Contains("#7") && _gameVersion == GameVersion.BF4)
-                                    {
-                                        _surrenderAutoEnable = true;
-                                        _surrenderAutoUseMetroValues = true;
-                                    }
-                                    _spamBotExcludeAdminsAndWhitelist = true;
-                                }
-                                _DisplayTicketRatesInProconChat = true;
-                                _PostMapBenefitStatistics = true;
-                                UpdateSettingPage();
-                            }
+                            
                             if (!_pluginUpdateServerInfoChecked)
                             {
                                 _pluginUpdateServerInfoChecked = true;
@@ -11066,7 +10797,7 @@ namespace PRoConEvents
                         stat_comment = "Quality level " + quality + " (" + winningTeam.TeamTicketCount + "|" + losingTeam.TeamTicketCount + ")",
                         stat_time = UtcNow()
                     });
-                } else if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
+                } else if (false && _gameVersion == GameVersion.BF4) {
                     if (_serverInfo.ServerID == 6) {
                         Int32 quality = 0;
                         if (losingTeam.TeamTicketCount >= 350) {
@@ -11178,7 +10909,7 @@ namespace PRoConEvents
                                 }
                             }
                         }
-                        if (_isTestingAuthorized)
+                        if (_UseTeamPowerMonitorBalance)
                         {
                             Log.Success("Updated round over players.");
                         }
@@ -11198,16 +10929,10 @@ namespace PRoConEvents
                 if (_roundID > 0 && _RoundPlayerIDs.TryGetValue(_roundID, out roundPlayers) && _useHackerCheckerLIVESystem) {
                     //Get players who where online this round
                     roundPlayerObjects = _FetchedPlayers.Values.Where(dPlayer => roundPlayers.Contains(dPlayer.player_id)).ToList();
-                    if (_isTestingAuthorized) {
-                        Log.Warn("Preparing to requeue " + roundPlayerObjects.Count + " players for stats check in 30 seconds.");
-                    }
                     //Queue players for stats refresh
                     StartAndLogThread(new Thread(new ThreadStart(delegate {
                         Thread.CurrentThread.Name = "StatRefetch";
                         Thread.Sleep(TimeSpan.FromSeconds(30));
-                        if (_isTestingAuthorized) {
-                            Log.Warn("Requeuing " + roundPlayerObjects.Count + " players for stats check.");
-                        }
                         foreach (var aPlayer in roundPlayerObjects) {
                             if (_UseBanEnforcer) {
                                 QueuePlayerForBanCheck(aPlayer);
@@ -11242,10 +10967,6 @@ namespace PRoConEvents
             //Credit to LumPenPacK
             if (_factionRandomizerEnable && _gameVersion == GameVersion.BF4)
             {
-                if (_isTestingAuthorized)
-                {
-                    Log.Info("RUNNING FACTION RANDOMIZER");
-                }
                 var nextMap = _serverInfo.GetNextMap();
                 if (((_serverInfo.InfoObject.CurrentRound + 1) >= _serverInfo.InfoObject.TotalRounds) && 
                     (nextMap != null && (nextMap.MapFileName == "XP3_UrbanGdn" || nextMap.MapFileName == "X0_Oman")))
@@ -11266,11 +10987,6 @@ namespace PRoConEvents
 
                 while (!selectionValid && ++attempts < 1000)
                 {
-                    if (_isTestingAuthorized)
-                    {
-                        Log.Info("FACTION RANDOMIZER ATTEMPT " + attempts);
-                    }
-
                     switch (_factionRandomizerRestriction)
                     {
                         case FactionRandomizerRestriction.NoRestriction:
@@ -11413,10 +11129,6 @@ namespace PRoConEvents
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "2", Convert.ToString(team2Selection));
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "3", Convert.ToString(team1Selection));
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "4", Convert.ToString(team2Selection));
-                    if (_isTestingAuthorized)
-                    {
-                        Log.Success("Faction randomizer selected " + team1Selection + " vs " + team2Selection);
-                    }
                 }
                 else
                 {
@@ -11642,15 +11354,6 @@ namespace PRoConEvents
                             _PlayerDictionary.TryGetValue(playerKill.Killer.SoldierName, out killer);
                             if (killer == null || victim == null)
                             {
-                                if (_isTestingAuthorized && 
-                                    !String.IsNullOrEmpty(playerKill.Killer.SoldierName) && 
-                                    !String.IsNullOrEmpty(playerKill.Victim.SoldierName)) {
-                                    Log.Warn("Unable to process kill " + 
-                                        playerKill.Killer.SoldierName + "/" +
-                                        playerKill.Victim.SoldierName + " | " + 
-                                        (_PlayerDictionary.ContainsKey(playerKill.Killer.SoldierName)) + "/" + 
-                                        (_PlayerDictionary.ContainsKey(playerKill.Victim.SoldierName)));
-                                }
                                 continue;
                             }
 
@@ -11720,14 +11423,7 @@ namespace PRoConEvents
                 //Add the kill
                 aKill.killer.LiveKills.Add(aKill);
 
-                if (_isTestingAuthorized && 
-                    aKill.killer.frostbitePlayerInfo.Kills >= 5 && 
-                    !aKill.killer.LiveKills.Any()) {
-                    Log.Error(aKill.killer.GetVerboseName() + " kills not loading. " + 
-                        aKill.killer.LiveKills.Count + " < " + aKill.killer.frostbitePlayerInfo.Kills);
-                }
-
-                if ((_isTestingAuthorized || _serverInfo.ServerName.Contains("FPSG")) && _serverInfo.ServerType != "OFFICIAL")
+                if ((_serverInfo.ServerName.Contains("FPSG")) && _serverInfo.ServerType != "OFFICIAL")
                 {
                     //KPM check
                     Int32 lowCountRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
@@ -12434,9 +12130,6 @@ namespace PRoConEvents
 
                     //Ensure frostbite player info
                     if (aPlayer.frostbitePlayerInfo == null) {
-                        if (_isTestingAuthorized) {
-                            Log.Error("Could not find " + soldierName + " frostbite info on spawn.");
-                        }
                         return;
                     }
 
@@ -12469,7 +12162,7 @@ namespace PRoConEvents
 
                         //Take minimum ticket count between teams (accounts for rush), but not less than 0
                         _startingTicketCount = Math.Max(0, Math.Min(team1.TeamTicketCount, team2.TeamTicketCount));
-                        if (_isTestingAuthorized) {
+                        if (_UseTeamPowerMonitorBalance) {
                             ProconChatWrite("Starting Ticket Count: " + _startingTicketCount);
                             Log.Info("Starting Ticket Count: " + _startingTicketCount);
                         }
@@ -12542,7 +12235,7 @@ namespace PRoConEvents
                     }
 
                     //Handle Dev Notifications
-                    if (soldierName == "ColColonCleaner" && (!_isTestingAuthorized || !_toldCol))
+                    if (soldierName == "ColColonCleaner" && !_toldCol)
                     {
                         PlayerTellMessage("ColColonCleaner", "CONGRATS! This server is running AdKats " + PluginVersion + "!");
                         _toldCol = true;
@@ -12608,7 +12301,7 @@ namespace PRoConEvents
                                     if (_useFirstSpawnRepMessage)
                                     {
                                         Boolean isAdmin = PlayerIsAdmin(aPlayer);
-                                        String repMessage = "Your server reputation is " + ((!isAdmin || !_isTestingAuthorized) ? (Math.Round(aPlayer.player_reputation, 2) + "") : (aPlayer.player_role.role_name)) + ", with ";
+                                        String repMessage = "Your server reputation is " + Math.Round(aPlayer.player_reputation, 2) + ", with ";
                                         if (points > 0)
                                         {
                                             repMessage += points + " infraction point(s). ";
@@ -12616,30 +12309,6 @@ namespace PRoConEvents
                                         else
                                         {
                                             repMessage += "a clean infraction record. ";
-                                        }
-                                        //TODO add this back
-                                        if (!isAdmin && _isTestingAuthorized && false)
-                                        {
-                                            repMessage += Environment.NewLine;
-                                            if (aPlayer.player_reputation < _reputationThresholdGood)
-                                            {
-                                                if (aPlayer.player_reputation > 15)
-                                                {
-                                                    repMessage += "Thank you for helping the admins! At " + Math.Round(_reputationThresholdGood, 2) + " reputation you receive large perks.";
-                                                }
-                                                else if (aPlayer.player_reputation > 0)
-                                                {
-                                                    repMessage += "Thank you for helping the admins! At 15 reputation you receive small perks.";
-                                                }
-                                                else
-                                                {
-                                                    repMessage += "!" + GetCommandByKey("player_report").command_text + " rule breakers to increase reputation.";
-                                                }
-                                            }
-                                            else
-                                            {
-                                                repMessage += "You have report auto-contest and spambot whitelist. Thank you.";
-                                            }
                                         }
                                         PlayerTellMessage(aPlayer.player_name, repMessage);
                                     }
@@ -13016,23 +12685,6 @@ namespace PRoConEvents
                                     Log.Debug(() => "No ban found for player", 5);
                                     if (_serverInfo.ServerType != "OFFICIAL")
                                     {
-                                        if (_isTestingAuthorized && 
-                                            (aPlayer.player_name.ToLower().Contains("fairfight") || aPlayer.player_name.StartsWith("AA_") || aPlayer.player_name.EndsWith("_AA")))
-                                        {
-                                            QueueRecordForProcessing(new AdKatsRecord
-                                            {
-                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
-                                                command_type = GetCommandByKey("player_ban_perm"),
-                                                command_numeric = 0,
-                                                target_name = aPlayer.player_name,
-                                                target_player = aPlayer,
-                                                source_name = "AutoAdmin",
-                                                record_message = "Multihack",
-                                                record_time = UtcNow()
-                                            });
-                                            continue;
-                                        }
                                         //Only call a hack check if the player does not already have a ban
                                         QueuePlayerForHackerCheck(aPlayer);
                                     }
@@ -13546,13 +13198,6 @@ namespace PRoConEvents
                                 Int32 serverKillDiff = previousStats.LiveStats.Kills;
                                 Int32 nonBLWeaponKills = aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1 && aKill.weaponCode == "DamageArea");
 
-                                if (_isTestingAuthorized) {
-                                    if (nonBLWeaponKills > 0) {
-                                        Log.Info(aPlayer.GetVerboseName() + " Ignoring " + nonBLWeaponKills + " non-bl weapon kills.");
-                                    }
-                                    Log.Info(aPlayer.GetVerboseName() + " live kills: " + rconKillDiff + " | server kills: " + serverKillDiff + " | stat kills: " + overallKillDiff);
-                                }
-
                                 killDiscrepancy = killDiscrepancy - nonBLWeaponKills;
 
                                 //Confirm kill codes are loaded and valid
@@ -13576,23 +13221,6 @@ namespace PRoConEvents
                                         acted = true;
                                     }
                                 }
-                                else if(serverKillDiff > 0 || overallKillDiff > 0) {
-                                    //Kills were not loaded. Why?
-                                    if (_isTestingAuthorized) {
-                                        Log.Warn(aPlayer.GetVerboseName() +
-                                            " Kills Not Loaded. (Join-" + FormatNowDuration(aPlayer.JoinTime, 2) + ")" +
-                                            "(Action-" + FormatNowDuration(aPlayer.lastAction, 2) + ")" +
-                                            "(Usage-" + FormatNowDuration(aPlayer.LastUsage, 2) + ")" +
-                                            "(Online-" + aPlayer.player_online + ")" +
-                                            "(Spawned-" + aPlayer.player_spawnedOnce + ") " +
-                                            (_roundID + 1) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID + 1) + " | " +
-                                            (_roundID    ) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID    ) + " | " +
-                                            (_roundID - 1) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1) + " | " +
-                                            (_roundID - 2) + ":" + aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 2));
-                                    }
-                                }
-                        } else if (_isTestingAuthorized) {
-                            Log.Warn(aPlayer.GetVerboseName() + " has no stats to use.");
                         }
                     }
                 }
@@ -13636,18 +13264,6 @@ namespace PRoConEvents
                         (Int32) currentStats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
                     statKillDiff = currentWeaponKillCount - previousWeaponKillCount;
                     killStatsValid = serverKillDiff >= statKillDiff - 1;
-                }
-                if (_isTestingAuthorized && _useHackerCheckerLIVESystem) {
-                    if (killStatsValid) {
-                        Log.Success(aPlayer.GetVerboseName() + " kill stats valid. " + serverKillDiff + "|" + statKillDiff);
-                    } else if (previousStats != null) {
-                        Log.Warn(aPlayer.GetVerboseName() + " kill stats invalid. " +
-                            "(" + (previousStats.LiveStats != null) + ")" +
-                            "(" + (previousStats.WeaponStats != null) + ")" +
-                            "(" + (previousStats.VehicleStats != null) + ")" +
-                            "(" + (currentStats != null && currentStats.WeaponStats != null) + ")" +
-                            "(" + (currentStats != null && currentStats.VehicleStats != null) + ") " + serverKillDiff + "|" + statKillDiff);
-                    }
                 }
 
                 List<String> allowedCategories;
@@ -13711,7 +13327,7 @@ namespace PRoConEvents
                                     previousStats.WeaponStats != null) {
                                     AdKatsWeaponStat previousWeaponStat;
                                     if (previousStats.WeaponStats.TryGetValue(weaponStat.ID, out previousWeaponStat)) {
-                                        if (weaponStat.Kills > previousWeaponStat.Kills && (killStatsValid || _isTestingAuthorized)) {
+                                        if (weaponStat.Kills > previousWeaponStat.Kills && killStatsValid) {
                                             //Handle servers with different health amounts
                                             Double weaponHitsToKill = (_soldierHealth / weapon.DamageMax);
                                             Double killDiff = weaponStat.Kills - previousWeaponStat.Kills;
@@ -13734,7 +13350,7 @@ namespace PRoConEvents
                                             }
                                             Double percDiff = (liveDPS - expectedDPS) / expectedDPS;
                                             String formattedName = weaponStat.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                                            if (Math.Round(percDiff) > 0 || _isTestingAuthorized) {
+                                            if (Math.Round(percDiff) > 0) {
                                                 Log.Info("STATDIFF - " + aPlayer.GetVerboseName() + " - " + formattedName + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(liveDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
                                             }
                                             //Check for damage mod
@@ -13803,7 +13419,7 @@ namespace PRoConEvents
                 {
                     acted = true;
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                    if (_isTestingAuthorized && _roundState == RoundState.Playing)
+                    if (_roundState == RoundState.Playing)
                     {
                         if (!aPlayer.IsLocked())
                         {
@@ -13986,7 +13602,7 @@ namespace PRoConEvents
                 {
                     acted = true;
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                    if (_isTestingAuthorized && _roundState == RoundState.Playing)
+                    if (_roundState == RoundState.Playing)
                     {
                         if (!aPlayer.IsLocked())
                         {
@@ -15058,46 +14674,6 @@ namespace PRoConEvents
                                         }
                                     }
                                 }
-                                if (_serverInfo.ServerType != "OFFICIAL")
-                                {
-                                    if (_isTestingAuthorized && !isCommand)
-                                    {
-                                        string lowerM = " " + messageObject.Message.ToLower() + " ";
-                                        if (lowerM.Contains(" ping")) {
-                                            if (!PlayerIsAdmin(aPlayer)) {
-                                                if (_serverInfo.ServerID == 1 || _serverInfo.ServerID == 6) {
-                                                    PlayerTellMessage(messageObject.Speaker, "Ping limit is 150 during US primetime and missing pings are kicked when the server is full.");
-                                                } else {
-                                                    PlayerTellMessage(messageObject.Speaker, "Ping limit is 300 and missing pings are kicked when the server is full.");
-                                                }
-                                                continue;
-                                            }
-                                        }
-                                        if (lowerM.Contains(" plng") || lowerM.Contains(" p|ng")) {
-                                            if (!PlayerIsAdmin(aPlayer)) {
-                                                PlayerTellMessage(messageObject.Speaker, "Really? Bypassing the ping message?");
-                                                continue;
-                                            }
-                                        }
-                                        if (lowerM.Contains(" hack") ||
-                                            lowerM.Contains(" cheat") ||
-                                            lowerM.Contains(" aimbot") ||
-                                            lowerM.Contains(" bot ") ||
-                                            lowerM.Contains(" botting ") ||
-                                            lowerM.Contains(" macro") ||
-                                            lowerM.Contains(" hax")) {
-                                            if (!PlayerIsAdmin(aPlayer)) {
-                                                if (messageObject.Subset == AdKatsChatMessage.ChatSubset.Global) {
-                                                    PlayerYellMessage(messageObject.Speaker, "If you think a player is cheating use !report playername reason. Otherwise, it's chat spam.");
-                                                    AdminSayMessage("If you think a player is cheating use !report playername reason. Otherwise, it's chat spam.");
-                                                } else {
-                                                    PlayerTellMessage(messageObject.Speaker, "If you think a player is cheating use !report playername reason. Otherwise, it's chat spam.");
-                                                }
-                                                continue;
-                                            }
-                                        }
-                                    }
-                                }
                             }
                             if (isCommand)
                             {
@@ -15580,7 +15156,7 @@ namespace PRoConEvents
                             break;
                         case "player_forgive":
                             {
-                                if (_isTestingAuthorized && record.target_player != null && FetchPoints(record.target_player, _CombineServerPunishments, true) <= 0)
+                                if (record.target_player != null && FetchPoints(record.target_player, _CombineServerPunishments, true) <= 0)
                                 {
                                     SendMessageToSource(record, record.GetTargetNames() + " does not have any infractions to forgive.");
                                     FinalizeRecord(record);
@@ -16211,30 +15787,6 @@ namespace PRoConEvents
                             Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                     }
-                    //Conditional command replacement (single target only)
-                    if (_isTestingAuthorized && _populationStatus == PopulationState.Low && record.target_player != null && record.command_type.command_key == "player_punish")
-                    {
-                        int punishCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_punish");
-                        int killCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_kill");
-                        if (killCount < 2 || (killCount < 4 && punishCount == 1))
-                        {
-                            if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin")
-                            {
-                                AdminSayMessage("Punishing " + record.GetTargetNames() + " for " + record.record_message);
-                            }
-                            else
-                            {
-                                AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + record.GetSourceName() + " for " + record.record_message);
-                            }
-                            record.command_type = GetCommandByKey("player_kill");
-                            record.command_action = GetCommandByKey("player_kill");
-                        }
-                        else if (killCount >= 4 && punishCount >= 2)
-                        {
-                            record.command_type = GetCommandByKey("player_kick");
-                            record.command_action = GetCommandByKey("player_kick");
-                        }
-                    }
                     if (record.target_player != null)
                     {
                         //Add the record to the player's targeted records
@@ -16604,17 +16156,6 @@ namespace PRoConEvents
                                 return;
                             }
 
-                            if (_isTestingAuthorized && _serverInfo.ServerID == 1 && _roundState == RoundState.Playing) {
-                                AdKatsTeam team1, team2, winningTeam, losingTeam;
-                                if (GetTeamByID(1, out team1) && 
-                                    GetTeamByID(2, out team2) &&
-                                    (team1.TeamTicketCount < 450 || team2.TeamTicketCount < 450)) {
-                                    SendMessageToSource(record, "Too late in round to perform moves.");
-                                    FinalizeRecord(record);
-                                    return;
-                                }
-                            }
-
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 1);
                             switch (parameters.Length)
@@ -16655,17 +16196,6 @@ namespace PRoConEvents
                                 SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
-                            }
-
-                            if (_isTestingAuthorized && _serverInfo.ServerID == 1 && _roundState == RoundState.Playing) {
-                                AdKatsTeam team1, team2;
-                                if (GetTeamByID(1, out team1) &&
-                                    GetTeamByID(2, out team2) &&
-                                    (team1.TeamTicketCount < 450 || team2.TeamTicketCount < 450)) {
-                                    SendMessageToSource(record, "Too late in round to perform moves.");
-                                    FinalizeRecord(record);
-                                    return;
-                                }
                             }
 
                             //Parse parameters using max param count
@@ -24590,12 +24120,6 @@ namespace PRoConEvents
                     {
                         action = skippedAction;
                     }
-                    if (_isTestingAuthorized && 
-                        record.target_player.player_reputation > 15 &&
-                        record.source_name == "AutoAdmin")
-                    {
-                        action = "repwarn";
-                    }
 
                     //Set additional message
                     String pointMessage = " [" + ((record.isIRO) ? ("IRO ") : ("")) + points + "pts]";
@@ -27166,7 +26690,7 @@ namespace PRoConEvents
                         OnlineAdminSayMessage("R[" + reportID + "] Loadout(INVALID): " + record.target_player.loadout_deniedItems);
                     }
                 }
-                if (_isTestingAuthorized && record.target_player != null && (record.target_player.player_reputation > _reputationThresholdGood || PlayerIsAdmin(record.target_player)))
+                if (record.target_player != null && (record.target_player.player_reputation > _reputationThresholdGood || PlayerIsAdmin(record.target_player)))
                 {
                     //Set Contested
                     record.isContested = true;
@@ -27362,7 +26886,7 @@ namespace PRoConEvents
             Boolean canAutoHandle = _UseAAReportAutoHandler && sourceAA && _AutoReportHandleStrings.Any() && !String.IsNullOrEmpty(_AutoReportHandleStrings[0]) && _AutoReportHandleStrings.Any(messageLower.Contains) && !record.target_player.player_aa && !PlayerIsAdmin(record.target_player);
             Boolean adminsOnline = onlineAdminCount > 0;
             String reportMessage = "";
-            if (!_isTestingAuthorized || !sourceAA || !adminsOnline)
+            if (!sourceAA || !adminsOnline)
             {
                 reportMessage = "REPORT [" + reportID + "] sent on " + record.GetTargetNames() + " for " + record.record_message;
             }
@@ -28269,14 +27793,7 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                if (_isTestingAuthorized)
-                {
-                    PlayerTellMessage(record.target_player.player_name, "Thank you for helping populate the server!");
-                }
-                else
-                {
-                    PlayerSayMessage(record.target_player.player_name, "Thank you for helping populate the server!");
-                }
+                PlayerTellMessage(record.target_player.player_name, "Thank you for helping populate the server!");
             }
             catch (Exception e)
             {
@@ -28707,30 +28224,14 @@ namespace PRoConEvents
                 var isAdmin = PlayerIsAdmin(record.target_player);
                 var points = FetchPoints(record.target_player, false, true);
                 if (record.source_name == record.target_name) {
-                    String repMessage = "Your server reputation is " + ((!isAdmin || !_isTestingAuthorized) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)) + ", with ";
+                    String repMessage = "Your server reputation is " + Math.Round(record.target_player.player_reputation, 2) + ", with ";
                     if (points > 0) {
                         repMessage += points + " infraction point(s). ";
                     } else {
                         repMessage += "a clean infraction record. ";
                     }
-                    if (!isAdmin) {
-                        if (_isTestingAuthorized) {
-                            repMessage += Environment.NewLine;
-                            if (record.target_player.player_reputation < _reputationThresholdGood) {
-                                if (record.target_player.player_reputation > 15) {
-                                    repMessage += "Thank you for helping the admins! At " + Math.Round(_reputationThresholdGood, 2) + " reputation you receive large perks.";
-                                } else if (record.target_player.player_reputation > 0) {
-                                    repMessage += "Thank you for helping the admins! At 15 reputation you receive small perks.";
-                                } else {
-                                    repMessage += "!" + GetCommandByKey("player_report").command_text + " rule breakers to increase reputation.";
-                                }
-                            } else {
-                                repMessage += "You have report auto-contest and spambot whitelist. Thank you.";
-                            }
-                        } else if (points < 1 &&
-                            record.target_player.player_reputation > _reputationThresholdBad) {
-                            repMessage += "Thank you for helping the admins!";
-                        }
+                    if (!isAdmin && points < 1 && record.target_player.player_reputation > _reputationThresholdBad) {
+                        repMessage += "Thank you for helping the admins!";
                     }
                     if (points > 0 && _AutomaticForgives) {
                         var forgiveTime = UtcNow();
@@ -28751,7 +28252,7 @@ namespace PRoConEvents
                     SendMessageToSource(record, repMessage);
                 }
                 else {
-                    String repMessage = record.GetTargetNames() + "'s server reputation is " + ((!isAdmin || !_isTestingAuthorized) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)) + ", with ";
+                    String repMessage = record.GetTargetNames() + "'s server reputation is " + Math.Round(record.target_player.player_reputation, 2) + ", with ";
                     if (points > 0) {
                         repMessage += points + " infraction point(s). ";
                     } else {
@@ -29831,9 +29332,6 @@ namespace PRoConEvents
                         //Log.Write("HandleStatisticUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         if (displayUpdate) {
-                            if (_isTestingAuthorized) {
-                                Log.Info("26875");
-                            }
                             UpdateSettingPage();
                         }
 
@@ -29991,10 +29489,6 @@ namespace PRoConEvents
             {
                 if (_aliveThreads.Values.Any(aThread => aThread.Name == "StatLoggerSettingsFeeder"))
                 {
-                    if (_isTestingAuthorized)
-                    {
-                        Log.Error("Attempted to start a stat logger setting feeder thread before a previous one was able to finish.");
-                    }
                     return;
                 }
                 Thread statLoggerFeedingThread = new Thread(new ThreadStart(delegate
@@ -30005,11 +29499,6 @@ namespace PRoConEvents
                         Thread.Sleep(250);
                         Log.Debug(() => "Starting a stat logger setting feeder thread.", 5);
                         _lastStatLoggerStatusUpdateTime = UtcNow();
-                        if (_isTestingAuthorized)
-                        {
-                            _FeedStatLoggerSettings = true;
-                            _PostStatLoggerChatManually = true;
-                        }
                         if (_statLoggerVersion == "BF3")
                         {
                             SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Livescoreboard in DB?", "Yes");
@@ -36036,110 +35525,11 @@ namespace PRoConEvents
                                                 changed = true;
                                             }
                                             break;
-                                        case "player_kill":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
-                                        case "player_kick":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
-                                        case "player_ban_temp":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
-                                        case "player_ban_perm":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
-                                        case "player_punish":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
-                                        case "player_mute":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
-                                        case "self_kill":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
-                                        case "admin_say":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
                                         case "player_say":
                                             if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden) {
                                                 Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
                                                 currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
                                                 changed = true;
-                                            }
-                                            break;
-                                        case "admin_yell":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                                    changed = true;
-                                                }
                                             }
                                             break;
                                         case "player_yell":
@@ -36149,17 +35539,6 @@ namespace PRoConEvents
                                                 changed = true;
                                             }
                                             break;
-                                        case "admin_tell":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
                                         case "player_tell":
                                             if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden) {
                                                 Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
@@ -36167,55 +35546,11 @@ namespace PRoConEvents
                                                 changed = true;
                                             }
                                             break;
-                                        case "player_ban_perm_future":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
-                                        case "player_kill_force":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
-                                        case "player_info":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
                                         case "player_find":
                                             if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden) {
                                                 Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
                                                 currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
                                                 changed = true;
-                                            }
-                                            break;
-                                        case "self_reportlist":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                                {
-                                                    Log.Info(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                                    changed = true;
-                                                }
                                             }
                                             break;
                                     }
@@ -36875,9 +36210,6 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching commands from database.", e));
             }
             if (displayUpdate) {
-                if (_isTestingAuthorized) {
-                    Log.Info("34273");
-                }
                 UpdateSettingPage();
             }
             Log.Debug(() => "fetchCommands finished!", 6);
@@ -37388,9 +36720,6 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching roles from database.", e));
             }
             if (displayUpdate) {
-                if (_isTestingAuthorized) {
-                    Log.Info("34708");
-                }
                 UpdateSettingPage();
             }
             Log.Debug(() => "fetchRoles finished!", 6);
@@ -40501,10 +39830,6 @@ namespace PRoConEvents
                         {"weapons", concat}
                     };
                     byte[] response = client.UploadValues("http://api.gamerethos.net/weapons", data);
-                    if (response != null && _isTestingAuthorized)
-                    {
-                        String textResponse = Encoding.Default.GetString(response);
-                    }
                 }
             }
             catch (Exception e)
@@ -41045,14 +40370,7 @@ namespace PRoConEvents
                 }
                 catch (Exception e)
                 {
-                    if (_isTestingAuthorized)
-                    {
-                        HandleException(new AdKatsException("Error while fetching SQL updates.", e));
-                    }
-                    else
-                    {
-                        Log.Error("Unable to process SQL updates.");
-                    }
+                    Log.Error("Unable to process SQL updates.");
                 }
             }
             Log.Debug(() => "Exiting FetchSQLUpdates", 7);
@@ -41582,9 +40900,6 @@ namespace PRoConEvents
 
         //Calls setVariable with the given parameters
         public void SetExternalPluginSetting(String pluginName, String settingName, String settingValue) {
-            if (_isTestingAuthorized) {
-                Log.Info("Updating setting " + pluginName + ":" + settingName);
-            }
             if (String.IsNullOrEmpty(pluginName) || String.IsNullOrEmpty(settingName) || settingValue == null)
             {
                 Log.Error("Required inputs null or empty in setExternalPluginSetting");
@@ -41757,7 +41072,7 @@ namespace PRoConEvents
 
             //Other plugins
             //1 - MULTIBalancer - With ColColonCleaner balance mods
-            if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
+            if (_useExperimentalTools && _gameVersion == GameVersion.BF4) {
                 String externalPluginSource;
                 using (WebClient client = new WebClient()) {
                     try {
@@ -41944,7 +41259,6 @@ namespace PRoConEvents
                 }
                 if ((_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled && !_pluginUpdatePatched) || 
                     _pluginVersionStatus == VersionStatus.TestBuild || 
-                    (_isTestingAuthorized) || 
                     (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken)) || 
                     manual)
                 {
@@ -42130,7 +41444,7 @@ namespace PRoConEvents
                                         }
                                         //Patched version is newer than an already patched version
                                         Log.Success("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
-                                        if (_isTestingAuthorized) {
+                                        if (_useExperimentalTools) {
                                             Environment.Exit(4533);
                                         }
                                     }
@@ -42143,7 +41457,7 @@ namespace PRoConEvents
                                         //User not notified of patch yet
                                         Log.Success("Plugin updated to version " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                         Log.Success("Updated plugin file located at: " + pluginPath);
-                                        if (_isTestingAuthorized) {
+                                        if (_useExperimentalTools) {
                                             Environment.Exit(4533);
                                         }
                                     }
@@ -42971,10 +42285,6 @@ namespace PRoConEvents
                     {
                         loc.message = (String)response["message"];
                         aPlayer.location = loc;
-                        if (_isTestingAuthorized)
-                        {
-                            Log.Info("Error fetching " + aPlayer.GetVerboseName() + " IP location from " + URL);
-                        }
                         return;
                     }
                     if (loc.status == "success")
@@ -42992,10 +42302,6 @@ namespace PRoConEvents
                         loc.org = (String)response["org"];
                         loc.query = (String)response["query"];
                         aPlayer.location = loc;
-                        if (_isTestingAuthorized)
-                        {
-                            Log.Success("Success fetching " + aPlayer.GetVerboseName() + " IP location " + loc.city + ", " + loc.region);
-                        }
                     }
                 }
                 catch (Exception e)
@@ -43709,9 +43015,9 @@ namespace PRoConEvents
                 player_top,
                 round_quality,
                 battlelog_requestfreq,
+                ping_over50,
                 ping_over100,
-                ping_over150,
-                ping_over200
+                ping_over150
             }
 
             public Int64 stat_id;
@@ -44134,9 +43440,6 @@ namespace PRoConEvents
                         ticketPower = remainingPerc + (lostPerc / 3.0);
                     }
                     var totalPower = Math.Round(topPowerSum * kdPowerSum * playerSum * ticketPower);
-                    if (Plugin._isTestingAuthorized) {
-                        //Plugin.Log.Info(TeamKey + " Power: " + totalPower + " = (top)" + Math.Round(topPowerSum, 2) + " * (kd)" + Math.Round(kdPowerSum, 2) + " * (count)" + Math.Round(playerSum, 2) + " * (ticket)" + Math.Round(ticketPower, 2));
-                    }
                     return totalPower;
                 }
                 catch (Exception e) {
@@ -44531,7 +43834,7 @@ namespace PRoConEvents
                             sb.Append(processedCustomHTML);
                             sb.Append("</p>");
                             //TODO: Add chat back for ADK usage.
-                            if (record.target_player != null && !Plugin._isTestingAuthorized)
+                            if (record.target_player != null)
                             {
                                 sb.Append("<table>");
                                 sb.Append(@"<thead><td>Time</td><td>Player</td><td>Message</td></thead>");
