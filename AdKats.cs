@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.32
+ * Version 6.9.0.33
  * 16-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.32</version_code>
+ * <version_code>6.9.0.33</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.32";
+        private const String PluginVersion = "6.9.0.33";
 
         public enum GameVersion
         {
@@ -570,6 +570,7 @@ namespace PRoConEvents
         private Int32 _surrenderAutoNukeDurationMed = 0;
         private Int32 _surrenderAutoNukeDurationLow = 0;
         private Int32 _nukeAutoSlayActiveDuration = 0;
+        private String _lastNukeSlayDurationMessage = null;
         private Int32 _surrenderAutoNukeDurationIncrease = 0;
         private Int32 _surrenderAutoNukeMinBetween = 60;
         private DateTime _lastNukeTime = DateTime.UtcNow - TimeSpan.FromMinutes(10);
@@ -3457,16 +3458,24 @@ namespace PRoConEvents
                         //Assignment
                         _UseTeamPowerMonitor = UseTeamPowerMonitor;
                         if (_UseTeamPowerMonitor) {
-                            StartAndLogThread(new Thread(new ThreadStart(delegate
-                            {
-                                Thread.CurrentThread.Name = "PowerInformationFetcher";
-                                Thread.Sleep(TimeSpan.FromMilliseconds(250));
-                                //Update top player information for all online players
-                                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
-                                    FetchPowerInformation(aPlayer);
-                                }
-                                LogThreadExit();
-                            })));
+                            Log.Info("Team power monitor enabled.");
+                        } else {
+                            Log.Info("Team power monitor disabled.");
+                        }
+                        if (_UseTeamPowerMonitor && _aliveThreads.Values.Any(aThread => aThread.Name == "PowerInformationFetcher")) {
+                            if (_UseTeamPowerMonitor) {
+                                StartAndLogThread(new Thread(new ThreadStart(delegate
+                                {
+                                    Thread.CurrentThread.Name = "PowerInformationFetcher";
+                                    Thread.Sleep(TimeSpan.FromMilliseconds(250));
+                                    //Update top player information for all online players
+                                    foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
+                                        Log.Info("Fetching player power info for " + aPlayer.GetVerboseName() + ".");
+                                        FetchPowerInformation(aPlayer);
+                                    }
+                                    LogThreadExit();
+                                })));
+                            }
                         }
                         //Upload change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
@@ -7637,9 +7646,11 @@ namespace PRoConEvents
                                         }
                                         _nukeAutoSlayActive = true;
                                         Int32 endDuration = (int)NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration)).TotalSeconds;
-                                        if (endDuration > 0 && (endDuration % 2 == 0 || endDuration <= 5))
+                                        var durationMessage = _lastNukeTeam.TeamKey + " nuke active for " + endDuration + " seconds!";
+                                        if (_lastNukeSlayDurationMessage != durationMessage && endDuration > 0 && (endDuration % 2 == 0 || endDuration <= 5))
                                         {
-                                            AdminTellMessage(_lastNukeTeam.TeamKey + " nuke active for " + endDuration + " seconds!");
+                                            AdminTellMessage(durationMessage);
+                                            _lastNukeSlayDurationMessage = durationMessage;
                                         }
                                     }
                                     else if (_nukeAutoSlayActive)
