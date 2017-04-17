@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.31
+ * Version 6.9.0.32
  * 16-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.31</version_code>
+ * <version_code>6.9.0.32</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.31";
+        private const String PluginVersion = "6.9.0.32";
 
         public enum GameVersion
         {
@@ -637,7 +637,6 @@ namespace PRoConEvents
         private Boolean _PlayersAutoAssistedThisRound = false;
         private Int32 _TopPlayersTeamConfirmationDuration = 5;
         private String _TopPlayersAffected = "Good And Above";
-        private readonly Dictionary<String, AdKatsPlayer> _topPlayers = new Dictionary<String, AdKatsPlayer>();
         //Populators
         private Boolean _PopulatorMonitor;
         private Boolean _PopulatorUseSpecifiedPopulatorsOnly;
@@ -1561,9 +1560,8 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
                         if (_UseTeamPowerMonitor) {
                             var onlineTopPlayers = _PlayerDictionary.Values.ToList()
-                                .Where(aPlayer =>
-                                    _topPlayers.ContainsKey(aPlayer.player_name));
-                            var onlineTopPLayerListing = onlineTopPlayers.Select(aPlayer =>
+                                .Where(aPlayer => aPlayer.TopStats.TopRoundRatio > 0);
+                            var onlineTopPlayerListing = onlineTopPlayers.Select(aPlayer =>
                                     ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(+) ")) + "(" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
                                 .OrderByDescending(item => item);
                             AdKatsTeam t1, t2;
@@ -1572,13 +1570,8 @@ namespace PRoConEvents
                                 teamPower = t1.TeamKey + ": (" + t1.getTeamPower() + ") / " + t2.TeamKey + ": (" + t2.getTeamPower() + ")";
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Team Power (Display)", typeof(String), teamPower));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPLayerListing.ToArray()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values
-                                .Select(aPlayer =>
-                                    ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(-) ")) + "(" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
-                                .OrderBy(item => item)
-                                .ToArray()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above|Marginal and Above|Most Players)", _TopPlayersAffected));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPlayerListing.ToArray()));
+                            //lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above|Marginal and Above|Most Players)", _TopPlayersAffected));
                             //lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Top player team confirmation duration", typeof(Int32), _TopPlayersTeamConfirmationDuration));
                         }
                     }
@@ -3463,6 +3456,18 @@ namespace PRoConEvents
                         }
                         //Assignment
                         _UseTeamPowerMonitor = UseTeamPowerMonitor;
+                        if (_UseTeamPowerMonitor) {
+                            StartAndLogThread(new Thread(new ThreadStart(delegate
+                            {
+                                Thread.CurrentThread.Name = "PowerInformationFetcher";
+                                Thread.Sleep(TimeSpan.FromMilliseconds(250));
+                                //Update top player information for all online players
+                                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
+                                    FetchPowerInformation(aPlayer);
+                                }
+                                LogThreadExit();
+                            })));
+                        }
                         //Upload change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
                     }
@@ -7035,7 +7040,6 @@ namespace PRoConEvents
                                     mm += "15:" + _RoundOverSquads.Count() + ", ";
                                     mm += "16:" + _PlayerLeftDictionary.Count() + ", ";
                                     mm += "17:" + _FetchedPlayers.Count() + ", ";
-                                    mm += "18:" + _topPlayers.Count() + ", ";
                                     mm += "19:" + _populatorPlayers.Count() + ", ";
                                     mm += "20:" + _tsPlayers.Count() + ", ";
                                     mm += "21:" + _RoundCookers.Count() + ", ";
@@ -7341,8 +7345,7 @@ namespace PRoConEvents
 
                                 if (_UseTeamPowerMonitor && _isTestingAuthorized && _firstPlayerListComplete) {
                                     var onlineTopPlayers = _PlayerDictionary.Values.ToList()
-                                        .Where(aPlayer =>
-                                            _topPlayers.ContainsKey(aPlayer.player_name));
+                                        .Where(aPlayer => aPlayer.TopStats.TopRoundRatio > 0);
                                     AdKatsTeam t1, t2;
                                     if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2))
                                     {
@@ -8222,7 +8225,7 @@ namespace PRoConEvents
                                 List<AdKatsPlayer> orderedTopPlayers = _PlayerDictionary.Values
                                     .Where(dPlayer =>
                                         dPlayer.player_type == PlayerType.Player &&
-                                        _topPlayers.ContainsKey(dPlayer.player_name) && 
+                                        dPlayer.TopStats.TopRoundRatio > 0 && 
                                         dPlayer.RequiredTeam == null &&
                                         dPlayer.AssignedSquad == 0)
                                     .OrderByDescending(dPlayer =>
@@ -8414,7 +8417,7 @@ namespace PRoConEvents
                             OnlineAdminSayMessage(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + " (" + newPowerDiff + "<" + oldPowerDiff + ").");
                             aPlayer.RequiredTeam = newTeam;
                         } else {
-                            if (_roundState == RoundState.Playing && !_topPlayers.ContainsKey(aPlayer.player_name)) {
+                            if (_roundState == RoundState.Playing) {
                                 OnlineAdminSayMessage(soldierName + " attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamName + ".");
                                 PlayerTellMessage(soldierName, "You were assigned to " + aPlayer.RequiredTeam.TeamName + ", please remain on that team.");
                             }
@@ -8978,6 +8981,10 @@ namespace PRoConEvents
                                         aPlayer.JoinTime = UtcNow();
                                         //Fetch their infraction points
                                         FetchPoints(aPlayer, false, true);
+                                        //Team Power Information
+                                        if (_UseTeamPowerMonitor) {
+                                            FetchPowerInformation(aPlayer);
+                                        }
                                         if (aPlayer.location == null || aPlayer.location.status != "success" || aPlayer.location.IP != aPlayer.player_ip)
                                         {
                                             //Update IP location
@@ -9174,7 +9181,7 @@ namespace PRoConEvents
                                             _previousRoundDuration != TimeSpan.Zero &&
                                             _UseTeamPowerMonitor &&
                                             aPlayer.player_type == PlayerType.Player &&
-                                            _topPlayers.ContainsKey(aPlayer.player_name) && 
+                                            aPlayer.TopStats.TopRoundRatio > 0 && 
                                             _roundState == RoundState.Playing) {
                                             AdKatsTeam t1, t2, tf, te;
                                             if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2) && GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out tf)) {
@@ -34498,152 +34505,6 @@ namespace PRoConEvents
             return aPlayer;
         }
 
-        private void UpdateTopPlayers() {
-            Log.Debug(() => "UpdateTopPlayers starting!", 6);
-            try {
-                List<Int64> validIDs = new List<Int64>();
-                lock (_topPlayers) {
-                    foreach (AdKatsPlayer aPlayer in GetTopPlayers(TimeSpan.FromDays(60), 3)) {
-                        if (!_pluginEnabled) {
-                            return;
-                        }
-                        validIDs.Add(aPlayer.player_id);
-                        if (!_topPlayers.ContainsKey(aPlayer.player_name)) {
-                            if (_firstPlayerListComplete) {
-                                Log.Info("Adding " + aPlayer.player_name + " to top player list.");
-                            }
-                        }
-                        _topPlayers[aPlayer.player_name] = aPlayer;
-                    }
-                    foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList()) {
-                        if (!_pluginEnabled) {
-                            return;
-                        }
-                        if (_firstPlayerListComplete) {
-                            Log.Info("Removing " + aPlayer.player_name + " from top player list.");
-                        }
-                        _topPlayers.Remove(aPlayer.player_name);
-                    }
-                }
-            } catch (Exception e) {
-                HandleException(new AdKatsException("Error while fetching top players", e));
-            }
-            Log.Debug(() => "UpdateTopPlayers finished!", 6);
-        }
-
-        private List<AdKatsPlayer> GetTopPlayers(TimeSpan duration, Int32 minTops) {
-            Log.Debug(() => "GetTopPlayers starting!", 6);
-            List<AdKatsPlayer> resultPlayers = new List<AdKatsPlayer>();
-            try {
-                using (MySqlConnection connection = GetDatabaseConnection()) {
-                    using (MySqlCommand command = connection.CreateCommand()) {
-                        command.CommandText = @"
-                        SELECT 
-	                        `InnerResults`.*,
-	                        ROUND(`top_count`/REPLACE(`round_count`, 0, 1), 2) AS `top_round_ratio`
-                        FROM
-                        (
-                        SELECT 
-	                        `server_id` AS `server`,
-	                        `target_id` AS `player_id`,
-	                        `target_name` AS `player_name`,
-	                        (SELECT
-		                        COUNT(`stat_id`)
-	                         FROM
-		                        `adkats_statistics`
-	                         WHERE
-		                        `server_id` = `server`
-	                         AND
-		                        `target_id` = `player_id`
-	                         AND
-		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
-	                         AND
-		                        (
-			                        `stat_type` = 'player_win'
-			                        OR
-			                        `stat_type` = 'player_loss'
-		                        )) AS `round_count`,
-	                        (SELECT
-		                        COUNT(`stat_id`)
-	                         FROM
-		                        `adkats_statistics`
-	                         WHERE
-		                        `server_id` = `server`
-	                         AND
-		                        `target_id` = `player_id`
-	                         AND
-		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
-	                         AND
-		                        `stat_type` = 'player_top') AS `top_count`
-                        FROM
-	                        `adkats_statistics`
-                        WHERE
-	                        `server_id` = @server_id
-                        AND
-	                        `stat_type` = 'player_top'
-                        GROUP BY
-	                        `target_id`, `server_id`
-                        ORDER BY 
-	                        `top_count` DESC
-                        ) AS `InnerResults`
-                        WHERE
-	                        `top_count` >= @tops_minimum
-                        AND
-	                        `top_count`/REPLACE(`round_count`, 0, 1) >= @toproundratio_minimum
-                        ORDER BY
-	                        `top_round_ratio` DESC,
-	                        `player_name` ASC
-                        LIMIT 6000";
-                        command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
-                        command.Parameters.AddWithValue("@duration_minutes", (Int32) duration.TotalMinutes);
-                        command.Parameters.AddWithValue("@tops_minimum", minTops);
-                        switch (_TopPlayersAffected) {
-                            case "Best Only":
-                                command.Parameters.AddWithValue("@toproundratio_minimum", 0.70);
-                                break;
-                            case "Good And Above":
-                                command.Parameters.AddWithValue("@toproundratio_minimum", 0.55);
-                                break;
-                            case "Ok And Above":
-                                command.Parameters.AddWithValue("@toproundratio_minimum", 0.40);
-                                break;
-                            case "Marginal and Above":
-                                command.Parameters.AddWithValue("@toproundratio_minimum", 0.30);
-                                break;
-                            case "Most Players":
-                                command.Parameters.AddWithValue("@toproundratio_minimum", 0.10);
-                                break;
-                            default:
-                                Log.Error("Invalid affected top player category.");
-                                return resultPlayers;
-                        }
-                        //Attempt to execute the query
-                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
-                            //Grab the matching players
-                            while (reader.Read()) {
-                                if (!_pluginEnabled) {
-                                    return resultPlayers;
-                                }
-                                AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
-                                if (aPlayer != null) {
-                                    //Update top stats
-                                    aPlayer.TopStats.RoundCount = reader.GetInt32("round_count");
-                                    aPlayer.TopStats.TopCount = reader.GetInt32("top_count");
-                                    aPlayer.TopStats.TopRoundRatio = reader.GetDouble("top_round_ratio");
-                                    //Return player
-                                    resultPlayers.Add(aPlayer);
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                HandleException(new AdKatsException("Error while fetching top players", e));
-            }
-            Log.Debug(() => "GetTopPlayers finished!", 6);
-            return resultPlayers;
-        }
-
         private void UpdatePopulatorPlayers()
         {
             Log.Debug(() => "UpdatePopulatingPlayers starting!", 6);
@@ -35819,6 +35680,68 @@ namespace PRoConEvents
             }
             Log.Debug(() => "FetchPoints finished!", 6);
             return (returnVal > 0) ? (returnVal) : (0);
+        }
+
+        private Double FetchPowerInformation(AdKatsPlayer aPlayer) {
+            Log.Debug(() => "FetchPowerInformation starting!", 6);
+            try {
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    using (MySqlCommand command = connection.CreateCommand()) {
+                        command.CommandText = @"
+                        SELECT 
+	                        `InnerResults`.*,
+	                        ROUND(`top_count`/REPLACE(`round_count`, 0, 1), 2) AS `top_round_ratio`
+                        FROM
+                        ( SELECT
+	                        (SELECT
+		                        COUNT(`stat_id`)
+	                         FROM
+		                        `adkats_statistics`
+	                         WHERE
+		                        `server_id` = @server_id
+	                         AND
+		                        `target_id` = @target_id
+	                         AND
+		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 90 DAY)
+	                         AND
+		                        (
+			                        `stat_type` = 'player_win'
+			                        OR
+			                        `stat_type` = 'player_loss'
+		                        )) AS `round_count`,
+	                        (SELECT
+		                        COUNT(`stat_id`)
+	                         FROM
+		                        `adkats_statistics`
+	                         WHERE
+		                        `server_id` = @server_id
+	                         AND
+		                        `target_id` = @target_id
+	                         AND
+		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 90 DAY)
+	                         AND
+		                        `stat_type` = 'player_top') AS `top_count`
+                        FROM DUAL ) AS `InnerResults`";
+                        command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@target_id", aPlayer.player_id);
+                        //Execute the query
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
+                            if (reader.Read()) {
+                                //Update top stats
+                                aPlayer.TopStats.RoundCount = reader.GetInt32("round_count");
+                                aPlayer.TopStats.TopCount = reader.GetInt32("top_count");
+                                aPlayer.TopStats.TopRoundRatio = reader.GetDouble("top_round_ratio");
+                            } else {
+                                Log.Error("Unable to fetch " + aPlayer.GetVerboseName() + "'s top player information.");
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AdKatsException("Error while fetching top player information", e));
+            }
+            Log.Debug(() => "FetchPowerInformation finished!", 6);
+            return aPlayer.TopStats.TopRoundRatio;
         }
 
         private List<KeyValuePair<DateTime, KeyValuePair<String, String>>> FetchConversation(Int64 player1_id, Int64 player2_id, Int64 limit_lines, Int64 limit_days)
@@ -37891,12 +37814,6 @@ namespace PRoConEvents
                             UpdatePopulatorPlayers();
                         }
 
-                        //Fetch top players
-                        if (_UseTeamPowerMonitor)
-                        {
-                            UpdateTopPlayers();
-                        }
-
                         //Update the verbose special player cache
                         List<String> validVerboseSpecialPlayers = new List<String>();
                         foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name))
@@ -38097,22 +38014,21 @@ namespace PRoConEvents
                                         }
                                     }
                                     if (_UseTeamPowerMonitorBalance && _UseTeamPowerMonitor) {
-                                        lock (_topPlayers) {
-                                            foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(aPlayer => 
-                                                    aPlayer.game_id == _serverInfo.GameID && 
-                                                    !tempASPlayers.Any(asp =>
-                                                            asp.player_object != null && 
-                                                            asp.player_object.player_id == aPlayer.player_id))) {
-                                                tempASPlayers.Add(new AdKatsSpecialPlayer() {
-                                                    player_game = (int) _serverInfo.GameID,
-                                                    player_server = (int) _serverInfo.ServerID,
-                                                    player_group = asGroup,
-                                                    player_identifier = aPlayer.player_name,
-                                                    player_object = aPlayer,
-                                                    player_effective = UtcNow(),
-                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
-                                                });
-                                            }
+                                        foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList() .Where(aPlayer =>
+                                                aPlayer.TopStats.TopRoundRatio > 0 &&
+                                                aPlayer.game_id == _serverInfo.GameID && 
+                                                !tempASPlayers.Any(asp =>
+                                                        asp.player_object != null && 
+                                                        asp.player_object.player_id == aPlayer.player_id))) {
+                                            tempASPlayers.Add(new AdKatsSpecialPlayer() {
+                                                player_game = (int) _serverInfo.GameID,
+                                                player_server = (int) _serverInfo.ServerID,
+                                                player_group = asGroup,
+                                                player_identifier = aPlayer.player_name,
+                                                player_object = aPlayer,
+                                                player_effective = UtcNow(),
+                                                player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
+                                            });
                                         }
                                     }
                                     break;
