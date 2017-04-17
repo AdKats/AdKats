@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.33
+ * Version 6.9.0.34
  * 16-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.33</version_code>
+ * <version_code>6.9.0.34</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.33";
+        private const String PluginVersion = "6.9.0.34";
 
         public enum GameVersion
         {
@@ -1567,7 +1567,7 @@ namespace PRoConEvents
                                 .OrderByDescending(item => item);
                             AdKatsTeam t1, t2;
                             String teamPower = "Unknown";
-                            if (_previousRoundDuration != TimeSpan.Zero && _roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
+                            if (_roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
                                 teamPower = t1.TeamKey + ": (" + t1.getTeamPower() + ") / " + t2.TeamKey + ": (" + t2.getTeamPower() + ")";
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Team Power (Display)", typeof(String), teamPower));
@@ -1576,8 +1576,7 @@ namespace PRoConEvents
                             //lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Top player team confirmation duration", typeof(Int32), _TopPlayersTeamConfirmationDuration));
                         }
                     }
-
-
+                    
                     if (IsActiveSettingSection("D99")) {
                         //Debug settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug level", typeof(int), Log.DebugLevel));
@@ -3459,23 +3458,22 @@ namespace PRoConEvents
                         _UseTeamPowerMonitor = UseTeamPowerMonitor;
                         if (_UseTeamPowerMonitor) {
                             Log.Info("Team power monitor enabled.");
-                        } else {
-                            Log.Info("Team power monitor disabled.");
-                        }
-                        if (_UseTeamPowerMonitor && _aliveThreads.Values.Any(aThread => aThread.Name == "PowerInformationFetcher")) {
-                            if (_UseTeamPowerMonitor) {
+                            if (!_aliveThreads.Values.Any(aThread => aThread.Name == "PowerInformationFetcher")) {
                                 StartAndLogThread(new Thread(new ThreadStart(delegate
                                 {
                                     Thread.CurrentThread.Name = "PowerInformationFetcher";
                                     Thread.Sleep(TimeSpan.FromMilliseconds(250));
+                                    Log.Info("Fetching player power information.");
                                     //Update top player information for all online players
                                     foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
-                                        Log.Info("Fetching player power info for " + aPlayer.GetVerboseName() + ".");
                                         FetchPowerInformation(aPlayer);
+                                        Log.Info("Fetched player power info for " + aPlayer.GetVerboseName() + ": (" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + ").");
                                     }
                                     LogThreadExit();
                                 })));
                             }
+                        } else {
+                            Log.Info("Team power monitor disabled.");
                         }
                         //Upload change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
