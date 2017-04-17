@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.35
+ * Version 6.9.0.36
  * 16-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.35</version_code>
+ * <version_code>6.9.0.36</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.35";
+        private const String PluginVersion = "6.9.0.36";
 
         public enum GameVersion
         {
@@ -7138,9 +7138,10 @@ namespace PRoConEvents
                                             message += t2.TeamKey + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
                                         }
                                         message += "(" + t1.TeamKey + ":" + t1.getTeamPower() + " / " + t2.TeamKey + ":" + t2.getTeamPower() + ")";
-                                        ProconChatWrite(Log.FBold(message));
                                         if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
                                             PlayerSayMessage("ColColonCleaner", message);
+                                        } else {
+                                            ProconChatWrite(Log.FBold(message));
                                         }
                                     }
                                 }
