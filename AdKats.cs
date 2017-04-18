@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.38
+ * Version 6.9.0.39
  * 17-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.38</version_code>
+ * <version_code>6.9.0.39</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.38";
+        private const String PluginVersion = "6.9.0.39";
 
         public enum GameVersion
         {
@@ -1562,7 +1562,7 @@ namespace PRoConEvents
                             var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                                 .Where(aPlayer => aPlayer.TopStats.getTopPower() > 0);
                             var onlineTopPlayerListing = onlineTopPlayers.Select(aPlayer =>
-                                    ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(+) ")) + "(" + Math.Round(aPlayer.TopStats.getTopPower(), 2) + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
+                                    ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(" + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + ") ")) + "(" + aPlayer.TopStats.getTopPower().ToString("000.##") + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
                                 .OrderByDescending(item => item);
                             AdKatsTeam t1, t2;
                             String teamPower = "Unknown";
