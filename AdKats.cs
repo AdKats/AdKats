@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.39
+ * Version 6.9.0.40
  * 17-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.39</version_code>
+ * <version_code>6.9.0.40</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.39";
+        private const String PluginVersion = "6.9.0.40";
 
         public enum GameVersion
         {
@@ -16356,8 +16356,12 @@ namespace PRoConEvents
                             record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]";
                             Boolean canAssist = true;
                             String rejectionMessage = "team ";
-                            var newPowerDiff = Math.Round(Math.Abs(enemyTeam.getTeamPower(null, record.target_player) - friendlyTeam.getTeamPower(record.target_player, null)));
-                            var oldPowerDiff = Math.Round(Math.Abs(enemyTeam.getTeamPower() - friendlyTeam.getTeamPower()));
+                            var oldFriendlyPower = friendlyTeam.getTeamPower();
+                            var oldEnemyPower = enemyTeam.getTeamPower();
+                            var newFriendlyPower = friendlyTeam.getTeamPower(record.target_player, null);
+                            var newEnemyPower = enemyTeam.getTeamPower(null, record.target_player);
+                            var newPowerDiff = Math.Abs(newEnemyPower - newFriendlyPower);
+                            var oldPowerDiff = Math.Abs(oldEnemyPower - oldFriendlyPower);
                             Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
                             Boolean enemyMapPower = enemyTeam.GetTicketDifferenceRate() > friendlyTeam.GetTicketDifferenceRate();
                             Boolean ticketBypass = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > (_startingTicketCount > 0 ? (_startingTicketCount / 4.0) : 250);
@@ -16379,6 +16383,11 @@ namespace PRoConEvents
                                 {
                                     canAssist = false;
                                     rejectionMessage += "would be too strong with them on it.";
+                                    Log.Info(
+                                        "Old Friendly " + friendlyTeam.TeamKey + ":(" + Math.Round(oldFriendlyPower) + ") " +
+                                        "Old Enemy " + enemyTeam.TeamKey + ":(" + Math.Round(oldEnemyPower) + ") " +
+                                        "New Friendly " + friendlyTeam.TeamKey + ":(" + Math.Round(newFriendlyPower) + ") " +
+                                        "New Enemy " + enemyTeam.TeamKey + ":(" + Math.Round(newEnemyPower) + ")");
                                 }
                             }
                             else
@@ -16411,7 +16420,7 @@ namespace PRoConEvents
                                     }
                                 }
                                 SendMessageToSource(record, "Queuing you to assist the weak team. Thank you.");
-                                OnlineAdminSayMessage(record.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + newPowerDiff + "<" + oldPowerDiff + ")" : "") + ", queueing.");
+                                OnlineAdminSayMessage(record.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + Math.Round(newPowerDiff) + "<" + Math.Round(oldPowerDiff) + ")" : "") + ", queueing.");
                             } 
                             else
                             {
@@ -42830,7 +42839,7 @@ namespace PRoConEvents
             public Double TopRoundRatio;
 
             public Double getTopPower() {
-                return RoundCount >= 3 ? Math.Pow(TopRoundRatio + 1, 4) : 0.0;
+                return (RoundCount >= 3 && TopCount > 0) ? Math.Pow(TopRoundRatio + 1, 4) : 0.0;
             }
         }
 
