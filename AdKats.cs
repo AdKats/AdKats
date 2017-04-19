@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.41
+ * Version 6.9.0.42
  * 18-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.41</version_code>
+ * <version_code>6.9.0.42</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.41";
+        private const String PluginVersion = "6.9.0.42";
 
         public enum GameVersion
         {
@@ -16364,7 +16364,7 @@ namespace PRoConEvents
                             var oldPowerDiff = Math.Abs(oldEnemyPower - oldFriendlyPower);
                             Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
                             Boolean enemyMapPower = enemyTeam.GetTicketDifferenceRate() > friendlyTeam.GetTicketDifferenceRate();
-                            Double ticketBypassAmount = (_startingTicketCount > 0 ? (_startingTicketCount / 4.0) : 250);
+                            Double ticketBypassAmount = (_startingTicketCount > 0 ? (_startingTicketCount / 3.5) : 250);
                             Boolean ticketBypass = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > ticketBypassAmount;
                             if (enemyWinning)
                             {
@@ -43457,7 +43457,7 @@ namespace PRoConEvents
                             Double remainingPerc = current / start;
                             Double lostPerc = (start - current) / start;
                             //Add a little bit back
-                            ticketPower = remainingPerc + (lostPerc / 5.0);
+                            ticketPower = remainingPerc + (lostPerc / 4.0);
                         }
                     }
                     var totalPower = Math.Round(topPowerSum * kdPowerSum * playerSum * ticketPower);
