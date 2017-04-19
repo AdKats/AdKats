@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.42
+ * Version 6.9.0.43
  * 18-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.42</version_code>
+ * <version_code>6.9.0.43</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.42";
+        private const String PluginVersion = "6.9.0.43";
 
         public enum GameVersion
         {
@@ -43447,7 +43447,7 @@ namespace PRoConEvents
                                 //Calculate total team K/D
                                 kdPowerSum = (teamTotalKills / Math.Max(teamTotalDeaths, 1.0));
                                 //Coerce to 0.75-3.5
-                                kdPowerSum = Math.Min(Math.Max(kdPowerSum, 0.75), 3.5);
+                                kdPowerSum = Math.Min(Math.Max(kdPowerSum, 0.75), 2.5);
                             }
                         }
                         playerSum = Math.Sqrt(teamPlayers.Count());
