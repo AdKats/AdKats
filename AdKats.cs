@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.40
- * 17-APR-2017
+ * Version 6.9.0.41
+ * 18-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.40</version_code>
+ * <version_code>6.9.0.41</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.40";
+        private const String PluginVersion = "6.9.0.41";
 
         public enum GameVersion
         {
@@ -8954,9 +8954,9 @@ namespace PRoConEvents
 
                                     try {
                                         //Top player processing - Disabled
-                                        if (_UseTeamPowerMonitorBalance && _firstPlayerListComplete &&
-                                            _previousRoundDuration != TimeSpan.Zero &&
+                                        if (_firstPlayerListComplete &&
                                             _UseTeamPowerMonitor &&
+                                            _UseTeamPowerMonitorBalance &&
                                             aPlayer.player_type == PlayerType.Player &&
                                             aPlayer.TopStats.getTopPower() > 0 && 
                                             _roundState == RoundState.Playing) {
@@ -8987,12 +8987,12 @@ namespace PRoConEvents
                                                 } else if (tf != aPlayer.RequiredTeam &&
                                                            (_startingTicketCount == 0 || Math.Min(t1.TeamTicketCount, t2.TeamTicketCount) > _startingTicketCount * (2.0 / 5.0))) {
                                                     //The player is not on the team they should be. But are they?
-                                                    var reassignDiff = Math.Round(Math.Abs(tf.getTeamPower(null, aPlayer) - te.getTeamPower(aPlayer, null)));
-                                                    var currentDiff = Math.Round(Math.Abs(tf.getTeamPower() - te.getTeamPower()));
+                                                    var reassignDiff = Math.Abs(tf.getTeamPower(null, aPlayer) - te.getTeamPower(aPlayer, null));
+                                                    var currentDiff = Math.Abs(tf.getTeamPower() - te.getTeamPower());
                                                     //If team power difference after reassignment would be less than the current, do it
                                                     if (reassignDiff <= currentDiff && tf.TeamKey != "Neutral") {
                                                         if (_UseTeamPowerMonitorBalance) {
-                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + tf.TeamKey + " (" + reassignDiff + "<" + currentDiff + ").");
+                                                            Log.Warn(aPlayer.GetVerboseName() + " REASSIGNED from " + aPlayer.RequiredTeam.TeamKey + " to " + tf.TeamKey + " (" + Math.Round(reassignDiff) + "<" + Math.Round(currentDiff) + ").");
                                                         }
                                                         aPlayer.RequiredTeam = tf;
                                                     } else {
@@ -16364,7 +16364,8 @@ namespace PRoConEvents
                             var oldPowerDiff = Math.Abs(oldEnemyPower - oldFriendlyPower);
                             Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
                             Boolean enemyMapPower = enemyTeam.GetTicketDifferenceRate() > friendlyTeam.GetTicketDifferenceRate();
-                            Boolean ticketBypass = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > (_startingTicketCount > 0 ? (_startingTicketCount / 4.0) : 250);
+                            Double ticketBypassAmount = (_startingTicketCount > 0 ? (_startingTicketCount / 4.0) : 250);
+                            Boolean ticketBypass = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > ticketBypassAmount;
                             if (enemyWinning)
                             {
                                 canAssist = false;
@@ -16379,10 +16380,10 @@ namespace PRoConEvents
                             }
                             else if (_UseTeamPowerMonitor)
                             {
-                                if (newPowerDiff > oldPowerDiff)
+                                if (newPowerDiff > oldPowerDiff && !ticketBypass)
                                 {
                                     canAssist = false;
-                                    rejectionMessage += "would be too strong with them on it.";
+                                    rejectionMessage += "appears to be strong enough. Wait for " + Math.Round(ticketBypassAmount) + " ticket difference.";
                                     Log.Info(
                                         "Old Friendly " + friendlyTeam.TeamKey + ":(" + Math.Round(oldFriendlyPower) + ") " +
                                         "Old Enemy " + enemyTeam.TeamKey + ":(" + Math.Round(oldEnemyPower) + ") " +
@@ -43455,7 +43456,8 @@ namespace PRoConEvents
                         if (start > 0 && current < start) {
                             Double remainingPerc = current / start;
                             Double lostPerc = (start - current) / start;
-                            ticketPower = remainingPerc + (lostPerc / 3.0);
+                            //Add a little bit back
+                            ticketPower = remainingPerc + (lostPerc / 5.0);
                         }
                     }
                     var totalPower = Math.Round(topPowerSum * kdPowerSum * playerSum * ticketPower);
