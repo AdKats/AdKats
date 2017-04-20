@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.43
- * 18-APR-2017
+ * Version 6.9.0.44
+ * 20-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.43</version_code>
+ * <version_code>6.9.0.44</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.43";
+        private const String PluginVersion = "6.9.0.44";
 
         public enum GameVersion
         {
@@ -7051,12 +7051,15 @@ namespace PRoConEvents
                             if ((UtcNow() - lastLongKeepAliveCheck).TotalMinutes > 5) {
 
                                 //Keep the extended round stats table clean
-                                CleanUpExtendedRoundStats();
+                                if (_pluginEnabled &&
+                                    _firstPlayerListComplete) {
+                                    PurgeExtendedRoundStats();
+                                }
 
                                 //Player listing check
                                 if (_pluginEnabled && 
                                     _firstPlayerListComplete && 
-                                    (UtcNow() - _lastSuccessfulPlayerList) > TimeSpan.FromMinutes(5)) {
+                                    (UtcNow() - _lastSuccessfulPlayerList) > TimeSpan.FromMinutes(7)) {
                                     //Create report record
                                     QueueRecordForProcessing(new AdKatsRecord {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -26965,17 +26968,23 @@ namespace PRoConEvents
             StartAndLogThread(reportAutoHandler);
         }
 
-        public void CleanUpExtendedRoundStats() {
-            //Clean up all extended round stats older than 60 days
-            using (MySqlConnection connection = GetDatabaseConnection()) {
-                using (MySqlCommand command = connection.CreateCommand()) {
-                    command.CommandText = @"delete from tbl_extendedroundstats where tbl_extendedroundstats.roundstat_time < date_sub(sysdate(), interval 60 day)";
-                    Int32 affectedRows = SafeExecuteNonQuery(command);
-                    if (affectedRows > 0) {
-                        Log.Debug(() => "Cleaned up " + affectedRows + " extended round stats older than 60 days.", 5);
+        public void PurgeExtendedRoundStats() {
+            Log.Debug(() => "Entering PurgeExtendedRoundStats", 6);
+            try {
+                //Purge all extended round stats older than 60 days
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    using (MySqlCommand command = connection.CreateCommand()) {
+                        command.CommandText = @"delete from tbl_extendedroundstats where tbl_extendedroundstats.roundstat_time < date_sub(sysdate(), interval 60 day)";
+                        Int32 affectedRows = SafeExecuteNonQuery(command);
+                        if (affectedRows > 0) {
+                            Log.Debug(() => "Purged " + affectedRows + " extended round stats older than 60 days.", 5);
+                        }
                     }
                 }
+            } catch (Exception e) {
+                HandleException(new AdKatsException("Error while purging extended round statistics.", e));
             }
+            Log.Debug(() => "Exiting PurgeExtendedRoundStats", 6);
         }
 
         public void RestartLevel(AdKatsRecord record)
