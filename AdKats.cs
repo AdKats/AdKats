@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.44
+ * Version 6.9.0.45
  * 20-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.44</version_code>
+ * <version_code>6.9.0.45</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.44";
+        private const String PluginVersion = "6.9.0.45";
 
         public enum GameVersion
         {
@@ -6773,6 +6773,7 @@ namespace PRoConEvents
                     Thread.CurrentThread.Name = "StatusMonitor";
                     DateTime lastShortKeepAliveCheck = UtcNow();
                     DateTime lastLongKeepAliveCheck = UtcNow();
+                    DateTime lastVeryLongKeepAliveCheck = UtcNow();
                     ExecuteCommand("procon.protected.send", "serverInfo");
                     DateTime lastMemoryWarning = UtcNow();
                     while (true)
@@ -6842,26 +6843,26 @@ namespace PRoConEvents
                                 }
                             }
 
-                            //Post battlelog action times - Disabled
-                            lock (_BattlelogActionTimes) {
-                                if (_BattlelogActionTimes.Any() && NowDuration(_lastBattlelogFrequencyMessage).TotalSeconds > 30) {
-                                    while (_BattlelogActionTimes.Any() && NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 4) {
-                                        _BattlelogActionTimes.Dequeue();
+                            if (false) {
+                                //Post battlelog action times - Disabled
+                                lock (_BattlelogActionTimes) {
+                                    if (_BattlelogActionTimes.Any() && NowDuration(_lastBattlelogFrequencyMessage).TotalSeconds > 30) {
+                                        while (_BattlelogActionTimes.Any() && NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 4) {
+                                            _BattlelogActionTimes.Dequeue();
+                                        }
+                                            var frequency = Math.Round(_BattlelogActionTimes.Count() / 4.0, 2);
+                                            Log.Info("Average battlelog request frequency: " + frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count());
+                                            QueueStatisticForProcessing(new AdKatsStatistic() {
+                                                stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
+                                                server_id = _serverInfo.ServerID,
+                                                round_id = _roundID,
+                                                target_name = _serverInfo.InfoObject.Map,
+                                                stat_value = frequency,
+                                                stat_comment = frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
+                                                stat_time = UtcNow()
+                                            });
+                                        _lastBattlelogFrequencyMessage = UtcNow();
                                     }
-                                    if (false) {
-                                        var frequency = Math.Round(_BattlelogActionTimes.Count() / 4.0, 2);
-                                        Log.Info("Average battlelog request frequency: " + frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count());
-                                        QueueStatisticForProcessing(new AdKatsStatistic() {
-                                            stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
-                                            server_id = _serverInfo.ServerID,
-                                            round_id = _roundID,
-                                            target_name = _serverInfo.InfoObject.Map,
-                                            stat_value = frequency,
-                                            stat_comment = frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
-                                            stat_time = UtcNow()
-                                        });
-                                    }
-                                    _lastBattlelogFrequencyMessage = UtcNow();
                                 }
                             }
 
@@ -7046,9 +7047,9 @@ namespace PRoConEvents
                                     _spamBotTellLastPost = UtcNow();
                                 }
                             }
-
-                            //Batch long keep alive - every 5 minutes
-                            if ((UtcNow() - lastLongKeepAliveCheck).TotalMinutes > 5) {
+                            
+                            //Batch very long keep alive - every 10 minutes
+                            if (NowDuration(lastVeryLongKeepAliveCheck).TotalMinutes > 10.0) {
 
                                 //Keep the extended round stats table clean
                                 if (_pluginEnabled &&
@@ -7056,22 +7057,11 @@ namespace PRoConEvents
                                     PurgeExtendedRoundStats();
                                 }
 
-                                //Player listing check
-                                if (_pluginEnabled && 
-                                    _firstPlayerListComplete && 
-                                    (UtcNow() - _lastSuccessfulPlayerList) > TimeSpan.FromMinutes(7)) {
-                                    //Create report record
-                                    QueueRecordForProcessing(new AdKatsRecord {
-                                        record_source = AdKatsRecord.Sources.InternalAutomated,
-                                        server_id = _serverInfo.ServerID,
-                                        command_type = GetCommandByKey("player_report"),
-                                        command_numeric = 0,
-                                        target_name = "AdKats",
-                                        source_name = "AdKats",
-                                        record_message = "Player listing offline. Inform ColColonCleaner.",
-                                        record_time = UtcNow()
-                                    });
-                                }
+                                lastVeryLongKeepAliveCheck = UtcNow();
+                            }
+
+                            //Batch long keep alive - every 5 minutes
+                            if ((UtcNow() - lastLongKeepAliveCheck).TotalMinutes > 5) {
 
                                 if (_useExperimentalTools && _roundState == RoundState.Playing) {
                                     var players = _PlayerDictionary.Values.ToList();
@@ -7121,6 +7111,23 @@ namespace PRoConEvents
 
                             //Batch short keep alive - every 30 seconds
                             if ((UtcNow() - lastShortKeepAliveCheck).TotalSeconds > 30) {
+
+                                //Player listing check
+                                if (_pluginEnabled &&
+                                    _firstPlayerListComplete &&
+                                    NowDuration(_lastSuccessfulPlayerList).TotalMinutes > 10.0) {
+                                    //Create report record
+                                    QueueRecordForProcessing(new AdKatsRecord {
+                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("player_report"),
+                                        command_numeric = 0,
+                                        target_name = "AdKats",
+                                        source_name = "AdKats",
+                                        record_message = "Player listing offline. Inform ColColonCleaner.",
+                                        record_time = UtcNow()
+                                    });
+                                }
 
                                 if (_UseTeamPowerMonitor && _useExperimentalTools && _firstPlayerListComplete) {
                                     var onlineTopPlayers = _PlayerDictionary.Values.ToList()
@@ -7381,7 +7388,7 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
 
-                            //Nuke Countdowns - Every 500ms
+                            //Nuke Countdowns - Every 250ms
                             if (_lastNukeTeam != null)
                             {
                                 //Auto-Nuke Slay Duration
@@ -7432,8 +7439,8 @@ namespace PRoConEvents
                                 }
                             }
 
-                            //Sleep half a second between loops
-                            Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                            //Sleep 250ms between loops
+                            Thread.Sleep(TimeSpan.FromMilliseconds(250));
                         }
                         catch (Exception e)
                         {
@@ -26900,7 +26907,7 @@ namespace PRoConEvents
             Boolean canAutoHandle = _UseAAReportAutoHandler && sourceAA && _AutoReportHandleStrings.Any() && !String.IsNullOrEmpty(_AutoReportHandleStrings[0]) && _AutoReportHandleStrings.Any(messageLower.Contains) && !record.target_player.player_aa && !PlayerIsAdmin(record.target_player);
             Boolean adminsOnline = onlineAdminCount > 0;
             String reportMessage = "";
-            if (!sourceAA || !adminsOnline)
+            if (!sourceAA || !adminsOnline || !canAutoHandle)
             {
                 reportMessage = "REPORT [" + reportID + "] sent on " + record.GetTargetNames() + " for " + record.record_message;
             }
