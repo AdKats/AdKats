@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.45
+ * Version 6.9.0.46
  * 20-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.45</version_code>
+ * <version_code>6.9.0.46</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.45";
+        private const String PluginVersion = "6.9.0.46";
 
         public enum GameVersion
         {
@@ -7422,8 +7422,14 @@ namespace PRoConEvents
                                             AdminSayMessage(nukeInfoMessage);
                                         }
                                         _nukeAutoSlayActive = true;
-                                        Int32 endDuration = (int)NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration)).TotalSeconds;
-                                        var durationMessage = _lastNukeTeam.TeamKey + " nuke active for " + endDuration + " seconds!";
+                                        Double endDuration = NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration)).TotalSeconds;
+                                        String endDurationString = "";
+                                        if (endDuration <= 3) {
+                                            endDurationString = Math.Round(endDuration, 1).ToString();
+                                        } else {
+                                            endDurationString = Math.Round(endDuration).ToString();
+                                        }
+                                        var durationMessage = _lastNukeTeam.TeamKey + " nuke active for " + endDurationString + " seconds!";
                                         if (_lastNukeSlayDurationMessage != durationMessage && endDuration > 0 && (endDuration % 2 == 0 || endDuration <= 5))
                                         {
                                             AdminTellMessage(durationMessage);
