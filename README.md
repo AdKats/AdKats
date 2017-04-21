@@ -297,7 +297,7 @@
     </li>
     <li>
         <b>WARNING: Do NOT run more than one instance of AdKats on a single procon layer at the same time.</b>
-        Procon provides the ability to have a single layer monitor multiple servers at the same time, and this is normally a good thing. However, AdKats is nearly the same size (logic wise) as procon itself now, and running multiple instances on the same process can result in heavy performance issues and instability. Do not use this multiple-server-per-layer functionality unless only ONE of the servers on the layer has AdKats running.
+        Procon provides the ability to have a single layer monitor multiple servers at the same time, and this is normally a good thing. However, AdKats is nearly the same size (logic wise) as procon itself now, and running multiple instances on the same process can result in heavy performance issues and instability. Do not use this multiple-server-per-layer functionality unless only ONE of the servers on the layer has AdKats running. Each server should have its own dedicated layer when running AdKats.
     </li>
     <li>
         <b>Enter database credentials.</b>
