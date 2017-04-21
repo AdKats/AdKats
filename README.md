@@ -296,6 +296,10 @@
         folder depending on which game your layer is running on.
     </li>
     <li>
+        <b>WARNING: Do NOT run more than one instance of AdKats on a single procon layer at the same timme.</b>
+        Procon provides the ability to have a single layer monitor multiple servers at the same time, and this is normally a good thing. However, AdKats is nearly the same size (logic wise) as procon itself now, and running multiple instances on the same process can result in heavy performance issues and instability. Do not use this multiple-server-per-layer functionality unless only ONE of the servers on the layer has AdKats running.
+    </li>
+    <li>
         <b>Enter database credentials.</b>
         All database connection information must be entered in the settings tab before AdKats can run. Plugin must be
         able to create/modify/use tables and their data.
