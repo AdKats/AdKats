@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.47
- * 20-APR-2017
+ * Version 6.9.0.48
+ * 21-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.47</version_code>
+ * <version_code>6.9.0.48</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.47";
+        private const String PluginVersion = "6.9.0.48";
 
         public enum GameVersion
         {
@@ -956,8 +956,9 @@ namespace PRoConEvents
             //Fill command descriptions
             FillCommandDescDictionary();
 
-            //Prepare the keep-alive
+            //Prepare the keep-alive threads
             SetupStatusMonitor();
+            SetupFastStatusMonitor();
 
             //Start up TeamSpeakClientViewer
             _tsViewer = new TeamSpeakClientViewer(this);
@@ -7387,66 +7388,14 @@ namespace PRoConEvents
                             {
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
-
-                            //Nuke Countdowns - Every 250ms
-                            if (_lastNukeTeam != null)
-                            {
-                                //Auto-Nuke Slay Duration
-                                var duration = NowDuration(_lastNukeTime);
-                                var nukeInfoMessage = "";
-                                var durationIncrease = _surrenderAutoNukeDurationIncrease * Math.Max(getNukeCount(_lastNukeTeam.TeamID) - 1, 0);
-                                if (!_nukeAutoSlayActive)
-                                {
-                                    switch (_populationStatus)
-                                    {
-                                        case PopulationState.High:
-                                            _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationHigh + durationIncrease;
-                                            nukeInfoMessage = "High population nuke: " + _surrenderAutoNukeDurationHigh + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
-                                            break;
-                                        case PopulationState.Medium:
-                                            _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationMed + durationIncrease;
-                                            nukeInfoMessage = "Medium population nuke: " + _surrenderAutoNukeDurationMed + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
-                                            break;
-                                        case PopulationState.Low:
-                                            _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationLow + durationIncrease;
-                                            nukeInfoMessage = "Low population nuke: " + _surrenderAutoNukeDurationLow + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
-                                            break;
-                                    }
-                                }
-                                if (_nukeAutoSlayActiveDuration > 0)
-                                {
-                                    if (duration.TotalSeconds < _nukeAutoSlayActiveDuration)
-                                    {
-                                        if (!_nukeAutoSlayActive)
-                                        {
-                                            AdminSayMessage(nukeInfoMessage);
-                                        }
-                                        _nukeAutoSlayActive = true;
-                                        Double endDuration = NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration)).TotalSeconds;
-                                        String endDurationString = "";
-                                        if (endDuration <= 3) {
-                                            endDurationString = Math.Round(endDuration, 1).ToString();
-                                        } else {
-                                            endDurationString = Math.Round(endDuration).ToString();
-                                        }
-                                        var durationMessage = _lastNukeTeam.TeamKey + " nuke active for " + endDurationString + " seconds!";
-                                        if (_lastNukeSlayDurationMessage != durationMessage && endDuration > 0 && (((int)endDuration) % 2 == 0 || endDuration <= 5))
-                                        {
-                                            AdminTellMessage(durationMessage);
-                                            _lastNukeSlayDurationMessage = durationMessage;
-                                        }
-                                    }
-                                    else if (_nukeAutoSlayActive)
-                                    {
-                                        _nukeAutoSlayActive = false;
-                                        _nukeAutoSlayActiveDuration = 0;
-                                        AdminTellMessage(_lastNukeTeam.TeamKey + " nuke has ended!");
-                                    }
-                                }
+                            
+                            if (_pluginEnabled) {
+                                //Sleep 500ms between loops
+                                Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                            } else {
+                                //Sleep 1000ms between loops
+                                Thread.Sleep(TimeSpan.FromMilliseconds(1000));
                             }
-
-                            //Sleep 250ms between loops
-                            Thread.Sleep(TimeSpan.FromMilliseconds(250));
                         }
                         catch (Exception e)
                         {
@@ -7461,6 +7410,82 @@ namespace PRoConEvents
             }));
             //Start the thread
             statusMonitorThread.Start();
+        }
+
+        private void SetupFastStatusMonitor() {
+            //This thread will remain running for the duration the layer is online
+            Thread fastStatusMonitorThread = new Thread(new ThreadStart(delegate {
+                try {
+                    Thread.CurrentThread.Name = "FastStatusMonitor";
+                    while (true) {
+                        try {
+                            //Nuke Countdowns - Every 50ms
+                            if (_lastNukeTeam != null) {
+                                //Auto-Nuke Slay Duration
+                                var duration = NowDuration(_lastNukeTime);
+                                var nukeInfoMessage = "";
+                                var durationIncrease = _surrenderAutoNukeDurationIncrease * Math.Max(getNukeCount(_lastNukeTeam.TeamID) - 1, 0);
+                                if (!_nukeAutoSlayActive) {
+                                    switch (_populationStatus) {
+                                        case PopulationState.High:
+                                            _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationHigh + durationIncrease;
+                                            nukeInfoMessage = "High population nuke: " + _surrenderAutoNukeDurationHigh + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
+                                            break;
+                                        case PopulationState.Medium:
+                                            _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationMed + durationIncrease;
+                                            nukeInfoMessage = "Medium population nuke: " + _surrenderAutoNukeDurationMed + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
+                                            break;
+                                        case PopulationState.Low:
+                                            _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationLow + durationIncrease;
+                                            nukeInfoMessage = "Low population nuke: " + _surrenderAutoNukeDurationLow + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
+                                            break;
+                                    }
+                                }
+                                if (_nukeAutoSlayActiveDuration > 0) {
+                                    if (duration.TotalSeconds < _nukeAutoSlayActiveDuration) {
+                                        if (!_nukeAutoSlayActive) {
+                                            AdminSayMessage(nukeInfoMessage);
+                                        }
+                                        _nukeAutoSlayActive = true;
+                                        Double endDuration = NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration)).TotalSeconds;
+                                        Int32 endDurationSeconds = (Int32)Math.Round(endDuration);
+                                        Int32 endDurationQuarterSeconds = endDurationSeconds * 4;
+                                        String endDurationString = "";
+                                        if (endDuration <= 5) {
+                                            endDurationString = (endDurationQuarterSeconds / 4.0).ToString();
+                                        } else {
+                                            endDurationString = endDurationSeconds.ToString();
+                                        }
+                                        var durationMessage = _lastNukeTeam.TeamKey + " nuke active for " + endDurationString + " seconds!";
+                                        if (_lastNukeSlayDurationMessage != durationMessage && endDuration > 0 && (endDurationSeconds % 2 == 0 || endDuration <= 5)) {
+                                            AdminTellMessage(durationMessage);
+                                            _lastNukeSlayDurationMessage = durationMessage;
+                                        }
+                                    } else if (_nukeAutoSlayActive) {
+                                        _nukeAutoSlayActive = false;
+                                        _nukeAutoSlayActiveDuration = 0;
+                                        AdminTellMessage(_lastNukeTeam.TeamKey + " nuke has ended!");
+                                    }
+                                }
+                            }
+                            
+                            if (_pluginEnabled) {
+                                //Sleep 50ms between loops
+                                Thread.Sleep(TimeSpan.FromMilliseconds(50));
+                            } else {
+                                //Sleep 1000ms between loops
+                                Thread.Sleep(TimeSpan.FromMilliseconds(1000));
+                            }
+                        } catch (Exception e) {
+                            HandleException(new AdKatsException("Error in fast status monitor. Skipping current loop.", e));
+                        }
+                    }
+                } catch (Exception e) {
+                    HandleException(new AdKatsException("Error while running fast status monitor.", e));
+                }
+            }));
+            //Start the thread
+            fastStatusMonitorThread.Start();
         }
 
         public void InitWaitHandles()
