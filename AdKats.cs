@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.50
+ * Version 6.9.0.51
  * 22-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.50</version_code>
+ * <version_code>6.9.0.51</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.50";
+        private const String PluginVersion = "6.9.0.51";
 
         public enum GameVersion
         {
@@ -7449,10 +7449,10 @@ namespace PRoConEvents
                                         _nukeAutoSlayActive = true;
                                         Double endDuration = NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration)).TotalSeconds;
                                         Int32 endDurationSeconds = (Int32)Math.Round(endDuration);
-                                        Int32 endDurationQuarterSeconds = (Int32)Math.Round(endDuration * 4.0);
+                                        Int32 endDurationQuarterSeconds = (Int32)Math.Round(endDuration * 2.0);
                                         String endDurationString = "";
                                         if (endDuration <= 5) {
-                                            endDurationString = (endDurationQuarterSeconds / 4.0).ToString();
+                                            endDurationString = (endDurationQuarterSeconds / 2.0).ToString();
                                         } else {
                                             endDurationString = endDurationSeconds.ToString();
                                         }
