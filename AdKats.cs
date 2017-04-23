@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.56
+ * Version 6.9.0.57
  * 22-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.56</version_code>
+ * <version_code>6.9.0.57</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.56";
+        private const String PluginVersion = "6.9.0.57";
 
         public enum GameVersion
         {
@@ -6902,7 +6902,7 @@ namespace PRoConEvents
                                 if ((UtcNow() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotSayQueue.Peek();
                                     var eventDate = GetEventRoundDateTime();
-                                    if (eventDate < DateTime.Now || (_currentEventRoundNumber != 999999 && _roundID < _currentEventRoundNumber)) {
+                                    if (eventDate < DateTime.Now || (_currentEventRoundNumber != 999999 && _currentEventRoundNumber < _roundID)) {
                                         message = message.Replace("%EventDateDuration%", "TBD")
                                                          .Replace("%EventDateTime%", "TBD")
                                                          .Replace("%EventDate%", "TBD")
