@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.54
+ * Version 6.9.0.55
  * 22-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.54</version_code>
+ * <version_code>6.9.0.55</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.54";
+        private const String PluginVersion = "6.9.0.55";
 
         public enum GameVersion
         {
@@ -7162,8 +7162,8 @@ namespace PRoConEvents
                                     if (DateTime.Now < eventDate && _currentEventRoundNumber == 999999) {
                                         // The event date is set, and in the future
                                         var estimateEventRoundNumber = FetchEstimatedEventRoundNumber();
-                                        // At 2 rounds away, lock in the round number for the event
-                                        if (Math.Abs(estimateEventRoundNumber - _roundID) <= 2) {
+                                        // At 3 rounds away, lock in the round number for the event
+                                        if (Math.Abs(estimateEventRoundNumber - _roundID) <= 3) {
                                             _currentEventRoundNumber = estimateEventRoundNumber;
                                         }
                                     }
@@ -34354,7 +34354,7 @@ namespace PRoConEvents
                 return 0;
             }
             var durationTillEvent = roundDate.Subtract(DateTime.Now);
-            return _roundID + (int)Math.Floor(durationTillEvent.TotalMinutes / FetchAverageRoundMinutes(durationTillEvent.TotalHours < 24));
+            return _roundID + (int)Math.Ceiling(durationTillEvent.TotalMinutes + _serverInfo.GetRoundElapsedTime().TotalMinutes / FetchAverageRoundMinutes(durationTillEvent.TotalHours < 24));
         }
 
         private DateTime GetEventRoundDateTime() {
