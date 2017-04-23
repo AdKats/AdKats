@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.53
+ * Version 6.9.0.54
  * 22-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.53</version_code>
+ * <version_code>6.9.0.54</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.53";
+        private const String PluginVersion = "6.9.0.54";
 
         public enum GameVersion
         {
@@ -28960,7 +28960,9 @@ namespace PRoConEvents
                 }
                 record.record_action_executed = true;
                 record.command_numeric = (int)record.target_player.player_ping;
-                SendMessageToSource(record, record.target_player.GetVerboseName() + "'s Ping: " + (record.target_player.player_ping_manual ? "[M] " : "") + Math.Round(record.target_player.player_ping) + "ms (Avg: " + Math.Round(record.target_player.player_ping_avg) + "ms)");
+                String currentString = record.target_player.player_ping > 0 ? Math.Round(record.target_player.player_ping).ToString() : "Missing";
+                String averageString = record.target_player.player_ping_avg > 0 ? Math.Round(record.target_player.player_ping_avg).ToString() : "Missing";
+                SendMessageToSource(record, record.target_player.GetVerboseName() + "'s Ping: " + (record.target_player.player_ping_manual ? "[M] " : "") + currentString + "ms (Avg: " + averageString + "ms)");
             } catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while fetching player ping.", e);
                 HandleException(record.record_exception);
@@ -34351,37 +34353,53 @@ namespace PRoConEvents
             if (DateTime.Now >= roundDate) {
                 return 0;
             }
-            var minutesTillEvent = roundDate.Subtract(DateTime.Now).TotalMinutes;
-            return _roundID + (int)Math.Floor(minutesTillEvent / FetchAverageRoundMinutes());
+            var durationTillEvent = roundDate.Subtract(DateTime.Now);
+            return _roundID + (int)Math.Floor(durationTillEvent.TotalMinutes / FetchAverageRoundMinutes(durationTillEvent.TotalHours < 24));
         }
 
         private DateTime GetEventRoundDateTime() {
             return _eventDate.AddHours(_eventHour);
         }
 
-        private Double FetchAverageRoundMinutes() {
+        private Double FetchAverageRoundMinutes(Boolean active) {
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        //The most ham-handed SQL I've ever written
-                        command.CommandText = @"
-                        SELECT
-	                        TIMESTAMPDIFF(SECOND, MIN(`roundstart_time`), MAX(`roundstart_time`)) / 
-	                        (REPLACE(COUNT(`round_id`), 0, 1.0)) / 60.0 as `AvgRoundDuration`
-                        FROM
-                        (SELECT 
-	                        `round_id`, 
-	                        `roundstat_time` AS `roundstart_time`
-                        FROM 
-	                        `tbl_extendedroundstats` 
-                        WHERE 
-	                        `server_id` = @ServerID
-                        AND
-	                        TIMESTAMPDIFF(MINUTE, `roundstat_time`, UTC_TIMESTAMP()) < 15080
-                        GROUP BY 
-	                        `round_id`
-                        ORDER BY
-	                        `roundstat_id` DESC) AS `RoundStartTimes`";
+                        if (active) {
+                            //Only include active rounds, this is best for durations in the same day as the event
+                            command.CommandText = @"
+                            select avg(round_duration) `AvgRoundDuration`
+                              from (select *
+                                      from (select round_id, 
+                                                   min(roundstat_time) round_starttime, 
+                                                   max(roundstat_time) round_endtime, 
+                                                   timestampdiff(minute, min(roundstat_time), max(roundstat_time)) round_duration from tbl_extendedroundstats 
+                                             where server_id = @ServerID 
+                                               and timestampdiff(minute, `roundstat_time`, utc_timestamp()) < 15080
+                                          group by round_id) round_times
+                                     where round_duration < 100
+                                       and round_duration > 5) round_durations";
+                        } else {
+                            //Non-active round inclusion is good for estimating long-term
+                            command.CommandText = @"
+                            SELECT
+	                            TIMESTAMPDIFF(SECOND, MIN(`roundstart_time`), MAX(`roundstart_time`)) / 
+	                            (REPLACE(COUNT(`round_id`), 0, 1.0)) / 60.0 as `AvgRoundDuration`
+                            FROM
+                            (SELECT 
+	                            `round_id`, 
+	                            `roundstat_time` AS `roundstart_time`
+                            FROM 
+	                            `tbl_extendedroundstats` 
+                            WHERE 
+	                            `server_id` = @ServerID
+                            AND
+	                            TIMESTAMPDIFF(MINUTE, `roundstat_time`, UTC_TIMESTAMP()) < 15080
+                            GROUP BY 
+	                            `round_id`
+                            ORDER BY
+	                            `roundstat_id` DESC) AS `RoundStartTimes`";
+                        }
                         command.Parameters.AddWithValue("@ServerID", _serverInfo.ServerID);
                         using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
