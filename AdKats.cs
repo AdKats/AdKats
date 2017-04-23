@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.48
- * 21-APR-2017
+ * Version 6.9.0.50
+ * 22-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.48</version_code>
+ * <version_code>6.9.0.50</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.48";
+        private const String PluginVersion = "6.9.0.50";
 
         public enum GameVersion
         {
@@ -7449,7 +7449,7 @@ namespace PRoConEvents
                                         _nukeAutoSlayActive = true;
                                         Double endDuration = NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration)).TotalSeconds;
                                         Int32 endDurationSeconds = (Int32)Math.Round(endDuration);
-                                        Int32 endDurationQuarterSeconds = endDurationSeconds * 4;
+                                        Int32 endDurationQuarterSeconds = (Int32)Math.Round(endDuration * 4.0);
                                         String endDurationString = "";
                                         if (endDuration <= 5) {
                                             endDurationString = (endDurationQuarterSeconds / 4.0).ToString();
@@ -8667,7 +8667,6 @@ namespace PRoConEvents
 
                                         if (_roundState == RoundState.Playing) 
                                         {
-                                            //If this game is BF3 their ping will be loaded elsewhere
                                             Boolean proconFetched = false;
                                             Double ping = aPlayer.frostbitePlayerInfo.Ping;
                                             if (((_pingEnforcerKickMissingPings && _attemptManualPingWhenMissing && ping < 0) || aPlayer.player_ping_manual) &&
@@ -10762,40 +10761,47 @@ namespace PRoConEvents
                             }
                         }
                     } else if (nRound == _eventTestRoundNumber) {
-                        ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
-                        ExecuteCommand("procon.protected.send", "mapList.remove", "0");
-                        ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
-                        ExecuteCommand("procon.protected.send", "mapList.save");
-                        ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
-                        ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
-                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
-                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
-                        ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "167");
-                        ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
-                        ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
-                        ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
-                        ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
-                    } else {
-                        if (nRound >= _currentEventRoundNumber + 10) {
-                            // Reset the current event number, as the event has ended.
-                            _currentEventRoundNumber = 999999;
+                        for (int i = 0; i < 8; i++) {
+                            AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! TESTING! TESTING!");
+                            //TEST ROUND
+                            ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                            ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                            ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                            ExecuteCommand("procon.protected.send", "mapList.save");
+                            ExecuteCommand("procon.protected.send", "vars.preset", "NORMAL", "false");
+                            ExecuteCommand("procon.protected.send", "vars.idleTimeout", "240");
+                            ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "75");
+                            ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "75");
+                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "167");
+                            ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "400");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "0");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "0");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillValueForKick", "0");
                         }
-                        _pingEnforcerEnable = true;
-                        _surrenderVoteEnable = true;
-                        _surrenderAutoEnable = true;
-                        ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
-                        ExecuteCommand("procon.protected.send", "mapList.remove", "0");
-                        ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
-                        ExecuteCommand("procon.protected.send", "mapList.save");
-                        ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
-                        ExecuteCommand("procon.protected.send", "vars.idleTimeout", "300");
-                        ExecuteCommand("procon.protected.send", "vars.friendlyFire", "false");
-                        ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "100");
-                        ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "100");
-                        ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "300");
-                        ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "300");
-                        ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "5");
-                        ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "3");
+                    } else {
+                        for (int i = 0; i < 8; i++) {
+                            //NORMAL ROUNDS
+                            if (nRound >= _currentEventRoundNumber + 10) {
+                                // Reset the current event number, as the event has ended.
+                                _currentEventRoundNumber = 999999;
+                            }
+                            _pingEnforcerEnable = true;
+                            _surrenderVoteEnable = true;
+                            _surrenderAutoEnable = true;
+                            ExecuteCommand("procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                            ExecuteCommand("procon.protected.send", "mapList.remove", "0");
+                            ExecuteCommand("procon.protected.send", "mapList.setNextMapIndex", "0");
+                            ExecuteCommand("procon.protected.send", "mapList.save");
+                            ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
+                            ExecuteCommand("procon.protected.send", "vars.idleTimeout", "300");
+                            ExecuteCommand("procon.protected.send", "vars.friendlyFire", "false");
+                            ExecuteCommand("procon.protected.send", "vars.playerRespawnTime", "100");
+                            ExecuteCommand("procon.protected.send", "vars.ticketBleedRate", "100");
+                            ExecuteCommand("procon.protected.send", "vars.gameModeCounter", "300");
+                            ExecuteCommand("procon.protected.send", "vars.roundTimeLimit", "300");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillCountForKick", "5");
+                            ExecuteCommand("procon.protected.send", "vars.teamKillKickForBan", "3");
+                        }
                     }
                 }
 
@@ -16347,151 +16353,64 @@ namespace PRoConEvents
                                 return;
                             }
 
-                            //Team Info Check
-                            AdKatsTeam team1, team2;
-                            if (!GetTeamByID(1, out team1))
-                            {
-                                if (_roundState == RoundState.Playing)
-                                {
-                                    Log.Error("Teams not loaded when they should be.");
-                                }
-                                return;
-                            }
-                            if (!GetTeamByID(2, out team2))
-                            {
-                                if (_roundState == RoundState.Playing)
-                                {
-                                    Log.Error("Teams not loaded when they should be.");
-                                }
-                                return;
-                            }
-                            AdKatsTeam winningTeam, losingTeam;
-                            if (team1.TeamTicketCount > team2.TeamTicketCount)
-                            {
-                                winningTeam = team1;
-                                losingTeam = team2;
-                            }
-                            else
-                            {
-                                winningTeam = team2;
-                                losingTeam = team1;
-                            }
-                            AdKatsTeam friendlyTeam, enemyTeam;
-                            if (record.target_player.frostbitePlayerInfo.TeamID == team1.TeamID)
-                            {
-                                friendlyTeam = team1;
-                                enemyTeam = team2;
-                            }
-                            else if (record.target_player.frostbitePlayerInfo.TeamID == team2.TeamID)
-                            {
-                                friendlyTeam = team2;
-                                enemyTeam = team1;
-                            }
-                            else
-                            {
-                                SendMessageToSource(record, "Invalid teams when attempting to assist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-
-                            record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]";
-                            Boolean canAssist = true;
-                            String rejectionMessage = "team ";
-                            var oldFriendlyPower = friendlyTeam.getTeamPower();
-                            var oldEnemyPower = enemyTeam.getTeamPower();
-                            var newFriendlyPower = friendlyTeam.getTeamPower(record.target_player, null);
-                            var newEnemyPower = enemyTeam.getTeamPower(null, record.target_player);
-                            var newPowerDiff = Math.Abs(newEnemyPower - newFriendlyPower);
-                            var oldPowerDiff = Math.Abs(oldEnemyPower - oldFriendlyPower);
-                            Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
-                            Boolean enemyMapPower = enemyTeam.GetTicketDifferenceRate() > friendlyTeam.GetTicketDifferenceRate();
-                            Double ticketBypassAmount = (_startingTicketCount > 0 ? (_startingTicketCount / 3.5) : 250);
-                            Boolean ticketBypass = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > ticketBypassAmount;
-                            if (enemyWinning)
-                            {
-                                canAssist = false;
-                                if (enemyMapPower)
-                                {
-                                    rejectionMessage += "is already winning and strong.";
-                                }
-                                else
-                                {
-                                    rejectionMessage += "is losing ground, but still winning the match.";
-                                }
-                            }
-                            else if (_UseTeamPowerMonitor)
-                            {
-                                if (newPowerDiff > oldPowerDiff && !ticketBypass)
-                                {
-                                    canAssist = false;
-                                    rejectionMessage += "appears to be strong enough. Wait for " + Math.Round(ticketBypassAmount) + " ticket difference.";
-                                    Log.Info(
-                                        "Old Friendly " + friendlyTeam.TeamKey + ":(" + Math.Round(oldFriendlyPower) + ") " +
-                                        "Old Enemy " + enemyTeam.TeamKey + ":(" + Math.Round(oldEnemyPower) + ") " +
-                                        "New Friendly " + friendlyTeam.TeamKey + ":(" + Math.Round(newFriendlyPower) + ") " +
-                                        "New Enemy " + enemyTeam.TeamKey + ":(" + Math.Round(newEnemyPower) + ")");
-                                }
-                            }
-                            else
-                            {
-                                if (enemyMapPower)
-                                {
-                                    canAssist = false;
-                                    rejectionMessage += "is losing, but is making a comeback.";
-                                }
-                            }
-                            if (canAssist)
-                            {
+                            var assists = _roundAssists.Values;
+                            if (assists.Any()) {
                                 //Timeout or over-queueing
-                                var assists = _roundAssists.Values;
-                                if (assists.Any())
-                                {
-                                    if (assists.Any(aRecord => aRecord.command_action.command_key == "self_assist_unconfirmed"))
-                                    {
-                                        SendMessageToSource(record, "Another player is already queued for assist. Please wait for them to be moved. Thank you.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                    Double secondTimeout = _UseTeamPowerMonitor ? 20 : 60;
-                                    Double timeout = (secondTimeout - (UtcNow() - assists.Max(aRecord => aRecord.record_time_update)).TotalSeconds);
-                                    if (timeout > 0)
-                                    {
-                                        SendMessageToSource(record, "Assist recently used. Please wait " + Math.Ceiling(timeout) + " seconds before using it. Thank you.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
+                                if (assists.Any(aRecord => aRecord.command_action.command_key == "self_assist_unconfirmed")) {
+                                    SendMessageToSource(record, "Another player is already queued for assist. Please wait for them to be moved. Thank you.");
+                                    FinalizeRecord(record);
+                                    return;
                                 }
-                                SendMessageToSource(record, "Queuing you to assist the weak team. Thank you.");
-                                OnlineAdminSayMessage(record.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + Math.Round(newPowerDiff) + "<" + Math.Round(oldPowerDiff) + ")" : "") + ", queueing.");
-                            } 
-                            else
-                            {
-                                AdminSayMessage(record.GetSourceName() + " assist to " + enemyTeam.TeamKey + " rejected, " + rejectionMessage);
-                                FinalizeRecord(record);
-                                return;
+                                Double secondTimeout = _UseTeamPowerMonitor ? 20 : 60;
+                                Double timeout = (secondTimeout - (UtcNow() - assists.Max(aRecord => aRecord.record_time_update)).TotalSeconds);
+                                if (timeout > 0) {
+                                    SendMessageToSource(record, "Assist recently used. Please wait " + Math.Ceiling(timeout) + " seconds before using it. Thank you.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                             }
 
-                            //Assist is currently unconfirmed
-                            record.command_action = GetCommandByKey("self_assist_unconfirmed");
+                            RunAssist(record.source_player, record, null);
 
                             QueueRecordForProcessing(record);
                         }
                         break;
-                    case "self_kill":
-                        {
+                    case "player_debugassist": {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
-                            if (_serverInfo.ServerType == "OFFICIAL")
-                            {
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length) {
+                                case 1:
+                                    record.record_message = "Debug Assist Player";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record)) {
+                                        CompleteTargetInformation(record, false, false, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+
+                            QueueRecordForProcessing(record);
+                        }
+                        break;
+                    case "self_kill": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (_serverInfo.ServerType == "OFFICIAL") {
                                 SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
 
                             //May only call this command from in-game
-                            if (record.record_source != AdKatsRecord.Sources.InGame)
-                            {
+                            if (record.record_source != AdKatsRecord.Sources.InGame) {
                                 SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                 FinalizeRecord(record);
                                 return;
@@ -23088,6 +23007,9 @@ namespace PRoConEvents
                     case "self_assist_unconfirmed":
                         AssistWeakTeam(record);
                         break;
+                    case "player_debugassist":
+                        DubugAssistWeakTeam(record);
+                        break;
                     case "self_kill":
                         ForceKillTarget(record);
                         break;
@@ -23560,6 +23482,20 @@ namespace PRoConEvents
                 FinalizeRecord(record);
             }
             Log.Debug(() => "Exiting AssistLosingTeam", 6);
+        }
+
+        public void DubugAssistWeakTeam(AdKatsRecord record) {
+            Log.Debug(() => "Entering DubugAssistWeakTeam", 6);
+            try {
+                record.record_action_executed = true;
+
+                RunAssist(record.target_player, null, record);
+            } catch (Exception e) {
+                record.record_exception = new AdKatsException("Error while taking action for debug assist record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting DubugAssistWeakTeam", 6);
         }
 
         public void KillTarget(AdKatsRecord record)
@@ -34305,6 +34241,111 @@ namespace PRoConEvents
             return aBan;
         }
 
+        private void ErrorOrRespond(AdKatsRecord debugRecord, String message) {
+            if (debugRecord != null) {
+                SendMessageToSource(debugRecord, message);
+            } else {
+                Log.Error(message);
+            }
+        }
+
+        private Boolean RunAssist(AdKatsPlayer aPlayer, AdKatsRecord realRecord, AdKatsRecord debugRecord) {
+            //Team Info Check
+            AdKatsTeam team1, team2;
+            String rejectionMessage = "Error";
+            if (!GetTeamByID(1, out team1)) {
+                if (_roundState == RoundState.Playing) {
+                    ErrorOrRespond(debugRecord, "Teams not loaded when they should be.");
+                }
+                return false;
+            }
+            if (!GetTeamByID(2, out team2)) {
+                if (_roundState == RoundState.Playing) {
+                    ErrorOrRespond(debugRecord, "Teams not loaded when they should be.");
+                }
+                return false;
+            }
+            AdKatsTeam winningTeam, losingTeam;
+            if (team1.TeamTicketCount > team2.TeamTicketCount) {
+                winningTeam = team1;
+                losingTeam = team2;
+            } else {
+                winningTeam = team2;
+                losingTeam = team1;
+            }
+            AdKatsTeam friendlyTeam, enemyTeam;
+            if (aPlayer.frostbitePlayerInfo.TeamID == team1.TeamID) {
+                friendlyTeam = team1;
+                enemyTeam = team2;
+            } else if (aPlayer.frostbitePlayerInfo.TeamID == team2.TeamID) {
+                friendlyTeam = team2;
+                enemyTeam = team1;
+            } else {
+                ErrorOrRespond(debugRecord, "Invalid teams when attempting to assist.");
+                return false;
+            }
+
+            String recordMessage = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]";
+            if (realRecord != null) {
+                realRecord.record_message = recordMessage;
+            }
+            ErrorOrRespond(debugRecord, recordMessage);
+            Boolean canAssist = true;
+            rejectionMessage = "team ";
+            var oldFriendlyPower = friendlyTeam.getTeamPower();
+            var oldEnemyPower = enemyTeam.getTeamPower();
+            var newFriendlyPower = friendlyTeam.getTeamPower(aPlayer, null);
+            var newEnemyPower = enemyTeam.getTeamPower(null, aPlayer);
+            var newPowerDiff = Math.Abs(newEnemyPower - newFriendlyPower);
+            var oldPowerDiff = Math.Abs(oldEnemyPower - oldFriendlyPower);
+            Boolean enemyWinning = (aPlayer.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
+            Boolean enemyMapPower = enemyTeam.GetTicketDifferenceRate() > friendlyTeam.GetTicketDifferenceRate();
+            Double ticketBypassAmount = (_startingTicketCount > 0 ? (_startingTicketCount / 3.5) : 250);
+            Boolean ticketBypass = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > ticketBypassAmount;
+            if (enemyWinning) {
+                canAssist = false;
+                if (enemyMapPower) {
+                    rejectionMessage += "is already winning and strong.";
+                } else {
+                    rejectionMessage += "is losing ground, but still winning the match.";
+                }
+            } else if (_UseTeamPowerMonitor) {
+                if (newPowerDiff > oldPowerDiff && !ticketBypass) {
+                    canAssist = false;
+                    rejectionMessage += "appears to be strong enough. Wait for " + Math.Round(ticketBypassAmount) + " ticket difference.";
+                    ErrorOrRespond(debugRecord,
+                        "Old F-" + friendlyTeam.TeamKey + ":(" + Math.Round(oldFriendlyPower) + ") " +
+                        "E-" + enemyTeam.TeamKey + ":(" + Math.Round(oldEnemyPower) + ") " +
+                        "New F-" + friendlyTeam.TeamKey + ":(" + Math.Round(newFriendlyPower) + ") " +
+                        "E-" + enemyTeam.TeamKey + ":(" + Math.Round(newEnemyPower) + ")");
+                }
+            } else {
+                if (enemyMapPower) {
+                    canAssist = false;
+                    rejectionMessage += "is losing, but is making a comeback.";
+                }
+            }
+            if (!canAssist) {
+                if (realRecord != null) {
+                    rejectionMessage = realRecord.GetSourceName() + " assist to " + enemyTeam.TeamKey + " rejected, " + rejectionMessage;
+                    AdminSayMessage(rejectionMessage);
+                    FinalizeRecord(realRecord);
+                } else if (debugRecord != null) {
+                    rejectionMessage = debugRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " rejected, " + rejectionMessage;
+                    ErrorOrRespond(debugRecord, rejectionMessage);
+                }
+            } else {
+                if (realRecord != null) {
+                    SendMessageToSource(realRecord, "Queuing you to assist the weak team. Thank you.");
+                    OnlineAdminSayMessage(realRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + Math.Round(newPowerDiff) + "<" + Math.Round(oldPowerDiff) + ")" : "") + ", queueing.");
+                    realRecord.command_action = GetCommandByKey("self_assist_unconfirmed");
+                } else if (debugRecord != null) {
+                    SendMessageToSource(debugRecord, "Assist accepted.");
+                }
+            }
+            return canAssist;
+        }
+
         private Int32 FetchEstimatedEventRoundNumber() {
             var roundDate = GetEventRoundDateTime();
             if (DateTime.Now >= roundDate) {
@@ -36247,6 +36288,10 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command player_forceping", "INSERT INTO `adkats_commands` VALUES(125, 'Active', 'player_forceping', 'Log', 'Force Manual Player Ping', 'fping', TRUE, 'AnyHidden')", true);
                                     newCommands = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(126)) {
+                                    SendNonQuery("Adding command player_debugassist", "INSERT INTO `adkats_commands` VALUES(126, 'Active', 'player_debugassist', 'Log', 'Debug Assist Losing Team', 'debugassist', FALSE, 'AnyHidden')", true);
+                                    newCommands = true;
+                                }
                                 if (newCommands)
                                 {
                                     FetchCommands();
@@ -36391,6 +36436,7 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_perks"] = "Displays the active perks a player has, and how long until those perks expire.";
             _CommandDescriptionDictionary["player_ping"] = "Fetches a player's current ping, either from the server or manually if necessary.";
             _CommandDescriptionDictionary["player_forceping"] = "Forces AdKats to manually ping a player instead of using the server ping.";
+            _CommandDescriptionDictionary["player_debugassist"] = "Runs a mock assist command on a player to see what the results would be, along with debug information.";
         }
 
         private void FillReadableMapModeDictionaries() {
