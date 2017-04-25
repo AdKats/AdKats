@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.59
+ * Version 6.9.0.60
  * 24-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.59</version_code>
+ * <version_code>6.9.0.60</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.59";
+        private const String PluginVersion = "6.9.0.60";
 
         public enum GameVersion
         {
@@ -1562,8 +1562,14 @@ namespace PRoConEvents
                         if (_UseTeamPowerMonitor) {
                             var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                                 .Where(aPlayer => aPlayer.TopStats.getTopPower() > 0);
-                            var onlineTopPlayerListing = onlineTopPlayers.Select(aPlayer =>
-                                    ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(" + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + ") ")) + "(" + aPlayer.TopStats.getTopPower().ToString("000.##") + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
+                            var onlineTopPlayerListing = onlineTopPlayers
+                                .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(" + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + ") ")) + 
+                                                   "(" + Math.Round(Math.Sqrt(aPlayer.frostbitePlayerInfo.Kills > 0 ? aPlayer.frostbitePlayerInfo.Kills : 1) *
+                                                         ((aPlayer.frostbitePlayerInfo.Kills > 0 ? aPlayer.frostbitePlayerInfo.Kills : 1) / (aPlayer.frostbitePlayerInfo.Deaths > 0 ? aPlayer.frostbitePlayerInfo.Deaths : 1)) *
+                                                         aPlayer.frostbitePlayerInfo.Score).ToString("0000000") + 
+                                                   "|" + aPlayer.TopStats.getTopPower().ToString("00.#") + 
+                                                   "|" + aPlayer.TopStats.TopCount + 
+                                                   ") " + aPlayer.GetVerboseName())
                                 .OrderByDescending(item => item);
                             AdKatsTeam t1, t2;
                             String teamPower = "Unknown";
@@ -1571,7 +1577,7 @@ namespace PRoConEvents
                                 teamPower = t1.TeamKey + ": (" + t1.getTeamPower() + ":" + t1.getTeamPower(false) + ") / " + t2.TeamKey + ": (" + t2.getTeamPower() + ":" + t2.getTeamPower(false) + ")";
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Team Power (Display)", typeof(String), teamPower));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPlayerListing.ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Online Top Players (Display)", typeof(String[]), onlineTopPlayerListing.ToArray()));
                             //lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above|Marginal and Above|Most Players)", _TopPlayersAffected));
                             //lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Top player team confirmation duration", typeof(Int32), _TopPlayersTeamConfirmationDuration));
                         }
@@ -10440,9 +10446,13 @@ namespace PRoConEvents
             Log.Debug(() => "Entering PostRoundStatistics", 7);
             try
             {
-                List<AdKatsPlayer> OrderedPlayers = _PlayerDictionary.Values.Where(aPlayer => aPlayer.player_type == PlayerType.Player).OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
-                List<AdKatsPlayer> WinningPlayers = OrderedPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID).OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
-                List<AdKatsPlayer> LosingPlayers = OrderedPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == losingTeam.TeamID).OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
+                List<AdKatsPlayer> OrderedPlayers = _PlayerDictionary.Values
+                    .Where(aPlayer => aPlayer.player_type == PlayerType.Player)
+                    .OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
+                List<AdKatsPlayer> WinningPlayers = OrderedPlayers
+                    .Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID).ToList();
+                List<AdKatsPlayer> LosingPlayers = OrderedPlayers
+                    .Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == losingTeam.TeamID).ToList();
                 foreach (AdKatsPlayer aPlayer in WinningPlayers)
                 {
                     QueueStatisticForProcessing(new AdKatsStatistic()
@@ -16389,8 +16399,6 @@ namespace PRoConEvents
                                     FinalizeRecord(record);
                                     return;
                             }
-
-                            QueueRecordForProcessing(record);
                         }
                         break;
                     case "self_kill": {
@@ -34314,7 +34322,7 @@ namespace PRoConEvents
             } else if (_UseTeamPowerMonitor) {
                 if (newPowerDiff > oldPowerDiff && !ticketBypass) {
                     canAssist = false;
-                    rejectionMessage += "appears to be strong enough. Wait for " + Math.Round(ticketBypassAmount) + " ticket difference.";
+                    rejectionMessage += "would be too strong. Wait for " + Math.Round(ticketBypassAmount) + " ticket difference.";
                     ErrorOrRespond(debugRecord,
                         "Old F-" + friendlyTeam.TeamKey + ":(" + Math.Round(oldFriendlyPower) + ") " +
                         "E-" + enemyTeam.TeamKey + ":(" + Math.Round(oldEnemyPower) + ") " +
