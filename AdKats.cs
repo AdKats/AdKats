@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.60
+ * Version 6.9.0.61
  * 24-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.60</version_code>
+ * <version_code>6.9.0.61</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.60";
+        private const String PluginVersion = "6.9.0.61";
 
         public enum GameVersion
         {
@@ -1567,7 +1567,7 @@ namespace PRoConEvents
                                                    "(" + Math.Round(Math.Sqrt(aPlayer.frostbitePlayerInfo.Kills > 0 ? aPlayer.frostbitePlayerInfo.Kills : 1) *
                                                          ((aPlayer.frostbitePlayerInfo.Kills > 0 ? aPlayer.frostbitePlayerInfo.Kills : 1) / (aPlayer.frostbitePlayerInfo.Deaths > 0 ? aPlayer.frostbitePlayerInfo.Deaths : 1)) *
                                                          aPlayer.frostbitePlayerInfo.Score).ToString("0000000") + 
-                                                   "|" + aPlayer.TopStats.getTopPower().ToString("00.#") + 
+                                                   "|" + aPlayer.TopStats.getTopPower().ToString("00.0") + 
                                                    "|" + aPlayer.TopStats.TopCount + 
                                                    ") " + aPlayer.GetVerboseName())
                                 .OrderByDescending(item => item);
@@ -34311,7 +34311,8 @@ namespace PRoConEvents
             Boolean enemyWinning = (aPlayer.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
             Boolean enemyMapPower = enemyTeam.GetTicketDifferenceRate() > friendlyTeam.GetTicketDifferenceRate();
             Double ticketBypassAmount = (_startingTicketCount > 0 ? (_startingTicketCount / 3.5) : 250);
-            Boolean ticketBypass = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > ticketBypassAmount;
+            Boolean canTicketBypass = _previousRoundDuration.TotalSeconds > 0;
+            Boolean ticketBypass = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > ticketBypassAmount && canTicketBypass;
             if (enemyWinning) {
                 canAssist = false;
                 if (enemyMapPower) {
@@ -34322,7 +34323,7 @@ namespace PRoConEvents
             } else if (_UseTeamPowerMonitor) {
                 if (newPowerDiff > oldPowerDiff && !ticketBypass) {
                     canAssist = false;
-                    rejectionMessage += "would be too strong. Wait for " + Math.Round(ticketBypassAmount) + " ticket difference.";
+                    rejectionMessage += "would be too strong." + (canTicketBypass ? " Wait for " + Math.Round(ticketBypassAmount) + " ticket difference." : "");
                     ErrorOrRespond(debugRecord,
                         "Old F-" + friendlyTeam.TeamKey + ":(" + Math.Round(oldFriendlyPower) + ") " +
                         "E-" + enemyTeam.TeamKey + ":(" + Math.Round(oldEnemyPower) + ") " +
@@ -34347,7 +34348,7 @@ namespace PRoConEvents
             } else {
                 if (realRecord != null) {
                     SendMessageToSource(realRecord, "Queuing you to assist the weak team. Thank you.");
-                    OnlineAdminSayMessage(realRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + Math.Round(newPowerDiff) + "<=" + Math.Round(oldPowerDiff) + ")" : "") + ", queueing.");
+                    OnlineAdminSayMessage(realRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + (ticketBypass && newPowerDiff > oldPowerDiff ? "TicketDiff" : Math.Round(newPowerDiff) + "<=" + Math.Round(oldPowerDiff)) + ")" : "") + ", queueing.");
                     realRecord.command_action = GetCommandByKey("self_assist_unconfirmed");
                 } else if (debugRecord != null) {
                     SendMessageToSource(debugRecord, "Assist accepted.");
