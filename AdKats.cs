@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.58
- * 23-APR-2017
+ * Version 6.9.0.59
+ * 24-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.58</version_code>
+ * <version_code>6.9.0.59</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.58";
+        private const String PluginVersion = "6.9.0.59";
 
         public enum GameVersion
         {
@@ -7449,13 +7449,7 @@ namespace PRoConEvents
                                         _nukeAutoSlayActive = true;
                                         Double endDuration = NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration)).TotalSeconds;
                                         Int32 endDurationSeconds = (Int32)Math.Round(endDuration);
-                                        Int32 endDurationQuarterSeconds = (Int32)Math.Round(endDuration * 2.0);
-                                        String endDurationString = "";
-                                        if (endDuration <= 5) {
-                                            endDurationString = (endDurationQuarterSeconds / 2.0).ToString();
-                                        } else {
-                                            endDurationString = endDurationSeconds.ToString();
-                                        }
+                                        String endDurationString = endDurationSeconds.ToString();
                                         var durationMessage = _lastNukeTeam.TeamKey + " nuke active for " + endDurationString + " seconds!";
                                         if (_lastNukeSlayDurationMessage != durationMessage && endDuration > 0 && (endDurationSeconds % 2 == 0 || endDuration <= 5)) {
                                             AdminTellMessage(durationMessage);
@@ -34298,6 +34292,12 @@ namespace PRoConEvents
             var oldEnemyPower = enemyTeam.getTeamPower();
             var newFriendlyPower = friendlyTeam.getTeamPower(aPlayer, null);
             var newEnemyPower = enemyTeam.getTeamPower(null, aPlayer);
+            // Weed out bad assumptions
+            // like a team being more powerful without someone on it
+            newFriendlyPower = Math.Min(oldFriendlyPower, newFriendlyPower);
+            // or less powerful with someone on it
+            newEnemyPower = Math.Max(oldEnemyPower, newEnemyPower);
+            // Calculate power differences
             var newPowerDiff = Math.Abs(newEnemyPower - newFriendlyPower);
             var oldPowerDiff = Math.Abs(oldEnemyPower - oldFriendlyPower);
             Boolean enemyWinning = (aPlayer.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
@@ -34339,7 +34339,7 @@ namespace PRoConEvents
             } else {
                 if (realRecord != null) {
                     SendMessageToSource(realRecord, "Queuing you to assist the weak team. Thank you.");
-                    OnlineAdminSayMessage(realRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + Math.Round(newPowerDiff) + "<" + Math.Round(oldPowerDiff) + ")" : "") + ", queueing.");
+                    OnlineAdminSayMessage(realRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + Math.Round(newPowerDiff) + "<=" + Math.Round(oldPowerDiff) + ")" : "") + ", queueing.");
                     realRecord.command_action = GetCommandByKey("self_assist_unconfirmed");
                 } else if (debugRecord != null) {
                     SendMessageToSource(debugRecord, "Assist accepted.");
