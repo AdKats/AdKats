@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.67
+ * Version 6.9.0.68
  * 25-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.67</version_code>
+ * <version_code>6.9.0.68</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.67";
+        private const String PluginVersion = "6.9.0.68";
 
         public enum GameVersion
         {
@@ -1565,7 +1565,7 @@ namespace PRoConEvents
                                 .Where(aPlayer => aPlayer.getTopPower(true) > 1);
                             var onlineTopPlayerListing = onlineTopPlayers
                                 .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(" + _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + ") ")) + 
-                                                   "(" + Math.Round(aPlayer.getTopPower(true)).ToString("0000") + 
+                                                   "(" + aPlayer.getTopPower(true).ToString("00.0") + 
                                                    "|" + aPlayer.getTopPower(false).ToString("00.0") + 
                                                    "|" + aPlayer.TopStats.TopCount + 
                                                    ") " + aPlayer.GetVerboseName())
@@ -10447,8 +10447,12 @@ namespace PRoConEvents
             try
             {
                 List<AdKatsPlayer> OrderedPlayers = _PlayerDictionary.Values
-                    .Where(aPlayer => aPlayer.player_type == PlayerType.Player)
-                    .OrderByDescending(aPlayer => aPlayer.fbpInfo.Score).ToList();
+                    .Where(aPlayer => aPlayer.player_type == PlayerType.Player).ToList();
+                if (_UseTeamPowerMonitor) {
+                    OrderedPlayers = OrderedPlayers.OrderByDescending(aPlayer => aPlayer.getTopPower(true)).ToList();
+                } else {
+                    OrderedPlayers = OrderedPlayers.OrderByDescending(aPlayer => aPlayer.fbpInfo.Score).ToList();
+                }
                 List<AdKatsPlayer> WinningPlayers = OrderedPlayers
                     .Where(aPlayer => aPlayer.fbpInfo.TeamID == winningTeam.TeamID).ToList();
                 List<AdKatsPlayer> LosingPlayers = OrderedPlayers
@@ -43573,10 +43577,8 @@ namespace PRoConEvents
                     }
                     var teamTopPlayers = teamPlayers.Where(aPlayer => aPlayer.getTopPower(useModifiers && afterRoundstart) > 1);
                     var topPowerSum = teamTopPlayers.Select(aPlayer => aPlayer.getTopPower(useModifiers && afterRoundstart)).Sum();
-                    var playerSum = 1.0;
                     var ticketPower = 1.0;
                     if (useModifiers) {
-                        playerSum = Math.Sqrt(teamPlayers.Count());
                         Double current = TeamTicketCount;
                         Double start = Plugin._startingTicketCount;
                         if (start > 0 && current < start) {
@@ -43586,7 +43588,7 @@ namespace PRoConEvents
                             ticketPower = remainingPerc + (lostPerc / 4.0);
                         }
                     }
-                    var totalPower = Math.Round(topPowerSum * playerSum * ticketPower);
+                    var totalPower = Math.Round(topPowerSum * ticketPower);
                     return totalPower;
                 }
                 catch (Exception e) {
