@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.69
- * 25-APR-2017
+ * Version 6.9.0.70
+ * 26-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.69</version_code>
+ * <version_code>6.9.0.70</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.69";
+        private const String PluginVersion = "6.9.0.70";
 
         public enum GameVersion
         {
@@ -16364,12 +16364,12 @@ namespace PRoConEvents
                             var assists = _roundAssists.Values;
                             if (assists.Any()) {
                                 //Timeout or over-queueing
-                                if (assists.Any(aRecord => aRecord.command_action.command_key == "self_assist_unconfirmed")) {
+                                if (!_UseTeamPowerMonitor && assists.Any(aRecord => aRecord.command_action.command_key == "self_assist_unconfirmed")) {
                                     SendMessageToSource(record, "Another player is already queued for assist. Please wait for them to be moved. Thank you.");
                                     FinalizeRecord(record);
                                     return;
                                 }
-                                Double secondTimeout = _UseTeamPowerMonitor ? 20 : 60;
+                                Double secondTimeout = _UseTeamPowerMonitor ? 10 : 60;
                                 Double timeout = (secondTimeout - (UtcNow() - assists.Max(aRecord => aRecord.record_time_update)).TotalSeconds);
                                 if (timeout > 0) {
                                     SendMessageToSource(record, "Assist recently used. Please wait " + Math.Ceiling(timeout) + " seconds before using it. Thank you.");
@@ -43563,14 +43563,21 @@ namespace PRoConEvents
                     Boolean afterRoundstart = Plugin._roundState == RoundState.Playing && Plugin._serverInfo.GetRoundElapsedTime().TotalMinutes >= 4.0;
                     List<AdKatsPlayer> teamPlayers = Plugin._PlayerDictionary.Values.ToList()
                         .Where(aPlayer =>
+                            // Player is a live soldier in game, not a spectator/commander/etc.
                             aPlayer.player_type == PlayerType.Player
                             &&
+                            // Player is not the one we decided to ignore, if any
                             (ignorePlayer == null || aPlayer.player_id != ignorePlayer.player_id)
                             &&
                             (
+                                // Player is required to be on this team
                                 (aPlayer.RequiredTeam != null && aPlayer.RequiredTeam.TeamID == TeamID)
                                 ||
+                                // Player is actually on this team, and not required to be anywhere specifc
                                 (aPlayer.RequiredTeam == null && aPlayer.fbpInfo.TeamID == TeamID)
+                                ||
+                                // Player is queued to move to this team
+                                ((TeamID == 1 ? Plugin._Team2MoveQueue : Plugin._Team1MoveQueue).Any(pObject => pObject.GUID == aPlayer.player_guid))
                             )).ToList();
                     if (includePlayer != null && !teamPlayers.Contains(includePlayer))
                     {
