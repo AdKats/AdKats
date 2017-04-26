@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.63
+ * Version 6.9.0.64
  * 25-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.63</version_code>
+ * <version_code>6.9.0.64</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.63";
+        private const String PluginVersion = "6.9.0.64";
 
         public enum GameVersion
         {
@@ -42701,14 +42701,15 @@ namespace PRoConEvents
             private Double maxScore = 20000.0;
             private Double maxKills = 200.0;
             private Double maxKd = 4.0;
+            private Double activeInfluence = 16;
             public Double getTopPower(Boolean active) {
                 Double baseTopPower = min1(TopStats.RoundCount >= 3 && TopStats.TopCount > 0 ? Math.Pow(TopStats.TopRoundRatio + 1, 4) : 1.0);
                 if (!active || fbpInfo == null) {
                     return baseTopPower;
                 }
-                Double killPower = min1(Math.Max(fbpInfo.Kills, maxKills) / maxKills * 8);
-                Double kdPower = min1(Math.Max(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * 8);
-                Double scorePower = min1(Math.Max(fbpInfo.Score, maxScore) / maxScore * 8);
+                Double killPower = min1(Math.Min(fbpInfo.Kills, maxKills) / maxKills * (activeInfluence/3));
+                Double kdPower = min1(Math.Min(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * (activeInfluence / 3));
+                Double scorePower = min1(Math.Min(fbpInfo.Score, maxScore) / maxScore * (activeInfluence / 3));
                 return baseTopPower * killPower * kdPower * scorePower;
             }
 
@@ -43567,7 +43568,7 @@ namespace PRoConEvents
                     var teamTopPlayers = teamPlayers.Where(aPlayer => aPlayer.getTopPower(useModifiers && afterRoundstart) > 1);
                     var topPowerSum = teamTopPlayers.Select(aPlayer => aPlayer.getTopPower(useModifiers && afterRoundstart)).Sum();
                     if (useModifiers && afterRoundstart) {
-                        topPowerSum /= 1000;
+                        topPowerSum /= 100;
                     }
                     var playerSum = 1.0;
                     var ticketPower = 1.0;
