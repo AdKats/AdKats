@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.68
+ * Version 6.9.0.69
  * 25-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.68</version_code>
+ * <version_code>6.9.0.69</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.68";
+        private const String PluginVersion = "6.9.0.69";
 
         public enum GameVersion
         {
@@ -42715,10 +42715,11 @@ namespace PRoConEvents
                     return basePower;
                 }
                 // Calculate active power
-                Double killPower = min1(Math.Min(fbpInfo.Kills, maxKills) / maxKills * (Plugin._TeamPowerActiveInfluence/3));
-                Double kdPower = min1(Math.Min(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * (Plugin._TeamPowerActiveInfluence / 3));
-                Double scorePower = min1(Math.Min(fbpInfo.Score, maxScore) / maxScore * (Plugin._TeamPowerActiveInfluence / 3));
-                Double activePower = killPower * kdPower * scorePower;
+                var influence = Plugin._TeamPowerActiveInfluence / 3.0;
+                Double killPower = min1(Math.Min(fbpInfo.Kills, maxKills) / maxKills * influence);
+                Double kdPower = min1(Math.Min(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * influence);
+                Double scorePower = min1(Math.Min(fbpInfo.Score, maxScore) / maxScore * influence);
+                Double activePower = killPower + kdPower + scorePower;
                 // Take either the base power or active power, whichever is greater
                 return Math.Max(basePower, activePower);
             }
