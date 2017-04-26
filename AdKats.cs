@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.62
+ * Version 6.9.0.63
  * 25-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.62</version_code>
+ * <version_code>6.9.0.63</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.62";
+        private const String PluginVersion = "6.9.0.63";
 
         public enum GameVersion
         {
@@ -34344,7 +34344,7 @@ namespace PRoConEvents
             } else {
                 if (realRecord != null) {
                     SendMessageToSource(realRecord, "Queuing you to assist the weak team. Thank you.");
-                    OnlineAdminSayMessage(realRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + (ticketBypass && newPowerDiff > oldPowerDiff ? "TicketDiff" : Math.Round(newPowerDiff) + "<=" + Math.Round(oldPowerDiff)) + ")" : "") + ", queueing.");
+                    OnlineAdminSayMessage(realRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + (ticketBypass && newPowerDiff > oldPowerDiff ? "TicketDiff" : Math.Round(newPowerDiff) + "<" + Math.Round(oldPowerDiff)) + ")" : "") + ", queueing.");
                     realRecord.command_action = GetCommandByKey("self_assist_unconfirmed");
                 } else if (debugRecord != null) {
                     SendMessageToSource(debugRecord, "Assist accepted.");
@@ -43566,6 +43566,9 @@ namespace PRoConEvents
                     }
                     var teamTopPlayers = teamPlayers.Where(aPlayer => aPlayer.getTopPower(useModifiers && afterRoundstart) > 1);
                     var topPowerSum = teamTopPlayers.Select(aPlayer => aPlayer.getTopPower(useModifiers && afterRoundstart)).Sum();
+                    if (useModifiers && afterRoundstart) {
+                        topPowerSum /= 1000;
+                    }
                     var playerSum = 1.0;
                     var ticketPower = 1.0;
                     if (useModifiers) {
