@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.66
+ * Version 6.9.0.67
  * 25-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.66</version_code>
+ * <version_code>6.9.0.67</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.66";
+        private const String PluginVersion = "6.9.0.67";
 
         public enum GameVersion
         {
@@ -635,7 +635,7 @@ namespace PRoConEvents
         private Boolean _UseTeamPowerMonitorBalance = false;
         private Boolean currentStartingTeam1 = true;
         private Boolean _PlayersAutoAssistedThisRound = false;
-        private Double _TeamPowerActiveInfluence = 16;
+        private Double _TeamPowerActiveInfluence = 32;
         private String _TopPlayersAffected = "Good And Above";
         //Populators
         private Boolean _PopulatorMonitor;
@@ -42706,14 +42706,17 @@ namespace PRoConEvents
             private Double maxKills = 200.0;
             private Double maxKd = 4.0;
             public Double getTopPower(Boolean active) {
-                Double baseTopPower = min1(TopStats.RoundCount >= 3 && TopStats.TopCount > 0 ? Math.Pow(TopStats.TopRoundRatio + 1, 4) : 1.0);
+                Double basePower = min1(TopStats.RoundCount >= 3 && TopStats.TopCount > 0 ? Math.Pow(TopStats.TopRoundRatio + 1, 5) : 1.0);
                 if (!active || fbpInfo == null) {
-                    return baseTopPower;
+                    return basePower;
                 }
+                // Calculate active power
                 Double killPower = min1(Math.Min(fbpInfo.Kills, maxKills) / maxKills * (Plugin._TeamPowerActiveInfluence/3));
                 Double kdPower = min1(Math.Min(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * (Plugin._TeamPowerActiveInfluence / 3));
                 Double scorePower = min1(Math.Min(fbpInfo.Score, maxScore) / maxScore * (Plugin._TeamPowerActiveInfluence / 3));
-                return baseTopPower * killPower * kdPower * scorePower;
+                Double activePower = killPower * kdPower * scorePower;
+                // Take either the base power or active power, whichever is greater
+                return Math.Max(basePower, activePower);
             }
 
             private Double min1(Double val) {
