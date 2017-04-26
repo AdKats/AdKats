@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.61
- * 24-APR-2017
+ * Version 6.9.0.62
+ * 25-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.61</version_code>
+ * <version_code>6.9.0.62</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.61";
+        private const String PluginVersion = "6.9.0.62";
 
         public enum GameVersion
         {
@@ -1561,13 +1561,11 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
                         if (_UseTeamPowerMonitor) {
                             var onlineTopPlayers = _PlayerDictionary.Values.ToList()
-                                .Where(aPlayer => aPlayer.TopStats.getTopPower() > 0);
+                                .Where(aPlayer => aPlayer.getTopPower(true) > 1);
                             var onlineTopPlayerListing = onlineTopPlayers
-                                .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(" + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + ") ")) + 
-                                                   "(" + Math.Round(Math.Sqrt(aPlayer.frostbitePlayerInfo.Kills > 0 ? aPlayer.frostbitePlayerInfo.Kills : 1) *
-                                                         ((aPlayer.frostbitePlayerInfo.Kills > 0 ? aPlayer.frostbitePlayerInfo.Kills : 1) / (aPlayer.frostbitePlayerInfo.Deaths > 0 ? aPlayer.frostbitePlayerInfo.Deaths : 1)) *
-                                                         aPlayer.frostbitePlayerInfo.Score).ToString("0000000") + 
-                                                   "|" + aPlayer.TopStats.getTopPower().ToString("00.0") + 
+                                .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(" + _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + ") ")) + 
+                                                   "(" + Math.Round(aPlayer.getTopPower(true)).ToString("0000") + 
+                                                   "|" + aPlayer.getTopPower(false).ToString("00.0") + 
                                                    "|" + aPlayer.TopStats.TopCount + 
                                                    ") " + aPlayer.GetVerboseName())
                                 .OrderByDescending(item => item);
@@ -3461,7 +3459,7 @@ namespace PRoConEvents
                                     //Update top player information for all online players
                                     foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
                                         FetchPowerInformation(aPlayer);
-                                        Log.Info("Fetched player power info for " + aPlayer.GetVerboseName() + ": (" + Math.Round(aPlayer.TopStats.getTopPower(), 2) + ").");
+                                        Log.Info("Fetched player power info for " + aPlayer.GetVerboseName() + ": (" + Math.Round(aPlayer.getTopPower(false), 2) + ").");
                                     }
                                     LogThreadExit();
                                 })));
@@ -7137,8 +7135,6 @@ namespace PRoConEvents
                                 }
 
                                 if (_UseTeamPowerMonitor && _useExperimentalTools && _firstPlayerListComplete) {
-                                    var onlineTopPlayers = _PlayerDictionary.Values.ToList()
-                                        .Where(aPlayer => aPlayer.TopStats.getTopPower() > 0);
                                     AdKatsTeam t1, t2;
                                     if (_roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2))
                                     {
@@ -7232,7 +7228,7 @@ namespace PRoConEvents
                                         !_Team1MoveQueue.Any() &&
                                         !_Team2MoveQueue.Any()) {
                                         foreach (var aPlayer in GetOnlinePlayerDictionaryOfGroup("blacklist_autoassist").Values
-                                            .Where(dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) {
+                                            .Where(dPlayer => dPlayer.fbpInfo.TeamID == winningTeam.TeamID)) {
                                             Thread.Sleep(2000);
                                             _PlayersAutoAssistedThisRound = true;
                                             QueueRecordForProcessing(new AdKatsRecord {
@@ -7973,7 +7969,7 @@ namespace PRoConEvents
                                 {
                                     //First process squads from the previous round, ordering most powerful squads first
                                     Boolean first = true;
-                                    foreach (var squad in _RoundOverSquads.OrderByDescending(squad => squad.Value.Sum(member => member.TopStats.getTopPower())))
+                                    foreach (var squad in _RoundOverSquads.OrderByDescending(squad => squad.Value.Sum(member => member.getTopPower(true))))
                                     {
                                         List<AdKatsPlayer> members = squad.Value;
 
@@ -8015,7 +8011,7 @@ namespace PRoConEvents
                                             member.AssignedSquad = availableSquadID;
                                             message += member.player_name + "|";
                                             //If they are being monitored, set their required team
-                                            if (member.TopStats.getTopPower() > 0)
+                                            if (member.getTopPower(true) > 1)
                                             {
                                                 member.RequiredTeam = targetTeam;
                                             }
@@ -8044,11 +8040,11 @@ namespace PRoConEvents
                                 List<AdKatsPlayer> orderedTopPlayers = _PlayerDictionary.Values
                                     .Where(dPlayer =>
                                         dPlayer.player_type == PlayerType.Player &&
-                                        dPlayer.TopStats.getTopPower() > 0 && 
+                                        dPlayer.getTopPower(true) > 1 && 
                                         dPlayer.RequiredTeam == null &&
                                         dPlayer.AssignedSquad == 0)
                                     .OrderByDescending(dPlayer =>
-                                        dPlayer.TopStats.getTopPower())
+                                        dPlayer.getTopPower(true))
                                     .ToList();
                                 if (orderedTopPlayers.Count > 1)
                                 {
@@ -8061,7 +8057,7 @@ namespace PRoConEvents
                                             ProconChatWrite("Initial Moved " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamKey);
                                         }
                                         Thread.Sleep(TimeSpan.FromMilliseconds(50));
-                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
+                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.fbpInfo.SquadID + "", "false");
                                         Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + String.Format("{0:n0}", _roundID));
                                         if (aPlayer.player_name == _debugSoldierName)
                                         {
@@ -8094,7 +8090,7 @@ namespace PRoConEvents
                                             ExecuteCommand("procon.protected.send",
                                                            "admin.movePlayer",
                                                            aPlayer.player_name,
-                                                           aPlayer.RequiredTeam.TeamID + "", (aPlayer.AssignedSquad == 0 ? aPlayer.frostbitePlayerInfo.SquadID : aPlayer.AssignedSquad) + "",
+                                                           aPlayer.RequiredTeam.TeamID + "", (aPlayer.AssignedSquad == 0 ? aPlayer.fbpInfo.SquadID : aPlayer.AssignedSquad) + "",
                                                            "true");
                                             if (_UseTeamPowerMonitorBalance)
                                             {
@@ -8207,7 +8203,7 @@ namespace PRoConEvents
                 {
                     AdKatsPlayer aPlayer = _PlayerDictionary[soldierName];
                     AdKatsTeam oldTeam;
-                    if (!GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out oldTeam))
+                    if (!GetTeamByID(aPlayer.fbpInfo.TeamID, out oldTeam))
                     {
                         if (_roundState == RoundState.Playing) {
                             Log.Error("Error fetching old team on team change.");
@@ -8229,7 +8225,7 @@ namespace PRoConEvents
                         var newPowerDiff = Math.Round(Math.Abs(newTeam.getTeamPower(null, aPlayer) - oldTeam.getTeamPower(aPlayer, null)));
                         var oldPowerDiff = Math.Round(Math.Abs(newTeam.getTeamPower() - oldTeam.getTeamPower()));
                         if (_UseTeamPowerMonitor && 
-                            aPlayer.TopStats.getTopPower() > 0 && 
+                            aPlayer.getTopPower(true) > 1 && 
                             newPowerDiff <= oldPowerDiff &&
                             _roundState == RoundState.Playing && 
                             _serverInfo.GetRoundElapsedTime().TotalSeconds > 10) {
@@ -8245,8 +8241,8 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        Int32 oldSquad = aPlayer.frostbitePlayerInfo.SquadID;
-                        aPlayer.frostbitePlayerInfo.TeamID = teamId;
+                        Int32 oldSquad = aPlayer.fbpInfo.SquadID;
+                        aPlayer.fbpInfo.TeamID = teamId;
                     }
                 }
                 //When a player changes team, tell teamswap to recheck queues
@@ -8261,13 +8257,13 @@ namespace PRoConEvents
 
         public List<AdKatsPlayer> GetSquadPlayers(AdKatsPlayer aPlayer)
         {
-            return GetSquadPlayers(aPlayer.frostbitePlayerInfo.SquadID);
+            return GetSquadPlayers(aPlayer.fbpInfo.SquadID);
         }
 
         public List<AdKatsPlayer> GetSquadPlayers(Int32 squadID)
         {
             return _PlayerDictionary.Values.ToList().Where(
-                aPlayer => aPlayer.frostbitePlayerInfo.SquadID == squadID).ToList();
+                aPlayer => aPlayer.fbpInfo.SquadID == squadID).ToList();
         }
 
         public String GetSquadName(Int32 squadID)
@@ -8293,7 +8289,7 @@ namespace PRoConEvents
                 {
                     AdKatsPlayer aPlayer = _PlayerDictionary[soldierName];
                     AdKatsTeam oldTeam;
-                    if (!GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out oldTeam)) {
+                    if (!GetTeamByID(aPlayer.fbpInfo.TeamID, out oldTeam)) {
                         if (_roundState == RoundState.Playing) {
                             Log.Error("Error fetching old team on team change.");
                         }
@@ -8306,8 +8302,8 @@ namespace PRoConEvents
                         }
                         return;
                     }
-                    Int32 oldSquad = aPlayer.frostbitePlayerInfo.SquadID;
-                    aPlayer.frostbitePlayerInfo.SquadID = squadId;
+                    Int32 oldSquad = aPlayer.fbpInfo.SquadID;
+                    aPlayer.fbpInfo.SquadID = squadId;
                 }
             }
             catch (Exception e)
@@ -8641,12 +8637,12 @@ namespace PRoConEvents
                                     if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer))
                                     {
                                         //They are
-                                        if (aPlayer.frostbitePlayerInfo.Score != playerInfo.Score || aPlayer.frostbitePlayerInfo.Kills != playerInfo.Kills || aPlayer.frostbitePlayerInfo.Deaths != playerInfo.Deaths)
+                                        if (aPlayer.fbpInfo.Score != playerInfo.Score || aPlayer.fbpInfo.Kills != playerInfo.Kills || aPlayer.fbpInfo.Deaths != playerInfo.Deaths)
                                         {
                                             aPlayer.lastAction = UtcNow();
                                         }
-                                        aPlayer.frostbitePlayerInfo = playerInfo;
-                                        switch (aPlayer.frostbitePlayerInfo.Type)
+                                        aPlayer.fbpInfo = playerInfo;
+                                        switch (aPlayer.fbpInfo.Type)
                                         {
                                             case 0:
                                                 aPlayer.player_type = PlayerType.Player;
@@ -8661,14 +8657,14 @@ namespace PRoConEvents
                                                 aPlayer.player_type = PlayerType.CommanderMobile;
                                                 break;
                                             default:
-                                                Log.Error("Player type " + aPlayer.frostbitePlayerInfo.Type + " is not valid.");
+                                                Log.Error("Player type " + aPlayer.fbpInfo.Type + " is not valid.");
                                                 break;
                                         }
 
                                         if (_roundState == RoundState.Playing) 
                                         {
                                             Boolean proconFetched = false;
-                                            Double ping = aPlayer.frostbitePlayerInfo.Ping;
+                                            Double ping = aPlayer.fbpInfo.Ping;
                                             if (((_pingEnforcerKickMissingPings && _attemptManualPingWhenMissing && ping < 0) || aPlayer.player_ping_manual) &&
                                                 !String.IsNullOrEmpty(aPlayer.player_ip))
                                             {
@@ -8826,14 +8822,14 @@ namespace PRoConEvents
                                         }
                                         aPlayer.player_server = _serverInfo;
                                         //Add the frostbite player info
-                                        aPlayer.frostbitePlayerInfo = playerInfo;
+                                        aPlayer.fbpInfo = playerInfo;
                                         String joinLocation = String.Empty;
                                         AdKatsTeam playerTeam = null;
-                                        if (aPlayer.frostbitePlayerInfo != null)
+                                        if (aPlayer.fbpInfo != null)
                                         {
-                                            _teamDictionary.TryGetValue(aPlayer.frostbitePlayerInfo.TeamID, out playerTeam);
+                                            _teamDictionary.TryGetValue(aPlayer.fbpInfo.TeamID, out playerTeam);
                                         }
-                                        switch (aPlayer.frostbitePlayerInfo.Type)
+                                        switch (aPlayer.fbpInfo.Type)
                                         {
                                             case 0:
                                                 aPlayer.player_type = PlayerType.Player;
@@ -8863,7 +8859,7 @@ namespace PRoConEvents
                                                 joinLocation += "tablet commander";
                                                 break;
                                             default:
-                                                Log.Error("Player type " + aPlayer.frostbitePlayerInfo.Type + " is not valid.");
+                                                Log.Error("Player type " + aPlayer.fbpInfo.Type + " is not valid.");
                                                 break;
                                         }
                                         if (aPlayer.player_type == PlayerType.Spectator) {
@@ -8989,7 +8985,7 @@ namespace PRoConEvents
                                         aPlayer.RoundStats[_roundID] = new AdKatsPlayerStats(_roundID);
                                     }
                                     if (_roundState == RoundState.Playing) {
-                                        aPlayer.RoundStats[_roundID].LiveStats = aPlayer.frostbitePlayerInfo;
+                                        aPlayer.RoundStats[_roundID].LiveStats = aPlayer.fbpInfo;
                                     }
 
                                     try {
@@ -8998,13 +8994,13 @@ namespace PRoConEvents
                                             _UseTeamPowerMonitor &&
                                             _UseTeamPowerMonitorBalance &&
                                             aPlayer.player_type == PlayerType.Player &&
-                                            aPlayer.TopStats.getTopPower() > 0 && 
+                                            aPlayer.getTopPower(true) > 1 && 
                                             _roundState == RoundState.Playing) {
                                             AdKatsTeam t1, t2, tf, te;
-                                            if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2) && GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out tf)) {
+                                            if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2) && GetTeamByID(aPlayer.fbpInfo.TeamID, out tf)) {
                                                 Double t1Power = t1.getTeamPower();
                                                 Double t2Power = t2.getTeamPower();
-                                                Double playerPower = aPlayer.TopStats.getTopPower();
+                                                Double playerPower = aPlayer.getTopPower(true);
                                                 Double friendlyPower, enemyPower;
                                                 if (t1.TeamID == tf.TeamID) {
                                                     tf = t1;
@@ -9040,7 +9036,7 @@ namespace PRoConEvents
                                                             Log.Warn(aPlayer.GetVerboseName() + " friendly power " + tf.TeamKey + " " + friendlyPower + ", enemy power " + te.TeamKey + " " + enemyPower + ".");
                                                             Log.Warn(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " but on " + tf.TeamKey + ", attempting to move.");
                                                         }
-                                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
+                                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.fbpInfo.SquadID + "", "false");
                                                     }
                                                 }
                                             }
@@ -9053,10 +9049,10 @@ namespace PRoConEvents
 
                                 AdKatsTeam team1, team2;
                                 if (GetTeamByID(1, out team1)) {
-                                    team1.UpdatePlayerCount(_PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == 1 && aPlayer.player_type == PlayerType.Player));
+                                    team1.UpdatePlayerCount(_PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.fbpInfo.TeamID == 1 && aPlayer.player_type == PlayerType.Player));
                                 }
                                 if (GetTeamByID(2, out team2)) {
-                                    team2.UpdatePlayerCount(_PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == 2 && aPlayer.player_type == PlayerType.Player));
+                                    team2.UpdatePlayerCount(_PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.fbpInfo.TeamID == 2 && aPlayer.player_type == PlayerType.Player));
                                 }
                                 //Make sure the player dictionary is clean of any straglers
                                 Int32 straglerCount = 0;
@@ -9697,7 +9693,7 @@ namespace PRoConEvents
                                             continue;
                                         }
                                         currentTeam.UpdateTicketCount(score.Score);
-                                        currentTeam.UpdateTotalScore(_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == score.TeamID).Aggregate<AdKatsPlayer, double>(0, (current, aPlayer) => current + aPlayer.frostbitePlayerInfo.Score));
+                                        currentTeam.UpdateTotalScore(_PlayerDictionary.Values.Where(aPlayer => aPlayer.fbpInfo.TeamID == score.TeamID).Aggregate<AdKatsPlayer, double>(0, (current, aPlayer) => current + aPlayer.fbpInfo.Score));
                                     }
                                 }
                                 else
@@ -10185,7 +10181,7 @@ namespace PRoConEvents
                                                 Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
                                                 //Get players from the auto-assist blacklist
                                                 foreach (AdKatsPlayer aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(aPlayer =>
-                                                    aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                    aPlayer.fbpInfo.TeamID == winningTeam.TeamID))
                                                 {
                                                     if (!auaPlayers.ContainsKey(aPlayer.player_name))
                                                     {
@@ -10198,7 +10194,7 @@ namespace PRoConEvents
                                                 {
                                                     foreach (AdKatsRecord aRecord in _roundAssists.Values.Where(dRecord => 
                                                         dRecord.target_player.player_online && 
-                                                        dRecord.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                        dRecord.target_player.fbpInfo.TeamID == winningTeam.TeamID))
                                                     {
                                                         if (!auaPlayers.ContainsKey(aRecord.target_player.player_name))
                                                         {
@@ -10448,11 +10444,11 @@ namespace PRoConEvents
             {
                 List<AdKatsPlayer> OrderedPlayers = _PlayerDictionary.Values
                     .Where(aPlayer => aPlayer.player_type == PlayerType.Player)
-                    .OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
+                    .OrderByDescending(aPlayer => aPlayer.fbpInfo.Score).ToList();
                 List<AdKatsPlayer> WinningPlayers = OrderedPlayers
-                    .Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID).ToList();
+                    .Where(aPlayer => aPlayer.fbpInfo.TeamID == winningTeam.TeamID).ToList();
                 List<AdKatsPlayer> LosingPlayers = OrderedPlayers
-                    .Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == losingTeam.TeamID).ToList();
+                    .Where(aPlayer => aPlayer.fbpInfo.TeamID == losingTeam.TeamID).ToList();
                 foreach (AdKatsPlayer aPlayer in WinningPlayers)
                 {
                     QueueStatisticForProcessing(new AdKatsStatistic()
@@ -10462,7 +10458,7 @@ namespace PRoConEvents
                         round_id = _roundID,
                         target_name = aPlayer.player_name,
                         target_player = aPlayer,
-                        stat_value = aPlayer.frostbitePlayerInfo.SquadID,
+                        stat_value = aPlayer.fbpInfo.SquadID,
                         stat_comment = aPlayer.player_name + " won",
                         stat_time = UtcNow()
                     });
@@ -10476,7 +10472,7 @@ namespace PRoConEvents
                         round_id = _roundID,
                         target_name = aPlayer.player_name,
                         target_player = aPlayer,
-                        stat_value = aPlayer.frostbitePlayerInfo.SquadID,
+                        stat_value = aPlayer.fbpInfo.SquadID,
                         stat_comment = aPlayer.player_name + " lost",
                         stat_time = UtcNow()
                     });
@@ -10489,7 +10485,7 @@ namespace PRoConEvents
                         round_id = _roundID,
                         target_name = aPlayer.player_name,
                         target_player = aPlayer,
-                        stat_value = aPlayer.frostbitePlayerInfo.SquadID,
+                        stat_value = aPlayer.fbpInfo.SquadID,
                         stat_comment = aPlayer.player_name + " top player in position " + (WinningPlayers.IndexOf(aPlayer) + 1),
                         stat_time = UtcNow()
                     });
@@ -10940,13 +10936,13 @@ namespace PRoConEvents
                             AdKatsPlayer aPlayer;
                             if (_PlayerDictionary.TryGetValue(player.SoldierName, out aPlayer))
                             {
-                                aPlayer.frostbitePlayerInfo = player;
+                                aPlayer.fbpInfo = player;
                                 AdKatsPlayerStats aStats;
                                 if (aPlayer.RoundStats.TryGetValue(_roundID, out aStats))
                                 {
                                     aStats.LiveStats = player;
                                 }
-                                var squadIdentifier = aPlayer.frostbitePlayerInfo.TeamID.ToString() + aPlayer.frostbitePlayerInfo.SquadID.ToString();
+                                var squadIdentifier = aPlayer.fbpInfo.TeamID.ToString() + aPlayer.fbpInfo.SquadID.ToString();
                                 // If the squad isn't loaded yet, load it
                                 if (!_RoundOverSquads.ContainsKey(squadIdentifier))
                                 {
@@ -10957,7 +10953,7 @@ namespace PRoConEvents
                                 if (_UseTeamPowerMonitorBalance && _UseTeamPowerMonitor)
                                 {
                                     // Remove the player's current squad
-                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.frostbitePlayerInfo.TeamID + "", "0", "true");
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.fbpInfo.TeamID + "", "0", "true");
                                 }
                             }
                         }
@@ -11481,7 +11477,7 @@ namespace PRoConEvents
                     Int32 lowCountRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
                     int lowCountBan = 
                         ((_gameVersion == GameVersion.BF3) ? (25) : (20)) -
-                        ((aKill.killer.frostbitePlayerInfo.Rank <= 15) ? (6) : (0));
+                        ((aKill.killer.fbpInfo.Rank <= 15) ? (6) : (0));
                     if (lowCountRecent >= lowCountBan && !PlayerProtected(aKill.killer)) {
                         QueueRecordForProcessing(new AdKatsRecord {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -11499,7 +11495,7 @@ namespace PRoConEvents
                     Int32 highCountRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 120);
                     int highCountBan = 
                         ((_gameVersion == GameVersion.BF3) ? (40) : (32)) -
-                        ((aKill.killer.frostbitePlayerInfo.Rank <= 15) ? (8) : (0));
+                        ((aKill.killer.fbpInfo.Rank <= 15) ? (8) : (0));
                     if (highCountRecent >= highCountBan && !PlayerProtected(aKill.killer)) {
                         QueueRecordForProcessing(new AdKatsRecord {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -12181,7 +12177,7 @@ namespace PRoConEvents
                     }
 
                     //Ensure frostbite player info
-                    if (aPlayer.frostbitePlayerInfo == null) {
+                    if (aPlayer.fbpInfo == null) {
                         return;
                     }
 
@@ -12200,7 +12196,7 @@ namespace PRoConEvents
                         return;
                     }
                     AdKatsTeam friendlyTeam, enemyTeam;
-                    if (aPlayer.frostbitePlayerInfo.TeamID == team1.TeamID) {
+                    if (aPlayer.fbpInfo.TeamID == team1.TeamID) {
                         friendlyTeam = team1;
                         enemyTeam = team2;
                     } else {
@@ -12421,7 +12417,7 @@ namespace PRoConEvents
                     var duration = NowDuration(_lastNukeTime);
                     if (duration.TotalSeconds < _nukeAutoSlayActiveDuration && 
                         _lastNukeTeam != null && 
-                        aPlayer.frostbitePlayerInfo.TeamID == _lastNukeTeam.TeamID)
+                        aPlayer.fbpInfo.TeamID == _lastNukeTeam.TeamID)
                     {
                         var endDuration = NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration));
                         PlayerTellMessage(aPlayer.player_name, _lastNukeTeam.TeamKey + " nuke active for " + Math.Round(endDuration.TotalSeconds, 1) + " seconds!");
@@ -13887,10 +13883,10 @@ namespace PRoConEvents
                 AdKatsPlayer aPlayer;
                 if (_PlayerDictionary.TryGetValue(speaker, out aPlayer))
                 {
-                    if (aPlayer.frostbitePlayerInfo != null)
+                    if (aPlayer.fbpInfo != null)
                     {
-                        chatMessage.SubsetTeamID = aPlayer.frostbitePlayerInfo.TeamID;
-                        chatMessage.SubsetSquadID = aPlayer.frostbitePlayerInfo.SquadID;
+                        chatMessage.SubsetTeamID = aPlayer.fbpInfo.TeamID;
+                        chatMessage.SubsetSquadID = aPlayer.fbpInfo.SquadID;
                     }
                 }
                 HandleChat(chatMessage);
@@ -13918,9 +13914,9 @@ namespace PRoConEvents
                 AdKatsPlayer aPlayer;
                 if (_PlayerDictionary.TryGetValue(speaker, out aPlayer))
                 {
-                    if (aPlayer.frostbitePlayerInfo != null)
+                    if (aPlayer.fbpInfo != null)
                     {
-                        chatMessage.SubsetSquadID = aPlayer.frostbitePlayerInfo.SquadID;
+                        chatMessage.SubsetSquadID = aPlayer.fbpInfo.SquadID;
                     }
                 }
                 HandleChat(chatMessage);
@@ -14953,7 +14949,7 @@ namespace PRoConEvents
                                         AdKatsPlayer dicPlayer;
                                         if (_PlayerDictionary.TryGetValue(player.SoldierName, out dicPlayer))
                                         {
-                                            if (dicPlayer.frostbitePlayerInfo.TeamID == 1)
+                                            if (dicPlayer.fbpInfo.TeamID == 1)
                                             {
                                                 //Skip the kill/swap if they are already on the goal team by some other means
                                                 continue;
@@ -14995,7 +14991,7 @@ namespace PRoConEvents
                                         AdKatsPlayer dicPlayer;
                                         if (_PlayerDictionary.TryGetValue(player.SoldierName, out dicPlayer))
                                         {
-                                            if (dicPlayer.frostbitePlayerInfo.TeamID == 2)
+                                            if (dicPlayer.fbpInfo.TeamID == 2)
                                             {
                                                 //Skip the kill/swap if they are already on the goal team by some other means
                                                 continue;
@@ -15551,8 +15547,8 @@ namespace PRoConEvents
                             }
                             if (record.target_player != null && 
                                 record.source_player != null && 
-                                record.target_player.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID &&
-                                record.target_player.frostbitePlayerInfo.SquadID == record.source_player.frostbitePlayerInfo.SquadID)
+                                record.target_player.fbpInfo.TeamID == record.source_player.fbpInfo.TeamID &&
+                                record.target_player.fbpInfo.SquadID == record.source_player.fbpInfo.SquadID)
                             {
                                 SendMessageToSource(record, "You are already in squad with " + record.target_player.GetVerboseName() + ".");
                                 FinalizeRecord(record);
@@ -23361,7 +23357,7 @@ namespace PRoConEvents
                     return;
                 }
 
-                QueuePlayerForMove(record.target_player.frostbitePlayerInfo);
+                QueuePlayerForMove(record.target_player.fbpInfo);
                 PlayerSayMessage(record.target_name, "On your next death you will be moved to the opposing team.");
                 SendMessageToSource(record, record.GetTargetNames() + " will be sent to TeamSwap on their next death.");
             }
@@ -23387,7 +23383,7 @@ namespace PRoConEvents
                     {
                         message = "Calling Teamswap on self";
                         Log.Debug(() => message, 6);
-                        QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
+                        QueuePlayerForForceMove(record.target_player.fbpInfo);
                     }
                     else
                     {
@@ -23401,7 +23397,7 @@ namespace PRoConEvents
                     message = "TeamSwap called on " + record.GetTargetNames();
                     Log.Debug(() => "Calling Teamswap on target", 6);
                     SendMessageToSource(record, "" + record.GetTargetNames() + " sent to TeamSwap.");
-                    QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
+                    QueuePlayerForForceMove(record.target_player.fbpInfo);
                 }
             }
             catch (Exception e)
@@ -23449,12 +23445,12 @@ namespace PRoConEvents
                     losingTeam = team1;
                 }
                 AdKatsTeam friendlyTeam, enemyTeam;
-                if (record.target_player.frostbitePlayerInfo.TeamID == team1.TeamID)
+                if (record.target_player.fbpInfo.TeamID == team1.TeamID)
                 {
                     friendlyTeam = team1;
                     enemyTeam = team2;
                 }
-                else if (record.target_player.frostbitePlayerInfo.TeamID == team2.TeamID)
+                else if (record.target_player.fbpInfo.TeamID == team2.TeamID)
                 {
                     friendlyTeam = team2;
                     enemyTeam = team1;
@@ -23475,7 +23471,7 @@ namespace PRoConEvents
                 {
                     _roundAssists[record.target_player.player_name] = record;
                 }
-                QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
+                QueuePlayerForForceMove(record.target_player.fbpInfo);
             }
             catch (Exception e)
             {
@@ -23758,7 +23754,7 @@ namespace PRoConEvents
                     {
                         AdminSayMessage(record.GetTargetNames() + " was KICKED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                     }
-                    if (record.target_player.frostbitePlayerInfo != null)
+                    if (record.target_player.fbpInfo != null)
                     {
                         SendMessageToSource(record, "You KICKED " + record.GetTargetNames() + " from " + GetPlayerTeamName(record.target_player) + " for " + record.record_message);
                     }
@@ -26520,12 +26516,12 @@ namespace PRoConEvents
                     {
                         //Unlock target squad
                         SendMessageToSource(record, "Unlocking target squad if needed, please wait.");
-                        ExecuteCommand("procon.protected.send", "squad.private", record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "false");
+                        ExecuteCommand("procon.protected.send", "squad.private", record.target_player.fbpInfo.TeamID + "", record.target_player.fbpInfo.SquadID + "", "false");
                         //If anything longer is needed...tisk tisk
                         _threadMasterWaitHandle.WaitOne(500);
                     }
                     //Check for player access to change teams
-                    if (record.target_player.frostbitePlayerInfo.TeamID != sourcePlayer.frostbitePlayerInfo.TeamID && !HasAccess(record.source_player, GetCommandByKey("self_teamswap")))
+                    if (record.target_player.fbpInfo.TeamID != sourcePlayer.fbpInfo.TeamID && !HasAccess(record.source_player, GetCommandByKey("self_teamswap")))
                     {
                         SendMessageToSource(record, "Target player is not on your team, you need @" + GetCommandByKey("self_teamswap").command_text + "/TeamSwap access to join them.");
                     }
@@ -26536,11 +26532,11 @@ namespace PRoConEvents
                         ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                         _MULTIBalancerUnswitcherDisabled = true;
                         AdKatsTeam targetTeam;
-                        if (GetTeamByID(record.target_player.frostbitePlayerInfo.TeamID, out targetTeam)) {
+                        if (GetTeamByID(record.target_player.fbpInfo.TeamID, out targetTeam)) {
                             record.target_player.RequiredTeam = targetTeam;
                             _LastPlayerMoveIssued = UtcNow();
                             SendMessageToSource(record, "Attempting to join " + record.GetTargetNames());
-                            ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_name, record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "true");
+                            ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_name, record.target_player.fbpInfo.TeamID + "", record.target_player.fbpInfo.SquadID + "", "true");
                         }
                     }
                 }
@@ -26566,18 +26562,18 @@ namespace PRoConEvents
                 record.record_action_executed = true;
                 //Unlock squad
                 SendMessageToSource(record, "Unlocking source squad for player entry.");
-                ExecuteCommand("procon.protected.send", "squad.private", record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "false");
+                ExecuteCommand("procon.protected.send", "squad.private", record.source_player.fbpInfo.TeamID + "", record.source_player.fbpInfo.SquadID + "", "false");
                 _threadMasterWaitHandle.WaitOne(500);
                 //Move to specific squad
                 Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                 _MULTIBalancerUnswitcherDisabled = true;
                 AdKatsTeam targetTeam;
-                if (GetTeamByID(record.source_player.frostbitePlayerInfo.TeamID, out targetTeam)) {
+                if (GetTeamByID(record.source_player.fbpInfo.TeamID, out targetTeam)) {
                     record.source_player.RequiredTeam = targetTeam;
                     _LastPlayerMoveIssued = UtcNow();
                     SendMessageToSource(record, "Attempting to pull " + record.GetTargetNames());
-                    ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_name, record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "true");
+                    ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_name, record.source_player.fbpInfo.TeamID + "", record.source_player.fbpInfo.SquadID + "", "true");
                 }
             }
             catch (Exception e)
@@ -26643,11 +26639,11 @@ namespace PRoConEvents
                     ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", "pb_sv_getss " + slotID);
                 }
                 String sourcePlayerInfo = "";
-                if (record.source_player != null && record.source_player.frostbitePlayerInfo != null)
+                if (record.source_player != null && record.source_player.fbpInfo != null)
                 {
                     if (record.source_player.player_online)
                     {
-                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.source_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + ")";
+                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.source_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.fbpInfo.TeamID == record.source_player.fbpInfo.TeamID).OrderBy(aPlayer => aPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + ")";
                     }
                     else
                     {
@@ -26655,11 +26651,11 @@ namespace PRoConEvents
                     }
                 }
                 String targetPlayerInfo = "";
-                if (record.target_player != null && record.target_player.frostbitePlayerInfo != null)
+                if (record.target_player != null && record.target_player.fbpInfo != null)
                 {
                     if (record.target_player.player_online)
                     {
-                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.target_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + ")";
+                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.target_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.fbpInfo.TeamID == record.target_player.fbpInfo.TeamID).OrderBy(aPlayer => aPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + ")";
                     }
                     else
                     {
@@ -26797,11 +26793,11 @@ namespace PRoConEvents
                     ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", "pb_sv_getss " + slotID);
                 }
                 String sourcePlayerInfo = "";
-                if (record.source_player != null && record.source_player.frostbitePlayerInfo != null)
+                if (record.source_player != null && record.source_player.fbpInfo != null)
                 {
                     if (record.source_player.player_online)
                     {
-                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.source_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.source_player) + 1) + ")";
+                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.source_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.fbpInfo.TeamID == record.source_player.fbpInfo.TeamID).OrderBy(aPlayer => aPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(record.source_player) + 1) + ")";
                     }
                     else
                     {
@@ -26809,11 +26805,11 @@ namespace PRoConEvents
                     }
                 }
                 String targetPlayerInfo = "";
-                if (record.target_player != null && record.target_player.frostbitePlayerInfo != null)
+                if (record.target_player != null && record.target_player.fbpInfo != null)
                 {
                     if (record.target_player.player_online)
                     {
-                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.target_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + ")";
+                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.target_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.fbpInfo.TeamID == record.target_player.fbpInfo.TeamID).OrderBy(aPlayer => aPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + ")";
                     }
                     else
                     {
@@ -27051,7 +27047,7 @@ namespace PRoConEvents
                                 }
                             }
                             AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + "!");
-                            var nukeTargets = _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"));
+                            var nukeTargets = _PlayerDictionary.Values.ToList().Where(player => (player.fbpInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"));
                             foreach (AdKatsPlayer player in nukeTargets) {
                                 // Initial kills for nuke
                                 ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
@@ -27079,7 +27075,7 @@ namespace PRoConEvents
                 {
                     _lastNukeTime = UtcNow();
                     AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + " team!");
-                    var nukeTargets = _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"));
+                    var nukeTargets = _PlayerDictionary.Values.ToList().Where(player => (player.fbpInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"));
                     foreach (AdKatsPlayer player in nukeTargets) {
                         // Initial kills for nuke
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
@@ -27132,7 +27128,7 @@ namespace PRoConEvents
                             FinalizeRecord(record);
                             return;
                         }
-                        targetedPlayers.AddRange(_PlayerDictionary.Values.ToList().Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID && aPlayer.frostbitePlayerInfo.SquadID == record.source_player.frostbitePlayerInfo.SquadID).ToList());
+                        targetedPlayers.AddRange(_PlayerDictionary.Values.ToList().Where(aPlayer => aPlayer.fbpInfo.TeamID == record.source_player.fbpInfo.TeamID && aPlayer.fbpInfo.SquadID == record.source_player.fbpInfo.SquadID).ToList());
                         break;
                     case "Team":
                         if (record.source_player == null || !record.source_player.player_online || !_PlayerDictionary.ContainsKey(record.source_player.player_name) || record.source_player.player_type == PlayerType.Spectator) {
@@ -27140,7 +27136,7 @@ namespace PRoConEvents
                             FinalizeRecord(record);
                             return;
                         }
-                        targetedPlayers.AddRange(_PlayerDictionary.Values.ToList().Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).ToList());
+                        targetedPlayers.AddRange(_PlayerDictionary.Values.ToList().Where(aPlayer => aPlayer.fbpInfo.TeamID == record.source_player.fbpInfo.TeamID).ToList());
                         break;
                     case "All":
                         //All players, so include spectators and commanders
@@ -27150,7 +27146,7 @@ namespace PRoConEvents
                         var teamTarget = GetTeamByKey(record.target_name);
                         if (teamTarget != null) {
                             //Send to target and neutral team
-                            targetedPlayers.AddRange(_PlayerDictionary.Values.ToList().Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == teamTarget.TeamID || aPlayer.frostbitePlayerInfo.TeamID == 0).ToList());
+                            targetedPlayers.AddRange(_PlayerDictionary.Values.ToList().Where(aPlayer => aPlayer.fbpInfo.TeamID == teamTarget.TeamID || aPlayer.fbpInfo.TeamID == 0).ToList());
                         } else {
                             SendMessageToSource(record, "Invalid target, must be Squad, Team, or All. Unable to Act.");
                             FinalizeRecord(record);
@@ -27229,7 +27225,7 @@ namespace PRoConEvents
             {
                 record.record_action_executed = true;
                 foreach (AdKatsPlayer player in _PlayerDictionary.Values.ToList().Where(aPlayer => aPlayer.player_type == PlayerType.Player)) {
-                    QueuePlayerForForceMove(player.frostbitePlayerInfo);
+                    QueuePlayerForForceMove(player.fbpInfo);
                 }
                 SendMessageToSource(record, "You SwapNuked the server.");
             }
@@ -28360,7 +28356,7 @@ namespace PRoConEvents
                     String location;
                     if (rRecord.target_player.player_online)
                     {
-                        location = "/" + GetPlayerTeamKey(rRecord.target_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == rRecord.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(rRecord.target_player) + 1);
+                        location = "/" + GetPlayerTeamKey(rRecord.target_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.fbpInfo.TeamID == rRecord.target_player.fbpInfo.TeamID).OrderBy(aPlayer => aPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(rRecord.target_player) + 1);
                     }
                     else
                     {
@@ -28468,11 +28464,11 @@ namespace PRoConEvents
                         }
                         _threadMasterWaitHandle.WaitOne(500);
                         String playerInfo = record.target_player.GetVerboseName() + ": " + record.target_player.player_id + ", " + record.target_player.player_role.role_name;
-                        if (record.target_player != null && record.target_player.frostbitePlayerInfo != null)
+                        if (record.target_player != null && record.target_player.fbpInfo != null)
                         {
                             if (record.target_player.player_online)
                             {
-                                playerInfo += ", " + GetPlayerTeamName(record.target_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" + record.target_player.frostbitePlayerInfo.Score;
+                                playerInfo += ", " + GetPlayerTeamName(record.target_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.fbpInfo.TeamID == record.target_player.fbpInfo.TeamID).OrderBy(aPlayer => aPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" + record.target_player.fbpInfo.Score;
                             }
                             else
                             {
@@ -28775,7 +28771,7 @@ namespace PRoConEvents
                 String playerInfo = record.GetTargetNames() + ": ";
                 if (record.target_player.player_online)
                 {
-                    playerInfo += GetPlayerTeamName(record.target_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" + record.target_player.frostbitePlayerInfo.Score;
+                    playerInfo += GetPlayerTeamName(record.target_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.fbpInfo.TeamID == record.target_player.fbpInfo.TeamID).OrderBy(aPlayer => aPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" + record.target_player.fbpInfo.Score;
                 }
                 else
                 {
@@ -29065,7 +29061,7 @@ namespace PRoConEvents
                 record.record_action_executed = true;
                 List<AdKatsPlayer> onlineAdminList = FetchOnlineAdminSoldiers();
                 String onlineAdmins = "Admins: [" + onlineAdminList.Count + " Online] ";
-                onlineAdmins = onlineAdminList.Aggregate(onlineAdmins, (current, aPlayer) => current + (aPlayer.GetVerboseName() + " (" + GetPlayerTeamKey(aPlayer) + "/" + (_PlayerDictionary.Values.Where(innerPlayer => innerPlayer.frostbitePlayerInfo.TeamID == aPlayer.frostbitePlayerInfo.TeamID).OrderBy(innerPlayer => innerPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(aPlayer) + 1) + "), "));
+                onlineAdmins = onlineAdminList.Aggregate(onlineAdmins, (current, aPlayer) => current + (aPlayer.GetVerboseName() + " (" + GetPlayerTeamKey(aPlayer) + "/" + (_PlayerDictionary.Values.Where(innerPlayer => innerPlayer.fbpInfo.TeamID == aPlayer.fbpInfo.TeamID).OrderBy(innerPlayer => innerPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(aPlayer) + 1) + "), "));
                 //Send online admins
                 SendMessageToSource(record, onlineAdmins.Trim().TrimEnd(','));
             }
@@ -29084,7 +29080,7 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                ExecuteCommand("procon.protected.send", "squad.leader", record.target_player.frostbitePlayerInfo.TeamID.ToString(), record.target_player.frostbitePlayerInfo.SquadID.ToString(), record.target_player.player_name);
+                ExecuteCommand("procon.protected.send", "squad.leader", record.target_player.fbpInfo.TeamID.ToString(), record.target_player.fbpInfo.SquadID.ToString(), record.target_player.player_name);
                 PlayerSayMessage(record.target_player.player_name, "You are now the leader of your current squad.");
                 if (record.source_name != record.target_name)
                 {
@@ -31925,7 +31921,7 @@ namespace PRoConEvents
                         if (_firstPlayerListComplete && Math.Abs(aPlayer.player_reputation - totalReputationConstrained) > .02) 
                         {
                             Log.Debug(() => aPlayer.GetVerboseName() + "'s reputation updated from " + Math.Round(aPlayer.player_reputation, 2) + " to " + Math.Round(totalReputationConstrained, 2), 3);
-                            if (aPlayer.player_spawnedOnce || (aPlayer.frostbitePlayerInfo != null && aPlayer.frostbitePlayerInfo.TeamID == 0))
+                            if (aPlayer.player_spawnedOnce || (aPlayer.fbpInfo != null && aPlayer.fbpInfo.TeamID == 0))
                             {
                                 if (!PlayerIsAdmin(aPlayer))
                                 {
@@ -34278,10 +34274,10 @@ namespace PRoConEvents
                 losingTeam = team1;
             }
             AdKatsTeam friendlyTeam, enemyTeam;
-            if (aPlayer.frostbitePlayerInfo.TeamID == team1.TeamID) {
+            if (aPlayer.fbpInfo.TeamID == team1.TeamID) {
                 friendlyTeam = team1;
                 enemyTeam = team2;
-            } else if (aPlayer.frostbitePlayerInfo.TeamID == team2.TeamID) {
+            } else if (aPlayer.fbpInfo.TeamID == team2.TeamID) {
                 friendlyTeam = team2;
                 enemyTeam = team1;
             } else {
@@ -34308,7 +34304,7 @@ namespace PRoConEvents
             // Calculate power differences
             var newPowerDiff = Math.Abs(newEnemyPower - newFriendlyPower);
             var oldPowerDiff = Math.Abs(oldEnemyPower - oldFriendlyPower);
-            Boolean enemyWinning = (aPlayer.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
+            Boolean enemyWinning = (aPlayer.fbpInfo.TeamID == losingTeam.TeamID);
             Boolean enemyMapPower = enemyTeam.GetTicketDifferenceRate() > friendlyTeam.GetTicketDifferenceRate();
             Double ticketBypassAmount = (_startingTicketCount > 0 ? (_startingTicketCount / 3.5) : 250);
             Boolean canTicketBypass = _previousRoundDuration.TotalSeconds > 0;
@@ -35365,7 +35361,7 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching top player information", e));
             }
             Log.Debug(() => "FetchPowerInformation finished!", 6);
-            return aPlayer.TopStats.getTopPower();
+            return aPlayer.getTopPower(false);
         }
 
         private List<KeyValuePair<DateTime, KeyValuePair<String, String>>> FetchConversation(Int64 player1_id, Int64 player2_id, Int64 limit_lines, Int64 limit_days)
@@ -37484,7 +37480,7 @@ namespace PRoConEvents
                                     }
                                     if (_UseTeamPowerMonitorBalance && _UseTeamPowerMonitor) {
                                         foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList() .Where(aPlayer =>
-                                                aPlayer.TopStats.getTopPower() > 0 &&
+                                                aPlayer.getTopPower(true) > 1 &&
                                                 aPlayer.game_id == _serverInfo.GameID && 
                                                 !tempASPlayers.Any(asp =>
                                                         asp.player_object != null && 
@@ -39224,13 +39220,13 @@ namespace PRoConEvents
                     tPlayer["player_lastAction"] = Math.Round((UtcNow() - aPlayer.lastAction).TotalSeconds);
                     tPlayer["player_spawnedOnce"] = aPlayer.player_spawnedOnce;
                     tPlayer["player_conversationPartner"] = ((aPlayer.conversationPartner == null) ? ("") : (aPlayer.conversationPartner.player_name));
-                    tPlayer["player_kills"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.Kills);
-                    tPlayer["player_deaths"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.Deaths);
-                    tPlayer["player_kdr"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : Math.Round(aPlayer.frostbitePlayerInfo.Kdr, 2);
-                    tPlayer["player_rank"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.Rank);
-                    tPlayer["player_score"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.Score);
-                    tPlayer["player_squad"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.SquadID);
-                    tPlayer["player_team"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.TeamID);
+                    tPlayer["player_kills"] = (aPlayer.fbpInfo == null) ? (0) : (aPlayer.fbpInfo.Kills);
+                    tPlayer["player_deaths"] = (aPlayer.fbpInfo == null) ? (0) : (aPlayer.fbpInfo.Deaths);
+                    tPlayer["player_kdr"] = (aPlayer.fbpInfo == null) ? (0) : Math.Round(aPlayer.fbpInfo.Kdr, 2);
+                    tPlayer["player_rank"] = (aPlayer.fbpInfo == null) ? (0) : (aPlayer.fbpInfo.Rank);
+                    tPlayer["player_score"] = (aPlayer.fbpInfo == null) ? (0) : (aPlayer.fbpInfo.Score);
+                    tPlayer["player_squad"] = (aPlayer.fbpInfo == null) ? (0) : (aPlayer.fbpInfo.SquadID);
+                    tPlayer["player_team"] = (aPlayer.fbpInfo == null) ? (0) : (aPlayer.fbpInfo.TeamID);
                     onlineSoldierList.Add(tPlayer);
                 }
                 if (timer.ElapsedMilliseconds > 500)
@@ -40587,7 +40583,7 @@ namespace PRoConEvents
 
         public Boolean PlayerIsWinning(AdKatsPlayer aPlayer)
         {
-            if (aPlayer.frostbitePlayerInfo == null)
+            if (aPlayer.fbpInfo == null)
             {
                 return false;
             }
@@ -40620,7 +40616,7 @@ namespace PRoConEvents
                 winningTeam = team2;
                 losingTeam = team1;
             }
-            return aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID;
+            return aPlayer.fbpInfo.TeamID == winningTeam.TeamID;
         }
 
         public AdKatsCommand GetCommandByKey(String commandKey)
@@ -40676,12 +40672,12 @@ namespace PRoConEvents
         public String GetPlayerTeamKey(AdKatsPlayer aPlayer)
         {
             String teamKey = "UKN";
-            if (aPlayer == null || aPlayer.frostbitePlayerInfo == null)
+            if (aPlayer == null || aPlayer.fbpInfo == null)
             {
                 return teamKey;
             }
             AdKatsTeam aTeam;
-            if (GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out aTeam))
+            if (GetTeamByID(aPlayer.fbpInfo.TeamID, out aTeam))
             {
                 return aTeam.TeamKey;
             }
@@ -40691,12 +40687,12 @@ namespace PRoConEvents
         public String GetPlayerTeamName(AdKatsPlayer aPlayer)
         {
             String teamName = "Unknown";
-            if (aPlayer == null || aPlayer.frostbitePlayerInfo == null)
+            if (aPlayer == null || aPlayer.fbpInfo == null)
             {
                 return teamName;
             }
             AdKatsTeam aTeam;
-            if (GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out aTeam))
+            if (GetTeamByID(aPlayer.fbpInfo.TeamID, out aTeam))
             {
                 return aTeam.TeamName;
             }
@@ -42631,7 +42627,7 @@ namespace PRoConEvents
             public List<AdKatsKill> LiveKills = null;
             public List<AdKatsRecord> TargetedRecords = null;
             public String player_clanTag = null;
-            public CPlayerInfo frostbitePlayerInfo = null;
+            public CPlayerInfo fbpInfo = null;
             public Int64 game_id = -1;
             public DateTime lastAction = DateTime.UtcNow;
             public DateTime lastKill = DateTime.UtcNow;
@@ -42700,6 +42696,24 @@ namespace PRoConEvents
                 player_pings = new Queue<KeyValuePair<Double, DateTime>>();
                 TargetedRecords = new List<AdKatsRecord>();
                 LastUsage = DateTime.UtcNow;
+            }
+
+            private Double maxScore = 20000.0;
+            private Double maxKills = 200.0;
+            private Double maxKd = 4.0;
+            public Double getTopPower(Boolean active) {
+                Double baseTopPower = min1(TopStats.RoundCount >= 3 && TopStats.TopCount > 0 ? Math.Pow(TopStats.TopRoundRatio + 1, 4) : 1.0);
+                if (!active || fbpInfo == null) {
+                    return baseTopPower;
+                }
+                Double killPower = min1(Math.Max(fbpInfo.Kills, maxKills) / maxKills * 8);
+                Double kdPower = min1(Math.Max(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * 8);
+                Double scorePower = min1(Math.Max(fbpInfo.Score, maxScore) / maxScore * 8);
+                return baseTopPower * killPower * kdPower * scorePower;
+            }
+
+            private Double min1(Double val) {
+                return Math.Max(val, 1.0);
             }
 
             public void SetIP(String ip)
@@ -42958,10 +42972,6 @@ namespace PRoConEvents
             public Int32 RoundCount;
             public Int32 TopCount;
             public Double TopRoundRatio;
-
-            public Double getTopPower() {
-                return (RoundCount >= 3 && TopCount > 0) ? Math.Pow(TopRoundRatio + 1, 4) : 0.0;
-            }
         }
 
         public class AdKatsPlayerStats {
@@ -43538,6 +43548,7 @@ namespace PRoConEvents
                     if (!Plugin._PlayerDictionary.Any() || !Plugin._UseTeamPowerMonitor) {
                         return 0;
                     }
+                    Boolean afterRoundstart = Plugin._roundState == RoundState.Playing && Plugin._serverInfo.GetRoundElapsedTime().TotalMinutes >= 4.0;
                     List<AdKatsPlayer> teamPlayers = Plugin._PlayerDictionary.Values.ToList()
                         .Where(aPlayer =>
                             aPlayer.player_type == PlayerType.Player
@@ -43547,29 +43558,17 @@ namespace PRoConEvents
                             (
                                 (aPlayer.RequiredTeam != null && aPlayer.RequiredTeam.TeamID == TeamID)
                                 ||
-                                (aPlayer.RequiredTeam == null && aPlayer.frostbitePlayerInfo.TeamID == TeamID)
+                                (aPlayer.RequiredTeam == null && aPlayer.fbpInfo.TeamID == TeamID)
                             )).ToList();
                     if (includePlayer != null && !teamPlayers.Contains(includePlayer))
                     {
                         teamPlayers.Add(includePlayer);
                     }
-                    var teamTopPlayers = teamPlayers.Where(aPlayer => aPlayer.TopStats.getTopPower() > 0);
-                    var topPowerSum = teamTopPlayers.Select(aPlayer => aPlayer.TopStats.getTopPower()).Sum();
-                    var kdPowerSum = 1.0;
+                    var teamTopPlayers = teamPlayers.Where(aPlayer => aPlayer.getTopPower(useModifiers && afterRoundstart) > 1);
+                    var topPowerSum = teamTopPlayers.Select(aPlayer => aPlayer.getTopPower(useModifiers && afterRoundstart)).Sum();
                     var playerSum = 1.0;
                     var ticketPower = 1.0;
                     if (useModifiers) {
-                        if (Plugin._roundState == RoundState.Playing && Plugin._serverInfo.GetRoundElapsedTime().TotalMinutes >= 4.0) {
-                            var teamFInfo = teamPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo != null);
-                            if (teamFInfo.Any()) {
-                                var teamTotalKills = teamFInfo.Sum(aPlayer => aPlayer.frostbitePlayerInfo.Kills);
-                                var teamTotalDeaths = teamFInfo.Sum(aPlayer => aPlayer.frostbitePlayerInfo.Deaths);
-                                //Calculate total team K/D
-                                kdPowerSum = (teamTotalKills / Math.Max(teamTotalDeaths, 1.0));
-                                //Coerce to 0.75-3.5
-                                kdPowerSum = Math.Min(Math.Max(kdPowerSum, 0.75), 2.5);
-                            }
-                        }
                         playerSum = Math.Sqrt(teamPlayers.Count());
                         Double current = TeamTicketCount;
                         Double start = Plugin._startingTicketCount;
@@ -43580,7 +43579,7 @@ namespace PRoConEvents
                             ticketPower = remainingPerc + (lostPerc / 4.0);
                         }
                     }
-                    var totalPower = Math.Round(topPowerSum * kdPowerSum * playerSum * ticketPower);
+                    var totalPower = Math.Round(topPowerSum * playerSum * ticketPower);
                     return totalPower;
                 }
                 catch (Exception e) {
@@ -43949,7 +43948,7 @@ namespace PRoConEvents
                             sb.Append("<h3>" + DateTime.Now + " ProCon Time</h3>");
                             sb.Append("<h3>" + record.GetSourceName() + " has reported " + record.GetTargetNames() + " for " + record.record_message + "</h3>");
                             sb.Append("<p>");
-                            CPlayerInfo playerInfo = record.target_player.frostbitePlayerInfo;
+                            CPlayerInfo playerInfo = record.target_player.fbpInfo;
                             //sb.Append("<h4>Current Information on " + record.target_name + ":</h4>");
                             int numReports = Plugin._RoundReports.Values.Count(aRecord => aRecord.target_name == record.target_name);
                             sb.Append("Reported " + numReports + " times during the current round.<br/>");
