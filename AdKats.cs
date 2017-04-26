@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.65
+ * Version 6.9.0.66
  * 25-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.65</version_code>
+ * <version_code>6.9.0.66</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.65";
+        private const String PluginVersion = "6.9.0.66";
 
         public enum GameVersion
         {
@@ -635,7 +635,7 @@ namespace PRoConEvents
         private Boolean _UseTeamPowerMonitorBalance = false;
         private Boolean currentStartingTeam1 = true;
         private Boolean _PlayersAutoAssistedThisRound = false;
-        private Int32 _TopPlayersTeamConfirmationDuration = 5;
+        private Double _TeamPowerActiveInfluence = 16;
         private String _TopPlayersAffected = "Good And Above";
         //Populators
         private Boolean _PopulatorMonitor;
@@ -1559,6 +1559,7 @@ namespace PRoConEvents
 
                     if (IsActiveSettingSection("B28")) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B28") + t + "Team Power Active Influence", typeof(Double), _TeamPowerActiveInfluence));
                         if (_UseTeamPowerMonitor) {
                             var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                                 .Where(aPlayer => aPlayer.getTopPower(true) > 1);
@@ -3477,17 +3478,20 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Affected Top Players", typeof(String), _TopPlayersAffected));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Top player team confirmation duration").Success)
+                else if (Regex.Match(strVariable, @"Team Power Active Influence").Success)
                 {
                     //Initial parse
-                    Int32 TopPlayersTeamConfirmationDuration = Int32.Parse(strValue);
+                    Int32 TeamPowerActiveInfluence = Int32.Parse(strValue);
                     //Check for changed value
-                    if (_TopPlayersTeamConfirmationDuration != TopPlayersTeamConfirmationDuration)
+                    if (_TeamPowerActiveInfluence != TeamPowerActiveInfluence)
                     {
+                        if (TeamPowerActiveInfluence < 1) {
+                            TeamPowerActiveInfluence = 1;
+                        }
                         //Assignment
-                        _TopPlayersTeamConfirmationDuration = TopPlayersTeamConfirmationDuration;
+                        _TeamPowerActiveInfluence = TeamPowerActiveInfluence;
                         //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Top player team confirmation duration", typeof(Int32), _TopPlayersTeamConfirmationDuration));
+                        QueueSettingForUpload(new CPluginVariable(@"Team Power Active Influence", typeof(Double), _TeamPowerActiveInfluence));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Monitor Populator Players").Success)
@@ -8072,7 +8076,7 @@ namespace PRoConEvents
 
                                 //Confirm they remain on the team they were assigned, yay DICE's mandatory balancer
                                 var start = UtcNow();
-                                while (NowDuration(start).TotalSeconds < _TopPlayersTeamConfirmationDuration && 
+                                while (NowDuration(start).TotalSeconds < 5 && 
                                        _pluginEnabled && 
                                        _roundState != RoundState.Playing)
                                 {
@@ -8080,7 +8084,7 @@ namespace PRoConEvents
                                     {
                                         if (!_pluginEnabled ||
                                             _roundState == RoundState.Playing ||
-                                            NowDuration(start).TotalSeconds > _TopPlayersTeamConfirmationDuration)
+                                            NowDuration(start).TotalSeconds > 5)
                                         {
                                             break;
                                         }
@@ -30672,7 +30676,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
                 QueueSettingForUpload(new CPluginVariable(@"Affected Top Players", typeof(String), _TopPlayersAffected));
-                QueueSettingForUpload(new CPluginVariable(@"Top player team confirmation duration", typeof(Int32), _TopPlayersTeamConfirmationDuration));
+                QueueSettingForUpload(new CPluginVariable(@"Team Power Active Influence", typeof(Double), _TeamPowerActiveInfluence));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof(Boolean), _useRoundTimer));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof(Double), _maxRoundTimeMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
@@ -42701,15 +42705,14 @@ namespace PRoConEvents
             private Double maxScore = 20000.0;
             private Double maxKills = 200.0;
             private Double maxKd = 4.0;
-            private Double activeInfluence = 16;
             public Double getTopPower(Boolean active) {
                 Double baseTopPower = min1(TopStats.RoundCount >= 3 && TopStats.TopCount > 0 ? Math.Pow(TopStats.TopRoundRatio + 1, 4) : 1.0);
                 if (!active || fbpInfo == null) {
                     return baseTopPower;
                 }
-                Double killPower = min1(Math.Min(fbpInfo.Kills, maxKills) / maxKills * (activeInfluence/3));
-                Double kdPower = min1(Math.Min(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * (activeInfluence / 3));
-                Double scorePower = min1(Math.Min(fbpInfo.Score, maxScore) / maxScore * (activeInfluence / 3));
+                Double killPower = min1(Math.Min(fbpInfo.Kills, maxKills) / maxKills * (Plugin._TeamPowerActiveInfluence/3));
+                Double kdPower = min1(Math.Min(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * (Plugin._TeamPowerActiveInfluence / 3));
+                Double scorePower = min1(Math.Min(fbpInfo.Score, maxScore) / maxScore * (Plugin._TeamPowerActiveInfluence / 3));
                 return baseTopPower * killPower * kdPower * scorePower;
             }
 
