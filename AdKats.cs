@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.64
+ * Version 6.9.0.65
  * 25-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.64</version_code>
+ * <version_code>6.9.0.65</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.64";
+        private const String PluginVersion = "6.9.0.65";
 
         public enum GameVersion
         {
@@ -7141,7 +7141,7 @@ namespace PRoConEvents
                                         Double t1Power = t1.getTeamPower();
                                         Double t2Power = t2.getTeamPower();
                                         Double percDiff = Math.Abs(t1Power - t2Power) / ((t1Power + t2Power) / 2.0) * 100.0;
-                                        String message = "TeamPower: ";
+                                        String message = "";
                                         if (t1Power > t2Power)
                                         {
                                             message += t1.TeamKey + " up " + Math.Round(((t1Power - t2Power) / t2Power) * 100) + "% ";
@@ -43567,9 +43567,6 @@ namespace PRoConEvents
                     }
                     var teamTopPlayers = teamPlayers.Where(aPlayer => aPlayer.getTopPower(useModifiers && afterRoundstart) > 1);
                     var topPowerSum = teamTopPlayers.Select(aPlayer => aPlayer.getTopPower(useModifiers && afterRoundstart)).Sum();
-                    if (useModifiers && afterRoundstart) {
-                        topPowerSum /= 100;
-                    }
                     var playerSum = 1.0;
                     var ticketPower = 1.0;
                     if (useModifiers) {
