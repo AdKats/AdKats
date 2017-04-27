@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.70
+ * Version 6.9.0.71
  * 26-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.70</version_code>
+ * <version_code>6.9.0.71</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.70";
+        private const String PluginVersion = "6.9.0.71";
 
         public enum GameVersion
         {
@@ -10063,12 +10063,22 @@ namespace PRoConEvents
                                             TimeSpan remaining = TimeSpan.FromSeconds((config_triggers_min - _surrenderAutoTriggerCountCurrent) * 10);
                                             denyReason = "~" + FormatTimeString(remaining, 2) + " till it can fire.";
                                         }
-                                        if (canFire && ticketGap < config_tickets_gap_min)
-                                        {
-                                            canFire = false;
-                                            denyReason = "Less than " + config_tickets_gap_min + " tickets between teams. (" + ticketGap + ")";
+
+                                        if (canFire &&
+                                            config_action == AutoSurrenderAction.Nuke &&
+                                            mapUpTeam != winningTeam) {
+                                            //Losing team is the one with all flags capped
+                                            if (_surrenderAutoNukeLosingTeams) {
+                                                if (ticketGap > _surrenderAutoNukeLosingMaxDiff) {
+                                                    canFire = false;
+                                                    denyReason = mapUpTeam.TeamKey + " losing by more than " + _surrenderAutoNukeLosingMaxDiff + " tickets.";
+                                                }
+                                            } else {
+                                                canFire = false;
+                                                denyReason = mapUpTeam.TeamKey + " is losing.";
+                                            }
                                         }
-                                        
+
                                         if (canFire && winningTeam.TeamTicketCount > config_tickets_max)
                                         {
                                             canFire = false;
@@ -10081,26 +10091,11 @@ namespace PRoConEvents
                                             denyReason = losingTeam.TeamKey + " has less than " + config_tickets_min + " tickets. (" + losingTeam.TeamTicketCount + ")";
                                         }
 
-                                        if (canFire && 
-                                            config_action == AutoSurrenderAction.Nuke && 
-                                            mapUpTeam != winningTeam)
-                                        {
-                                            //Losing team is the one with all flags capped
-                                            if (_surrenderAutoNukeLosingTeams)
-                                            {
-                                                if (ticketGap > _surrenderAutoNukeLosingMaxDiff)
-                                                {
-                                                    canFire = false;
-                                                    denyReason = mapUpTeam.TeamKey + " losing by more than " + _surrenderAutoNukeLosingMaxDiff + " tickets.";
-                                                }
-                                            }
-                                            else
-                                            {
-                                                canFire = false;
-                                                denyReason = mapUpTeam.TeamKey + " is losing.";
-                                            }
+                                        if (canFire && ticketGap < config_tickets_gap_min) {
+                                            canFire = false;
+                                            denyReason = "Less than " + config_tickets_gap_min + " tickets between teams. (" + ticketGap + ")";
                                         }
-                                        
+
                                         if (canFire)
                                         {
                                             fired = true;
@@ -12223,7 +12218,7 @@ namespace PRoConEvents
                             Log.Info("Starting Ticket Count: " + _startingTicketCount);
                         }
 
-                        if (_useExperimentalTools && _gameVersion == GameVersion.BF4) {
+                        if (_useExperimentalTools && _gameVersion == GameVersion.BF4 && _serverInfo != null && _serverInfo.GetRoundElapsedTime().TotalSeconds < 30) {
                             if (_serverInfo.ServerName.ToLower().Contains("metro") && _serverInfo.ServerName.ToLower().Contains("no explosives")) {
                                 StartAndLogThread(new Thread(new ThreadStart(delegate {
                                     Thread.CurrentThread.Name = "RoundWelcome";
@@ -43592,8 +43587,8 @@ namespace PRoConEvents
                         if (start > 0 && current < start) {
                             Double remainingPerc = current / start;
                             Double lostPerc = (start - current) / start;
-                            //Add a little bit back
-                            ticketPower = remainingPerc + (lostPerc / 4.0);
+                            //Add half back
+                            ticketPower = remainingPerc + (lostPerc / 2.0);
                         }
                     }
                     var totalPower = Math.Round(topPowerSum * ticketPower);
