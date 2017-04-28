@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.72
- * 27-APR-2017
+ * Version 6.9.0.73
+ * 28-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.72</version_code>
+ * <version_code>6.9.0.73</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.72";
+        private const String PluginVersion = "6.9.0.73";
 
         public enum GameVersion
         {
@@ -11704,7 +11704,9 @@ namespace PRoConEvents
                                     Boolean told = false;
                                     List<KeyValuePair<AdKatsPlayer, string>> possible = new List<KeyValuePair<AdKatsPlayer, String>>();
                                     List<KeyValuePair<AdKatsPlayer, string>> sure = new List<KeyValuePair<AdKatsPlayer, String>>();
-                                    foreach (AdKatsKill cookerKill in aKill.killer.LiveKills.Where(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 10))
+                                    foreach (AdKatsKill cookerKill in aKill.killer.LiveKills
+                                        .Where(dKill => (aKill.timestamp - dKill.timestamp).TotalSeconds < 10.0)
+                                        .OrderBy(dKill => Math.Abs(aKill.timestamp.Subtract(dKill.timestamp).TotalMilliseconds - fuseTime)))
                                     {
                                         //Get the actual time since cooker value
                                         Double milli = aKill.timestamp.Subtract(cookerKill.timestamp).TotalMilliseconds;
@@ -11726,6 +11728,10 @@ namespace PRoConEvents
                                         {
                                             Log.Debug(() => cookerKill.victim.GetVerboseName() + " in " + aKill.killer.GetVerboseName() + "'s recent kills has a " + probability + "% cooking probability.", 2);
                                             gKillHandled = true;
+                                            
+                                            //Inform every player killed by the nade that it was a cooked nade
+                                            PlayerTellMessage(aKill.victim.player_name, aKill.killer.GetVerboseName() + " was a victim of grenade cooking, they did not use explosives.");
+
                                             //Code to avoid spam
                                             if (aKill.killer.lastKill.AddSeconds(2) < UtcNow())
                                             {
@@ -11741,7 +11747,6 @@ namespace PRoConEvents
                                             {
                                                 //Inform the victim player that they will not be punished
                                                 PlayerTellMessage(aKill.killer.player_name, "You appear to be a victim of grenade cooking and will NOT be punished.");
-                                                PlayerTellMessage(aKill.victim.player_name, aKill.killer.GetVerboseName() + " was a victim of grenade cooking, they did not use explosives.");
                                                 told = true;
                                             }
 
@@ -11788,7 +11793,7 @@ namespace PRoConEvents
                                             }
                                         }
                                     }
-                                    //This method used for dealing with multiple kills at the same instant i.e twin/triple headshots
+
                                     if (sure.Count == 1 && possible.Count == 0 && _gameVersion == GameVersion.BF3)
                                     {
                                         AdKatsPlayer player = sure[0].Key;
