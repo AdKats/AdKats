@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.71
- * 26-APR-2017
+ * Version 6.9.0.72
+ * 27-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.71</version_code>
+ * <version_code>6.9.0.72</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.71";
+        private const String PluginVersion = "6.9.0.72";
 
         public enum GameVersion
         {
@@ -10927,7 +10927,7 @@ namespace PRoConEvents
 
                 //Queue players for stats refresh
                 StartAndLogThread(new Thread(new ThreadStart(delegate {
-                    Thread.CurrentThread.Name = "SquadGrab";
+                    Thread.CurrentThread.Name = "StatRefresh";
                     Thread.Sleep(TimeSpan.FromSeconds(5));
                     if (_roundOverPlayers != null)
                     {
@@ -10980,6 +10980,9 @@ namespace PRoConEvents
                 if (_roundID > 0 && _RoundPlayerIDs.TryGetValue(_roundID, out roundPlayers) && _useHackerCheckerLIVESystem) {
                     //Get players who where online this round
                     roundPlayerObjects = _FetchedPlayers.Values.Where(dPlayer => roundPlayers.Contains(dPlayer.player_id)).ToList();
+
+                    //TODO: Clear out the total score/kills/deaths
+
                     //Queue players for stats refresh
                     StartAndLogThread(new Thread(new ThreadStart(delegate {
                         Thread.CurrentThread.Name = "StatRefetch";
@@ -11676,7 +11679,7 @@ namespace PRoConEvents
                             {
                                 _RoundCookers = new Dictionary<String, AdKatsPlayer>();
                             }
-                            const double possibleRange = 750.00;
+                            const double possibleRange = 1100.00;
                             //Check for cooked grenade and non-suicide
                             if (aKill.weaponCode.Contains("M67") || aKill.weaponCode.Contains("V40"))
                             {
@@ -12292,7 +12295,9 @@ namespace PRoConEvents
                         _toldCol = true;
                     }
 
-                    if (!aPlayer.player_spawnedOnce)
+                    var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
+                    var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
+                    if (!aPlayer.player_spawnedOnce && startDuration - startupDuration > 120)
                     {
                         if (_ShowNewPlayerAnnouncement && aPlayer.player_new)
                         {
@@ -42631,6 +42636,9 @@ namespace PRoConEvents
             public List<AdKatsRecord> TargetedRecords = null;
             public String player_clanTag = null;
             public CPlayerInfo fbpInfo = null;
+            public Int32 backup_kills = 0;
+            public Int32 backup_deaths = 0;
+            public Int32 backup_score = 0;
             public Int64 game_id = -1;
             public DateTime lastAction = DateTime.UtcNow;
             public DateTime lastKill = DateTime.UtcNow;
