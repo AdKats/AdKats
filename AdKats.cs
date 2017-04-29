@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.73
- * 28-APR-2017
+ * Version 6.9.0.74
+ * 29-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.73</version_code>
+ * <version_code>6.9.0.74</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.73";
+        private const String PluginVersion = "6.9.0.74";
 
         public enum GameVersion
         {
@@ -6900,12 +6900,13 @@ namespace PRoConEvents
                             {
                                 PostWeaponCodes();
                             }
-                            
+
                             //SpamBot - Every 500ms
+                            var playerCount = _PlayerDictionary.Count();
                             if (_pluginEnabled && 
                                 _spamBotEnabled && 
-                                _firstPlayerListComplete && 
-                                _PlayerDictionary.Any())
+                                _firstPlayerListComplete &&
+                                playerCount > 0)
                             {
                                 if ((UtcNow() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotSayQueue.Peek();
@@ -6947,11 +6948,11 @@ namespace PRoConEvents
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
-                                            OnlineNonWhitelistSayMessage(message);
+                                            OnlineNonWhitelistSayMessage(message, playerCount > 5);
                                         }
                                     } else {
                                         if (!String.IsNullOrEmpty(message)) {
-                                            AdminSayMessage(message);
+                                            AdminSayMessage(message, playerCount > 5);
                                         }
                                     }
                                     _spamBotSayQueue.Enqueue(_spamBotSayQueue.Dequeue());
@@ -6996,11 +6997,11 @@ namespace PRoConEvents
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
-                                            OnlineNonWhitelistYellMessage(message);
+                                            OnlineNonWhitelistYellMessage(message, playerCount > 5);
                                         }
                                     } else {
                                         if (!String.IsNullOrEmpty(message)) {
-                                            AdminYellMessage(message);
+                                            AdminYellMessage(message, playerCount > 5);
                                         }
                                     }
                                     _spamBotYellQueue.Enqueue(_spamBotYellQueue.Dequeue());
@@ -7045,11 +7046,11 @@ namespace PRoConEvents
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
-                                            OnlineNonWhitelistTellMessage(message);
+                                            OnlineNonWhitelistTellMessage(message, playerCount > 5);
                                         }
                                     } else {
                                         if (!String.IsNullOrEmpty(message)) {
-                                            AdminTellMessage(message);
+                                            AdminTellMessage(message, playerCount > 5);
                                         }
                                     }
                                     _spamBotTellQueue.Enqueue(_spamBotTellQueue.Dequeue());
@@ -7157,7 +7158,7 @@ namespace PRoConEvents
                                         message += "(" + t1.TeamKey + ":" + t1.getTeamPower() + ":" + t1.getTeamPower(false) + " / " + t2.TeamKey + ":" + t2.getTeamPower() + ":" + t2.getTeamPower(false) + ")";
                                         if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
                                             PlayerSayMessage("ColColonCleaner", message);
-                                        } else {
+                                        } else if (_PlayerDictionary.Count() > 5) {
                                             ProconChatWrite(Log.FBold(message));
                                         }
                                     }
@@ -42714,7 +42715,7 @@ namespace PRoConEvents
                 LastUsage = DateTime.UtcNow;
             }
 
-            private Double maxScore = 20000.0;
+            private Double maxScore = 30000.0;
             private Double maxKills = 200.0;
             private Double maxKd = 4.0;
             public Double getTopPower(Boolean active) {
