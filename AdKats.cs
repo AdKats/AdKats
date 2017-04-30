@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.79
+ * Version 6.9.0.80
  * 30-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.79</version_code>
+ * <version_code>6.9.0.80</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.79";
+        private const String PluginVersion = "6.9.0.80";
 
         public enum GameVersion
         {
@@ -16523,6 +16523,16 @@ namespace PRoConEvents
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 1);
                             switch (parameters.Length) {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame) {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Debug Assist Self";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false, false);
+                                    break;
                                 case 1:
                                     record.record_message = "Debug Assist Player";
                                     record.target_name = parameters[0];
@@ -34466,7 +34476,7 @@ namespace PRoConEvents
             } else if (_UseTeamPowerMonitor) {
                 var enemyMorePowerful = newEnemyPower > newFriendlyPower;
                 var powerDifferenceIncreased = newPowerDiff > oldPowerDiff;
-                var powerDifferencePercOverThreshold = newPowerDiff > powerPercentageThreshold;
+                var powerDifferencePercOverThreshold = newPercDiff > powerPercentageThreshold;
                 if (enemyMorePowerful && 
                     powerDifferenceIncreased && 
                     (powerDifferencePercOverThreshold || enemyMapPower) && 
@@ -34476,13 +34486,11 @@ namespace PRoConEvents
                 }
                 if (!auto) {
                     ErrorOrRespond(debugRecord,
-                    "Old Diff:(" + Math.Round(oldPercDiff, 2) + ") " +
-                    "New Diff:(" + Math.Round(newPercDiff, 2) + ")");
+                    "Old Diff " + Math.Round(oldPercDiff, 1) + " | " +
+                    "New Diff " + Math.Round(newPercDiff, 1) + "");
                     ErrorOrRespond(debugRecord,
-                        "Old F-" + friendlyTeam.TeamKey + ":(" + Math.Round(oldFriendlyPower) + ") " +
-                        "E-" + enemyTeam.TeamKey + ":(" + Math.Round(oldEnemyPower) + ") " +
-                        "New F-" + friendlyTeam.TeamKey + ":(" + Math.Round(newFriendlyPower) + ") " +
-                        "E-" + enemyTeam.TeamKey + ":(" + Math.Round(newEnemyPower) + ")");
+                        "Old " + friendlyTeam.TeamKey + "(" + Math.Round(oldFriendlyPower) + ")/" + enemyTeam.TeamKey + "(" + Math.Round(oldEnemyPower) + ") | " +
+                        "New " + friendlyTeam.TeamKey + "(" + Math.Round(newFriendlyPower) + ")/" + enemyTeam.TeamKey + "(" + Math.Round(newEnemyPower) + ")");
                 }
             } else {
                 if (enemyMapPower) {
