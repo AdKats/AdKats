@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.74
+ * Version 6.9.0.75
  * 29-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.74</version_code>
+ * <version_code>6.9.0.75</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.74";
+        private const String PluginVersion = "6.9.0.75";
 
         public enum GameVersion
         {
@@ -731,6 +731,9 @@ namespace PRoConEvents
         private Dictionary<String, Double> _commandTargetReputationDictionary;
         private const Double _reputationThresholdGood = 75;
         private const Double _reputationThresholdBad = 0;
+
+        //Assist
+        private Queue<AdKatsRecord> _AssistAttemptQueue = new Queue<AdKatsRecord>();
 
         //Battlecries
         public enum BattlecryVolume
@@ -6489,6 +6492,9 @@ namespace PRoConEvents
                         {
                             _BanEnforcerCheckingQueue.Clear();
                         }
+                        if (_AssistAttemptQueue != null) {
+                            _AssistAttemptQueue.Clear();
+                        }
                         _toldCol = false;
                         if (_Team2MoveQueue != null)
                         {
@@ -7058,6 +7064,28 @@ namespace PRoConEvents
                                 }
                             }
                             
+                            //Automatic Assisting Check - Every 500ms
+                            // Are there any records to process
+                            if (_roundState == RoundState.Playing && _AssistAttemptQueue.Any()) {
+                                lock (_AssistAttemptQueue) {
+                                    // There are, look at the first one without pulling it
+                                    var assistRecord = _AssistAttemptQueue.Peek();
+                                    if (assistRecord != null) {
+                                        if (NowDuration(assistRecord.record_creationTime).TotalMinutes > 5.0) {
+                                            // If the record is more than 5 minutes old, get rid of it
+                                            SendMessageToSource(assistRecord, "Automatic Assist has timed out. Please use assist again to re-queue yourself.");
+                                            OnlineAdminSayMessage("Automatic Assist timed out for " + assistRecord.GetSourceName());
+                                            _AssistAttemptQueue.Dequeue();
+                                        } else {
+                                            // The record is active, see if the player can be automatically assisted
+                                            if (RunAssist(assistRecord.source_player, assistRecord, null, true)) {
+                                                QueueRecordForProcessing(assistRecord);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             //Batch very long keep alive - every 10 minutes
                             if (NowDuration(lastVeryLongKeepAliveCheck).TotalMinutes > 10.0) {
 
@@ -8248,6 +8276,15 @@ namespace PRoConEvents
                     {
                         Int32 oldSquad = aPlayer.fbpInfo.SquadID;
                         aPlayer.fbpInfo.TeamID = teamId;
+                    }
+                    //If the player is queued for automatic assist, remove them from the queue
+                    if (_AssistAttemptQueue.Any()) {
+                        lock (_AssistAttemptQueue) {
+                            var matchingRecord = _AssistAttemptQueue.FirstOrDefault(assistRecord => assistRecord.source_player.player_id == aPlayer.player_id);
+                            //The player is queued, rebuild the queue without them in it
+                            SendMessageToSource(matchingRecord, "You moved teams manually. Automatic assist cancelled.");
+                            _AssistAttemptQueue = new Queue<AdKatsRecord>(_AssistAttemptQueue.Where(assistRecord => assistRecord != matchingRecord));
+                        }
                     }
                 }
                 //When a player changes team, tell teamswap to recheck queues
@@ -10537,6 +10574,9 @@ namespace PRoConEvents
                     _TeamswapOnDeathMoveDic.Clear();
                     _Team1MoveQueue.Clear();
                     _Team2MoveQueue.Clear();
+                    lock (_AssistAttemptQueue) {
+                        _AssistAttemptQueue.Clear();
+                    }
                     _RoundCookers.Clear();
                     _unmatchedRoundDeathCounts.Clear();
                     _unmatchedRoundDeaths.Clear();
@@ -10592,6 +10632,10 @@ namespace PRoConEvents
                 } else {
                     winningTeam = team2;
                     losingTeam = team1;
+                }
+
+                lock (_AssistAttemptQueue) {
+                    _AssistAttemptQueue.Clear();
                 }
 
                 if (_useExperimentalTools && _eventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
@@ -16368,9 +16412,9 @@ namespace PRoConEvents
                             }
 
                             var assists = _roundAssists.Values;
-                            if (assists.Any()) {
+                            if (!_UseTeamPowerMonitor && assists.Any()) {
                                 //Timeout or over-queueing
-                                if (!_UseTeamPowerMonitor && assists.Any(aRecord => aRecord.command_action.command_key == "self_assist_unconfirmed")) {
+                                if (assists.Any(aRecord => aRecord.command_action.command_key == "self_assist_unconfirmed")) {
                                     SendMessageToSource(record, "Another player is already queued for assist. Please wait for them to be moved. Thank you.");
                                     FinalizeRecord(record);
                                     return;
@@ -16384,7 +16428,17 @@ namespace PRoConEvents
                                 }
                             }
 
-                            if (RunAssist(record.source_player, record, null)) {
+                            if (_AssistAttemptQueue.Any()) {
+                                lock (_AssistAttemptQueue) {
+                                    if (_AssistAttemptQueue.Any(assistRecord => assistRecord.source_player.player_id == record.source_player.player_id)) {
+                                        SendMessageToSource(record, "You are already queued for automatic assist. You will be moved if possible.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                }
+                            }
+
+                            if (RunAssist(record.source_player, record, null, false)) {
                                 QueueRecordForProcessing(record);
                             }
                         }
@@ -23501,7 +23555,7 @@ namespace PRoConEvents
             try {
                 record.record_action_executed = true;
 
-                RunAssist(record.target_player, null, record);
+                RunAssist(record.target_player, null, record, false);
             } catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for debug assist record.", e);
                 HandleException(record.record_exception);
@@ -34263,7 +34317,10 @@ namespace PRoConEvents
             }
         }
 
-        private Boolean RunAssist(AdKatsPlayer aPlayer, AdKatsRecord realRecord, AdKatsRecord debugRecord) {
+        private Boolean RunAssist(AdKatsPlayer aPlayer, AdKatsRecord realRecord, AdKatsRecord debugRecord, Boolean auto) {
+            //Locals
+            var powerPercentageThreshold = 20.0;
+            
             //Team Info Check
             AdKatsTeam team1, team2;
             String rejectionMessage = "Error";
@@ -34303,7 +34360,9 @@ namespace PRoConEvents
             if (realRecord != null) {
                 realRecord.record_message = recordMessage;
             }
-            ErrorOrRespond(debugRecord, recordMessage);
+            if (!auto) {
+                ErrorOrRespond(debugRecord, recordMessage);
+            }
             Boolean canAssist = true;
             rejectionMessage = "team ";
             var oldFriendlyPower = friendlyTeam.getTeamPower();
@@ -34318,22 +34377,33 @@ namespace PRoConEvents
             // Calculate power differences
             var newPowerDiff = Math.Abs(newEnemyPower - newFriendlyPower);
             var oldPowerDiff = Math.Abs(oldEnemyPower - oldFriendlyPower);
+            // Calculate percent differences
+            var newPercDiff = Math.Abs(newFriendlyPower - newEnemyPower) / ((newFriendlyPower + newEnemyPower) / 2.0) * 100.0;
+            var oldPercDiff = Math.Abs(oldFriendlyPower - oldEnemyPower) / ((oldFriendlyPower + oldEnemyPower) / 2.0) * 100.0;
             Boolean enemyWinning = (aPlayer.fbpInfo.TeamID == losingTeam.TeamID);
             Boolean enemyMapPower = enemyTeam.GetTicketDifferenceRate() > friendlyTeam.GetTicketDifferenceRate();
             Double ticketBypassAmount = (_startingTicketCount > 0 ? (_startingTicketCount / 3.5) : 250);
             Boolean canTicketBypass = _previousRoundDuration.TotalSeconds > 0;
             Boolean ticketBypass = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > ticketBypassAmount && canTicketBypass;
-            if (enemyWinning) {
+            String ticketBypassMessage = (canTicketBypass ? " Wait for " + Math.Round(ticketBypassAmount) + " ticket difference." : "");
+            if (enemyWinning && enemyMapPower) {
                 canAssist = false;
-                if (enemyMapPower) {
-                    rejectionMessage += "is already winning and strong.";
-                } else {
-                    rejectionMessage += "is losing ground, but still winning the match.";
-                }
+                rejectionMessage += "is already winning and strong";
             } else if (_UseTeamPowerMonitor) {
-                if (newPowerDiff > oldPowerDiff && !ticketBypass) {
+                var enemyMorePowerful = newEnemyPower > newFriendlyPower;
+                var powerDifferenceIncreased = newPowerDiff > oldPowerDiff;
+                var powerDifferencePercOverThreshold = newPowerDiff > powerPercentageThreshold;
+                if (enemyMorePowerful && 
+                    powerDifferenceIncreased && 
+                    powerDifferencePercOverThreshold && 
+                    !ticketBypass) {
                     canAssist = false;
-                    rejectionMessage += "would be too strong." + (canTicketBypass ? " Wait for " + Math.Round(ticketBypassAmount) + " ticket difference." : "");
+                    rejectionMessage += "would be too strong";
+                }
+                if (!auto) {
+                    ErrorOrRespond(debugRecord,
+                    "Old Diff:(" + Math.Round(oldPercDiff, 2) + ") " +
+                    "New Diff:(" + Math.Round(newPercDiff, 2) + ")");
                     ErrorOrRespond(debugRecord,
                         "Old F-" + friendlyTeam.TeamKey + ":(" + Math.Round(oldFriendlyPower) + ") " +
                         "E-" + enemyTeam.TeamKey + ":(" + Math.Round(oldEnemyPower) + ") " +
@@ -34343,22 +34413,34 @@ namespace PRoConEvents
             } else {
                 if (enemyMapPower) {
                     canAssist = false;
-                    rejectionMessage += "is losing, but is making a comeback.";
+                    rejectionMessage += "is losing, but is making a comeback";
                 }
             }
             if (!canAssist) {
                 if (realRecord != null) {
-                    rejectionMessage = realRecord.GetSourceName() + " assist to " + enemyTeam.TeamKey + " rejected, " + rejectionMessage;
-                    AdminSayMessage(rejectionMessage);
-                    FinalizeRecord(realRecord);
+                    rejectionMessage = realRecord.GetSourceName() + " assist to " + enemyTeam.TeamKey + " rejected (" + rejectionMessage + ").";
+                    if (!auto) {
+                        if (_useExperimentalTools) {
+                            rejectionMessage += " Queued (#" + (_AssistAttemptQueue.Count() + 1) + ") for 5 minute auto-assist.";
+                            lock (_AssistAttemptQueue) {
+                                _AssistAttemptQueue.Enqueue(realRecord);
+                            }
+                            AdminSayMessage(rejectionMessage);
+                        } else {
+                            AdminSayMessage(rejectionMessage);
+                            FinalizeRecord(realRecord);
+                        }
+                    }
                 } else if (debugRecord != null) {
                     rejectionMessage = debugRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " rejected, " + rejectionMessage;
-                    ErrorOrRespond(debugRecord, rejectionMessage);
+                    if (!auto) {
+                        ErrorOrRespond(debugRecord, rejectionMessage);
+                    }
                 }
             } else {
                 if (realRecord != null) {
                     SendMessageToSource(realRecord, "Queuing you to assist the weak team. Thank you.");
-                    OnlineAdminSayMessage(realRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + (ticketBypass && newPowerDiff > oldPowerDiff ? "TicketDiff" : Math.Round(newPowerDiff) + "<" + Math.Round(oldPowerDiff)) + ")" : "") + ", queueing.");
+                    AdminSayMessage(realRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + ((ticketBypass || newPowerDiff <= powerPercentageThreshold) && newPowerDiff > oldPowerDiff ? "Bypass" : Math.Round(newPowerDiff) + "<" + Math.Round(oldPowerDiff)) + ")" : "") + ", queueing.");
                     realRecord.command_action = GetCommandByKey("self_assist_unconfirmed");
                 } else if (debugRecord != null) {
                     SendMessageToSource(debugRecord, "Assist accepted.");
