@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.75
+ * Version 6.9.0.76
  * 29-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.75</version_code>
+ * <version_code>6.9.0.76</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.75";
+        private const String PluginVersion = "6.9.0.76";
 
         public enum GameVersion
         {
@@ -34319,7 +34319,7 @@ namespace PRoConEvents
 
         private Boolean RunAssist(AdKatsPlayer aPlayer, AdKatsRecord realRecord, AdKatsRecord debugRecord, Boolean auto) {
             //Locals
-            var powerPercentageThreshold = 20.0;
+            var powerPercentageThreshold = 18.0;
             
             //Team Info Check
             AdKatsTeam team1, team2;
@@ -34395,7 +34395,7 @@ namespace PRoConEvents
                 var powerDifferencePercOverThreshold = newPowerDiff > powerPercentageThreshold;
                 if (enemyMorePowerful && 
                     powerDifferenceIncreased && 
-                    powerDifferencePercOverThreshold && 
+                    (powerDifferencePercOverThreshold || enemyMapPower) && 
                     !ticketBypass) {
                     canAssist = false;
                     rejectionMessage += "would be too strong";
