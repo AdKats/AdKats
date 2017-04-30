@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.78
+ * Version 6.9.0.79
  * 30-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.78</version_code>
+ * <version_code>6.9.0.79</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.78";
+        private const String PluginVersion = "6.9.0.79";
 
         public enum GameVersion
         {
@@ -192,6 +192,7 @@ namespace PRoConEvents
         private Boolean _firstUserListComplete;
         private Boolean _firstPlayerListStarted;
         private Boolean _firstPlayerListComplete;
+        private String _vipKickedPlayerName;
         private Boolean _enforceSingleInstance = true;
         private GameVersion _gameVersion = GameVersion.BF3;
         private Boolean _endingRound;
@@ -6172,7 +6173,8 @@ namespace PRoConEvents
                     "OnPlayerTeamChange",
                     "OnPlayerSquadChange", 
                     "OnPlayerJoin", 
-                    "OnPlayerLeft", 
+                    "OnPlayerLeft",
+                    "OnPlayerDisconnected",
                     "OnGlobalChat", 
                     "OnTeamChat", 
                     "OnSquadChat", 
@@ -8843,7 +8845,11 @@ namespace PRoConEvents
                                                 }
                                                 UpdatePlayer(aPlayer);
                                             }
-                                            if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == "player_kick" && (UtcNow() - aRecord.record_time).TotalMinutes < 30) && aPlayer.TargetedRecords.All(aRecord => aRecord.command_action.command_key != "banenforcer_enforce"))
+                                            if (aPlayer.TargetedRecords.Any(aRecord => 
+                                                    aRecord.command_action.command_key == "player_kick" && 
+                                                    (UtcNow() - aRecord.record_time).TotalMinutes < 30) && 
+                                                    aPlayer.TargetedRecords.All(aRecord => aRecord.command_action.command_key != "banenforcer_enforce" &&
+                                                    // Don't show the message if the person kicked themselves
                                             {
                                                 OnlineAdminSayMessage("Kicked player " + aPlayer.GetVerboseName() + " rejoined the server.");
                                             }
@@ -12515,7 +12521,27 @@ namespace PRoConEvents
             }
             Log.Debug(() => "Exiting OnPlayerSpawned", 7);
         }
-
+        
+        public override void OnPlayerJoin(string soldierName) {
+            Log.Debug(() => "Entering OnPlayerJoin", 7);
+            try {
+                if (_pluginEnabled && 
+                    _firstPlayerListComplete && 
+                    _gameVersion == GameVersion.BF4 && 
+                    !String.IsNullOrEmpty(_vipKickedPlayerName)) {
+                    var matchingPlayer = _FetchedPlayers.Values.FirstOrDefault(aPlayer => aPlayer.player_name == soldierName);
+                    if (matchingPlayer != null) {
+                        OnlineAdminSayMessage(_vipKickedPlayerName + " kicked for VIP " + matchingPlayer.GetVerboseName() + " to join.");
+                    } else {
+                        OnlineAdminSayMessage(_vipKickedPlayerName + " kicked for VIP " + soldierName + " to join.");
+                    }
+                    _vipKickedPlayerName = null;
+                }
+            } catch (Exception e) {
+                HandleException(new AdKatsException("Error while handling player join.", e));
+            }
+            Log.Debug(() => "Exiting OnPlayerJoin", 7);
+        }
 
         public override void OnPlayerLeft(CPlayerInfo playerInfo)
         {
@@ -12529,6 +12555,26 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while handling player left.", e));
             }
             Log.Debug(() => "Exiting OnPlayerLeft", 7);
+        }
+        
+        public override void OnPlayerDisconnected(string soldierName, string reason) {
+            Log.Debug(() => "Entering OnPlayerDisconnected", 7);
+            try {
+                if (_pluginEnabled && 
+                    _firstPlayerListComplete && 
+                    _gameVersion == GameVersion.BF4 && 
+                    reason == "Player kicked") {
+                    var matchingPlayer = _FetchedPlayers.Values.FirstOrDefault(aPlayer => aPlayer.player_name == soldierName);
+                    if (matchingPlayer != null) {
+                        _vipKickedPlayerName = matchingPlayer.GetVerboseName();
+                    } else {
+                        _vipKickedPlayerName = soldierName;
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AdKatsException("Error while handling player disconnected.", e));
+            }
+            Log.Debug(() => "Exiting OnPlayerDisconnected", 7);
         }
 
         private void QueueSettingImport(Int32 serverID)
