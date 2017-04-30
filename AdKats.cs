@@ -8850,6 +8850,7 @@ namespace PRoConEvents
                                                     (UtcNow() - aRecord.record_time).TotalMinutes < 30) && 
                                                     aPlayer.TargetedRecords.All(aRecord => aRecord.command_action.command_key != "banenforcer_enforce" &&
                                                     // Don't show the message if the person kicked themselves
+                                                    aRecord.source_name != aPlayer.player_name))
                                             {
                                                 OnlineAdminSayMessage("Kicked player " + aPlayer.GetVerboseName() + " rejoined the server.");
                                             }
