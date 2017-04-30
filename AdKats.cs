@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.76
- * 29-APR-2017
+ * Version 6.9.0.77
+ * 30-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.76</version_code>
+ * <version_code>6.9.0.77</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.76";
+        private const String PluginVersion = "6.9.0.77";
 
         public enum GameVersion
         {
@@ -571,6 +571,7 @@ namespace PRoConEvents
         private Int32 _nukeAutoSlayActiveDuration = 0;
         private String _lastNukeSlayDurationMessage = null;
         private Int32 _surrenderAutoNukeDurationIncrease = 0;
+        private Int32 _surrenderAutoNukeDurationIncreaseTicketDiff = 100;
         private Int32 _surrenderAutoNukeMinBetween = 60;
         private DateTime _lastNukeTime = DateTime.UtcNow - TimeSpan.FromMinutes(10);
         private AdKatsTeam _lastNukeTeam;
@@ -1470,6 +1471,7 @@ namespace PRoConEvents
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Medium Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationMed));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Low Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationLow));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Consecutive Duration Increase", typeof(Int32), _surrenderAutoNukeDurationIncrease));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Duration Increase Minimum Ticket Difference", typeof(Int32), _surrenderAutoNukeDurationIncreaseTicketDiff));
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
                             if (!_surrenderAutoTriggerVote) {
@@ -3166,8 +3168,18 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Consecutive Duration Increase", typeof(Int32), _surrenderAutoNukeDurationIncrease));
                     }
-                }
-                else if (Regex.Match(strVariable, @"Player Lock Manual Duration Minutes").Success)
+                } else if (Regex.Match(strVariable, @"Auto-Nuke Duration Increase Minimum Ticket Difference").Success) {
+                    Int32 surrenderAutoNukeDurationIncreaseTicketDiff = Int32.Parse(strValue);
+                    if (_surrenderAutoNukeDurationIncreaseTicketDiff != surrenderAutoNukeDurationIncreaseTicketDiff) {
+                        if (surrenderAutoNukeDurationIncreaseTicketDiff < 0) {
+                            Log.Error("Auto-Nuke Duration Increase Minimum Ticket Difference must be non-negative.");
+                            surrenderAutoNukeDurationIncreaseTicketDiff = 0;
+                        }
+                        _surrenderAutoNukeDurationIncreaseTicketDiff = surrenderAutoNukeDurationIncreaseTicketDiff;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Duration Increase Minimum Ticket Difference", typeof(Int32), _surrenderAutoNukeDurationIncreaseTicketDiff));
+                    }
+                } else if (Regex.Match(strVariable, @"Player Lock Manual Duration Minutes").Success)
                 {
                     Double playerLockingManualDuration;
                     if (!Double.TryParse(strValue, out playerLockingManualDuration))
@@ -7078,8 +7090,9 @@ namespace PRoConEvents
                                             _AssistAttemptQueue.Dequeue();
                                         } else {
                                             // The record is active, see if the player can be automatically assisted
-                                            if (RunAssist(assistRecord.source_player, assistRecord, null, true)) {
+                                            if (RunAssist(assistRecord.target_player, assistRecord, null, true)) {
                                                 QueueRecordForProcessing(assistRecord);
+                                                _AssistAttemptQueue.Dequeue();
                                             }
                                         }
                                     }
@@ -7256,15 +7269,12 @@ namespace PRoConEvents
                                     //Auto-assist
                                     if (_roundState == RoundState.Playing &&
                                         _serverInfo.GetRoundElapsedTime().TotalMinutes > 5 && 
-                                        Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 && 
-                                        winningTeam.GetTicketDifferenceRate() > losingTeam.GetTicketDifferenceRate() &&
+                                        Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
                                         !_Team1MoveQueue.Any() &&
                                         !_Team2MoveQueue.Any()) {
                                         foreach (var aPlayer in GetOnlinePlayerDictionaryOfGroup("blacklist_autoassist").Values
                                             .Where(dPlayer => dPlayer.fbpInfo.TeamID == winningTeam.TeamID)) {
-                                            Thread.Sleep(2000);
-                                            _PlayersAutoAssistedThisRound = true;
-                                            QueueRecordForProcessing(new AdKatsRecord {
+                                            var assistRecord = new AdKatsRecord {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 server_id = _serverInfo.ServerID,
                                                 command_type = GetCommandByKey("self_assist"),
@@ -7274,7 +7284,12 @@ namespace PRoConEvents
                                                 source_name = "AUAManager",
                                                 record_message = "Auto-assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
                                                 record_time = UtcNow()
-                                            });
+                                            };
+                                            if (RunAssist(assistRecord.target_player, assistRecord, null, true)) {
+                                                QueueRecordForProcessing(assistRecord);
+                                                _PlayersAutoAssistedThisRound = true;
+                                                Thread.Sleep(2000);
+                                            }
                                         }
                                     }
                                 }
@@ -7459,8 +7474,12 @@ namespace PRoConEvents
                                 //Auto-Nuke Slay Duration
                                 var duration = NowDuration(_lastNukeTime);
                                 var nukeInfoMessage = "";
-                                var durationIncrease = _surrenderAutoNukeDurationIncrease * Math.Max(getNukeCount(_lastNukeTeam.TeamID) - 1, 0);
-                                if (!_nukeAutoSlayActive) {
+                                var durationIncrease = 0;
+                                AdKatsTeam team1, team2;
+                                if (!_nukeAutoSlayActive && GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
+                                    if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > _surrenderAutoNukeDurationIncreaseTicketDiff) {
+                                        durationIncrease = _surrenderAutoNukeDurationIncrease * Math.Max(getNukeCount(_lastNukeTeam.TeamID) - 1, 0);
+                                    }
                                     switch (_populationStatus) {
                                         case PopulationState.High:
                                             _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationHigh + durationIncrease;
@@ -8280,10 +8299,12 @@ namespace PRoConEvents
                     //If the player is queued for automatic assist, remove them from the queue
                     if (_AssistAttemptQueue.Any()) {
                         lock (_AssistAttemptQueue) {
-                            var matchingRecord = _AssistAttemptQueue.FirstOrDefault(assistRecord => assistRecord.source_player.player_id == aPlayer.player_id);
-                            //The player is queued, rebuild the queue without them in it
-                            SendMessageToSource(matchingRecord, "You moved teams manually. Automatic assist cancelled.");
-                            _AssistAttemptQueue = new Queue<AdKatsRecord>(_AssistAttemptQueue.Where(assistRecord => assistRecord != matchingRecord));
+                            var matchingRecord = _AssistAttemptQueue.FirstOrDefault(assistRecord => assistRecord.target_player.player_id == aPlayer.player_id);
+                            if (matchingRecord != null) {
+                                //The player is queued, rebuild the queue without them in it
+                                SendMessageToSource(matchingRecord, "You moved teams manually. Automatic assist cancelled.");
+                                _AssistAttemptQueue = new Queue<AdKatsRecord>(_AssistAttemptQueue.Where(assistRecord => assistRecord != matchingRecord));
+                            }
                         }
                     }
                 }
@@ -16430,7 +16451,7 @@ namespace PRoConEvents
 
                             if (_AssistAttemptQueue.Any()) {
                                 lock (_AssistAttemptQueue) {
-                                    if (_AssistAttemptQueue.Any(assistRecord => assistRecord.source_player.player_id == record.source_player.player_id)) {
+                                    if (_AssistAttemptQueue.Any(assistRecord => assistRecord.target_player.player_id == record.target_player.player_id)) {
                                         SendMessageToSource(record, "You are already queued for automatic assist. You will be moved if possible.");
                                         FinalizeRecord(record);
                                         return;
@@ -16438,7 +16459,7 @@ namespace PRoConEvents
                                 }
                             }
 
-                            if (RunAssist(record.source_player, record, null, false)) {
+                            if (RunAssist(record.target_player, record, null, false)) {
                                 QueueRecordForProcessing(record);
                             }
                         }
@@ -30914,6 +30935,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Medium Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationMed));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Low Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationLow));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Consecutive Duration Increase", typeof(Int32), _surrenderAutoNukeDurationIncrease));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Duration Increase Minimum Ticket Difference", typeof(Int32), _surrenderAutoNukeDurationIncreaseTicketDiff));
                 QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Enable", typeof(Boolean), _factionRandomizerEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Restriction", typeof(String), _factionRandomizerRestriction.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Allow Repeat Team Selections", typeof(Boolean), _factionRandomizerAllowRepeatSelection));
