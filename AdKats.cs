@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.77
+ * Version 6.9.0.78
  * 30-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.77</version_code>
+ * <version_code>6.9.0.78</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.77";
+        private const String PluginVersion = "6.9.0.78";
 
         public enum GameVersion
         {
@@ -7323,19 +7323,24 @@ namespace PRoConEvents
                                             {
                                                 Log.Success("Teamspeak soldier " + aPlayer.player_name + " connected.");
                                             }
-                                            switch (_tsViewer.JoinDisplay) {
-                                                case TeamSpeakClientViewer.JoinDisplayType.Say:
-                                                    AdminSayMessage(_tsViewer.JoinDisplayMessage
-                                                        .Replace("%player%", aPlayer.GetVerboseName()));
-                                                    break;
-                                                case TeamSpeakClientViewer.JoinDisplayType.Yell:
-                                                    AdminYellMessage(_tsViewer.JoinDisplayMessage
-                                                        .Replace("%player%", aPlayer.GetVerboseName()));
-                                                    break;
-                                                case TeamSpeakClientViewer.JoinDisplayType.Tell:
-                                                    AdminTellMessage(_tsViewer.JoinDisplayMessage
-                                                        .Replace("%player%", aPlayer.GetVerboseName()));
-                                                    break;
+
+                                            var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
+                                            var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
+                                            if (startDuration - startupDuration > 120) {
+                                                switch (_tsViewer.JoinDisplay) {
+                                                    case TeamSpeakClientViewer.JoinDisplayType.Say:
+                                                        AdminSayMessage(_tsViewer.JoinDisplayMessage
+                                                            .Replace("%player%", aPlayer.GetVerboseName()));
+                                                        break;
+                                                    case TeamSpeakClientViewer.JoinDisplayType.Yell:
+                                                        AdminYellMessage(_tsViewer.JoinDisplayMessage
+                                                            .Replace("%player%", aPlayer.GetVerboseName()));
+                                                        break;
+                                                    case TeamSpeakClientViewer.JoinDisplayType.Tell:
+                                                        AdminTellMessage(_tsViewer.JoinDisplayMessage
+                                                            .Replace("%player%", aPlayer.GetVerboseName()));
+                                                        break;
+                                                }
                                             }
                                             accessUpdateRequired = true;
                                         }
@@ -7505,7 +7510,7 @@ namespace PRoConEvents
                                         Int32 endDurationSeconds = (Int32)Math.Round(endDuration);
                                         String endDurationString = endDurationSeconds.ToString();
                                         var durationMessage = _lastNukeTeam.TeamKey + " nuke active for " + endDurationString + " seconds!";
-                                        if (_lastNukeSlayDurationMessage != durationMessage && endDuration > 0 && (endDurationSeconds % 2 == 0 || endDuration <= 5)) {
+                                        if (_lastNukeSlayDurationMessage != durationMessage && endDurationSeconds > 0 && (endDurationSeconds % 2 == 0 || endDuration <= 5)) {
                                             AdminTellMessage(durationMessage);
                                             _lastNukeSlayDurationMessage = durationMessage;
                                         }
@@ -34462,7 +34467,7 @@ namespace PRoConEvents
             } else {
                 if (realRecord != null) {
                     SendMessageToSource(realRecord, "Queuing you to assist the weak team. Thank you.");
-                    AdminSayMessage(realRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + ((ticketBypass || newPowerDiff <= powerPercentageThreshold) && newPowerDiff > oldPowerDiff ? "Bypass" : Math.Round(newPowerDiff) + "<" + Math.Round(oldPowerDiff)) + ")" : "") + ", queueing.");
+                    AdminSayMessage(realRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + ((ticketBypass || newPowerDiff <= powerPercentageThreshold) && newPowerDiff > oldPowerDiff ? "Bypass" : Math.Round(newPercDiff) + "<" + Math.Round(oldPercDiff)) + ")" : "") + ", queueing.");
                     realRecord.command_action = GetCommandByKey("self_assist_unconfirmed");
                 } else if (debugRecord != null) {
                     SendMessageToSource(debugRecord, "Assist accepted.");
