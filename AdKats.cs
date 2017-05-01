@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.83
+ * Version 6.9.0.84
  * 30-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.83</version_code>
+ * <version_code>6.9.0.84</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.83";
+        private const String PluginVersion = "6.9.0.84";
 
         public enum GameVersion
         {
@@ -1571,9 +1571,11 @@ namespace PRoConEvents
                                 .Where(aPlayer => aPlayer.getTopPower(true) > 1);
                             var onlineTopPlayerListing = onlineTopPlayers
                                 .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(" + _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + ") ")) + 
-                                                   "(" + aPlayer.getTopPower(true).ToString("00.0") + 
-                                                   "|" + aPlayer.getTopPower(false).ToString("00.0") + 
-                                                   "|" + aPlayer.TopStats.TopCount + 
+                                                   "(" + aPlayer.getTopPower(true).ToString("00.0") +
+                                                   "|" + aPlayer.TopStats.TempTopPower.ToString("00.0") +
+                                                   "|" + aPlayer.getTopPower(false).ToString("00.0") +
+                                                   "|" + aPlayer.TopStats.TopCount +
+                                                   "|" + aPlayer.TopStats.RoundCount +
                                                    ") " + aPlayer.GetVerboseName())
                                 .OrderByDescending(item => item);
                             AdKatsTeam t1, t2;
