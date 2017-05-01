@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.80
+ * Version 6.9.0.81
  * 30-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.80</version_code>
+ * <version_code>6.9.0.81</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.80";
+        private const String PluginVersion = "6.9.0.81";
 
         public enum GameVersion
         {
@@ -3503,6 +3503,9 @@ namespace PRoConEvents
                     {
                         if (TeamPowerActiveInfluence < 1) {
                             TeamPowerActiveInfluence = 1;
+                        }
+                        foreach(var aPlayer in _FetchedPlayers.Values.ToList()) {
+                            aPlayer.TopStats.TempTopPower = 0.0;
                         }
                         //Assignment
                         _TeamPowerActiveInfluence = TeamPowerActiveInfluence;
@@ -29046,6 +29049,11 @@ namespace PRoConEvents
                         _LoadoutConfirmDictionary[record.target_player.player_name] = record;
                     }
                     SendMessageToSource(record, "Fetching loadout for " + record.GetTargetNames() + ".");
+                    var startDuration = NowDuration(_AdKatsStartTime).TotalMinutes;
+                    var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalMinutes;
+                    if (startDuration - startupDuration < 10) {
+                        SendMessageToSource(record, "WARNING: AdKats/LRT just started, loadouts may not be available for a few minutes.");
+                    }
                     ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable {
                         {"caller_identity", "AdKats"},
                         {"response_requested", false},
@@ -42884,8 +42892,9 @@ namespace PRoConEvents
             private Double maxKd = 4.0;
             public Double getTopPower(Boolean active) {
                 Double basePower = min1(TopStats.RoundCount >= 3 && TopStats.TopCount > 0 ? Math.Pow(TopStats.TopRoundRatio + 1, 5) : 1.0);
+                Double savedPower = TopStats.TempTopPower;
                 if (!active || fbpInfo == null) {
-                    return basePower;
+                    return Math.Max(basePower, savedPower);
                 }
                 // Calculate active power
                 var influence = Plugin._TeamPowerActiveInfluence / 3.0;
@@ -42893,8 +42902,9 @@ namespace PRoConEvents
                 Double kdPower = min1(Math.Min(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * influence);
                 Double scorePower = min1(Math.Min(fbpInfo.Score, maxScore) / maxScore * influence);
                 Double activePower = killPower + kdPower + scorePower;
-                // Take either the base power or active power, whichever is greater
-                return Math.Max(basePower, activePower);
+                // Take whichever power level is greatest
+                TopStats.TempTopPower = Math.Max(Math.Max(basePower, savedPower), activePower);
+                return TopStats.TempTopPower;
             }
 
             private Double min1(Double val) {
@@ -43157,6 +43167,7 @@ namespace PRoConEvents
             public Int32 RoundCount;
             public Int32 TopCount;
             public Double TopRoundRatio;
+            public Double TempTopPower;
         }
 
         public class AdKatsPlayerStats {
