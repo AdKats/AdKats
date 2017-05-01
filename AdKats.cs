@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.85
+ * Version 6.9.0.86
  * 30-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.85</version_code>
+ * <version_code>6.9.0.86</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.85";
+        private const String PluginVersion = "6.9.0.86";
 
         public enum GameVersion
         {
@@ -42902,11 +42902,11 @@ namespace PRoConEvents
                 if (fbpInfo == null) {
                     return Math.Max(basePower, savedPower);
                 }
-                // Active power is 1-32
-                Double killPower = min1(Math.Min(fbpInfo.Kills, maxKills) / maxKills);
-                Double kdPower = min1(Math.Min(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd);
-                Double scorePower = min1(Math.Min(fbpInfo.Score, maxScore) / maxScore);
-                Double activePower = (killPower + kdPower + scorePower) / 3.0 * Plugin._TeamPowerActiveInfluence;
+                // Active power is 1-ActiveInfluence
+                Double killPower = min1(Math.Min(fbpInfo.Kills, maxKills) / maxKills * Plugin._TeamPowerActiveInfluence);
+                Double kdPower = min1(Math.Min(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * Plugin._TeamPowerActiveInfluence);
+                Double scorePower = min1(Math.Min(fbpInfo.Score, maxScore) / maxScore * Plugin._TeamPowerActiveInfluence);
+                Double activePower = (killPower + kdPower + scorePower) / 3.0;
                 // Take whichever power level is greatest
                 TopStats.TempTopPower = Math.Max(Math.Max(basePower, savedPower), activePower);
                 return TopStats.TempTopPower;
