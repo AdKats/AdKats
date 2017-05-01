@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.81
+ * Version 6.9.0.82
  * 30-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.81</version_code>
+ * <version_code>6.9.0.82</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.81";
+        private const String PluginVersion = "6.9.0.82";
 
         public enum GameVersion
         {
@@ -42893,7 +42893,10 @@ namespace PRoConEvents
             public Double getTopPower(Boolean active) {
                 Double basePower = min1(TopStats.RoundCount >= 3 && TopStats.TopCount > 0 ? Math.Pow(TopStats.TopRoundRatio + 1, 5) : 1.0);
                 Double savedPower = TopStats.TempTopPower;
-                if (!active || fbpInfo == null) {
+                if (!active) {
+                    return basePower;
+                }
+                if (fbpInfo == null) {
                     return Math.Max(basePower, savedPower);
                 }
                 // Calculate active power
