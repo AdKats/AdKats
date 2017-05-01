@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.82
+ * Version 6.9.0.83
  * 30-APR-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.82</version_code>
+ * <version_code>6.9.0.83</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.82";
+        private const String PluginVersion = "6.9.0.83";
 
         public enum GameVersion
         {
@@ -42905,6 +42905,8 @@ namespace PRoConEvents
                 Double kdPower = min1(Math.Min(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * influence);
                 Double scorePower = min1(Math.Min(fbpInfo.Score, maxScore) / maxScore * influence);
                 Double activePower = killPower + kdPower + scorePower;
+                //Modify the saved power to better reflect the base
+                savedPower = (basePower + activePower) / 2.0;
                 // Take whichever power level is greatest
                 TopStats.TempTopPower = Math.Max(Math.Max(basePower, savedPower), activePower);
                 return TopStats.TempTopPower;
