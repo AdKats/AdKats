@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.87
+ * Version 6.9.0.88
  * 1-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.87</version_code>
+ * <version_code>6.9.0.88</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.87";
+        private const String PluginVersion = "6.9.0.88";
 
         public enum GameVersion
         {
@@ -1571,9 +1571,10 @@ namespace PRoConEvents
                                 .Where(aPlayer => aPlayer.getTopPower(true) > 1);
                             var onlineTopPlayerListing = onlineTopPlayers
                                 .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(" + _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + ") ")) + 
-                                                   "(" + aPlayer.getTopPower(true).ToString("00.0") +
-                                                   "|" + aPlayer.TopStats.TempTopPower.ToString("00.0") +
-                                                   "|" + aPlayer.getTopPower(false).ToString("00.0") +
+                                                   "(" + aPlayer.getTopPower(true, true).ToString("00.0") +
+                                                   "|" + aPlayer.getTopPower(true, false).ToString("00.0") +
+                                                   "|" + aPlayer.getTopPower(false, true).ToString("00.0") +
+                                                   "|" + aPlayer.getTopPower(false, false).ToString("00.0") +
                                                    "|" + aPlayer.TopStats.TopCount +
                                                    "|" + aPlayer.TopStats.RoundCount +
                                                    ") " + aPlayer.GetVerboseName())
@@ -42892,14 +42893,17 @@ namespace PRoConEvents
             private Double maxScore = 30000.0;
             private Double maxKills = 200.0;
             private Double maxKd = 4.0;
-            public Double getTopPower(Boolean active) {
+            public Double getTopPower(Boolean includeMods) {
+                return getTopPower(includeMods, includeMods);
+            }
+            public Double getTopPower(Boolean includeActive, Boolean includeSaved) {
                 // Base power is 1-32
                 Double basePower = min1(TopStats.RoundCount >= 3 && TopStats.TopCount > 0 ? Math.Pow(TopStats.TopRoundRatio + 1, 5) : 1.0);
                 Double savedPower = TopStats.TempTopPower;
-                if (!active) {
-                    return basePower;
-                }
                 if (fbpInfo == null) {
+                    if (!includeSaved) {
+                        return basePower;
+                    }
                     return Math.Max(basePower, savedPower);
                 }
                 // Active power is 1-ActiveInfluence
@@ -42909,6 +42913,13 @@ namespace PRoConEvents
                 Double activePower = (killPower + kdPower + scorePower) / 3.0;
                 // Take whichever power level is greatest
                 TopStats.TempTopPower = Math.Max(Math.Max(basePower, savedPower), activePower);
+                var returnPower = basePower;
+                if (includeActive) {
+                    returnPower = Math.Max(returnPower, activePower);
+                }
+                if (includeSaved) {
+                    returnPower = Math.Max(returnPower, savedPower);
+                }
                 return TopStats.TempTopPower;
             }
 
