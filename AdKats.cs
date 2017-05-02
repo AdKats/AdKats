@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.90
+ * Version 6.9.0.91
  * 1-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.90</version_code>
+ * <version_code>6.9.0.91</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.90";
+        private const String PluginVersion = "6.9.0.91";
 
         public enum GameVersion
         {
@@ -43764,7 +43764,6 @@ namespace PRoConEvents
                     if (!Plugin._PlayerDictionary.Any() || !Plugin._UseTeamPowerMonitor) {
                         return 0;
                     }
-                    Boolean afterRoundstart = Plugin._roundState == RoundState.Playing && Plugin._serverInfo.GetRoundElapsedTime().TotalMinutes >= 4.0;
                     List<AdKatsPlayer> teamPlayers = Plugin._PlayerDictionary.Values.ToList()
                         .Where(aPlayer =>
                             // Player is a live soldier in game, not a spectator/commander/etc.
@@ -43787,8 +43786,8 @@ namespace PRoConEvents
                     {
                         teamPlayers.Add(includePlayer);
                     }
-                    var teamTopPlayers = teamPlayers.Where(aPlayer => aPlayer.GetTopPower(useModifiers && afterRoundstart) > 1);
-                    var topPowerSum = teamTopPlayers.Select(aPlayer => aPlayer.GetTopPower(useModifiers && afterRoundstart)).Sum();
+                    var teamTopPlayers = teamPlayers.Where(aPlayer => aPlayer.GetTopPower(useModifiers) > 1);
+                    var topPowerSum = teamTopPlayers.Select(aPlayer => aPlayer.GetTopPower(useModifiers)).Sum();
                     var totalPower = Math.Round(topPowerSum);
                     return totalPower;
                 }
