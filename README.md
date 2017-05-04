@@ -224,7 +224,7 @@
     <a name=dependencies />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Dependencies.jpg" alt="AdKats User Manual">
 </p>
-<h4>1. A MySQL Database</h4>
+<h4><b>1. A MySQL Database</b></h4>
 <p>
     A MySQL database accessible from your Procon layer is required. AdKats checks the database for needed tables on
     connect.<br/>
@@ -238,7 +238,7 @@
     <b>Procon Layer Hosting:</b><a href="https://www.branzone.com/aff.php?aff=226&pid=192" target="_blank">
     Branzone Procon Layers</a>
 </p>
-<h4>2. XpKiller's "Procon Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
+<h4><b>2. XpKiller's "Procon Chat, GUID, Stats and Mapstats Logger" Plugin</b></h4>
 <p>
     AdKats will only run if one of this plugin is (1) using the same database AdKats uses, and (2) running on every
     battlefield Server you plan to install AdKats on.
@@ -252,7 +252,7 @@
 <p>
     The BF3 only version of stat logger CAN be used with AdKats if you don't want to lose your old data, but is not advised.
 </p>
-<h4>3. Web Request Access</h4>
+<h4><b>3. Web Request Access</b></h4>
 <p>
     AdKats uses web statistics and requests to manage players types, hack detection, user lists, and updates.
     The list of domains/sub-domains AdKats must be able to access for proper function are documented below in the
