@@ -672,30 +672,19 @@
 </p>
 <h4>Advanced Usage (Auto-Handling)</h4>
 <p>
-    The advanced functionality of this system is now released to the public as testing is complete.
-    This subsection uses your AAs as a collective human autoadmin.<br/><br/>
-
-    Players with AA status can conditionally have their reports acted on by the internal autoadmin.
-    A list of trigger words or phrases of any length can be defined in AdKats settings.
-    If an AA report reason contains any of those trigger words or phrases then autoadmin will act on their report with a
-    punish on the target player, using the reason they entered.
-    This was originally intended for cases when admins are offline and unable to answer reports, but has now been added
-    for all cases.
-    If admins are offline, and the report matches criteria, autoadmin will punish the target player after 5 seconds.
-    If admins are online, a 45 second window is given for the admin to act on the report before automatic handling
-    fires.
-    Admins can use any action command just like normal (e.g. @kill ID, @punish ID, etc...), but can also use the new
-    @accept, @ignore, and @deny commands.
-    @accept will confirm the report but take no action against the target player.
-    @ignore is used for bad or invalid reports, the report is removed from the list and no action is taken.
-    @deny is for malicious reports and abuse of the report system, this command will destroy a reporter's reputation and
-    hurt their AA status.<br/><br/>
-
-    Exceptions and Security Measures:
-    Automatic handling will not be taken if the target of a report is an admin or another AA, a real admin must act on
-    the report.
-    Automatic action will also not be taken if the target player has already been acted on in some way in the past 60
-    seconds.
+    The advanced functionality of this system is now released to the public as testing is complete. This subsection uses your AAs as a collective human autoadmin.
+</p>
+<p>
+    Players with AA status can conditionally have their reports acted on by the internal autoadmin. A list of trigger words or phrases of any length can be defined in AdKats settings. If an AA report reason contains any of those trigger words or phrases then autoadmin will act on their report with a punish on the target player, using the reason they entered. This was originally intended for cases when admins are offline and unable to answer reports, but has now been added for all cases.
+</p>
+<p>
+    If admins are offline, and the report matches criteria, autoadmin will punish the target player after 5 seconds. If admins are online, a 45 second window is given for the admin to act on the report before automatic handling fires.
+</p>
+<p>
+    Admins can use any action command just like normal (e.g. @kill ID, @punish ID, etc...), but can also use the new @accept, @ignore, and @deny commands. @accept will confirm the report but take no action against the target player. @ignore is used for bad or invalid reports, the report is removed from the list and no action is taken. @deny is for malicious reports and abuse of the report system, this command will destroy a reporter's reputation and hurt their AA status.
+</p>
+<p>
+    Exceptions and Security Measures: Automatic handling will not be taken if the target of a report is an admin or another AA, a real admin must act on the report. Automatic action will also not be taken if the target player has already been acted on in some way in the past 60 seconds.
 </p>
 <h3>Extended Round Statistics</h3>
 <p>
