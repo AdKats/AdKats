@@ -263,6 +263,14 @@
     <a name=install />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Install.jpg" alt="AdKats User Manual">
 </p>
+<p>
+    <b>WARNING: Running AdKats on a Linux environment is not advised or fully supported.</b>
+    Testing on linux environments has been limited for AdKats. Some things have been mitigated, namely issues with connecting over HTTPS for plugin documentation, updates, and startup, but this was simply necessary because the plugin wouldn't start otherwise. However, beyond that there has been very little or no full fledged testing on linux environments for this plugin, and there are so many facets of the plugin now I cannot guarantee functionality on that platform.
+</p>
+<p>
+    <b>WARNING: Do NOT run more than one instance of AdKats on a single procon layer at the same time.</b>
+    Procon provides the ability to have a single layer monitor multiple servers at the same time, and this is normally a good thing. However, AdKats is nearly the same size (logic wise) as procon itself now, and running multiple instances on the same process can result in heavy performance issues and instability. Do not use this multiple-server-per-layer functionality unless only ONE of the servers on the layer has AdKats running. Each server should have its own dedicated layer when running AdKats.
+</p>
 <ol>
     <li>
         <b>Install XpKiller's Stat logger plugin.</b>
@@ -294,10 +302,6 @@
         <b>Add the plugin to Procon.</b>
         Add the plugin file (AdKats.cs) to Procon as you would any other, in either the plugins/BF3 or plugins/BF4
         folder depending on which game your layer is running on.
-    </li>
-    <li>
-        <b>WARNING: Do NOT run more than one instance of AdKats on a single procon layer at the same time.</b>
-        Procon provides the ability to have a single layer monitor multiple servers at the same time, and this is normally a good thing. However, AdKats is nearly the same size (logic wise) as procon itself now, and running multiple instances on the same process can result in heavy performance issues and instability. Do not use this multiple-server-per-layer functionality unless only ONE of the servers on the layer has AdKats running. Each server should have its own dedicated layer when running AdKats.
     </li>
     <li>
         <b>Enter database credentials.</b>
