@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.93
+ * Version 6.9.0.94
  * 6-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.93</version_code>
+ * <version_code>6.9.0.94</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.93";
+        private const String PluginVersion = "6.9.0.94";
 
         public enum GameVersion {
             BF3,
@@ -11627,12 +11627,12 @@ namespace PRoConEvents
         private Int32 GetActiveEventRoundNumber(Boolean nextRound) {
             Log.Debug(() => "Entering GetEventRoundProgress", 7);
             try {
-                var round = nextRound ? _roundID + 1 : _roundID;
-                if (_CurrentEventRoundNumber == 999999 ||
-                    _CurrentEventRoundNumber > round) {
+                var roundID = nextRound ? _roundID + 1 : _roundID;
+                if (_CurrentEventRoundNumber == 999999 || _CurrentEventRoundNumber > roundID) {
+                    Log.Error("Can't get active event round number, event not active for round " + roundID + ".");
                     return 999999;
                 }
-                return _CurrentEventRoundNumber - round;
+                return roundID - _CurrentEventRoundNumber;
             } catch (Exception e) {
                 HandleException(new AdKatsException("Error while getting event round progress.", e));
             }
@@ -11644,30 +11644,42 @@ namespace PRoConEvents
             Log.Debug(() => "Entering GetEventRoundMapModeCode", 7);
             try {
                 if (eventRoundNumber < 0 || eventRoundNumber >= _EventRoundSelections.Count()) {
-                    return "unknown";
+                    Log.Error("Event round number " + eventRoundNumber + " was invalid when fetching map mode code.");
+                    return "UNKNOWN";
                 }
                 // Get all text before the slash, the map mode info
-                return Regex.Match(_EventRoundSelections[eventRoundNumber], "^[a-zA-Z0-9 ]+").Value;
+                var match = Regex.Match(_EventRoundSelections[eventRoundNumber], "^[a-zA-Z0-9 ]+");
+                if (match.Success) {
+                    return match.Value;
+                } else {
+                    Log.Error("Not able to find map mode code in " + _EventRoundSelections[eventRoundNumber]);
+                }
             } catch (Exception e) {
                 HandleException(new AdKatsException("Error while getting event round map mode code.", e));
             }
             Log.Debug(() => "Exiting GetEventRoundMapModeCode", 7);
-            return "unknown";
+            return "UNKNOWN";
         }
 
         private String GetEventRoundRestrictionCode(Int32 eventRoundNumber) {
             Log.Debug(() => "Entering GetEventRoundRestrictionCode", 7);
             try {
                 if (eventRoundNumber < 0 || eventRoundNumber >= _EventRoundSelections.Count()) {
-                    return "unknown";
+                    Log.Error("Event round number " + eventRoundNumber + " was invalid when fetching restriction code.");
+                    return "UNKNOWN";
                 }
                 // Get all text after the slash, the restriction info
-                return Regex.Match(_EventRoundSelections[eventRoundNumber], "[a-zA-Z0-9 ]+$").Value;
+                var match = Regex.Match(_EventRoundSelections[eventRoundNumber], "[a-zA-Z0-9 ]+$");
+                if (match.Success) {
+                    return match.Value;
+                } else {
+                    Log.Error("Not able to find restriction code in " + _EventRoundSelections[eventRoundNumber]);
+                }
             } catch (Exception e) {
                 HandleException(new AdKatsException("Error while getting event round restriction code.", e));
             }
             Log.Debug(() => "Exiting GetEventRoundRestrictionCode", 7);
-            return "unknown";
+            return "UNKNOWN";
         }
 
         private Boolean ProcessEventKill(AdKatsKill aKill, out String message) {
@@ -41934,11 +41946,11 @@ namespace PRoConEvents
         }
 
         public static DateTime GetEpochTime() {
-            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc); ;
+            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         }
 
         public static DateTime GetLocalEpochTime() {
-            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Local); ;
+            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Local);
         }
 
         public DateTime DateTimeFromEpochSeconds(Double epochSeconds)
