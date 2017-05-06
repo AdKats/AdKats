@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.92
+ * Version 6.9.0.93
  * 6-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.92</version_code>
+ * <version_code>6.9.0.93</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.92";
+        private const String PluginVersion = "6.9.0.93";
 
         public enum GameVersion {
             BF3,
@@ -1669,33 +1669,33 @@ namespace PRoConEvents
                         if (_UseExperimentalTools) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + t + "Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
 
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Settings" + t + "Event Round Count", typeof(Int32), _EventRoundCount));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Settings" + t + "Event Round Count", typeof(Int32), _EventRoundCount));
                             for (int roundNumber = 0; roundNumber < _EventRoundSelections.Count(); roundNumber++) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundSelections[roundNumber]));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundSelections[roundNumber]));
                             }
 
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Schedule" + t + "Event Date", typeof(String), _EventDate.ToShortDateString()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Schedule" + t + "Event Hour in 24 format", typeof(Int32), _EventHour));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Schedule" + t + "Is it daylight savings?", typeof(String), DateTime.Now.IsDaylightSavingTime() ? "Yes, currently daylight savings." : "No, not daylight savings."));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Schedule" + t + "Event Announce Day Difference", typeof(Int32), _EventAnnounceDayDifference));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule" + t + "Event Date", typeof(String), _EventDate.ToShortDateString()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule" + t + "Event Hour in 24 format", typeof(Int32), _EventHour));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule" + t + "Is it daylight savings?", typeof(String), DateTime.Now.IsDaylightSavingTime() ? "Yes, currently daylight savings." : "No, not daylight savings."));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule" + t + "Event Announce Day Difference", typeof(Int32), _EventAnnounceDayDifference));
 
                             if (_EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
                                 var eventDate = _EventDate.AddHours(_EventHour);
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Schedule Display" + t + "Processed Time Of Event (display)", typeof(String), eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString() + " (" + FormatTimeString(eventDate - DateTime.Now, 3) + ")"));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Schedule Display" + t + "Current Round Number (display)", typeof(String), String.Format("{0:n0}", _roundID)));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Schedule Display" + t + "Estimated Event Round Number (display)", typeof(String), String.Format("{0:n0}", FetchEstimatedEventRoundNumber())));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Schedule Display" + t + "Concrete Event Round Number (display)", typeof(String), _CurrentEventRoundNumber == 999999 ? "Undecided." : String.Format("{0:n0}", _CurrentEventRoundNumber)));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [3] Schedule Display" + t + "Processed Time Of Event (display)", typeof(String), eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString() + " (" + FormatTimeString(eventDate - DateTime.Now, 3) + ")"));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [3] Schedule Display" + t + "Current Round Number (display)", typeof(String), String.Format("{0:n0}", _roundID)));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [3] Schedule Display" + t + "Estimated Event Round Number (display)", typeof(String), String.Format("{0:n0}", FetchEstimatedEventRoundNumber())));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [3] Schedule Display" + t + "Concrete Event Round Number (display)", typeof(String), _CurrentEventRoundNumber == 999999 ? "Undecided." : String.Format("{0:n0}", _CurrentEventRoundNumber)));
                             }
 
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Name Settings" + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Name Settings" + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Name Settings" + t + "Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Name Settings" + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Name Settings" + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Name Settings" + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Name Settings" + t + "Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Name Settings" + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
 
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Name Display" + t + "Processed Base Server Name (display)", typeof(String), ProcessEventServerName(_eventBaseServerName, false, false)));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Name Display" + t + "Processed Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventCountdownServerName, false, false)));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Name Display" + t + "Processed Concrete Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventConcreteCountdownServerName, false, true)));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " Name Display" + t + "Processed Active Server Name (display)", typeof(String), ProcessEventServerName(_eventActiveServerName, true, true)));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Display" + t + "Processed Base Server Name (display)", typeof(String), ProcessEventServerName(_eventBaseServerName, false, false)));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Display" + t + "Processed Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventCountdownServerName, false, false)));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Display" + t + "Processed Concrete Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventConcreteCountdownServerName, false, true)));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Display" + t + "Processed Active Server Name (display)", typeof(String), ProcessEventServerName(_eventActiveServerName, true, true)));
                         }
                     }
 
@@ -41927,7 +41927,9 @@ namespace PRoConEvents
 
         public void PrintPreparedCommand(MySqlCommand cmd)
         {
-            String query = cmd.Parameters.Cast<MySqlParameter>().Aggregate(cmd.CommandText, (current, p) => current.Replace(p.ParameterName, (p.Value != null) ? (p.Value.ToString()) : ("NULL")));
+            String query = cmd.Parameters.Cast<MySqlParameter>()
+                .Aggregate(cmd.CommandText, (current, p) => 
+                    current.Replace(p.ParameterName, (p.Value != null) ? ("\"" + p.Value.ToString() + "\"") : ("NULL")));
             Log.Write(query);
         }
 
@@ -42234,7 +42236,14 @@ namespace PRoConEvents
                 catch (Exception e2)
                 {
                     e = e2;
-                    if ((e2.GetType() == typeof(TimeoutException) || e2.ToString().Contains("Unable to connect to any of the specified MySQL hosts") || e2.ToString().Contains("Reading from the stream has failed.") || e2.ToString().Contains("Too many connections") || e2.ToString().Contains("Timeout expired") || e2.ToString().Contains("An existing connection was forcibly closed by the remote host") || e2.ToString().Contains("Unable to read data") || e2.ToString().Contains("Lock wait timeout exceeded")))
+                    if (e2.GetType() == typeof(TimeoutException) || 
+                        e2.ToString().Contains("Unable to connect to any of the specified MySQL hosts") || 
+                        e2.ToString().Contains("Reading from the stream has failed.") || 
+                        e2.ToString().Contains("Too many connections") || 
+                        e2.ToString().Contains("Timeout expired") || 
+                        e2.ToString().Contains("An existing connection was forcibly closed by the remote host") || 
+                        e2.ToString().Contains("Unable to read data") || 
+                        e2.ToString().Contains("Lock wait timeout exceeded"))
                     {
                         Log.Info("Average Read: " + Math.Round(_DatabaseReadAverageDuration, 3) + "s " + _DatabaseReaderDurations.Count + " | Average Write: " + Math.Round(_DatabaseWriteAverageDuration, 3) + "s " + _DatabaseNonQueryDurations.Count);
                         PrintPreparedCommand(command);
@@ -42298,7 +42307,14 @@ namespace PRoConEvents
                 catch (Exception e2)
                 {
                     e = e2;
-                    if ((e2.GetType() == typeof(TimeoutException) || e2.ToString().Contains("Unable to connect to any of the specified MySQL hosts") || e2.ToString().Contains("Reading from the stream has failed.") || e2.ToString().Contains("Too many connections") || e2.ToString().Contains("Timeout expired") || e2.ToString().Contains("An existing connection was forcibly closed by the remote host") || e2.ToString().Contains("Unable to read data") || e2.ToString().Contains("Lock wait timeout exceeded")))
+                    if (e2.GetType() == typeof(TimeoutException) || 
+                        e2.ToString().Contains("Unable to connect to any of the specified MySQL hosts") || 
+                        e2.ToString().Contains("Reading from the stream has failed.") || 
+                        e2.ToString().Contains("Too many connections") || 
+                        e2.ToString().Contains("Timeout expired") || 
+                        e2.ToString().Contains("An existing connection was forcibly closed by the remote host") || 
+                        e2.ToString().Contains("Unable to read data") || 
+                        e2.ToString().Contains("Lock wait timeout exceeded"))
                     {
                         Log.Info("Average Read: " + Math.Round(_DatabaseReadAverageDuration, 3) + "s " + _DatabaseReaderDurations.Count + " | Average Write: " + Math.Round(_DatabaseWriteAverageDuration, 3) + "s " + _DatabaseNonQueryDurations.Count);
                         PrintPreparedCommand(command);
