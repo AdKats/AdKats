@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.97
+ * Version 6.9.0.98
  * 6-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.97</version_code>
+ * <version_code>6.9.0.98</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.97";
+        private const String PluginVersion = "6.9.0.98";
 
         public enum GameVersion {
             BF3,
@@ -7304,7 +7304,7 @@ namespace PRoConEvents
                                         // The event date is set, and in the future
                                         var estimateEventRoundNumber = FetchEstimatedEventRoundNumber();
                                         // At 3 rounds away, lock in the round number for the event
-                                        if (Math.Abs(estimateEventRoundNumber - _roundID) <= 3) {
+                                        if (Math.Abs(estimateEventRoundNumber - _roundID) <= 4) {
                                             _CurrentEventRoundNumber = estimateEventRoundNumber;
                                         }
                                     }
@@ -7507,14 +7507,14 @@ namespace PRoConEvents
                                 lastShortKeepAliveCheck = UtcNow();
                             }
 
-                            //Server info fetch - every 10 seconds
-                            if (_threadsReady && NowDuration(_LastServerInfoFire).TotalSeconds > 9.5)
+                            //Server info fetch - every 5 seconds
+                            if (_threadsReady && NowDuration(_LastServerInfoFire).TotalSeconds > 4.5)
                             {
                                 ExecuteCommand("procon.protected.send", "serverInfo");
                             }
 
-                            //Player Info fetch - every 10 seconds
-                            if (_threadsReady && NowDuration(_LastPlayerListFire).TotalSeconds > 9.5)
+                            //Player Info fetch - every 5 seconds
+                            if (_threadsReady && NowDuration(_LastPlayerListFire).TotalSeconds > 4.5)
                             {
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
@@ -8349,30 +8349,27 @@ namespace PRoConEvents
                         }
                         return;
                     }
+                    Boolean updateTeamInfo = true;
                     if (aPlayer.RequiredTeam != null && 
                         aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey && 
                         oldTeam.TeamKey != "Neutral" &&
                         !PlayerIsAdmin(aPlayer))
                     {
-                        var newPowerDiff = Math.Round(Math.Abs(newTeam.GetTeamPower(null, aPlayer) - oldTeam.GetTeamPower(aPlayer, null)));
-                        var oldPowerDiff = Math.Round(Math.Abs(newTeam.GetTeamPower() - oldTeam.GetTeamPower()));
-                        if (_UseTeamPowerMonitor && 
-                            aPlayer.GetTopPower(true) > 1 && 
-                            newPowerDiff <= oldPowerDiff &&
-                            _roundState == RoundState.Playing && 
+                        if (RunAssist(aPlayer, null, null, true) &&
+                            _roundState == RoundState.Playing &&
                             _serverInfo.GetRoundElapsedTime().TotalSeconds > 10) {
-                            OnlineAdminSayMessage(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + " (" + newPowerDiff + "<" + oldPowerDiff + ").");
+                            OnlineAdminSayMessage(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + ".");
                             aPlayer.RequiredTeam = newTeam;
                         } else {
                             if (_roundState == RoundState.Playing) {
                                 OnlineAdminSayMessage(soldierName + " attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamName + ".");
                                 PlayerTellMessage(soldierName, "You were assigned to " + aPlayer.RequiredTeam.TeamName + ", please remain on that team.");
                             }
+                            updateTeamInfo = false;
                             ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", "1", "false");
                         }
                     }
-                    else
-                    {
+                    if (updateTeamInfo) {
                         Int32 oldSquad = aPlayer.fbpInfo.SquadID;
                         aPlayer.fbpInfo.TeamID = teamId;
                     }
@@ -12600,7 +12597,6 @@ namespace PRoConEvents
                     }
 
                     if (_AutomaticForgives && 
-                        aPlayer.player_reputation >= 0 && 
                         aPlayer.player_infractionPoints > 0 && 
                         aPlayer.LastPunishment != null && 
                         (UtcNow() - aPlayer.LastPunishment.record_time).TotalDays > _AutomaticForgiveLastPunishDays && 
@@ -12677,6 +12673,9 @@ namespace PRoConEvents
         public override void OnPlayerDisconnected(string soldierName, string reason) {
             Log.Debug(() => "Entering OnPlayerDisconnected", 7);
             try {
+                if (_UseExperimentalTools) {
+                    Log.Info(soldierName + " disconnected for: '" + reason + "'");
+                }
                 if (_pluginEnabled && 
                     _firstPlayerListComplete && 
                     _gameVersion == GameVersion.BF4 && 
