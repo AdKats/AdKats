@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.96
+ * Version 6.9.0.97
  * 6-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.96</version_code>
+ * <version_code>6.9.0.97</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.96";
+        private const String PluginVersion = "6.9.0.97";
 
         public enum GameVersion {
             BF3,
@@ -930,8 +930,8 @@ namespace PRoConEvents
             //Build event round options enum
             _EventRoundOptionsEnum = String.Empty;
             random = new Random(Environment.TickCount);
-            foreach (String restriction in _EventRoundRestrictionOptions) {
-                foreach (String mapMode in _EventRoundMapModeOptions) {
+            foreach (String mapMode in _EventRoundMapModeOptions) {
+                foreach (String restriction in _EventRoundRestrictionOptions) {
                     if (String.IsNullOrEmpty(_EventRoundOptionsEnum)) {
                         _EventRoundOptionsEnum += "enum.EventRoundOptionsEnum_" + random.Next(100000, 999999) + "(";
                     } else {
@@ -6970,24 +6970,24 @@ namespace PRoConEvents
                                         while (_BattlelogActionTimes.Any() && NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 4) {
                                             _BattlelogActionTimes.Dequeue();
                                         }
-                                            var frequency = Math.Round(_BattlelogActionTimes.Count() / 4.0, 2);
-                                            Log.Info("Average battlelog request frequency: " + frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count());
-                                            QueueStatisticForProcessing(new AdKatsStatistic() {
-                                                stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
-                                                server_id = _serverInfo.ServerID,
-                                                round_id = _roundID,
-                                                target_name = _serverInfo.InfoObject.Map,
-                                                stat_value = frequency,
-                                                stat_comment = frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
-                                                stat_time = UtcNow()
-                                            });
+                                        var frequency = Math.Round(_BattlelogActionTimes.Count() / 4.0, 2);
+                                        Log.Info("Average battlelog request frequency: " + frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count());
+                                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                                            stat_type = AdKatsStatistic.StatisticType.battlelog_requestfreq,
+                                            server_id = _serverInfo.ServerID,
+                                            round_id = _roundID,
+                                            target_name = _serverInfo.InfoObject.Map,
+                                            stat_value = frequency,
+                                            stat_comment = frequency + " r/m, HC: " + _HackerCheckerQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
+                                            stat_time = UtcNow()
+                                        });
                                         _lastBattlelogFrequencyMessage = UtcNow();
                                     }
                                 }
                             }
 
-                            //Check for unswitcher disable - every 20 seconds
-                            if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (UtcNow() - _LastPlayerMoveIssued).TotalSeconds > 20)
+                            //Check for unswitcher disable - every 5 seconds
+                            if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (UtcNow() - _LastPlayerMoveIssued).TotalSeconds > 5)
                             {
                                 Log.Debug(() => "MULTIBalancer Unswitcher Re-Enabled", 3);
                                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
@@ -15212,7 +15212,7 @@ namespace PRoConEvents
                                             ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                             _MULTIBalancerUnswitcherDisabled = true;
                                             PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2.TeamName + " to team " + team1.TeamName);
-                                            if (dicPlayer != null && team1.TeamTicketCount <= team2.TeamTicketCount)
+                                            if (dicPlayer != null)
                                             {
                                                 AdKatsRecord assistRecord = dicPlayer.TargetedRecords.FirstOrDefault(record => record.command_type.command_key == "self_assist" && record.command_action.command_key == "self_assist_unconfirmed");
                                                 if (assistRecord != null) {
