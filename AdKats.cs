@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.105
+ * Version 6.9.0.106
  * 7-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.105</version_code>
+ * <version_code>6.9.0.106</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.105";
+        private const String PluginVersion = "6.9.0.106";
 
         public enum GameVersion {
             BF3,
@@ -728,6 +728,7 @@ namespace PRoConEvents
 
         //Assist
         private Queue<AdKatsRecord> _AssistAttemptQueue = new Queue<AdKatsRecord>();
+        DateTime _LastAutoAssist = DateTime.UtcNow - TimeSpan.FromSeconds(300);
 
         //Battlecries
         public enum BattlecryVolume {
@@ -7192,7 +7193,11 @@ namespace PRoConEvents
                             
                             //Automatic Assisting Check - Every 500ms
                             // Are there any records to process
-                            if (_roundState == RoundState.Playing && _AssistAttemptQueue.Any()) {
+                            if (_roundState == RoundState.Playing && 
+                                _AssistAttemptQueue.Any() && 
+                                !_Team1MoveQueue.Any() && 
+                                !_Team2MoveQueue.Any() && 
+                                NowDuration(_LastAutoAssist).TotalSeconds > 10.0) {
                                 lock (_AssistAttemptQueue) {
                                     // There are, look at the first one without pulling it
                                     var assistRecord = _AssistAttemptQueue.Peek();
@@ -7207,6 +7212,7 @@ namespace PRoConEvents
                                             if (RunAssist(assistRecord.target_player, assistRecord, null, true)) {
                                                 QueueRecordForProcessing(assistRecord);
                                                 _AssistAttemptQueue.Dequeue();
+                                                _LastAutoAssist = UtcNow();
                                             }
                                         }
                                     }
@@ -43064,7 +43070,7 @@ namespace PRoConEvents
                     if (!includeSaved) {
                         return basePower;
                     }
-                    return Math.Max(basePower, savedPower / 2.0);
+                    return Math.Max(basePower, savedPower / 3.0);
                 }
                 // Active power is 1-ActiveInfluence
                 Double killPower = min1(Math.Min(fbpInfo.Kills, maxKills) / maxKills * Plugin._TeamPowerActiveInfluence);
@@ -43078,7 +43084,7 @@ namespace PRoConEvents
                     returnPower = Math.Max(returnPower, activePower);
                 }
                 if (includeSaved) {
-                    returnPower = Math.Max(returnPower, savedPower / 2.0);
+                    returnPower = Math.Max(returnPower, savedPower / 3.0);
                 }
                 return returnPower;
             }
