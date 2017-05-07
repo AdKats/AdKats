@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.99
+ * Version 6.9.0.100
  * 6-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.99</version_code>
+ * <version_code>6.9.0.100</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.99";
+        private const String PluginVersion = "6.9.0.100";
 
         public enum GameVersion {
             BF3,
@@ -14485,11 +14485,15 @@ namespace PRoConEvents
             return nonAdminsTold;
         }
 
-        public Boolean OnlineAdminSayMessage(String message)
+        public Boolean OnlineAdminSayMessage(String message) {
+            return OnlineAdminSayMessage(message, null);
+        }
+
+        public Boolean OnlineAdminSayMessage(String message, String exclude)
         {
             ProconChatWrite(Log.CMaroon(Log.FBold(message)));
             Boolean adminsTold = false;
-            foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers())
+            foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers().Where(aPlayer => aPlayer.player_name != exclude))
             {
                 adminsTold = true;
                 PlayerSayMessage(player.player_name, message, true, 1);
@@ -14595,7 +14599,7 @@ namespace PRoConEvents
                     message = message.Replace(bypassPrefix, "");
                 }
                 if (displayProconChat) {
-                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Say > " + target + " > " + message);
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Say > " + Log.CBlue(target) + " > " + message);
                 }
                 string[] messageSplit = message.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
                 int maxLineLength = 127;
@@ -14643,7 +14647,7 @@ namespace PRoConEvents
                     message = message.Replace(bypassPrefix, "");
                 }
                 if (displayProconChat) {
-                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Yell[" + _YellDuration + "s] > " + message);
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Yell[" + _YellDuration + "s] > " + message);
                 }
                 ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion == GameVersion.BF4) ? (Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "all");
             }
@@ -27583,7 +27587,7 @@ namespace PRoConEvents
                     //No conversation partner exists. Inform of the new one.
                     if (PlayerIsAdmin(sender) && !PlayerIsAdmin(partner) && !adminInformedChange)
                     {
-                        OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName());
+                        OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName(), sender.player_name);
                         adminInformedChange = true;
                     }
                     else
@@ -27600,7 +27604,7 @@ namespace PRoConEvents
                     {
                         if (PlayerIsAdmin(sender) && !PlayerIsAdmin(partner) && !adminInformedChange)
                         {
-                            OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName());
+                            OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName(), sender.player_name);
                             adminInformedChange = true;
                         }
                         else
@@ -27667,7 +27671,7 @@ namespace PRoConEvents
                         //No conversation partner exists. Inform of the new one.
                         if (PlayerIsAdmin(partner) && !PlayerIsAdmin(sender) && !adminInformedChange)
                         {
-                            OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName());
+                            OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName(), sender.player_name);
                             adminInformedChange = true;
                         }
                         else
@@ -27801,7 +27805,7 @@ namespace PRoConEvents
                     //No conversation partner exists. Inform of the new one.
                     if (PlayerIsAdmin(partner) && !PlayerIsAdmin(sender) && !adminInformedChange)
                     {
-                        OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName());
+                        OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName(), sender.player_name);
                         adminInformedChange = true;
                     }
                     else
@@ -41930,7 +41934,7 @@ namespace PRoConEvents
         public void ProconChatWrite(String msg)
         {
             msg = msg.Replace(Environment.NewLine, " ");
-            ExecuteCommand("procon.protected.chat.write", "AdKats > " + msg);
+            ExecuteCommand("procon.protected.chat.write", Log.COrange("AdKats") + " > " + msg);
             if (_slowmo)
             {
                 _threadMasterWaitHandle.WaitOne(1000);
