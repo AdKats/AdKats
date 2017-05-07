@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.101
- * 6-MAY-2017
+ * Version 6.9.0.102
+ * 7-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.101</version_code>
+ * <version_code>6.9.0.102</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.101";
+        private const String PluginVersion = "6.9.0.102";
 
         public enum GameVersion {
             BF3,
@@ -5677,9 +5677,6 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"Metabans API Key").Success) {
                     if (string.IsNullOrEmpty(strValue)) {
                         _metabansAPIKey = "";
-                        if (_threadsReady) {
-                            Log.Error("No API key for Metabans was given! Cancelling Operation.");
-                        }
                     } else if (_metabansAPIKey != strValue) {
                         _metabansAPIKey = strValue;
                         //Once setting has been changed, upload the change to database
@@ -5690,9 +5687,6 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"Metabans Username").Success) {
                     if (string.IsNullOrEmpty(strValue)) {
                         _metabansUsername = "";
-                        if (_threadsReady) {
-                            Log.Error("No username for Metabans was given! Cancelling Operation.");
-                        }
                     } else if (_metabansUsername != strValue) {
                         _metabansUsername = strValue;
                         //Once setting has been changed, upload the change to database
