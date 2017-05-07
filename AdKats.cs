@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.103
+ * Version 6.9.0.104
  * 7-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.103</version_code>
+ * <version_code>6.9.0.104</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.103";
+        private const String PluginVersion = "6.9.0.104";
 
         public enum GameVersion {
             BF3,
@@ -42825,7 +42825,10 @@ namespace PRoConEvents
                 if (serverName.Contains("%RemainingRounds%")) {
                     var remainingRounds = 0;
                     if (testConcrete) {
-                        serverName = serverName.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(3, 0)));
+                        remainingRounds = 3;
+                        serverName = serverName.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                        serverName = serverName.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                        serverName = serverName.Replace("%S%", remainingRounds > 1 ? "S" : "");
                     } else if (_CurrentEventRoundNumber != 999999) {
                         remainingRounds = _CurrentEventRoundNumber - _roundID;
                         serverName = serverName.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
@@ -42840,7 +42843,7 @@ namespace PRoConEvents
                 }
             }
             if (testActive) {
-                serverName += " REPAIR TOOLS!";
+                serverName += " AUTO-PRIMARIES ONLY!";
             }
             serverName = serverName.Trim();
             Int32 cutLength = serverName.Length - 62;
