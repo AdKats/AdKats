@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.98
+ * Version 6.9.0.99
  * 6-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.98</version_code>
+ * <version_code>6.9.0.99</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.98";
+        private const String PluginVersion = "6.9.0.99";
 
         public enum GameVersion {
             BF3,
@@ -12673,13 +12673,10 @@ namespace PRoConEvents
         public override void OnPlayerDisconnected(string soldierName, string reason) {
             Log.Debug(() => "Entering OnPlayerDisconnected", 7);
             try {
-                if (_UseExperimentalTools) {
-                    Log.Info(soldierName + " disconnected for: '" + reason + "'");
-                }
                 if (_pluginEnabled && 
                     _firstPlayerListComplete && 
                     _gameVersion == GameVersion.BF4 && 
-                    reason == "Player kicked") {
+                    reason == "PLAYER_KICKED") {
                     var matchingPlayer = _FetchedPlayers.Values.FirstOrDefault(aPlayer => aPlayer.player_name == soldierName);
                     if (matchingPlayer != null) {
                         _vipKickedPlayerName = matchingPlayer.GetVerboseName();
@@ -14933,9 +14930,13 @@ namespace PRoConEvents
                                     Log.Debug(() => "Checking for mute case.", 7);
                                     if (_RoundMutedPlayers.ContainsKey(messageObject.Speaker))
                                     {
-                                        if (_MutedPlayerIgnoreCommands && isCommand)
+                                        if (_MutedPlayerIgnoreCommands && isCommand) 
                                         {
                                             Log.Debug(() => "Player muted, but ignoring since message is command.", 3);
+                                        }
+                                        else if (messageObject.Hidden) 
+                                        {
+                                            Log.Debug(() => "Player muted, but ignoring since message is hidden.", 3);
                                         }
                                         else
                                         {
