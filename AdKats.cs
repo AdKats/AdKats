@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.102
+ * Version 6.9.0.103
  * 7-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.102</version_code>
+ * <version_code>6.9.0.103</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.102";
+        private const String PluginVersion = "6.9.0.103";
 
         public enum GameVersion {
             BF3,
@@ -7021,7 +7021,9 @@ namespace PRoConEvents
                                                          .Replace("%EventDateTime%", "TBD")
                                                          .Replace("%EventDate%", "TBD")
                                                          .Replace("%EventRound%", "TBD")
-                                                         .Replace("%RemainingRounds%", "TBD");
+                                                         .Replace("%RemainingRounds%", "TBD")
+                                                         .Replace("%s%", "s")
+                                                         .Replace("%S%", "S");
                                     }
                                     else {
                                         if (message.Contains("%EventDateDuration%")) {
@@ -7044,10 +7046,17 @@ namespace PRoConEvents
                                             }
                                         }
                                         if (message.Contains("%RemainingRounds%")) {
+                                            var remainingRounds = 0;
                                             if (_CurrentEventRoundNumber != 999999) {
-                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(_CurrentEventRoundNumber - _roundID - 1, 0)));
+                                                remainingRounds = _CurrentEventRoundNumber - _roundID;
+                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                                                message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                                                message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
                                             } else {
-                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(FetchEstimatedEventRoundNumber() - _roundID - 1, 0)));
+                                                remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
+                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                                                message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                                                message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
                                             }
                                         }
                                     }
@@ -7071,7 +7080,9 @@ namespace PRoConEvents
                                                          .Replace("%EventDateTime%", "TBD")
                                                          .Replace("%EventDate%", "TBD")
                                                          .Replace("%EventRound%", "TBD")
-                                                         .Replace("%RemainingRounds%", "TBD");
+                                                         .Replace("%RemainingRounds%", "TBD")
+                                                         .Replace("%s%", "s")
+                                                         .Replace("%S%", "S");
                                     } else {
                                         if (message.Contains("%EventDateDuration%")) {
                                             message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
@@ -7093,10 +7104,17 @@ namespace PRoConEvents
                                             }
                                         }
                                         if (message.Contains("%RemainingRounds%")) {
+                                            var remainingRounds = 0;
                                             if (_CurrentEventRoundNumber != 999999) {
-                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(_CurrentEventRoundNumber - _roundID - 1, 0)));
+                                                remainingRounds = _CurrentEventRoundNumber - _roundID;
+                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                                                message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                                                message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
                                             } else {
-                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(FetchEstimatedEventRoundNumber() - _roundID - 1, 0)));
+                                                remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
+                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                                                message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                                                message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
                                             }
                                         }
                                     }
@@ -7120,7 +7138,9 @@ namespace PRoConEvents
                                                          .Replace("%EventDateTime%", "TBD")
                                                          .Replace("%EventDate%", "TBD")
                                                          .Replace("%EventRound%", "TBD")
-                                                         .Replace("%RemainingRounds%", "TBD");
+                                                         .Replace("%RemainingRounds%", "TBD")
+                                                         .Replace("%s%", "s")
+                                                         .Replace("%S%", "S");
                                     } else {
                                         if (message.Contains("%EventDateDuration%")) {
                                             message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
@@ -7142,10 +7162,17 @@ namespace PRoConEvents
                                             }
                                         }
                                         if (message.Contains("%RemainingRounds%")) {
+                                            var remainingRounds = 0;
                                             if (_CurrentEventRoundNumber != 999999) {
-                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(_CurrentEventRoundNumber - _roundID - 1, 0)));
+                                                remainingRounds = _CurrentEventRoundNumber - _roundID;
+                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                                                message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                                                message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
                                             } else {
-                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(FetchEstimatedEventRoundNumber() - _roundID - 1, 0)));
+                                                remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
+                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                                                message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                                                message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
                                             }
                                         }
                                     }
@@ -7298,7 +7325,7 @@ namespace PRoConEvents
                                         // The event date is set, and in the future
                                         var estimateEventRoundNumber = FetchEstimatedEventRoundNumber();
                                         // At 3 rounds away, lock in the round number for the event
-                                        if (Math.Abs(estimateEventRoundNumber - _roundID) <= 4) {
+                                        if (Math.Abs(estimateEventRoundNumber - _roundID) <= 3) {
                                             _CurrentEventRoundNumber = estimateEventRoundNumber;
                                         }
                                     }
@@ -42772,7 +42799,9 @@ namespace PRoConEvents
                                        .Replace("%EventDateTime%", "TBD")
                                        .Replace("%EventDate%", "TBD")
                                        .Replace("%EventRound%", "TBD")
-                                       .Replace("%RemainingRounds%", "TBD");
+                                       .Replace("%RemainingRounds%", "TBD")
+                                       .Replace("%s%", "s")
+                                       .Replace("%S%", "S");
             } else {
                 if (serverName.Contains("%EventDateDuration%")) {
                     serverName = serverName.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
@@ -42794,12 +42823,19 @@ namespace PRoConEvents
                     }
                 }
                 if (serverName.Contains("%RemainingRounds%")) {
+                    var remainingRounds = 0;
                     if (testConcrete) {
-                        serverName = serverName.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(5, 0)));
+                        serverName = serverName.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(3, 0)));
                     } else if (_CurrentEventRoundNumber != 999999) {
-                        serverName = serverName.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(_CurrentEventRoundNumber - _roundID - 1, 0)));
+                        remainingRounds = _CurrentEventRoundNumber - _roundID;
+                        serverName = serverName.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                        serverName = serverName.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                        serverName = serverName.Replace("%S%", remainingRounds > 1 ? "S" : "");
                     } else {
-                        serverName = serverName.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(FetchEstimatedEventRoundNumber() - _roundID - 1, 0)));
+                        remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
+                        serverName = serverName.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                        serverName = serverName.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                        serverName = serverName.Replace("%S%", remainingRounds > 1 ? "S" : "");
                     }
                 }
             }
