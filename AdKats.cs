@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.100
+ * Version 6.9.0.101
  * 6-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.100</version_code>
+ * <version_code>6.9.0.101</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.100";
+        private const String PluginVersion = "6.9.0.101";
 
         public enum GameVersion {
             BF3,
@@ -14684,7 +14684,7 @@ namespace PRoConEvents
                     message = message.Replace(bypassPrefix, "");
                 }
                 if (displayProconChat) {
-                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Yell[" + _YellDuration + "s] > " + target + " > " + message);
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Yell[" + _YellDuration + "s] > " + Log.CBlue(target) + " > " + message);
                 }
                 for (int count = 0; count < spamCount; count++)
                 {
@@ -14739,7 +14739,7 @@ namespace PRoConEvents
                 message = message.Replace(bypassPrefix, "");
             }
             if (displayProconChat) {
-                ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + target + " > " + message);
+                ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + Log.CBlue(target) + " > " + message);
             }
             PlayerSayMessage(target, message, false, spamCount);
             PlayerYellMessage(target, message, false, spamCount);
@@ -41980,7 +41980,7 @@ namespace PRoConEvents
 
             private void WriteChat(String msg)
             {
-                _plugin.ExecuteCommand("procon.protected.chat.write", _plugin.GetType().Name + " > " + msg);
+                _plugin.ExecuteCommand("procon.protected.chat.write", COrange(_plugin.GetType().Name) + " > " + msg);
             }
 
             public void Debug(Func<String> messageFunc, Int32 level)
