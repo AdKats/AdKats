@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.104
+ * Version 6.9.0.105
  * 7-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.104</version_code>
+ * <version_code>6.9.0.105</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.104";
+        private const String PluginVersion = "6.9.0.105";
 
         public enum GameVersion {
             BF3,
@@ -15279,7 +15279,7 @@ namespace PRoConEvents
                                             ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                             _MULTIBalancerUnswitcherDisabled = true;
                                             PlayerSayMessage(player.SoldierName, "Swapping you from team " + team1.TeamName + " to team " + team2.TeamName);
-                                            if (dicPlayer != null && team2.TeamTicketCount <= team1.TeamTicketCount)
+                                            if (dicPlayer != null)
                                             {
                                                 AdKatsRecord assistRecord = dicPlayer.TargetedRecords.FirstOrDefault(record => record.command_type.command_key == "self_assist" && record.command_action.command_key == "self_assist_unconfirmed");
                                                 if (assistRecord != null) {
