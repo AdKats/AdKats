@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.106
- * 7-MAY-2017
+ * Version 6.9.0.107
+ * 8-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.106</version_code>
+ * <version_code>6.9.0.107</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.106";
+        private const String PluginVersion = "6.9.0.107";
 
         public enum GameVersion {
             BF3,
@@ -1670,15 +1670,15 @@ namespace PRoConEvents
                         if (_UseExperimentalTools) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + t + "Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
 
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Settings" + t + "Event Round Count", typeof(Int32), _EventRoundCount));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Round Settings" + t + "Event Round Count", typeof(Int32), _EventRoundCount));
                             for (int roundNumber = 0; roundNumber < _EventRoundSelections.Count(); roundNumber++) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundSelections[roundNumber]));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundSelections[roundNumber]));
                             }
 
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule" + t + "Event Date", typeof(String), _EventDate.ToShortDateString()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule" + t + "Event Hour in 24 format", typeof(Double), _EventHour));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule" + t + "Is it daylight savings?", typeof(String), DateTime.Now.IsDaylightSavingTime() ? "Yes, currently daylight savings." : "No, not daylight savings."));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule" + t + "Event Announce Day Difference", typeof(Int32), _EventAnnounceDayDifference));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Date", typeof(String), _EventDate.ToShortDateString()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Hour in 24 format", typeof(Double), _EventHour));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Is it daylight savings?", typeof(String), DateTime.Now.IsDaylightSavingTime() ? "Yes, currently daylight savings." : "No, not daylight savings."));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Announce Day Difference", typeof(Int32), _EventAnnounceDayDifference));
 
                             if (_EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
                                 var eventDate = _EventDate.AddHours(_EventHour);
@@ -27338,14 +27338,39 @@ namespace PRoConEvents
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
                             }
                             _lastNukeTime = UtcNow();
+                            AdKatsTeam team1 = null;
+                            AdKatsTeam team2 = null;
+                            AdKatsTeam nukedTeam = null;
+                            AdKatsTeam advancingTeam = null;
+                            if (!GetTeamByID(1, out team1)) {
+                                if (_roundState == RoundState.Playing) {
+                                    Log.Error("Teams not loaded when they should be.");
+                                }
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            if (!GetTeamByID(2, out team2)) {
+                                if (_roundState == RoundState.Playing) {
+                                    Log.Error("Teams not loaded when they should be.");
+                                }
+                                FinalizeRecord(record);
+                                return;
+                            }
                             if (record.target_name != "Everyone") {
-                                incNukeCount(record.command_numeric);
-                                if(!GetTeamByID(record.command_numeric, out _lastNukeTeam)) {
-                                    Log.Error("Failed to get team for nuke duration!");
+                                if (record.command_numeric == team1.TeamID) {
+                                    incNukeCount(team1.TeamID);
+                                    _lastNukeTeam = team1;
+                                    nukedTeam = team1;
+                                    advancingTeam = team2;
+                                } else if (record.command_numeric == team2.TeamID) {
+                                    incNukeCount(team2.TeamID);
+                                    _lastNukeTeam = team2;
+                                    nukedTeam = team2;
+                                    advancingTeam = team1;
                                 }
                             }
                             AdminTellMessage(record.source_name == "RoundManager" ? record.record_message : "Nuking " + record.GetTargetNames() + "!");
-                            var nukeTargets = _PlayerDictionary.Values.ToList().Where(player => (player.fbpInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"));
+                            var nukeTargets = _PlayerDictionary.Values.ToList().Where(player => (nukedTeam != null && player.fbpInfo.TeamID == nukedTeam.TeamID) || (record.target_name == "Everyone"));
                             foreach (AdKatsPlayer player in nukeTargets) {
                                 // Initial kills for nuke
                                 ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
@@ -27355,10 +27380,27 @@ namespace PRoConEvents
                                 // Secondary kills for nuke
                                 ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
                             }
-                            Thread.Sleep(TimeSpan.FromSeconds(1));
-                            foreach (AdKatsPlayer player in nukeTargets) {
-                                // Tertiary kills for nuke
-                                ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
+                            var maxTeamPlayerCount = _serverInfo.InfoObject.MaxPlayerCount / 2;
+                            if (nukedTeam != null && advancingTeam.TeamPlayerCount < maxTeamPlayerCount) {
+                                Thread.Sleep(500);
+                                // Script used to destroy all recon beacons on the nuked team
+                                _LastPlayerMoveIssued = UtcNow();
+                                ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
+                                _MULTIBalancerUnswitcherDisabled = true;
+                                foreach (AdKatsPlayer player in nukeTargets) {
+                                    var savedRequiredTeam = player.RequiredTeam;
+                                    player.RequiredTeam = null;
+                                    var originalSquad = player.fbpInfo.SquadID.ToString();
+                                    // Send them to squad PAPA on the advancing team
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", player.player_name, advancingTeam.TeamID.ToString(), "16", "true");
+                                    Thread.Sleep(100);
+                                    // Move them back to their original squad
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", player.player_name, nukedTeam.TeamID.ToString(), originalSquad, "true");
+                                    // Set the last move so the unswitcher doesn't re-enable
+                                    Thread.Sleep(100);
+                                    _LastPlayerMoveIssued = UtcNow();
+                                    player.RequiredTeam = savedRequiredTeam;
+                                }
                             }
                         }
                         catch (Exception)
