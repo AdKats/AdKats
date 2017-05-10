@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.107
- * 8-MAY-2017
+ * Version 6.9.0.108
+ * 9-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.107</version_code>
+ * <version_code>6.9.0.108</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.107";
+        private const String PluginVersion = "6.9.0.108";
 
         public enum GameVersion {
             BF3,
@@ -27387,17 +27387,45 @@ namespace PRoConEvents
                                 _LastPlayerMoveIssued = UtcNow();
                                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                 _MULTIBalancerUnswitcherDisabled = true;
-                                foreach (AdKatsPlayer player in nukeTargets) {
+                                foreach (AdKatsPlayer player in nukeTargets.OrderBy(aPlayer => aPlayer.player_id)) {
                                     var savedRequiredTeam = player.RequiredTeam;
                                     player.RequiredTeam = null;
                                     var originalSquad = player.fbpInfo.SquadID.ToString();
                                     // Send them to squad PAPA on the advancing team
                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", player.player_name, advancingTeam.TeamID.ToString(), "16", "true");
-                                    Thread.Sleep(100);
+                                    Thread.Sleep(50);
                                     // Move them back to their original squad
                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", player.player_name, nukedTeam.TeamID.ToString(), originalSquad, "true");
                                     // Set the last move so the unswitcher doesn't re-enable
-                                    Thread.Sleep(100);
+                                    Thread.Sleep(50);
+                                    _LastPlayerMoveIssued = UtcNow();
+                                    player.RequiredTeam = savedRequiredTeam;
+                                }
+                                foreach (AdKatsPlayer player in nukeTargets.OrderBy(aPlayer => aPlayer.player_id).Reverse()) {
+                                    var savedRequiredTeam = player.RequiredTeam;
+                                    player.RequiredTeam = null;
+                                    var originalSquad = player.fbpInfo.SquadID.ToString();
+                                    // Send them to squad PAPA on the advancing team
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", player.player_name, advancingTeam.TeamID.ToString(), "16", "true");
+                                    Thread.Sleep(50);
+                                    // Move them back to their original squad
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", player.player_name, nukedTeam.TeamID.ToString(), originalSquad, "true");
+                                    // Set the last move so the unswitcher doesn't re-enable
+                                    Thread.Sleep(50);
+                                    _LastPlayerMoveIssued = UtcNow();
+                                    player.RequiredTeam = savedRequiredTeam;
+                                }
+                                foreach (AdKatsPlayer player in nukeTargets.OrderBy(aPlayer => aPlayer.player_id)) {
+                                    var savedRequiredTeam = player.RequiredTeam;
+                                    player.RequiredTeam = null;
+                                    var originalSquad = player.fbpInfo.SquadID.ToString();
+                                    // Send them to squad PAPA on the advancing team
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", player.player_name, advancingTeam.TeamID.ToString(), "16", "true");
+                                    Thread.Sleep(50);
+                                    // Move them back to their original squad
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", player.player_name, nukedTeam.TeamID.ToString(), originalSquad, "true");
+                                    // Set the last move so the unswitcher doesn't re-enable
+                                    Thread.Sleep(50);
                                     _LastPlayerMoveIssued = UtcNow();
                                     player.RequiredTeam = savedRequiredTeam;
                                 }
