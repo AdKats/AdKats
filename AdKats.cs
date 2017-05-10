@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.108
+ * Version 6.9.0.109
  * 9-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.108</version_code>
+ * <version_code>6.9.0.109</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.108";
+        private const String PluginVersion = "6.9.0.109";
 
         public enum GameVersion {
             BF3,
@@ -27381,7 +27381,18 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
                             }
                             var maxTeamPlayerCount = _serverInfo.InfoObject.MaxPlayerCount / 2;
-                            if (nukedTeam != null && advancingTeam.TeamPlayerCount < maxTeamPlayerCount) {
+                            if (nukedTeam != null && (advancingTeam.TeamPlayerCount < maxTeamPlayerCount || nukedTeam.TeamPlayerCount < maxTeamPlayerCount)) {
+                                AdKatsPlayer theChosenOffering = null;
+                                String theChosenOfferingSqaud = null;
+                                if (advancingTeam.TeamPlayerCount >= maxTeamPlayerCount && 
+                                    nukedTeam.TeamPlayerCount < maxTeamPlayerCount) {
+                                    // If the advancing team is full, but the nuked team is not
+                                    // move the player with the loweset score over tot he nuked team during the nuke
+                                    // then move them back at the end.
+                                    theChosenOffering = _PlayerDictionary.Values.ToList().OrderBy(aPlayer => aPlayer.fbpInfo.Score).First();
+                                    theChosenOfferingSqaud = theChosenOffering.fbpInfo.SquadID.ToString();
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", theChosenOffering.player_name, nukedTeam.TeamID.ToString(), "16", "true");
+                                }
                                 Thread.Sleep(500);
                                 // Script used to destroy all recon beacons on the nuked team
                                 _LastPlayerMoveIssued = UtcNow();
@@ -27428,6 +27439,9 @@ namespace PRoConEvents
                                     Thread.Sleep(50);
                                     _LastPlayerMoveIssued = UtcNow();
                                     player.RequiredTeam = savedRequiredTeam;
+                                }
+                                if (theChosenOffering != null) {
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", theChosenOffering.player_name, advancingTeam.TeamID.ToString(), theChosenOfferingSqaud, "true");
                                 }
                             }
                         }
