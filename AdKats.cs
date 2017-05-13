@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.115
+ * Version 6.9.0.116
  * 13-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.115</version_code>
+ * <version_code>6.9.0.116</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.115";
+        private const String PluginVersion = "6.9.0.116";
 
         public enum GameVersion {
             BF3,
@@ -8852,7 +8852,7 @@ namespace PRoConEvents
                                             if (_ShowTargetedPlayerLeftNotification)
                                             {
                                                 toldAdmins = true;
-                                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " left from " + GetPlayerTeamKey(aPlayer) + " " + typeString);
+                                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " left from " + GetPlayerTeamKey(aPlayer) + " " + typeString, aPlayer.player_name);
                                             }
                                             List<AdKatsRecord> reports = aPlayer.TargetedRecords.Where(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin").ToList();
                                             Dictionary<string, AdKatsPlayer> reporters = new Dictionary<string, AdKatsPlayer>();
@@ -9139,11 +9139,8 @@ namespace PRoConEvents
                                             //Update IP location
                                             QueuePlayerForIPInfoFetch(aPlayer);
                                         }
-                                        if (String.IsNullOrEmpty(aPlayer.player_personaID))
-                                        {
-                                            //Get their battlelog information
-                                            QueuePlayerForBattlelogInfoFetch(aPlayer);
-                                        }
+                                        //Get their battlelog information, or update the already fetched battlelog info
+                                        QueuePlayerForBattlelogInfoFetch(aPlayer);
                                         //Last Punishment
                                         List<AdKatsRecord> punishments = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_punish").command_id, 1000, 1, true, false);
                                         if (punishments.Any())
@@ -23298,7 +23295,7 @@ namespace PRoConEvents
                                     record_time = UtcNow()
                                 };
                                 QueueRecordForProcessing(record);
-                                var changeMessage = aPlayer.GetVerboseName() + " changed their tag from " + (String.IsNullOrEmpty(oldTag) ? "NOTHING" : "[" + oldTag + "]") + " to " + (String.IsNullOrEmpty(aPlayer.player_clanTag) ? "NOTHING" : "[" + aPlayer.player_clanTag + "]") + ".";
+                                var changeMessage = aPlayer.player_name + " changed their tag from " + (String.IsNullOrEmpty(oldTag) ? "NOTHING" : "[" + oldTag + "]") + " to " + (String.IsNullOrEmpty(aPlayer.player_clanTag) ? "NOTHING" : "[" + aPlayer.player_clanTag + "]") + ".";
                                 Log.Debug(() => changeMessage + " Updating the database.", 2);
                                 if (_ShowPlayerNameChangeAnnouncement && !String.IsNullOrEmpty(oldTag)) {
                                     OnlineAdminSayMessage(changeMessage);
@@ -29098,7 +29095,7 @@ namespace PRoConEvents
                         String playerTags = "No previous tags.";
                         List<AdKatsRecord> tagRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changetag").command_id, 1000, 50, true, false).GroupBy(tagRecord => tagRecord.record_message).Select(group => group.First()).ToList();
                         if (tagRecords.Any()) {
-                            playerTags = tagRecords.Aggregate(record.target_name, (current, tagRecord) => current + (", " + tagRecord.record_message));
+                            playerTags = tagRecords.Aggregate(record.target_player.player_clanTag, (current, tagRecord) => current + (", " + tagRecord.record_message));
                         }
                         SendMessageToSource(record, "Previous tags: " + playerTags);
                     }
