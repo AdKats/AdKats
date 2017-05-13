@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.116
+ * Version 6.9.0.117
  * 13-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.116</version_code>
+ * <version_code>6.9.0.117</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.116";
+        private const String PluginVersion = "6.9.0.117";
 
         public enum GameVersion {
             BF3,
@@ -7581,7 +7581,7 @@ namespace PRoConEvents
                                             dPlayer.player_type != PlayerType.Spectator &&
                                             // Match by ID or by name (only if no ID is available), percent matching over 80%
                                             ((!String.IsNullOrEmpty(member.ID) && !String.IsNullOrEmpty(dPlayer.player_discord_id) && member.ID == dPlayer.player_discord_id) ||
-                                             ((String.IsNullOrEmpty(member.ID) || String.IsNullOrEmpty(dPlayer.player_discord_id)) && (PercentMatch(member.Nick, dPlayer.player_name) > 80 || PercentMatch(member.Username, dPlayer.player_name) > 80))));
+                                             ((String.IsNullOrEmpty(member.ID) || String.IsNullOrEmpty(dPlayer.player_discord_id)) && PercentMatch(member.Username, dPlayer.player_name) > 80)));
                                         if (_DiscordManager.DebugMembers) {
                                             Log.Info("DiscordMember: " + member.Username + " | " + member.ID + " | " + ((matching.Any()) ? (matching.Count() + " online players match member.") : ("No matching online players.")));
                                         }
@@ -22359,6 +22359,60 @@ namespace PRoConEvents
                             }
                         }
                         break;
+                    case "player_discordlink": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            String tempMemberName = null;
+                            DiscordManager.DiscordMember matchingMember = null;
+                            switch (parameters.Length) {
+                                case 0:
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    record.record_message = "";
+                                    record.target_name = record.source_name;
+                                    if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player)) {
+                                        SendMessageToSource(record, "Source player not found, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    tempMemberName = parameters[0];
+                                    // Pull the discord member
+                                    matchingMember = _DiscordManager.GetMembers(false, true, true)
+                                        .FirstOrDefault(aMember => aMember.Username.ToLower().Contains(tempMemberName.ToLower()));
+                                    if (matchingMember == null) {
+                                        SendMessageToSource(record, "No matching discord member for '" + tempMemberName + "'.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = matchingMember.ID;
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                case 2:
+                                    record.target_name = parameters[0];
+                                    tempMemberName = parameters[1];
+                                    // Pull the discord member
+                                    matchingMember = _DiscordManager.GetMembers(false, true, true)
+                                        .FirstOrDefault(aMember => aMember.Username.ToLower().Contains(tempMemberName.ToLower()));
+                                    if (matchingMember == null) {
+                                        SendMessageToSource(record, "No matching discord member for '" + tempMemberName + "'.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = matchingMember.ID;
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Discord link needs a player and a discord member, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     case "command_confirm":
                         Log.Debug(() => "attempting to confirm command", 6);
                         AdKatsRecord recordAttempt = null;
@@ -23265,10 +23319,6 @@ namespace PRoConEvents
 
                             Log.Debug(() => "Preparing to fetch battlelog info for player", 6);
 
-                            if (aPlayer.blInfoFetched) {
-                                continue;
-                            }
-
                             //Old Tag
                             String oldTag = aPlayer.player_clanTag;
                             //Run the appropriate action
@@ -23778,10 +23828,11 @@ namespace PRoConEvents
                         record.record_action_executed = true;
                         break;
                     case "self_battlecry":
-                        UpdatePlayerBattlecry(record);
-                        break;
                     case "player_battlecry":
                         UpdatePlayerBattlecry(record);
+                        break;
+                    case "player_discordlink":
+                        UpdatePlayerDiscordLink(record);
                         break;
                     case "player_changename":
                     case "player_changetag":
@@ -25958,13 +26009,13 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player);
                 if (matchingPlayers.Count > 0)
                 {
                     SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the auto-assist blacklist.");
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
@@ -26039,7 +26090,6 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player);
                 if (!matchingPlayers.Any())
                 {
@@ -26047,6 +26097,7 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     Boolean updated = false;
@@ -26099,7 +26150,6 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_report", record.target_player);
                 if (!matchingPlayers.Any())
                 {
@@ -26107,6 +26157,7 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     Boolean updated = false;
@@ -26159,7 +26210,6 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_adminassistant", record.target_player);
                 if (!matchingPlayers.Any())
                 {
@@ -26167,6 +26217,7 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     Boolean updated = false;
@@ -26219,7 +26270,6 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_ping", record.target_player);
                 if (!matchingPlayers.Any())
                 {
@@ -26227,6 +26277,7 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     Boolean updated = false;
@@ -26279,7 +26330,6 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_hackerchecker", record.target_player);
                 if (!matchingPlayers.Any())
                 {
@@ -26287,6 +26337,7 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     Boolean updated = false;
@@ -26339,7 +26390,6 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("slot_spectator", record.target_player);
                 if (!matchingPlayers.Any())
                 {
@@ -26347,6 +26397,7 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     Boolean updated = false;
@@ -26399,7 +26450,6 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("slot_reserved", record.target_player);
                 if (!matchingPlayers.Any())
                 {
@@ -26407,6 +26457,7 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     Boolean updated = false;
@@ -26459,7 +26510,6 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_multibalancer", record.target_player);
                 if (!matchingPlayers.Any())
                 {
@@ -26467,6 +26517,7 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     Boolean updated = false;
@@ -26519,7 +26570,6 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player);
                 if (!matchingPlayers.Any())
                 {
@@ -26527,6 +26577,7 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     Boolean updated = false;
@@ -26579,13 +26630,13 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_populator", record.target_player);
                 if (matchingPlayers.Count > 0)
                 {
                     SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the populator whitelist.");
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
@@ -26658,7 +26709,6 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_populator", record.target_player);
                 if (!matchingPlayers.Any())
                 {
@@ -26666,6 +26716,7 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     Boolean updated = false;
@@ -26718,13 +26769,13 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_teamkill", record.target_player);
                 if (matchingPlayers.Count > 0)
                 {
                     SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the TeamKillTracker whitelist.");
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
@@ -26798,7 +26849,6 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_teamkill", record.target_player);
                 if (!matchingPlayers.Any())
                 {
@@ -26806,6 +26856,7 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
+                record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     Boolean updated = false;
@@ -26858,7 +26909,6 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                record.record_action_executed = true;
                 if (record.target_player.player_id <= 0)
                 {
                     Log.Error("Player ID invalid when assigning player battlecry. Unable to complete.");
@@ -26866,6 +26916,7 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
+                record.record_action_executed = true;
 
                 //Update the player's battlecry on the object
                 record.target_player.player_battlecry = record.record_message;
@@ -26941,6 +26992,48 @@ namespace PRoConEvents
                 FinalizeRecord(record);
             }
             Log.Debug(() => "Exiting UpdatePlayerBattlecry", 6);
+        }
+
+        public void UpdatePlayerDiscordLink(AdKatsRecord record) {
+            Log.Debug(() => "Entering UpdatePlayerDiscordLink", 6);
+            try {
+                //Case for multiple targets
+                if (record.target_player == null) {
+                    SendMessageToSource(record, "UpdatePlayerDiscordLink not available for multiple targets.");
+                    Log.Error("UpdatePlayerDiscordLink not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                if (record.target_player.player_id <= 0) {
+                    Log.Error("Player ID invalid when linking player to discord member. Unable to complete.");
+                    SendMessageToSource(record, "Player ID invalid when linking player to discord member. Unable to complete.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+
+                // Pull the discord member
+                var matchingMember = _DiscordManager.GetMembers(false, true, true)
+                    .FirstOrDefault(aMember => aMember.ID == record.record_message);
+                if (matchingMember == null) {
+                    SendMessageToSource(record, "No matching discord member for ID " + record.record_message + ".");
+                    FinalizeRecord(record);
+                    return;
+                }
+
+                //Update the player's discord ID on the object
+                record.target_player.player_discord_id = matchingMember.ID;
+
+                //Save info to the database
+                UpdatePlayer(record.target_player);
+
+                SendMessageToSource(record, record.target_player.GetVerboseName() + " linked with discord member " + matchingMember.Username + ".");
+            } catch (Exception e) {
+                record.record_exception = new AdKatsException("Error while taking action for Link Player to Discord Member record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting UpdatePlayerDiscordLink", 6);
         }
 
         public void MuteTarget(AdKatsRecord record)
@@ -36888,6 +36981,10 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command player_changetag", "INSERT INTO `adkats_commands` VALUES(127, 'Invisible', 'player_changetag', 'Mandatory', 'Player Changed Clan Tag', 'changetag', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(128)) {
+                                    SendNonQuery("Adding command player_discordlink", "INSERT INTO `adkats_commands` VALUES(128, 'Active', 'player_discordlink', 'Log', 'Link Player to Discord Member', 'discordlink', TRUE, 'AnyHidden')", true);
+                                    newCommands = true;
+                                }
                                 if (newCommands)
                                 {
                                     FetchCommands();
@@ -37034,6 +37131,7 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_forceping"] = "Forces AdKats to manually ping a player instead of using the server ping.";
             _CommandDescriptionDictionary["player_debugassist"] = "Runs a mock assist command on a player to see what the results would be, along with debug information.";
             _CommandDescriptionDictionary["player_changetag"] = "Invisible command. Issued when a player changes their clan tag.";
+            _CommandDescriptionDictionary["player_discordlink"] = "Links a player with a currently online discord member.";
         }
 
         private void FillReadableMapModeDictionaries() {
@@ -40106,7 +40204,6 @@ namespace PRoConEvents
                         }
                     }
                 }
-                aPlayer.blInfoFetched = true;
             }
             catch (Exception e)
             {
@@ -43231,7 +43328,6 @@ namespace PRoConEvents
 
         public class AdKatsPlayer
         {
-            public Boolean blInfoFetched = false;
             public CPunkbusterInfo PBPlayerInfo = null;
             public List<AdKatsKill> LiveKills = null;
             public List<AdKatsRecord> TargetedRecords = null;
