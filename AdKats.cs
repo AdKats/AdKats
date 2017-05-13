@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.111
+ * Version 6.9.0.112
  * 12-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.111</version_code>
+ * <version_code>6.9.0.112</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.111";
+        private const String PluginVersion = "6.9.0.112";
 
         public enum GameVersion {
             BF3,
@@ -1608,7 +1608,7 @@ namespace PRoConEvents
                     if (IsActiveSettingSection(discordMonitorSection)) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Monitor Discord Players", typeof(Boolean), _DiscordPlayerMonitorView));
                         if (_DiscordPlayerMonitorView) {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _TeamspeakPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _DiscordPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _DiscordPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _DiscordPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Enable Discord Player Monitor", typeof(Boolean), _DiscordPlayerMonitorEnable));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Server ID", typeof(String), _DiscordManager.ServerID));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Channel Names", typeof(String[]), _DiscordManager.ChannelNames));
@@ -4249,7 +4249,7 @@ namespace PRoConEvents
                         _DiscordManager.JoinMessage = strValue;
                         QueueSettingForUpload(new CPluginVariable(@"Discord Player Join Message", typeof(String), _DiscordManager.JoinMessage));
                     }
-                } else if (Regex.Match(strVariable, @"Enable Teamspeak Player Perks").Success) {
+                } else if (Regex.Match(strVariable, @"Enable Discord Player Perks").Success) {
                     Boolean DiscordPlayerPerksEnable = Boolean.Parse(strValue);
                     if (DiscordPlayerPerksEnable != _DiscordPlayerPerksEnable) {
                         _DiscordPlayerPerksEnable = DiscordPlayerPerksEnable;
@@ -34499,7 +34499,7 @@ namespace PRoConEvents
                             command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
                             command.Parameters.AddWithValue("@player_name", aPlayer.player_name);
                             command.Parameters.AddWithValue("@player_guid", aPlayer.player_guid);
-                            command.Parameters.AddWithValue("@player_clanTag", aPlayer.player_clanTag);
+                            command.Parameters.AddWithValue("@player_clanTag", String.IsNullOrEmpty(aPlayer.player_clanTag) ? "" : aPlayer.player_clanTag);
                             command.Parameters.AddWithValue("@player_ip", String.IsNullOrEmpty(aPlayer.player_ip) ? null : aPlayer.player_ip);
                             command.Parameters.AddWithValue("@player_discord_id", String.IsNullOrEmpty(aPlayer.player_discord_id) ? null : aPlayer.player_discord_id);
                             //Attempt to execute the query
@@ -45532,6 +45532,9 @@ namespace PRoConEvents
                     if (onlyChannels) {
                         resultMembers = resultMembers.Where(aMember => aMember.Channel != null && ChannelNames.Contains(aMember.Channel.Name));
                     }
+                    if (_plugin._UseExperimentalTools) {
+                        _plugin.Log.Info("DISCORD: Returning " + resultMembers.Count() + " members.");
+                    }
                     return resultMembers.ToList();
                 }
             }
@@ -45671,9 +45674,10 @@ namespace PRoConEvents
                                 success = true;
                             } catch (Exception e) {
                                 if (e is WebException) {
-                                    _plugin.Log.Warn("Issue connecting to discord widget URL:" + widgetURL);
+                                    _plugin.Log.Warn("Issue connecting to discord widget URL: " + widgetURL);
+                                } else {
+                                    _plugin.HandleException(new AdKatsException("Error while parsing discord widget data.", e));
                                 }
-                                _plugin.HandleException(new AdKatsException("Error while parsing discord widget data.", e));
                             }
                         }
                     }
