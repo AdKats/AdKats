@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.110
- * 11-MAY-2017
+ * Version 6.9.0.111
+ * 12-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.110</version_code>
+ * <version_code>6.9.0.111</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.110";
+        private const String PluginVersion = "6.9.0.111";
 
         public enum GameVersion {
             BF3,
@@ -650,10 +650,10 @@ namespace PRoConEvents
         private Boolean _PopulatorPerksPingWhitelist;
         private Boolean _PopulatorPerksTeamKillTrackerWhitelist;
         //Teamspeak
-        private readonly TeamSpeakClientViewer _tsViewer;
+        private readonly TeamSpeakClientViewer _TeamspeakManager;
         private Boolean _TeamspeakPlayerMonitorView;
         private Boolean _TeamspeakPlayerMonitorEnable;
-        private readonly Dictionary<String, AdKatsPlayer> _tsPlayers = new Dictionary<String, AdKatsPlayer>();
+        private readonly Dictionary<String, AdKatsPlayer> _TeamspeakPlayers = new Dictionary<String, AdKatsPlayer>();
         private Boolean _TeamspeakPlayerPerksEnable;
         private Boolean _TeamspeakPlayerPerksVIPKickWhitelist;
         private Boolean _TeamspeakPlayerPerksBalanceWhitelist;
@@ -1030,7 +1030,7 @@ namespace PRoConEvents
             SetupFastStatusMonitor();
 
             //Start up TeamSpeakClientViewer
-            _tsViewer = new TeamSpeakClientViewer(this);
+            _TeamspeakManager = new TeamSpeakClientViewer(this);
             _DiscordManager = new DiscordManager(this);
 
             FillReadableMapModeDictionaries();
@@ -1575,34 +1575,25 @@ namespace PRoConEvents
                     if (IsActiveSettingSection(tsMonitorSection)) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Monitor Teamspeak Players - Thanks CMWGaming", typeof(Boolean), _TeamspeakPlayerMonitorView));
                         if (_TeamspeakPlayerMonitorView) {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "[" + _tsPlayers.Count() + "] Teamspeak Players (Display)", typeof(String[]), _tsPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "[" + _TeamspeakPlayers.Count() + "] Teamspeak Players (Display)", typeof(String[]), _TeamspeakPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Use Custom Teamspeak Web Service", typeof(Boolean), _tsViewer.UseWebService));
-                            if (_tsViewer.UseWebService) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Web Service URL", typeof(String), _tsViewer.WebServiceURL));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Use Custom Teamspeak Web Service", typeof(Boolean), _TeamspeakManager.UseWebService));
+                            if (_TeamspeakManager.UseWebService) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Web Service URL", typeof(String), _TeamspeakManager.WebServiceURL));
                             } else {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server IP", typeof(String), _tsViewer.Ts3ServerIp));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Port", typeof(Int32), _tsViewer.Ts3ServerPort));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Port", typeof(Int32), _tsViewer.Ts3QueryPort));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Username", typeof(String), _tsViewer.Ts3QueryUsername));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Password", typeof(String), _tsViewer.Ts3QueryPassword));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Nickname", typeof(String), _tsViewer.Ts3QueryNickname));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server IP", typeof(String), _TeamspeakManager.Ts3ServerIp));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Port", typeof(Int32), _TeamspeakManager.Ts3ServerPort));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Port", typeof(Int32), _TeamspeakManager.Ts3QueryPort));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Username", typeof(String), _TeamspeakManager.Ts3QueryUsername));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Password", typeof(String), _TeamspeakManager.Ts3QueryPassword));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Nickname", typeof(String), _TeamspeakManager.Ts3QueryNickname));
                             }
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Main Channel Name", typeof(String), _tsViewer.Ts3MainChannelName));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Secondary Channel Names", typeof(String[]), _tsViewer.Ts3SubChannelNames));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Debug Display Teamspeak Clients", typeof(Boolean), _tsViewer.DbgClients));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t +
-                                "TeamSpeak Player Join Announcement",
-                                "enum.tsAnnounceEnum(Disabled|Say|Yell|Tell)",
-                                _tsViewer.JoinDisplay.ToString()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t +
-                                "TeamSpeak Player Join Message",
-                                typeof(String),
-                                _tsViewer.JoinDisplayMessage));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t +
-                                "TeamSpeak Player Update Seconds",
-                                typeof(Int32),
-                                _tsViewer.UpdateIntervalSeconds));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Main Channel Name", typeof(String), _TeamspeakManager.Ts3MainChannelName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Secondary Channel Names", typeof(String[]), _TeamspeakManager.Ts3SubChannelNames));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Debug Display Teamspeak Clients", typeof(Boolean), _TeamspeakManager.DebugClients));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "TeamSpeak Player Join Announcement", "enum.tsAnnounceEnum(Disabled|Say|Yell|Tell)", _TeamspeakManager.JoinDisplay.ToString()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "TeamSpeak Player Join Message", typeof(String), _TeamspeakManager.JoinDisplayMessage));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "TeamSpeak Player Update Seconds", typeof(Int32), _TeamspeakManager.UpdateIntervalSeconds));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Enable Teamspeak Player Perks", typeof(Boolean), _TeamspeakPlayerPerksEnable));
                             if (_TeamspeakPlayerPerksEnable) {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Player Perks - VIP Kick Whitelist", typeof(Boolean), _TeamspeakPlayerPerksVIPKickWhitelist));
@@ -1617,10 +1608,11 @@ namespace PRoConEvents
                     if (IsActiveSettingSection(discordMonitorSection)) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Monitor Discord Players", typeof(Boolean), _DiscordPlayerMonitorView));
                         if (_DiscordPlayerMonitorView) {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _tsPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _tsPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _TeamspeakPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _DiscordPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Enable Discord Player Monitor", typeof(Boolean), _DiscordPlayerMonitorEnable));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Server ID", typeof(String), _DiscordManager.ServerID));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Channel Names", typeof(String[]), _DiscordManager.ChannelNames));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Debug Display Discord Members", typeof(Boolean), _DiscordManager.DebugMembers));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Join Announcement", "enum.tsAnnounceEnum(Disabled|Say|Yell|Tell)", _DiscordManager.JoinDisplay.ToString()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Join Message", typeof(String), _DiscordManager.JoinMessage));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Enable Discord Player Perks", typeof(Boolean), _DiscordPlayerPerksEnable));
@@ -3890,11 +3882,11 @@ namespace PRoConEvents
                         {
                             if (TeamspeakPlayerMonitorEnable)
                             {
-                                _tsViewer.Enable();
+                                _TeamspeakManager.Enable();
                             }
                             else
                             {
-                                _tsViewer.Disable();
+                                _TeamspeakManager.Disable();
                             }
                         }
                         //No Notification
@@ -3907,36 +3899,36 @@ namespace PRoConEvents
                     //Initial parse
                     Boolean UseWebService = Boolean.Parse(strValue);
                     //Check for changed value
-                    if (UseWebService != _tsViewer.UseWebService)
+                    if (UseWebService != _TeamspeakManager.UseWebService)
                     {
-                        if (_threadsReady && !UseWebService && _tsViewer.UseWebService && _tsViewer.Enabled())
+                        if (_threadsReady && !UseWebService && _TeamspeakManager.UseWebService && _TeamspeakManager.Enabled())
                         {
                             Log.Warn("Switching TS monitor modes, it must be re-enabled manually.");
                             _TeamspeakPlayerMonitorEnable = false;
-                            _tsViewer.Disable();
+                            _TeamspeakManager.Disable();
                         }
                         //Assignment
-                        _tsViewer.UseWebService = UseWebService;
+                        _TeamspeakManager.UseWebService = UseWebService;
                         //Upload change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Use Custom Teamspeak Web Service", typeof(Boolean), _tsViewer.UseWebService));
+                        QueueSettingForUpload(new CPluginVariable(@"Use Custom Teamspeak Web Service", typeof(Boolean), _TeamspeakManager.UseWebService));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Teamspeak Web Service URL").Success)
                 {
-                    if (_tsViewer.WebServiceURL != strValue)
+                    if (_TeamspeakManager.WebServiceURL != strValue)
                     {
-                        _tsViewer.WebServiceURL = strValue;
+                        _TeamspeakManager.WebServiceURL = strValue;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Web Service URL", typeof(String), _tsViewer.WebServiceURL));
+                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Web Service URL", typeof(String), _TeamspeakManager.WebServiceURL));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Teamspeak Server IP").Success)
                 {
-                    if (_tsViewer.Ts3ServerIp != strValue)
+                    if (_TeamspeakManager.Ts3ServerIp != strValue)
                     {
-                        _tsViewer.Ts3ServerIp = strValue;
+                        _TeamspeakManager.Ts3ServerIp = strValue;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server IP", typeof(String), _tsViewer.Ts3ServerIp));
+                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server IP", typeof(String), _TeamspeakManager.Ts3ServerIp));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Teamspeak Server Port").Success)
@@ -3944,12 +3936,12 @@ namespace PRoConEvents
                     //Initial parse
                     Int32 Ts3ServerPort = Int32.Parse(strValue);
                     //Check for changed value
-                    if (_tsViewer.Ts3ServerPort != Ts3ServerPort)
+                    if (_TeamspeakManager.Ts3ServerPort != Ts3ServerPort)
                     {
                         //Assignment
-                        _tsViewer.Ts3ServerPort = (ushort)Ts3ServerPort;
+                        _TeamspeakManager.Ts3ServerPort = (ushort)Ts3ServerPort;
                         //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Port", typeof(Int32), _tsViewer.Ts3ServerPort));
+                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Port", typeof(Int32), _TeamspeakManager.Ts3ServerPort));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Teamspeak Server Query Port").Success)
@@ -3957,107 +3949,107 @@ namespace PRoConEvents
                     //Initial parse
                     Int32 Ts3QueryPort = Int32.Parse(strValue);
                     //Check for changed value
-                    if (_tsViewer.Ts3QueryPort != Ts3QueryPort)
+                    if (_TeamspeakManager.Ts3QueryPort != Ts3QueryPort)
                     {
                         //Assignment
-                        _tsViewer.Ts3QueryPort = (ushort)Ts3QueryPort;
+                        _TeamspeakManager.Ts3QueryPort = (ushort)Ts3QueryPort;
                         //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Port", typeof(Int32), _tsViewer.Ts3QueryPort));
+                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Port", typeof(Int32), _TeamspeakManager.Ts3QueryPort));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Teamspeak Server Query Username").Success)
                 {
-                    if (_tsViewer.Ts3QueryUsername != strValue)
+                    if (_TeamspeakManager.Ts3QueryUsername != strValue)
                     {
-                        _tsViewer.Ts3QueryUsername = strValue;
+                        _TeamspeakManager.Ts3QueryUsername = strValue;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Username", typeof(String), _tsViewer.Ts3QueryUsername));
+                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Username", typeof(String), _TeamspeakManager.Ts3QueryUsername));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Teamspeak Server Query Password").Success)
                 {
-                    if (_tsViewer.Ts3QueryPassword != strValue)
+                    if (_TeamspeakManager.Ts3QueryPassword != strValue)
                     {
-                        _tsViewer.Ts3QueryPassword = strValue;
+                        _TeamspeakManager.Ts3QueryPassword = strValue;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Password", typeof(String), _tsViewer.Ts3QueryPassword));
+                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Password", typeof(String), _TeamspeakManager.Ts3QueryPassword));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Teamspeak Server Query Nickname").Success)
                 {
-                    if (_tsViewer.Ts3QueryNickname != strValue)
+                    if (_TeamspeakManager.Ts3QueryNickname != strValue)
                     {
-                        _tsViewer.Ts3QueryNickname = strValue;
+                        _TeamspeakManager.Ts3QueryNickname = strValue;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Nickname", typeof(String), _tsViewer.Ts3QueryNickname));
+                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Nickname", typeof(String), _TeamspeakManager.Ts3QueryNickname));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Teamspeak Main Channel Name").Success)
                 {
-                    if (_tsViewer.Ts3MainChannelName != strValue)
+                    if (_TeamspeakManager.Ts3MainChannelName != strValue)
                     {
-                        _tsViewer.Ts3MainChannelName = strValue;
+                        _TeamspeakManager.Ts3MainChannelName = strValue;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Main Channel Name", typeof(String), _tsViewer.Ts3MainChannelName));
+                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Main Channel Name", typeof(String), _TeamspeakManager.Ts3MainChannelName));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Teamspeak Secondary Channel Names").Success)
                 {
-                    _tsViewer.Ts3SubChannelNames = CPluginVariable.DecodeStringArray(strValue);
+                    _TeamspeakManager.Ts3SubChannelNames = CPluginVariable.DecodeStringArray(strValue);
                     //Once setting has been changed, upload the change to database
-                    QueueSettingForUpload(new CPluginVariable(@"Teamspeak Secondary Channel Names", typeof(String), CPluginVariable.EncodeStringArray(_tsViewer.Ts3SubChannelNames)));
+                    QueueSettingForUpload(new CPluginVariable(@"Teamspeak Secondary Channel Names", typeof(String), CPluginVariable.EncodeStringArray(_TeamspeakManager.Ts3SubChannelNames)));
                 }
                 else if (Regex.Match(strVariable, @"Debug Display Teamspeak Clients").Success)
                 {
                     //Initial parse
                     Boolean DbgClients = Boolean.Parse(strValue);
                     //Check for changed value
-                    if (DbgClients != _tsViewer.DbgClients)
+                    if (DbgClients != _TeamspeakManager.DebugClients)
                     {
                         //Assignment
-                        _tsViewer.DbgClients = DbgClients;
+                        _TeamspeakManager.DebugClients = DbgClients;
                         //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Debug Display Teamspeak Clients", typeof(Boolean), _tsViewer.DbgClients));
+                        QueueSettingForUpload(new CPluginVariable(@"Debug Display Teamspeak Clients", typeof(Boolean), _TeamspeakManager.DebugClients));
                     }
                 } 
                 else if (Regex.Match(strVariable, @"TeamSpeak Player Join Announcement").Success) {
                     switch (strValue) {
                         case "Disabled":
-                            _tsViewer.JoinDisplay = VoipJoinDisplayType.Disabled;
+                            _TeamspeakManager.JoinDisplay = VoipJoinDisplayType.Disabled;
                             break;
                         case "Say":
-                            _tsViewer.JoinDisplay = VoipJoinDisplayType.Say;
+                            _TeamspeakManager.JoinDisplay = VoipJoinDisplayType.Say;
                             break;
                         case "Yell":
-                            _tsViewer.JoinDisplay = VoipJoinDisplayType.Yell;
+                            _TeamspeakManager.JoinDisplay = VoipJoinDisplayType.Yell;
                             break;
                         case "Tell":
-                            _tsViewer.JoinDisplay = VoipJoinDisplayType.Tell;
+                            _TeamspeakManager.JoinDisplay = VoipJoinDisplayType.Tell;
                             break;
                         default:
                             Log.Error("Unknown setting when setting teamspeak player announcement.");
                             return;
                     }
-                    QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Announcement", typeof(String), _tsViewer.JoinDisplay.ToString()));
+                    QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Announcement", typeof(String), _TeamspeakManager.JoinDisplay.ToString()));
                 } 
                 else if (Regex.Match(strVariable, @"TeamSpeak Player Join Message").Success) {
-                    if (_tsViewer.JoinDisplayMessage != strValue && strValue.Contains("%player%")) {
-                        _tsViewer.JoinDisplayMessage = strValue;
-                        QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Message", typeof(String), _tsViewer.JoinDisplayMessage));
+                    if (_TeamspeakManager.JoinDisplayMessage != strValue && strValue.Contains("%player%")) {
+                        _TeamspeakManager.JoinDisplayMessage = strValue;
+                        QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Message", typeof(String), _TeamspeakManager.JoinDisplayMessage));
                     }
                 } 
                 else if (Regex.Match(strVariable, @"TeamSpeak Player Update Seconds").Success) {
                     //Initial parse
                     Int32 UpdateIntervalSeconds = Int32.Parse(strValue);
                     //Check for changed value
-                    if (_tsViewer.UpdateIntervalSeconds != UpdateIntervalSeconds) {
+                    if (_TeamspeakManager.UpdateIntervalSeconds != UpdateIntervalSeconds) {
                         if (UpdateIntervalSeconds < 5) {
                             UpdateIntervalSeconds = 5;
                         }
                         //Assignment
-                        _tsViewer.UpdateIntervalSeconds = UpdateIntervalSeconds;
+                        _TeamspeakManager.UpdateIntervalSeconds = UpdateIntervalSeconds;
                         //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Update Seconds", typeof(Int32), _tsViewer.UpdateIntervalSeconds));
+                        QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Update Seconds", typeof(Int32), _TeamspeakManager.UpdateIntervalSeconds));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Enable Teamspeak Player Perks").Success)
@@ -4207,10 +4199,17 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Monitor Discord Players", typeof(Boolean), _DiscordPlayerMonitorView));
                     }
                 } else if (Regex.Match(strVariable, @"Enable Discord Player Monitor").Success) {
-                    Boolean DiscordPlayerMonitorView = Boolean.Parse(strValue);
-                    if (DiscordPlayerMonitorView != _DiscordPlayerMonitorView) {
-                        _DiscordPlayerMonitorView = DiscordPlayerMonitorView;
-                        QueueSettingForUpload(new CPluginVariable(@"Enable Discord Player Monitor", typeof(Boolean), _DiscordPlayerMonitorView));
+                    Boolean DiscordPlayerMonitorEnable = Boolean.Parse(strValue);
+                    if (DiscordPlayerMonitorEnable != _DiscordPlayerMonitorEnable) {
+                        _DiscordPlayerMonitorEnable = DiscordPlayerMonitorEnable;
+                        if (_threadsReady) {
+                            if (DiscordPlayerMonitorEnable) {
+                                _DiscordManager.Enable();
+                            } else {
+                                _DiscordManager.Disable();
+                            }
+                        }
+                        QueueSettingForUpload(new CPluginVariable(@"Enable Discord Player Monitor", typeof(Boolean), _DiscordPlayerMonitorEnable));
                     }
                 } else if (Regex.Match(strVariable, @"Discord Server ID").Success) {
                     if (_DiscordManager.ServerID != strValue) {
@@ -4220,6 +4219,12 @@ namespace PRoConEvents
                 } else if (Regex.Match(strVariable, @"Discord Channel Names").Success) {
                     _DiscordManager.ChannelNames = CPluginVariable.DecodeStringArray(strValue);
                     QueueSettingForUpload(new CPluginVariable(@"Discord Channel Names", typeof(String), CPluginVariable.EncodeStringArray(_DiscordManager.ChannelNames)));
+                } else if (Regex.Match(strVariable, @"Debug Display Discord Members").Success) {
+                    Boolean DebugMembers = Boolean.Parse(strValue);
+                    if (DebugMembers != _DiscordManager.DebugMembers) {
+                        _DiscordManager.DebugMembers = DebugMembers;
+                        QueueSettingForUpload(new CPluginVariable(@"Debug Display Discord Members", typeof(Boolean), _DiscordManager.DebugMembers));
+                    }
                 } else if (Regex.Match(strVariable, @"Discord Player Join Announcement").Success) {
                     switch (strValue) {
                         case "Disabled":
@@ -7056,7 +7061,7 @@ namespace PRoConEvents
                                     mm += "16:" + _PlayerLeftDictionary.Count() + ", ";
                                     mm += "17:" + _FetchedPlayers.Count() + ", ";
                                     mm += "19:" + _populatorPlayers.Count() + ", ";
-                                    mm += "20:" + _tsPlayers.Count() + ", ";
+                                    mm += "20:" + _TeamspeakPlayers.Count() + ", ";
                                     mm += "21:" + _RoundCookers.Count() + ", ";
                                     mm += "22:" + _BanEnforcerCheckingQueue.Count() + ", ";
                                     mm += "23:" + _HackerCheckerQueue.Count() + ", ";
@@ -7504,12 +7509,12 @@ namespace PRoConEvents
                                     }
                                 }
 
+                                Boolean accessUpdateRequired = false;
                                 if (_TeamspeakPlayerMonitorEnable)
                                 {
-                                    Boolean accessUpdateRequired = false;
                                     List<AdKatsPlayer> onlineTeamspeakPlayers = new List<AdKatsPlayer>();
                                     //Check for online teamspeak players
-                                    foreach (TeamSpeakClientViewer.TeamspeakClient client in _tsViewer.GetPlayersOnTs())
+                                    foreach (TeamSpeakClientViewer.TeamspeakClient client in _TeamspeakManager.GetPlayersOnTs())
                                     {
                                         IEnumerable<AdKatsPlayer> matching = _PlayerDictionary.Values.ToList().Where(dPlayer => 
                                             // Do not include spectators in this list
@@ -7517,7 +7522,7 @@ namespace PRoConEvents
                                             // Match by IP or by name (only if no IP is available), percent matching over 80%
                                             ((!String.IsNullOrEmpty(client.AdvIpAddress) && !String.IsNullOrEmpty(dPlayer.player_ip) && client.AdvIpAddress == dPlayer.player_ip) || 
                                              ((String.IsNullOrEmpty(client.AdvIpAddress) || String.IsNullOrEmpty(dPlayer.player_ip)) && PercentMatch(client.TsName, dPlayer.player_name) > 80)));
-                                        if (_tsViewer.DbgClients)
+                                        if (_TeamspeakManager.DebugClients)
                                         {
                                             Log.Info("TSClient: " + client.TsName + " | " + client.AdvIpAddress + " | " + ((matching.Any()) ? (matching.Count() + " online players match client.") : ("No matching online players.")));
                                         }
@@ -7527,9 +7532,9 @@ namespace PRoConEvents
                                     foreach (AdKatsPlayer aPlayer in onlineTeamspeakPlayers)
                                     {
                                         validTsPlayers.Add(aPlayer.player_name);
-                                        if (!_tsPlayers.ContainsKey(aPlayer.player_name))
+                                        if (!_TeamspeakPlayers.ContainsKey(aPlayer.player_name))
                                         {
-                                            if (_tsViewer.DbgClients)
+                                            if (_TeamspeakManager.DebugClients)
                                             {
                                                 Log.Success("Teamspeak soldier " + aPlayer.player_name + " connected.");
                                             }
@@ -7537,38 +7542,88 @@ namespace PRoConEvents
                                             var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
                                             var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
                                             if (startDuration - startupDuration > 120) {
-                                                switch (_tsViewer.JoinDisplay) {
+                                                switch (_TeamspeakManager.JoinDisplay) {
                                                     case VoipJoinDisplayType.Say:
-                                                        AdminSayMessage(_tsViewer.JoinDisplayMessage
+                                                        AdminSayMessage(_TeamspeakManager.JoinDisplayMessage
                                                             .Replace("%player%", aPlayer.GetVerboseName()));
                                                         break;
                                                     case VoipJoinDisplayType.Yell:
-                                                        AdminYellMessage(_tsViewer.JoinDisplayMessage
+                                                        AdminYellMessage(_TeamspeakManager.JoinDisplayMessage
                                                             .Replace("%player%", aPlayer.GetVerboseName()));
                                                         break;
                                                     case VoipJoinDisplayType.Tell:
-                                                        AdminTellMessage(_tsViewer.JoinDisplayMessage
+                                                        AdminTellMessage(_TeamspeakManager.JoinDisplayMessage
                                                             .Replace("%player%", aPlayer.GetVerboseName()));
                                                         break;
                                                 }
                                             }
                                             accessUpdateRequired = true;
                                         }
-                                        _tsPlayers[aPlayer.player_name] = aPlayer;
+                                        _TeamspeakPlayers[aPlayer.player_name] = aPlayer;
                                     }
-                                    foreach (string removePlayer in _tsPlayers.Keys.ToList().Where(key => !validTsPlayers.Contains(key)).ToList())
+                                    foreach (string removePlayer in _TeamspeakPlayers.Keys.ToList().Where(key => !validTsPlayers.Contains(key)).ToList())
                                     {
-                                        if (_tsViewer.DbgClients)
+                                        if (_TeamspeakManager.DebugClients)
                                         {
                                             Log.Success("Teamspeak soldier " + removePlayer + " disconnected.");
                                         }
                                         accessUpdateRequired = true;
-                                        _tsPlayers.Remove(removePlayer);
+                                        _TeamspeakPlayers.Remove(removePlayer);
                                     }
-                                    if (accessUpdateRequired)
-                                    {
-                                        FetchAllAccess(true);
+                                }
+
+                                if (_DiscordPlayerMonitorEnable) {
+                                    List<AdKatsPlayer> onlineDiscordPlayers = new List<AdKatsPlayer>();
+                                    //Check for online discord players
+                                    foreach (var member in _DiscordManager.GetMembers(false, true, true)) {
+                                        IEnumerable<AdKatsPlayer> matching = _PlayerDictionary.Values.ToList().Where(dPlayer =>
+                                            // Do not include spectators in this list
+                                            dPlayer.player_type != PlayerType.Spectator &&
+                                            // Match by ID or by name (only if no ID is available), percent matching over 80%
+                                            ((!String.IsNullOrEmpty(member.ID) && !String.IsNullOrEmpty(dPlayer.player_discord_id) && member.ID == dPlayer.player_discord_id) ||
+                                             ((String.IsNullOrEmpty(member.ID) || String.IsNullOrEmpty(dPlayer.player_discord_id)) && (PercentMatch(member.Nick, dPlayer.player_name) > 80 || PercentMatch(member.Username, dPlayer.player_name) > 80))));
+                                        if (_DiscordManager.DebugMembers) {
+                                            Log.Info("DiscordMember: " + member.Username + " | " + member.ID + " | " + ((matching.Any()) ? (matching.Count() + " online players match client.") : ("No matching online players.")));
+                                        }
+                                        onlineDiscordPlayers.AddRange(matching);
                                     }
+                                    List<String> validDiscordPlayers = new List<String>();
+                                    foreach (AdKatsPlayer aPlayer in onlineDiscordPlayers) {
+                                        validDiscordPlayers.Add(aPlayer.player_name);
+                                        if (!_DiscordPlayers.ContainsKey(aPlayer.player_name)) {
+                                            if (_DiscordManager.DebugMembers) {
+                                                Log.Success("Discord soldier " + aPlayer.player_name + " connected.");
+                                            }
+
+                                            var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
+                                            var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
+                                            if (startDuration - startupDuration > 120) {
+                                                switch (_DiscordManager.JoinDisplay) {
+                                                    case VoipJoinDisplayType.Say:
+                                                        AdminSayMessage(_DiscordManager.JoinMessage.Replace("%player%", aPlayer.GetVerboseName()));
+                                                        break;
+                                                    case VoipJoinDisplayType.Yell:
+                                                        AdminYellMessage(_DiscordManager.JoinMessage.Replace("%player%", aPlayer.GetVerboseName()));
+                                                        break;
+                                                    case VoipJoinDisplayType.Tell:
+                                                        AdminTellMessage(_DiscordManager.JoinMessage.Replace("%player%", aPlayer.GetVerboseName()));
+                                                        break;
+                                                }
+                                            }
+                                            accessUpdateRequired = true;
+                                        }
+                                        _DiscordPlayers[aPlayer.player_name] = aPlayer;
+                                    }
+                                    foreach (string removePlayer in _DiscordPlayers.Keys.ToList().Where(key => !validDiscordPlayers.Contains(key)).ToList()) {
+                                        if (_DiscordManager.DebugMembers) {
+                                            Log.Success("Discord soldier " + removePlayer + " disconnected.");
+                                        }
+                                        accessUpdateRequired = true;
+                                        _DiscordPlayers.Remove(removePlayer);
+                                    }
+                                }
+                                if (accessUpdateRequired) {
+                                    FetchAllAccess(true);
                                 }
 
                                 if (_pluginEnabled && _threadsReady && _firstPlayerListComplete && _enforceSingleInstance)
@@ -9606,7 +9661,11 @@ namespace PRoConEvents
 
                             if (_TeamspeakPlayerMonitorEnable)
                             {
-                                _tsViewer.Enable();
+                                _TeamspeakManager.Enable();
+                            }
+
+                            if (_DiscordPlayerMonitorEnable) {
+                                _DiscordManager.Enable();
                             }
                         }
                     }
@@ -14412,7 +14471,7 @@ namespace PRoConEvents
                     if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
                         (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 5.0) ||
                         (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
-                        _tsPlayers.ContainsKey(aPlayer.player_name)) {
+                        _TeamspeakPlayers.ContainsKey(aPlayer.player_name)) {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
                 }
@@ -14484,7 +14543,7 @@ namespace PRoConEvents
                     if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
                         (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0) ||
                         (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
-                        _tsPlayers.ContainsKey(aPlayer.player_name)) {
+                        _TeamspeakPlayers.ContainsKey(aPlayer.player_name)) {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
                 }
@@ -14556,7 +14615,7 @@ namespace PRoConEvents
                     if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
                         (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0) ||
                         (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
-                        _tsPlayers.ContainsKey(aPlayer.player_name)) {
+                        _TeamspeakPlayers.ContainsKey(aPlayer.player_name)) {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
                 }
@@ -23225,6 +23284,9 @@ namespace PRoConEvents
                             Log.Debug(() => "Battlelog info fetched for " + aPlayer.GetVerboseName() + ".", 6);
                             //Update database with clan tag
                             if (!String.IsNullOrEmpty(aPlayer.player_clanTag) && (String.IsNullOrEmpty(oldTag) || aPlayer.player_clanTag != oldTag)) {
+                                if (_UseExperimentalTools) {
+                                    Log.Info(aPlayer.GetVerboseName() + " tag updated from " + (String.IsNullOrEmpty(oldTag) ? "NOTHING" : "[" + oldTag + "]") + " to " + (String.IsNullOrEmpty(aPlayer.player_clanTag) ? "NOTHING" : "[" + aPlayer.player_clanTag + "]"));
+                                }
                                 UpdatePlayer(aPlayer);
                             }
                         }
@@ -30922,6 +30984,10 @@ namespace PRoConEvents
                 SendNonQuery("Adding special player expiration.", "ALTER TABLE `adkats_specialplayers` ADD COLUMN `player_expiration` DATETIME NOT NULL AFTER `player_effective`", true);
                 SendNonQuery("Adding initial special player expiration values.", "UPDATE `adkats_specialplayers` SET `player_expiration` = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)", true);
             }
+            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'tbl_playerdata' AND COLUMN_NAME = 'DiscordID' )", false)) {
+                Log.Info("Player discord info column not found. Attempting to add.");
+                SendNonQuery("Adding special player expiration.", "ALTER TABLE `tbl_playerdata` ADD COLUMN `DiscordID` VARCHAR(50) AFTER `IP_Address`", true);
+            }
             if (!ConfirmTable("adkats_rolegroups"))
             {
                 Log.Info("AdKats role groups table not found. Attempting to add.");
@@ -31084,20 +31150,20 @@ namespace PRoConEvents
                 // Teamspeak Monitor
                 QueueSettingForUpload(new CPluginVariable(@"Monitor Teamspeak Players", typeof(Boolean), _TeamspeakPlayerMonitorView));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
-                QueueSettingForUpload(new CPluginVariable(@"Use Custom Teamspeak Web Service", typeof(Boolean), _tsViewer.UseWebService));
-                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Web Service URL", typeof(String), _tsViewer.WebServiceURL));
-                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server IP", typeof(String), _tsViewer.Ts3ServerIp));
-                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Port", typeof(Int32), _tsViewer.Ts3ServerPort));
-                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Port", typeof(Int32), _tsViewer.Ts3QueryPort));
-                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Username", typeof(String), _tsViewer.Ts3QueryUsername));
-                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Password", typeof(String), _tsViewer.Ts3QueryPassword));
-                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Nickname", typeof(String), _tsViewer.Ts3QueryNickname));
-                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Main Channel Name", typeof(String), _tsViewer.Ts3MainChannelName));
-                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Secondary Channel Names", typeof(String), CPluginVariable.EncodeStringArray(_tsViewer.Ts3SubChannelNames)));
-                QueueSettingForUpload(new CPluginVariable(@"Debug Display Teamspeak Clients", typeof(Boolean), _tsViewer.DbgClients));
-                QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Announcement", typeof(String), _tsViewer.JoinDisplay.ToString()));
-                QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Message", typeof(String), _tsViewer.JoinDisplayMessage));
-                QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Update Seconds", typeof(Int32), _tsViewer.UpdateIntervalSeconds));
+                QueueSettingForUpload(new CPluginVariable(@"Use Custom Teamspeak Web Service", typeof(Boolean), _TeamspeakManager.UseWebService));
+                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Web Service URL", typeof(String), _TeamspeakManager.WebServiceURL));
+                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server IP", typeof(String), _TeamspeakManager.Ts3ServerIp));
+                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Port", typeof(Int32), _TeamspeakManager.Ts3ServerPort));
+                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Port", typeof(Int32), _TeamspeakManager.Ts3QueryPort));
+                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Username", typeof(String), _TeamspeakManager.Ts3QueryUsername));
+                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Password", typeof(String), _TeamspeakManager.Ts3QueryPassword));
+                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Nickname", typeof(String), _TeamspeakManager.Ts3QueryNickname));
+                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Main Channel Name", typeof(String), _TeamspeakManager.Ts3MainChannelName));
+                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Secondary Channel Names", typeof(String), CPluginVariable.EncodeStringArray(_TeamspeakManager.Ts3SubChannelNames)));
+                QueueSettingForUpload(new CPluginVariable(@"Debug Display Teamspeak Clients", typeof(Boolean), _TeamspeakManager.DebugClients));
+                QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Announcement", typeof(String), _TeamspeakManager.JoinDisplay.ToString()));
+                QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Message", typeof(String), _TeamspeakManager.JoinDisplayMessage));
+                QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Update Seconds", typeof(Int32), _TeamspeakManager.UpdateIntervalSeconds));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Teamspeak Player Perks", typeof(Boolean), _TeamspeakPlayerPerksEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - VIP Kick Whitelist", typeof(Boolean), _TeamspeakPlayerPerksVIPKickWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Autobalance Whitelist", typeof(Boolean), _TeamspeakPlayerPerksBalanceWhitelist));
@@ -31108,6 +31174,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Enable Discord Player Monitor", typeof(Boolean), _DiscordPlayerMonitorEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Discord Server ID", typeof(String), _DiscordManager.ServerID));
                 QueueSettingForUpload(new CPluginVariable(@"Discord Channel Names", typeof(String), CPluginVariable.EncodeStringArray(_DiscordManager.ChannelNames)));
+                QueueSettingForUpload(new CPluginVariable(@"Debug Display Discord Members", typeof(Boolean), _DiscordManager.DebugMembers));
                 QueueSettingForUpload(new CPluginVariable(@"Discord Player Join Announcement", typeof(String), _DiscordManager.JoinDisplay.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"Discord Player Join Message", typeof(String), _DiscordManager.JoinMessage));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Discord Player Perks", typeof(Boolean), _DiscordPlayerPerksEnable));
@@ -34055,6 +34122,7 @@ namespace PRoConEvents
                                 `tbl_playerdata`.`EAGUID` as `player_guid`, 
                                 `tbl_playerdata`.`PBGUID` as `player_pbguid`, 
                                 `tbl_playerdata`.`IP_Address` as `player_ip`,
+                                `tbl_playerdata`.`DiscordID` as `player_discord_id`,
                                 `tbl_playerdata`.`ClanTag` as `player_clantag`,
                                 `adkats_battlecries`.`player_battlecry`";
                             if (_serverInfo.GameID > 0)
@@ -34155,11 +34223,15 @@ namespace PRoConEvents
                                     {
                                         aPlayer.SetIP(reader.GetString("player_ip"));
                                     }
-                                    if (!reader.IsDBNull(5))
+                                    if (!reader.IsDBNull(5)) 
+                                    {
+                                        aPlayer.player_discord_id = reader.GetString("player_discord_id");
+                                    }
+                                    if (!reader.IsDBNull(6))
                                     {
                                         aPlayer.player_clanTag = reader.GetString("player_clantag");
                                     }
-                                    if (!reader.IsDBNull(6))
+                                    if (!reader.IsDBNull(7))
                                     {
                                         aPlayer.player_battlecry = reader.GetString("player_battlecry");
                                     }
@@ -34420,7 +34492,8 @@ namespace PRoConEvents
                                 `SoldierName` = @player_name,
                                 `EAGUID` = @player_guid,
                                 `ClanTag` = @player_clanTag,
-                                `IP_Address` = @player_ip
+                                `IP_Address` = @player_ip,
+                                `DiscordID` = @player_discord_id
                             WHERE
                                 `PlayerID` = @player_id";
                             command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
@@ -34428,6 +34501,7 @@ namespace PRoConEvents
                             command.Parameters.AddWithValue("@player_guid", aPlayer.player_guid);
                             command.Parameters.AddWithValue("@player_clanTag", aPlayer.player_clanTag);
                             command.Parameters.AddWithValue("@player_ip", String.IsNullOrEmpty(aPlayer.player_ip) ? null : aPlayer.player_ip);
+                            command.Parameters.AddWithValue("@player_discord_id", String.IsNullOrEmpty(aPlayer.player_discord_id) ? null : aPlayer.player_discord_id);
                             //Attempt to execute the query
                             if (SafeExecuteNonQuery(command) > 0)
                             {
@@ -37484,7 +37558,8 @@ namespace PRoConEvents
 	                            `tbl_playerdata`.`ClanTag` AS `clan_tag`,
 	                            `tbl_playerdata`.`SoldierName` AS `player_name`,
 	                            `tbl_playerdata`.`EAGUID` AS `player_guid`,
-	                            `tbl_playerdata`.`IP_Address` AS `player_ip`
+	                            `tbl_playerdata`.`IP_Address` AS `player_ip`,
+	                            `tbl_playerdata`.`DiscordID` AS `player_discord_id`
                             FROM 
 	                            `adkats_users`
                             INNER JOIN
@@ -37508,7 +37583,8 @@ namespace PRoConEvents
 	                            `tbl_playerdata`.`ClanTag` AS `clan_tag`,
 	                            `tbl_playerdata`.`SoldierName` AS `player_name`,
 	                            `tbl_playerdata`.`EAGUID` AS `player_guid`,
-	                            `tbl_playerdata`.`IP_Address` AS `player_ip`
+	                            `tbl_playerdata`.`IP_Address` AS `player_ip`,
+	                            `tbl_playerdata`.`DiscordID` AS `player_discord_id`
                             FROM 
 	                            `adkats_users`
                             INNER JOIN
@@ -37564,6 +37640,10 @@ namespace PRoConEvents
                                     {
                                         playerIP = reader.GetString("player_ip"); //6
                                     }
+                                    String playerDiscordID = null;
+                                    if (!reader.IsDBNull(7)) {
+                                        playerDiscordID = reader.GetString("player_discord_id"); //7
+                                    }
 
                                     AdKatsUser aUser;
                                     if (_userCache.TryGetValue(userID, out aUser))
@@ -37576,6 +37656,7 @@ namespace PRoConEvents
                                             aPlayer.player_name = playerName;
                                             aPlayer.player_guid = playerGUID;
                                             aPlayer.SetIP(playerIP);
+                                            aPlayer.player_discord_id = playerDiscordID;
                                             aPlayer.LastUsage = UtcNow();
                                         }
                                         else {
@@ -37830,8 +37911,8 @@ namespace PRoConEvents
                                         }
                                     }
                                     if (_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksVIPKickWhitelist) {
-                                        lock (_tsPlayers) {
-                                            foreach (AdKatsPlayer aPlayer in _tsPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
+                                        lock (_TeamspeakPlayers) {
+                                            foreach (AdKatsPlayer aPlayer in _TeamspeakPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
                                                 tempASPlayers.Add(new AdKatsSpecialPlayer() {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -37941,9 +38022,9 @@ namespace PRoConEvents
                                     }
                                     if (_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksBalanceWhitelist)
                                     {
-                                        lock (_tsPlayers)
+                                        lock (_TeamspeakPlayers)
                                         {
-                                            foreach (AdKatsPlayer aPlayer in _tsPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
+                                            foreach (AdKatsPlayer aPlayer in _TeamspeakPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
                                                 tempASPlayers.Add(new AdKatsSpecialPlayer()
                                                 {
@@ -38024,8 +38105,8 @@ namespace PRoConEvents
                                         }
                                     }
                                     if (_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksTeamKillTrackerWhitelist) {
-                                        lock (_tsPlayers) {
-                                            foreach (AdKatsPlayer aPlayer in _tsPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
+                                        lock (_TeamspeakPlayers) {
+                                            foreach (AdKatsPlayer aPlayer in _TeamspeakPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
                                                 tempASPlayers.Add(new AdKatsSpecialPlayer() {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -38072,8 +38153,8 @@ namespace PRoConEvents
                                         }
                                     }
                                     if (_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksPingWhitelist) {
-                                        lock (_tsPlayers) {
-                                            foreach (AdKatsPlayer aPlayer in _tsPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
+                                        lock (_TeamspeakPlayers) {
+                                            foreach (AdKatsPlayer aPlayer in _TeamspeakPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
                                                 tempASPlayers.Add(new AdKatsSpecialPlayer() {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -43141,6 +43222,7 @@ namespace PRoConEvents
             public String player_guid = null;
             public Int64 player_id = -1;
             public String player_ip { get; private set; }
+            public String player_discord_id;
             public String player_name = null;
             public String player_name_previous = null;
             public String player_battlecry = null;
@@ -45403,33 +45485,214 @@ namespace PRoConEvents
             //Plugin
             public AdKats _plugin;
             //Settings
+            public Boolean Enabled;
             public String ServerID;
             public String[] ChannelNames = { };
+            public Boolean DebugMembers;
             public VoipJoinDisplayType JoinDisplay = VoipJoinDisplayType.Disabled;
             public String JoinMessage = "%player% joined discord! Welcome!";
+            private TimeSpan _UpdateDuration = TimeSpan.FromSeconds(30);
+            private DateTime _LastUpdate = DateTime.UtcNow - TimeSpan.FromSeconds(30);
             //Vars
             public String ServerName;
             public String InstantInvite;
-            public Dictionary<String, DiscordChannel> Channels;
-            public Dictionary<String, DiscordClient> Clients;
+            private Dictionary<String, DiscordChannel> Channels;
+            private Dictionary<String, DiscordMember> Members;
 
             public DiscordManager(AdKats plugin) {
                 _plugin = plugin;
                 Channels = new Dictionary<String, DiscordChannel>();
-                Clients = new Dictionary<String, DiscordClient>();
+                Members = new Dictionary<String, DiscordMember>();
+                RunDiscordManagerMainThread();
             }
 
-            public class DiscordGame {
-                public String Name;
+            public void Enable() {
+                Enabled = true;
             }
 
-            public class DiscordChannel {
-                public String ID;
-                public String Name;
-                public Int32 Position;
+            public void Disable() {
+                Enabled = false;
             }
 
-            public class DiscordClient {
+            public List<DiscordChannel> GetChannels() {
+                lock (Channels) {
+                    return Channels.Values.ToList();
+                }
+            }
+
+            public List<DiscordMember> GetMembers(Boolean onlyActive, Boolean onlyVoice, Boolean onlyChannels) {
+                lock (Members) {
+                    var resultMembers = Members.Values.Where(aMember => !aMember.Bot);
+                    if (onlyActive) {
+                        resultMembers = resultMembers.Where(aMember => aMember.Status == "online");
+                    }
+                    if (onlyVoice) {
+                        resultMembers = resultMembers.Where(aMember => aMember.Channel != null);
+                    }
+                    if (onlyChannels) {
+                        resultMembers = resultMembers.Where(aMember => aMember.Channel != null && ChannelNames.Contains(aMember.Channel.Name));
+                    }
+                    return resultMembers.ToList();
+                }
+            }
+
+            private void RunDiscordManagerMainThread() {
+                var discordMainThread = new Thread(new ThreadStart(delegate {
+                    Thread.CurrentThread.Name = "DiscordManagerMainThread";
+                    Thread.Sleep(TimeSpan.FromMilliseconds(250));
+                    // Main Thread Loop
+                    while (true) {
+                        try {
+                            if (Enabled) {
+                                // Update the server information at interval
+                                if (_plugin.NowDuration(_LastUpdate) > _UpdateDuration) {
+                                    UpdateDiscordServerInfo();
+                                }
+                            }
+                            // Sleep until the next execution is needed
+                            Thread.Sleep(TimeSpan.FromSeconds(1.0));
+                        } catch (Exception e) {
+                            _plugin.HandleException(new AdKatsException("Error in discord manager main thread loop. Skipping current loop.", e));
+                            Thread.Sleep(TimeSpan.FromSeconds(1.0));
+                        }
+                    }
+                }));
+                discordMainThread.Start();
+            }
+
+            private Boolean UpdateDiscordServerInfo() {
+                _plugin.Log.Debug(() => "Entering UpdateDiscordServerInfo", 7);
+                var success = false;
+                try {
+                    _plugin.Log.Debug(() => "Preparing to fetch discord server information.", 7);
+
+                    //Get the widget URL
+                    var widgetURL = GetWidgetURL();
+                    //Attempt to fetch and parse
+                    if (!String.IsNullOrEmpty(widgetURL)) {
+                        using (WebClient client = new WebClient()) {
+                            try {
+                                List<DiscordMember> clientInfo = new List<DiscordMember>();
+                                String clientResponse = _plugin.ClientDownloadTimer(client, widgetURL);
+                                Hashtable responseJSON = (Hashtable)JSON.JsonDecode(clientResponse);
+                                // Globals
+                                ServerID = (String)responseJSON["id"];
+                                ServerName = (String)responseJSON["name"];
+                                InstantInvite = (String)responseJSON["instant_invite"];
+                                // Channels
+                                ArrayList responseChannels = (ArrayList)responseJSON["channels"];
+                                Dictionary<String, DiscordChannel> builtChannels = new Dictionary<String, DiscordChannel>();
+                                foreach (Hashtable channel in responseChannels) {
+                                    DiscordChannel builtChannel = new DiscordChannel();
+                                    builtChannel.ID = (String)channel["id"];
+                                    builtChannel.Name = (String)channel["name"];
+                                    builtChannel.Position = Int32.Parse(channel["position"].ToString());
+                                    builtChannels[builtChannel.ID] = builtChannel;
+                                }
+                                lock (Channels) {
+                                    Channels = builtChannels;
+                                }
+                                // Members
+                                ArrayList responseMembers = (ArrayList)responseJSON["members"];
+                                Dictionary<String, DiscordMember> builtMembers = new Dictionary<String, DiscordMember>();
+                                // Upgrade this in the future to keep the same objects and just update them
+                                foreach (Hashtable member in responseMembers) {
+                                    DiscordMember builtMember = new DiscordMember();
+                                    //id
+                                    builtMember.ID = (String)member["id"];
+                                    //username
+                                    if (member.ContainsKey("username")) {
+                                        builtMember.Username = (String)member["username"];
+                                    }
+                                    //nick
+                                    if (member.ContainsKey("nick")) {
+                                        builtMember.Nick = (String)member["nick"];
+                                    }
+                                    //status
+                                    if (member.ContainsKey("status")) {
+                                        builtMember.Status = (String)member["status"];
+                                    }
+                                    //bot
+                                    if (member.ContainsKey("bot")) {
+                                        builtMember.Bot = (Boolean)member["bot"];
+                                    }
+                                    //channel_id
+                                    if (member.ContainsKey("channel_id")) {
+                                        Channels.TryGetValue((String)member["channel_id"], out builtMember.Channel);
+                                    }
+                                    //game
+                                    if (member.ContainsKey("game")) {
+                                        DiscordGame builtGame = null;
+                                        Hashtable responseGame = (Hashtable)member["game"];
+                                        if (responseGame.ContainsKey("name")) {
+                                            builtGame = new DiscordGame();
+                                            builtGame.Name = (String)responseGame["name"];
+                                        }
+                                        builtMember.Game = builtGame;
+                                    }
+                                    //mute
+                                    if (member.ContainsKey("mute")) {
+                                        builtMember.Mute = (Boolean)member["mute"];
+                                    }
+                                    //self_mute
+                                    if (member.ContainsKey("self_mute")) {
+                                        builtMember.SelfMute = (Boolean)member["self_mute"];
+                                    }
+                                    //suppress
+                                    if (member.ContainsKey("suppress")) {
+                                        builtMember.Suppress = (Boolean)member["suppress"];
+                                    }
+                                    //deaf
+                                    if (member.ContainsKey("deaf")) {
+                                        builtMember.Deaf = (Boolean)member["deaf"];
+                                    }
+                                    //self_deaf
+                                    if (member.ContainsKey("self_deaf")) {
+                                        builtMember.SelfDeaf = (Boolean)member["self_deaf"];
+                                    }
+                                    //avatar_url
+                                    if (member.ContainsKey("avatar_url")) {
+                                        builtMember.AvatarURL = (String)member["avatar_url"];
+                                    }
+                                    //avatar
+                                    if (member.ContainsKey("avatar")) {
+                                        builtMember.Avatar = (String)member["avatar"];
+                                    }
+                                    //discriminator
+                                    if (member.ContainsKey("discriminator")) {
+                                        builtMember.Discriminator = (String)member["discriminator"];
+                                    }
+                                    builtMembers[builtMember.ID] = builtMember;
+                                }
+                                lock (Members) {
+                                    Members = builtMembers;
+                                }
+                                _LastUpdate = _plugin.UtcNow();
+                                success = true;
+                            } catch (Exception e) {
+                                if (e is WebException) {
+                                    _plugin.Log.Warn("Issue connecting to discord widget URL:" + widgetURL);
+                                }
+                                _plugin.HandleException(new AdKatsException("Error while parsing discord widget data.", e));
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    _plugin.HandleException(new AdKatsException("Error while updating discord server information.", e));
+                }
+                _plugin.Log.Debug(() => "Exiting UpdateDiscordServerInfo", 7);
+                return success;
+            }
+
+            public String GetWidgetURL() {
+                if (String.IsNullOrEmpty(ServerID)) {
+                    _plugin.Log.Error("Cannot get discord widget URL, no server ID provided.");
+                    return null;
+                }
+                return "https://discordapp.com/api/servers/" + ServerID + "/widget.json";
+            }
+
+            public class DiscordMember {
                 public String ID;
                 public String Username;
                 public String Nick;
@@ -45447,43 +45710,14 @@ namespace PRoConEvents
                 public String Discriminator;
             }
 
-            public Boolean UpdateDiscordServerInfo() {
-                _plugin.Log.Debug(() => "Entering UpdateDiscordServerInfo", 7);
-                var success = false;
-                try {
-                    _plugin.Log.Debug(() => "Preparing to fetch discord server information.", 7);
-
-                    //Get the widget URL
-                    var widgetURL = GetWidgetURL();
-                    //Attempt to fetch and parse
-                    if (!String.IsNullOrEmpty(widgetURL)) {
-                        using (WebClient client = new WebClient()) {
-                            try {
-                                List<DiscordClient> clientInfo = new List<DiscordClient>();
-                                String clientResponse = _plugin.ClientDownloadTimer(client, widgetURL);
-                                success = true;
-                            } catch (Exception e) {
-                                if (e is WebException) {
-                                    _plugin.Log.Warn("Issue connecting to discord widget URL:" + widgetURL);
-                                }
-                                _plugin.HandleException(new AdKatsException("Error while parsing discord widget data.", e));
-                            }
-                        }
-                    }
-
-                } catch (Exception e) {
-                    _plugin.HandleException(new AdKatsException("Error while updating discord server information.", e));
-                }
-                _plugin.Log.Debug(() => "Exiting UpdateDiscordServerInfo", 7);
-                return success;
+            public class DiscordGame {
+                public String Name;
             }
 
-            public String GetWidgetURL() {
-                if (String.IsNullOrEmpty(ServerID)) {
-                    _plugin.Log.Error("Cannot get discord widget URL, no server ID provided.");
-                    return null;
-                }
-                return "https://discordapp.com/api/servers/" + ServerID + "/widget.json";
+            public class DiscordChannel {
+                public String ID;
+                public String Name;
+                public Int32 Position;
             }
         }
 
@@ -45551,7 +45785,7 @@ namespace PRoConEvents
             public String Ts3QueryNickname { get; set; }
             public String Ts3MainChannelName { get; set; }
             public String[] Ts3SubChannelNames { get; set; }
-            public Boolean DbgClients { get; set; }
+            public Boolean DebugClients { get; set; }
             private Object _teamspeakLocker = new Object();
 
             public VoipJoinDisplayType JoinDisplay = VoipJoinDisplayType.Disabled;
