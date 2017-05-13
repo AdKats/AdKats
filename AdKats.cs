@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.112
+ * Version 6.9.0.113
  * 12-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.112</version_code>
+ * <version_code>6.9.0.113</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.112";
+        private const String PluginVersion = "6.9.0.113";
 
         public enum GameVersion {
             BF3,
@@ -41590,6 +41590,9 @@ namespace PRoConEvents
         //Credit to Imisnew2, grabbed from TS3Sync
         public static Double PercentMatch(String s, String t)
         {
+            if (String.IsNullOrEmpty(s) || String.IsNullOrEmpty(t)) {
+                return 0.0;
+            }
             Double max;
             Double min;
             Int32 distance;
