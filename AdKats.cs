@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.117
+ * Version 6.9.0.118
  * 13-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.117</version_code>
+ * <version_code>6.9.0.118</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.117";
+        private const String PluginVersion = "6.9.0.118";
 
         public enum GameVersion {
             BF3,
@@ -45616,7 +45616,7 @@ namespace PRoConEvents
             public Boolean DebugMembers;
             public VoipJoinDisplayType JoinDisplay = VoipJoinDisplayType.Disabled;
             public String JoinMessage = "%player% joined discord! Welcome!";
-            private TimeSpan _UpdateDuration = TimeSpan.FromSeconds(30);
+            private TimeSpan _UpdateDuration = TimeSpan.FromSeconds(31);
             private DateTime _LastUpdate = DateTime.UtcNow - TimeSpan.FromSeconds(30);
             //Vars
             public String ServerName;
@@ -45678,10 +45678,10 @@ namespace PRoConEvents
                                 }
                             }
                             // Sleep until the next execution is needed
-                            Thread.Sleep(TimeSpan.FromSeconds(1.0));
+                            Thread.Sleep(TimeSpan.FromSeconds(10.0));
                         } catch (Exception e) {
                             _plugin.HandleException(new AdKatsException("Error in discord manager main thread loop. Skipping current loop.", e));
-                            Thread.Sleep(TimeSpan.FromSeconds(1.0));
+                            Thread.Sleep(TimeSpan.FromSeconds(10.0));
                         }
                     }
                 }));
@@ -45703,6 +45703,14 @@ namespace PRoConEvents
                                 List<DiscordMember> clientInfo = new List<DiscordMember>();
                                 String clientResponse = _plugin.ClientDownloadTimer(client, widgetURL);
                                 Hashtable responseJSON = (Hashtable)JSON.JsonDecode(clientResponse);
+                                if (!responseJSON.ContainsKey("id") || 
+                                    !responseJSON.ContainsKey("name") || 
+                                    !responseJSON.ContainsKey("instant_invite") || 
+                                    !responseJSON.ContainsKey("channels") || 
+                                    !responseJSON.ContainsKey("members")) {
+                                    _plugin.Log.Warn(clientResponse);
+                                    return false;
+                                }
                                 // Globals
                                 ServerID = (String)responseJSON["id"];
                                 ServerName = (String)responseJSON["name"];
