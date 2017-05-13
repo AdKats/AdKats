@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.114
+ * Version 6.9.0.115
  * 13-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.114</version_code>
+ * <version_code>6.9.0.115</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.114";
+        private const String PluginVersion = "6.9.0.115";
 
         public enum GameVersion {
             BF3,
@@ -8830,8 +8830,9 @@ namespace PRoConEvents
                                     {
                                         List<AdKatsRecord> meaningfulRecords = aPlayer.TargetedRecords.Where(aRecord => 
                                         aRecord.command_action.command_key != "banenforcer_enforce" && 
-                                        aRecord.command_action.command_key != "player_changeip" && 
-                                        aRecord.command_action.command_key != "player_changename" && 
+                                        aRecord.command_action.command_key != "player_changeip" &&
+                                        aRecord.command_action.command_key != "player_changename" &&
+                                        aRecord.command_action.command_key != "player_changetag" &&
                                         aRecord.command_action.command_key != "player_repboost" && 
                                         aRecord.command_action.command_key != "player_pm_send" && 
                                         aRecord.command_action.command_key != "player_pm_reply" && 
@@ -9639,7 +9640,7 @@ namespace PRoConEvents
 
                             var startupDuration = NowDuration(_AdKatsStartTime);
                             _startupDurations.Enqueue(startupDuration);
-                            while(_startupDurations.Count() > 5)
+                            while(_startupDurations.Count() > 10)
                             {
                                 _startupDurations.Dequeue();
                             }
@@ -23282,10 +23283,25 @@ namespace PRoConEvents
                             }
 
                             Log.Debug(() => "Battlelog info fetched for " + aPlayer.GetVerboseName() + ".", 6);
-                            //Update database with clan tag
+
+                            //Check for clan tag changes
                             if (!String.IsNullOrEmpty(aPlayer.player_clanTag) && (String.IsNullOrEmpty(oldTag) || aPlayer.player_clanTag != oldTag)) {
-                                if (_UseExperimentalTools) {
-                                    Log.Info(aPlayer.GetVerboseName() + " tag updated from " + (String.IsNullOrEmpty(oldTag) ? "NOTHING" : "[" + oldTag + "]") + " to " + (String.IsNullOrEmpty(aPlayer.player_clanTag) ? "NOTHING" : "[" + aPlayer.player_clanTag + "]"));
+                                AdKatsRecord record = new AdKatsRecord {
+                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                    server_id = _serverInfo.ServerID,
+                                    command_type = GetCommandByKey("player_changetag"),
+                                    command_numeric = 0,
+                                    target_name = aPlayer.player_name,
+                                    target_player = aPlayer,
+                                    source_name = "AdKats",
+                                    record_message = oldTag,
+                                    record_time = UtcNow()
+                                };
+                                QueueRecordForProcessing(record);
+                                var changeMessage = aPlayer.GetVerboseName() + " changed their tag from " + (String.IsNullOrEmpty(oldTag) ? "NOTHING" : "[" + oldTag + "]") + " to " + (String.IsNullOrEmpty(aPlayer.player_clanTag) ? "NOTHING" : "[" + aPlayer.player_clanTag + "]") + ".";
+                                Log.Debug(() => changeMessage + " Updating the database.", 2);
+                                if (_ShowPlayerNameChangeAnnouncement && !String.IsNullOrEmpty(oldTag)) {
+                                    OnlineAdminSayMessage(changeMessage);
                                 }
                                 UpdatePlayer(aPlayer);
                             }
@@ -23771,6 +23787,7 @@ namespace PRoConEvents
                         UpdatePlayerBattlecry(record);
                         break;
                     case "player_changename":
+                    case "player_changetag":
                     case "player_changeip":
                     case "admin_accept":
                     case "admin_deny":
@@ -29077,6 +29094,13 @@ namespace PRoConEvents
                             playerNames = nameRecords.Aggregate(record.target_name, (current, nameRecord) => current + (", " + nameRecord.record_message));
                         }
                         SendMessageToSource(record, "Previous names: " + playerNames);
+                        //Previous Tags
+                        String playerTags = "No previous tags.";
+                        List<AdKatsRecord> tagRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changetag").command_id, 1000, 50, true, false).GroupBy(tagRecord => tagRecord.record_message).Select(group => group.First()).ToList();
+                        if (tagRecords.Any()) {
+                            playerTags = tagRecords.Aggregate(record.target_name, (current, tagRecord) => current + (", " + tagRecord.record_message));
+                        }
+                        SendMessageToSource(record, "Previous tags: " + playerTags);
                     }
                     catch (Exception)
                     {
@@ -36471,12 +36495,12 @@ namespace PRoConEvents
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(48))
                                 {
-                                    SendNonQuery("Adding command player_changename", "INSERT INTO `adkats_commands` VALUES(48, 'Invisible', 'player_changename', 'Log', 'Player Changed Name', 'changename', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_changename", "INSERT INTO `adkats_commands` VALUES(48, 'Invisible', 'player_changename', 'Mandatory', 'Player Changed Name', 'changename', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(49))
                                 {
-                                    SendNonQuery("Adding command player_changeip", "INSERT INTO `adkats_commands` VALUES(49, 'Invisible', 'player_changeip', 'Log', 'Player Changed IP', 'changeip', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command player_changeip", "INSERT INTO `adkats_commands` VALUES(49, 'Invisible', 'player_changeip', 'Mandatory', 'Player Changed IP', 'changeip', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(50))
@@ -36863,6 +36887,10 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command player_debugassist", "INSERT INTO `adkats_commands` VALUES(126, 'Active', 'player_debugassist', 'Log', 'Debug Assist Losing Team', 'debugassist', FALSE, 'AnyHidden')", true);
                                     newCommands = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(127)) {
+                                    SendNonQuery("Adding command player_changetag", "INSERT INTO `adkats_commands` VALUES(127, 'Invisible', 'player_changetag', 'Mandatory', 'Player Changed Clan Tag', 'changetag', TRUE, 'Any')", true);
+                                    newCommands = true;
+                                }
                                 if (newCommands)
                                 {
                                     FetchCommands();
@@ -36938,8 +36966,8 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_whitelistbalance"] = "Adds the target player to autobalance whitelist for the server.";
             _CommandDescriptionDictionary["player_slotreserved"] = "Adds the target player to reserved slots for the server.";
             _CommandDescriptionDictionary["player_slotspectator"] = "Adds the target player to spectator slots for the server.";
-            _CommandDescriptionDictionary["player_changename"] = "Invisible command. Assigned when a player changes their name.";
-            _CommandDescriptionDictionary["player_changeip"] = "Invisible command. Assigned when a player changes location/IP.";
+            _CommandDescriptionDictionary["player_changename"] = "Invisible command. Issued when a player changes their name.";
+            _CommandDescriptionDictionary["player_changeip"] = "Invisible command. Issued when a player changes location/IP.";
             _CommandDescriptionDictionary["player_ban_perm_future"] = "Future-permaban, inverse of a temp-ban. Requires a reason.";
             _CommandDescriptionDictionary["self_assist"] = "Queues you to assist the losing team.";
             _CommandDescriptionDictionary["self_uptime"] = "Tells you the uptime/population information for the server.";
@@ -37008,6 +37036,7 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_ping"] = "Fetches a player's current ping, either from the server or manually if necessary.";
             _CommandDescriptionDictionary["player_forceping"] = "Forces AdKats to manually ping a player instead of using the server ping.";
             _CommandDescriptionDictionary["player_debugassist"] = "Runs a mock assist command on a player to see what the results would be, along with debug information.";
+            _CommandDescriptionDictionary["player_changetag"] = "Invisible command. Issued when a player changes their clan tag.";
         }
 
         private void FillReadableMapModeDictionaries() {
