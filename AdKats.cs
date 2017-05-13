@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.113
- * 12-MAY-2017
+ * Version 6.9.0.114
+ * 13-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.113</version_code>
+ * <version_code>6.9.0.114</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.113";
+        private const String PluginVersion = "6.9.0.114";
 
         public enum GameVersion {
             BF3,
@@ -7583,7 +7583,7 @@ namespace PRoConEvents
                                             ((!String.IsNullOrEmpty(member.ID) && !String.IsNullOrEmpty(dPlayer.player_discord_id) && member.ID == dPlayer.player_discord_id) ||
                                              ((String.IsNullOrEmpty(member.ID) || String.IsNullOrEmpty(dPlayer.player_discord_id)) && (PercentMatch(member.Nick, dPlayer.player_name) > 80 || PercentMatch(member.Username, dPlayer.player_name) > 80))));
                                         if (_DiscordManager.DebugMembers) {
-                                            Log.Info("DiscordMember: " + member.Username + " | " + member.ID + " | " + ((matching.Any()) ? (matching.Count() + " online players match client.") : ("No matching online players.")));
+                                            Log.Info("DiscordMember: " + member.Username + " | " + member.ID + " | " + ((matching.Any()) ? (matching.Count() + " online players match member.") : ("No matching online players.")));
                                         }
                                         onlineDiscordPlayers.AddRange(matching);
                                     }
@@ -45535,8 +45535,8 @@ namespace PRoConEvents
                     if (onlyChannels) {
                         resultMembers = resultMembers.Where(aMember => aMember.Channel != null && ChannelNames.Contains(aMember.Channel.Name));
                     }
-                    if (_plugin._UseExperimentalTools) {
-                        _plugin.Log.Info("DISCORD: Returning " + resultMembers.Count() + " members.");
+                    if (DebugMembers) {
+                        _plugin.Log.Info("DISCORD: Found " + resultMembers.Count() + " voice members in channel list.");
                     }
                     return resultMembers.ToList();
                 }
