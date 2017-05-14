@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.120
+ * Version 6.9.0.121
  * 14-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.120</version_code>
+ * <version_code>6.9.0.121</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.120";
+        private const String PluginVersion = "6.9.0.121";
 
         public enum GameVersion {
             BF3,
@@ -45721,7 +45721,8 @@ namespace PRoConEvents
                                 try {
                                     responseJSON = (Hashtable)JSON.JsonDecode(clientResponse);
                                 } catch (Exception e) {
-                                    _plugin.Log.Warn(clientResponse);
+                                    _plugin.Log.Warn("Error when parsing discord original JSON.");
+                                    _plugin.Log.Warn(clientResponse.Substring(0, 300));
                                     return false;
                                 }
                                 if (!responseJSON.ContainsKey("id") || 
@@ -45729,11 +45730,13 @@ namespace PRoConEvents
                                     !responseJSON.ContainsKey("instant_invite") || 
                                     !responseJSON.ContainsKey("channels") || 
                                     !responseJSON.ContainsKey("members")) {
-                                    _plugin.Log.Warn(clientResponse);
+                                    _plugin.Log.Warn("Discord JSON did not contain required elements.");
+                                    _plugin.Log.Warn(clientResponse.Substring(0, 300));
                                     return false;
                                 }
                                 if (DebugService) {
-                                    _plugin.Log.Warn(clientResponse);
+                                    _plugin.Log.Warn("Debug printing the discord client response.");
+                                    _plugin.Log.Warn(clientResponse.Substring(0, 300));
                                 }
                                 // Globals
                                 ServerID = (String)responseJSON["id"];
