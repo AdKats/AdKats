@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.118
+ * Version 6.9.0.119
  * 13-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.118</version_code>
+ * <version_code>6.9.0.119</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.118";
+        private const String PluginVersion = "6.9.0.119";
 
         public enum GameVersion {
             BF3,
@@ -45702,7 +45702,13 @@ namespace PRoConEvents
                             try {
                                 List<DiscordMember> clientInfo = new List<DiscordMember>();
                                 String clientResponse = _plugin.ClientDownloadTimer(client, widgetURL);
-                                Hashtable responseJSON = (Hashtable)JSON.JsonDecode(clientResponse);
+                                Hashtable responseJSON = null;
+                                try {
+                                    responseJSON = (Hashtable)JSON.JsonDecode(clientResponse);
+                                } catch (Exception e) {
+                                    _plugin.Log.Warn(clientResponse);
+                                    return false;
+                                }
                                 if (!responseJSON.ContainsKey("id") || 
                                     !responseJSON.ContainsKey("name") || 
                                     !responseJSON.ContainsKey("instant_invite") || 
