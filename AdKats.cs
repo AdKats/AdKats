@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.124
+ * Version 6.9.0.125
  * 14-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.124</version_code>
+ * <version_code>6.9.0.125</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.124";
+        private const String PluginVersion = "6.9.0.125";
 
         public enum GameVersion {
             BF3,
@@ -1661,6 +1661,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Enforce Single Instance", typeof(Boolean), _enforceSingleInstance));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Command Entry", typeof(String), ""));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Client Download URL Entry", typeof(String), ""));
                     }
 
 
@@ -2137,8 +2138,28 @@ namespace PRoConEvents
                         record_time = UtcNow()
                     };
                     CompleteRecordInformation(record, strValue);
-                }
-                else if (Regex.Match(strVariable, @"Debug level").Success)
+                } else if (Regex.Match(strVariable, @"Client Download URL Entry").Success) {
+                    if (String.IsNullOrEmpty(strValue)) {
+                        return;
+                    }
+                    using (WebClient client = new WebClient()) {
+                        try {
+                            String response = ClientDownloadTimer(client, strValue);
+                            if (String.IsNullOrEmpty(response)) {
+                                Log.Warn("Request response was empty.");
+                            } else {
+                                Log.Success("Request response received, displaying.");
+                                Int32 cutLength = response.Length - 500;
+                                if (cutLength > 0) {
+                                    response = response.Substring(0, response.Length - cutLength);
+                                }
+                                Log.Info(response);
+                            }
+                        } catch (Exception e) {
+                            HandleException(new AdKatsException("Error downloading/displaying response from " + strValue, e));
+                        }
+                    }
+                } else if (Regex.Match(strVariable, @"Debug level").Success)
                 {
                     Int32 tmp;
                     if (int.TryParse(strValue, out tmp))
@@ -45724,8 +45745,13 @@ namespace PRoConEvents
                                 try {
                                     responseJSON = (Hashtable)JSON.JsonDecode(clientResponse);
                                 } catch (Exception e) {
+                                    if (String.IsNullOrEmpty(clientResponse)) {
+                                        _plugin.Log.Warn("Discord widget JSON response was empty.");
+                                        return false;
+                                    }
                                     _plugin.Log.Warn("Error when parsing discord original JSON.");
-                                    _plugin.Log.Warn(clientResponse.Substring(0, 500));
+                                    clientResponse = clientResponse.Length <= 500 ? clientResponse : clientResponse.Substring(0, 500);
+                                    _plugin.Log.Warn(clientResponse);
                                     return false;
                                 }
                                 if (!responseJSON.ContainsKey("id") || 
@@ -45734,12 +45760,14 @@ namespace PRoConEvents
                                     !responseJSON.ContainsKey("channels") || 
                                     !responseJSON.ContainsKey("members")) {
                                     _plugin.Log.Warn("Discord JSON did not contain required elements.");
-                                    _plugin.Log.Warn(clientResponse.Substring(0, 500));
+                                    clientResponse = clientResponse.Length <= 500 ? clientResponse : clientResponse.Substring(0, 500);
+                                    _plugin.Log.Warn(clientResponse);
                                     return false;
                                 }
                                 if (DebugService) {
                                     _plugin.Log.Warn("Debug printing the discord client response.");
-                                    _plugin.Log.Warn(clientResponse.Substring(0, 500));
+                                    clientResponse = clientResponse.Length <= 500 ? clientResponse : clientResponse.Substring(0, 500);
+                                    _plugin.Log.Warn(clientResponse);
                                 }
                                 // Globals
                                 ServerID = (String)responseJSON["id"];
