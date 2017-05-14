@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.122
+ * Version 6.9.0.123
  * 14-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.122</version_code>
+ * <version_code>6.9.0.123</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.122";
+        private const String PluginVersion = "6.9.0.123";
 
         public enum GameVersion {
             BF3,
@@ -2165,6 +2165,7 @@ namespace PRoConEvents
                         }
                         else if (tmp == 5682) {
                             _DiscordManager.DebugService = !_DiscordManager.DebugService;
+                            Log.Info("Discord Debug Display: " + _DiscordManager.DebugService);
                         }
                         else if (tmp != Log.DebugLevel)
                         {
@@ -45632,12 +45633,12 @@ namespace PRoConEvents
             public VoipJoinDisplayType JoinDisplay = VoipJoinDisplayType.Disabled;
             public String JoinMessage = "%player% (%username%) joined discord! Welcome!";
             private TimeSpan _UpdateDuration = TimeSpan.FromSeconds(29);
-            private DateTime _LastUpdate = DateTime.UtcNow - TimeSpan.FromSeconds(30);
             //Vars
             public String ServerName;
             public String InstantInvite;
             private Dictionary<String, DiscordChannel> Channels;
             private Dictionary<String, DiscordMember> Members;
+            public DateTime LastUpdate = DateTime.UtcNow - TimeSpan.FromSeconds(30);
 
             public DiscordManager(AdKats plugin) {
                 _plugin = plugin;
@@ -45655,28 +45656,24 @@ namespace PRoConEvents
             }
 
             public List<DiscordChannel> GetChannels() {
-                lock (Channels) {
-                    return Channels.Values.ToList();
-                }
+                return Channels.Values.ToList();
             }
 
             public List<DiscordMember> GetMembers(Boolean onlyActive, Boolean onlyVoice, Boolean onlyChannels) {
-                lock (Members) {
-                    var resultMembers = Members.Values.Where(aMember => !aMember.Bot);
-                    if (onlyActive) {
-                        resultMembers = resultMembers.Where(aMember => aMember.Status == "online");
-                    }
-                    if (onlyVoice) {
-                        resultMembers = resultMembers.Where(aMember => aMember.Channel != null);
-                    }
-                    if (onlyChannels) {
-                        resultMembers = resultMembers.Where(aMember => aMember.Channel != null && ChannelNames.Contains(aMember.Channel.Name));
-                    }
-                    if (DebugMembers) {
-                        _plugin.Log.Info("Discord: Found " + resultMembers.Count() + " matching voice members. " + Members.Count() + " total members.");
-                    }
-                    return resultMembers.ToList();
+                var resultMembers = Members.Values.Where(aMember => !aMember.Bot);
+                if (onlyActive) {
+                    resultMembers = resultMembers.Where(aMember => aMember.Status == "online");
                 }
+                if (onlyVoice) {
+                    resultMembers = resultMembers.Where(aMember => aMember.Channel != null);
+                }
+                if (onlyChannels) {
+                    resultMembers = resultMembers.Where(aMember => aMember.Channel != null && ChannelNames.Contains(aMember.Channel.Name));
+                }
+                if (DebugMembers) {
+                    _plugin.Log.Info("Discord: Found " + resultMembers.Count() + " matching voice members. " + Members.Count() + " total members. Last Update: " + _plugin.FormatNowDuration(LastUpdate, 3));
+                }
+                return resultMembers.ToList();
             }
 
             private void RunDiscordManagerMainThread() {
@@ -45688,8 +45685,14 @@ namespace PRoConEvents
                         try {
                             if (Enabled) {
                                 // Update the server information at interval
-                                if (_plugin.NowDuration(_LastUpdate) > _UpdateDuration) {
-                                    UpdateDiscordServerInfo();
+                                if (_plugin.NowDuration(LastUpdate) > _UpdateDuration) {
+                                    if (DebugService) {
+                                        _plugin.Log.Warn("Ready to update discord server info.");
+                                    }
+                                    var results = UpdateDiscordServerInfo();
+                                    if (DebugService) {
+                                        _plugin.Log.Warn("Discord server info updated. Success: " + results);
+                                    }
                                 }
                             }
                             // Sleep until the next execution is needed
@@ -45722,7 +45725,7 @@ namespace PRoConEvents
                                     responseJSON = (Hashtable)JSON.JsonDecode(clientResponse);
                                 } catch (Exception e) {
                                     _plugin.Log.Warn("Error when parsing discord original JSON.");
-                                    _plugin.Log.Warn(clientResponse.Substring(0, 300));
+                                    _plugin.Log.Warn(clientResponse.Substring(0, 500));
                                     return false;
                                 }
                                 if (!responseJSON.ContainsKey("id") || 
@@ -45731,12 +45734,12 @@ namespace PRoConEvents
                                     !responseJSON.ContainsKey("channels") || 
                                     !responseJSON.ContainsKey("members")) {
                                     _plugin.Log.Warn("Discord JSON did not contain required elements.");
-                                    _plugin.Log.Warn(clientResponse.Substring(0, 300));
+                                    _plugin.Log.Warn(clientResponse.Substring(0, 500));
                                     return false;
                                 }
                                 if (DebugService) {
                                     _plugin.Log.Warn("Debug printing the discord client response.");
-                                    _plugin.Log.Warn(clientResponse.Substring(0, 300));
+                                    _plugin.Log.Warn(clientResponse.Substring(0, 500));
                                 }
                                 // Globals
                                 ServerID = (String)responseJSON["id"];
@@ -45752,9 +45755,7 @@ namespace PRoConEvents
                                     builtChannel.Position = Int32.Parse(channel["position"].ToString());
                                     builtChannels[builtChannel.ID] = builtChannel;
                                 }
-                                lock (Channels) {
-                                    Channels = builtChannels;
-                                }
+                                Channels = builtChannels;
                                 // Members
                                 ArrayList responseMembers = (ArrayList)responseJSON["members"];
                                 Dictionary<String, DiscordMember> builtMembers = new Dictionary<String, DiscordMember>();
@@ -45827,10 +45828,8 @@ namespace PRoConEvents
                                     }
                                     builtMembers[builtMember.ID] = builtMember;
                                 }
-                                lock (Members) {
-                                    Members = builtMembers;
-                                }
-                                _LastUpdate = _plugin.UtcNow();
+                                Members = builtMembers;
+                                LastUpdate = _plugin.UtcNow();
                                 success = true;
                             } catch (Exception e) {
                                 if (e is WebException) {
