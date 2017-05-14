@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.123
+ * Version 6.9.0.124
  * 14-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.123</version_code>
+ * <version_code>6.9.0.124</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.123";
+        private const String PluginVersion = "6.9.0.124";
 
         public enum GameVersion {
             BF3,
@@ -7574,7 +7574,7 @@ namespace PRoConEvents
                                             Log.Success("Teamspeak soldier " + removePlayer + " disconnected.");
                                         }
                                         accessUpdateRequired = true;
-                                        _DiscordPlayers[removePlayer].TSClientObject = null;
+                                        _TeamspeakPlayers[removePlayer].TSClientObject = null;
                                         _TeamspeakPlayers.Remove(removePlayer);
                                     }
                                 }
