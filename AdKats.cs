@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.126
+ * Version 6.9.0.127
  * 14-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.126</version_code>
+ * <version_code>6.9.0.127</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.126";
+        private const String PluginVersion = "6.9.0.127";
 
         public enum GameVersion {
             BF3,
@@ -1608,11 +1608,11 @@ namespace PRoConEvents
                     if (IsActiveSettingSection(discordMonitorSection)) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Monitor Discord Players", typeof(Boolean), _DiscordPlayerMonitorView));
                         if (_DiscordPlayerMonitorView) {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _DiscordPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _DiscordPlayers.Values.OrderBy(aPlayer => aPlayer.DiscordObject.Channel.Name).Select(aPlayer => aPlayer.player_name + " [" + aPlayer.DiscordObject.Username + "] (" + aPlayer.DiscordObject.Channel.Name + ")").ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _DiscordPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _DiscordPlayers.Values.OrderBy(aPlayer => aPlayer.DiscordObject.Channel.Name).Select(aPlayer => aPlayer.player_name + " [" + aPlayer.DiscordObject.Username + "] (" + aPlayer.DiscordObject.Channel.Name + ") " + (String.IsNullOrEmpty(aPlayer.player_discord_id) ? "[Name]" : "[ID]")).ToArray()));
                             var discordMembers = _DiscordManager.GetMembers(false, true, true);
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord Channel Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => aMember.Channel.Name).Select(aMember => aMember.Username + " (" + aMember.Channel.Name + ")").ToArray()));
                             discordMembers = _DiscordManager.GetMembers(false, false, false);
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord All Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => (aMember.Channel != null ? aMember.Channel.Name : "-NO VOICE-")).Select(aMember => aMember.Username + " (" + (aMember.Channel != null ? aMember.Channel.Name : "-NO VOICE-") + ")").ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord All Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => (aMember.Channel != null ? aMember.Channel.Name : "_NO VOICE_")).Select(aMember => aMember.Username + " (" + (aMember.Channel != null ? aMember.Channel.Name : "_NO VOICE_") + ")").ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Enable Discord Player Monitor", typeof(Boolean), _DiscordPlayerMonitorEnable));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Server ID", typeof(String), _DiscordManager.ServerID));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Channel Names", typeof(String[]), _DiscordManager.ChannelNames));
@@ -27077,6 +27077,9 @@ namespace PRoConEvents
                 UpdatePlayer(record.target_player);
 
                 SendMessageToSource(record, record.target_player.GetVerboseName() + " linked with discord member " + matchingMember.Username + ".");
+
+                // Update the setting page since the list there needs to be updated
+                UpdateSettingPage();
             } catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for Link Player to Discord Member record.", e);
                 HandleException(record.record_exception);
