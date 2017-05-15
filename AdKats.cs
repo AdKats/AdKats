@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.129
+ * Version 6.9.0.130
  * 15-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.129</version_code>
+ * <version_code>6.9.0.130</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.129";
+        private const String PluginVersion = "6.9.0.130";
 
         public enum GameVersion {
             BF3,
@@ -664,6 +664,7 @@ namespace PRoConEvents
         private Boolean _DiscordPlayerMonitorView;
         private Boolean _DiscordPlayerMonitorEnable;
         private readonly Dictionary<String, AdKatsPlayer> _DiscordPlayers = new Dictionary<String, AdKatsPlayer>();
+        private Boolean _DiscordPlayerRequireVoiceForAdmin;
         private Boolean _DiscordPlayerPerksEnable;
         private Boolean _DiscordPlayerPerksVIPKickWhitelist;
         private Boolean _DiscordPlayerPerksBalanceWhitelist;
@@ -1616,7 +1617,7 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Enable Discord Player Monitor", typeof(Boolean), _DiscordPlayerMonitorEnable));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Server ID", typeof(String), _DiscordManager.ServerID));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Channel Names", typeof(String[]), _DiscordManager.ChannelNames));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Debug Display Discord Members", typeof(Boolean), _DiscordManager.DebugMembers));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Require Voice in Discord to Issue Admin Commands", typeof(Boolean), _DiscordPlayerRequireVoiceForAdmin));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Join Announcement", "enum.tsAnnounceEnum(Disabled|Say|Yell|Tell)", _DiscordManager.JoinDisplay.ToString()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Join Message", typeof(String), _DiscordManager.JoinMessage));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Enable Discord Player Perks", typeof(Boolean), _DiscordPlayerPerksEnable));
@@ -1626,6 +1627,7 @@ namespace PRoConEvents
                                 lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Perks - Ping Whitelist", typeof(Boolean), _DiscordPlayerPerksPingWhitelist));
                                 lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _DiscordPlayerPerksTeamKillTrackerWhitelist));
                             }
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Debug Display Discord Members", typeof(Boolean), _DiscordManager.DebugMembers));
                         }
                     }
 
@@ -4295,6 +4297,12 @@ namespace PRoConEvents
                     if (DiscordPlayerPerksEnable != _DiscordPlayerPerksEnable) {
                         _DiscordPlayerPerksEnable = DiscordPlayerPerksEnable;
                         QueueSettingForUpload(new CPluginVariable(@"Enable Discord Player Perks", typeof(Boolean), _DiscordPlayerPerksEnable));
+                    }
+                } else if (Regex.Match(strVariable, @"Require Voice in Discord to Issue Admin Commands").Success) {
+                    Boolean DiscordPlayerRequireVoiceForAdmin = Boolean.Parse(strValue);
+                    if (DiscordPlayerRequireVoiceForAdmin != _DiscordPlayerRequireVoiceForAdmin) {
+                        _DiscordPlayerRequireVoiceForAdmin = DiscordPlayerRequireVoiceForAdmin;
+                        QueueSettingForUpload(new CPluginVariable(@"Require Voice in Discord to Issue Admin Commands", typeof(Boolean), _DiscordPlayerRequireVoiceForAdmin));
                     }
                 } else if (Regex.Match(strVariable, @"Discord Player Perks - VIP Kick Whitelist").Success) {
                     Boolean DiscordPlayerPerksVIPKickWhitelist = Boolean.Parse(strValue);
@@ -16621,6 +16629,15 @@ namespace PRoConEvents
                         {
                             SendMessageToSource(record, "Your role " + record.source_player.player_role.role_name + " (Power Level " + record.source_player.player_role.role_powerLevel + ") cannot use " + record.command_type.command_name + ".");
                         }
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    if (_DiscordPlayerMonitorEnable && 
+                        _DiscordPlayerRequireVoiceForAdmin && 
+                        NowDuration(_DiscordManager.LastUpdate).TotalMinutes < 2.5 && 
+                        record.command_type.command_playerInteraction &&
+                        record.source_player.DiscordObject == null) {
+                        Log.Error("Admin commands may only be issued while in discord.");
                         FinalizeRecord(record);
                         return;
                     }
@@ -31350,7 +31367,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Enable Discord Player Monitor", typeof(Boolean), _DiscordPlayerMonitorEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Discord Server ID", typeof(String), _DiscordManager.ServerID));
                 QueueSettingForUpload(new CPluginVariable(@"Discord Channel Names", typeof(String), CPluginVariable.EncodeStringArray(_DiscordManager.ChannelNames)));
-                QueueSettingForUpload(new CPluginVariable(@"Debug Display Discord Members", typeof(Boolean), _DiscordManager.DebugMembers));
+                QueueSettingForUpload(new CPluginVariable(@"Require Voice in Discord to Issue Admin Commands", typeof(Boolean), _DiscordPlayerRequireVoiceForAdmin));
                 QueueSettingForUpload(new CPluginVariable(@"Discord Player Join Announcement", typeof(String), _DiscordManager.JoinDisplay.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"Discord Player Join Message", typeof(String), _DiscordManager.JoinMessage));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Discord Player Perks", typeof(Boolean), _DiscordPlayerPerksEnable));
@@ -31358,6 +31375,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Discord Player Perks - Autobalance Whitelist", typeof(Boolean), _DiscordPlayerPerksBalanceWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Discord Player Perks - Ping Whitelist", typeof(Boolean), _DiscordPlayerPerksPingWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Discord Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _DiscordPlayerPerksTeamKillTrackerWhitelist));
+                QueueSettingForUpload(new CPluginVariable(@"Debug Display Discord Members", typeof(Boolean), _DiscordManager.DebugMembers));
                 // Team Power Monitor
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
                 QueueSettingForUpload(new CPluginVariable(@"Affected Top Players", typeof(String), _TopPlayersAffected));
