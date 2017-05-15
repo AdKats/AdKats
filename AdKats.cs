@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.125
+ * Version 6.9.0.126
  * 14-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.125</version_code>
+ * <version_code>6.9.0.126</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.125";
+        private const String PluginVersion = "6.9.0.126";
 
         public enum GameVersion {
             BF3,
@@ -1608,9 +1608,11 @@ namespace PRoConEvents
                     if (IsActiveSettingSection(discordMonitorSection)) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Monitor Discord Players", typeof(Boolean), _DiscordPlayerMonitorView));
                         if (_DiscordPlayerMonitorView) {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _DiscordPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _DiscordPlayers.Values.Select(aPlayer => aPlayer.player_name + " (" + aPlayer.DiscordObject.Username + ")").ToArray()));
-                            var discordMembers = _DiscordManager.GetMembers(false, false, false);
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord Members (Display)", typeof(String[]), discordMembers.Select(aMember => aMember.Username + " (" + (aMember.Channel != null ? aMember.Channel.Name : "NO VOICE") + ")").ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _DiscordPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _DiscordPlayers.Values.OrderBy(aPlayer => aPlayer.DiscordObject.Channel.Name).Select(aPlayer => aPlayer.player_name + " [" + aPlayer.DiscordObject.Username + "] (" + aPlayer.DiscordObject.Channel.Name + ")").ToArray()));
+                            var discordMembers = _DiscordManager.GetMembers(false, true, true);
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord Channel Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => aMember.Channel.Name).Select(aMember => aMember.Username + " (" + aMember.Channel.Name + ")").ToArray()));
+                            discordMembers = _DiscordManager.GetMembers(false, false, false);
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord All Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => (aMember.Channel != null ? aMember.Channel.Name : "-NO VOICE-")).Select(aMember => aMember.Username + " (" + (aMember.Channel != null ? aMember.Channel.Name : "-NO VOICE-") + ")").ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Enable Discord Player Monitor", typeof(Boolean), _DiscordPlayerMonitorEnable));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Server ID", typeof(String), _DiscordManager.ServerID));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Channel Names", typeof(String[]), _DiscordManager.ChannelNames));
@@ -2144,15 +2146,28 @@ namespace PRoConEvents
                     }
                     using (WebClient client = new WebClient()) {
                         try {
+                            client.Encoding = Encoding.UTF8;
                             String response = ClientDownloadTimer(client, strValue);
                             if (String.IsNullOrEmpty(response)) {
                                 Log.Warn("Request response was empty.");
                             } else {
-                                Log.Success("Request response received, displaying.");
-                                Int32 cutLength = response.Length - 500;
-                                if (cutLength > 0) {
-                                    response = response.Substring(0, response.Length - cutLength);
+                                Log.Success("Request response received [Length " + response.Length +  "], displaying.");
+                                try {
+                                    // Remove surrogate codepoint values as raw text
+                                    var tester = new Regex(@"[\\][u][d][8-9a-f][0-9a-f][0-9a-f]", RegexOptions.IgnoreCase);
+                                    if (tester.IsMatch(response)) {
+                                        Log.Warn("Found invalid codepoint raw text values.");
+                                    } else {
+                                        Log.Success("No invalid codepoint raw text values.");
+                                    }
+                                    response = tester.Replace(response, String.Empty);
+                                    Log.Success("[Length " + response.Length + "].");
+                                    var responseJSON = (Hashtable)JSON.JsonDecode(response);
+                                    Log.Warn("Parsed as JSON.");
+                                } catch (Exception e) {
+                                    Log.Warn("Unable to parse as JSON. " + e.Message);
                                 }
+                                response = response.Length <= 500 ? response : response.Substring(0, 500);
                                 Log.Info(response);
                             }
                         } catch (Exception e) {
@@ -45670,6 +45685,7 @@ namespace PRoConEvents
 
             public void Enable() {
                 Enabled = true;
+                UpdateDiscordServerInfo();
             }
 
             public void Disable() {
@@ -45689,7 +45705,7 @@ namespace PRoConEvents
                     resultMembers = resultMembers.Where(aMember => aMember.Channel != null);
                 }
                 if (onlyChannels) {
-                    resultMembers = resultMembers.Where(aMember => aMember.Channel != null && ChannelNames.Contains(aMember.Channel.Name));
+                    resultMembers = resultMembers.Where(aMember => aMember.Channel != null && (!ChannelNames.Any() || String.IsNullOrEmpty(ChannelNames.FirstOrDefault()) || ChannelNames.Contains(aMember.Channel.Name)));
                 }
                 if (DebugMembers) {
                     _plugin.Log.Info("Discord: Found " + resultMembers.Count() + " matching voice members. " + Members.Count() + " total members. Last Update: " + _plugin.FormatNowDuration(LastUpdate, 3));
@@ -45743,15 +45759,12 @@ namespace PRoConEvents
                                 String clientResponse = _plugin.ClientDownloadTimer(client, widgetURL);
                                 Hashtable responseJSON = null;
                                 try {
+                                    // Remove surrogate codepoint values as raw text
+                                    var tester = new Regex(@"[\\][u][d][8-9a-f][0-9a-f][0-9a-f]", RegexOptions.IgnoreCase);
+                                    clientResponse = tester.Replace(clientResponse, String.Empty);
                                     responseJSON = (Hashtable)JSON.JsonDecode(clientResponse);
                                 } catch (Exception e) {
-                                    if (String.IsNullOrEmpty(clientResponse)) {
-                                        _plugin.Log.Warn("Discord widget JSON response was empty.");
-                                        return false;
-                                    }
-                                    _plugin.Log.Warn("Error when parsing discord original JSON.");
-                                    clientResponse = clientResponse.Length <= 500 ? clientResponse : clientResponse.Substring(0, 500);
-                                    _plugin.Log.Warn(clientResponse);
+                                    _plugin.HandleException(new AdKatsException("Error processing JSON", e));
                                     return false;
                                 }
                                 if (!responseJSON.ContainsKey("id") || 
