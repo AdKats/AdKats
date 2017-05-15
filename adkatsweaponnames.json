@@ -518,6 +518,14 @@
       "readable_short": "AMR-2 MID",
       "readable_long": "AMR-2 MID Sniper Rifle"
     },
+    "U_AN94": {
+      "readable_short": "AN-94",
+      "readable_long": "AN-94 Abakan Assault Rifle"
+    },
+    "U_AN94_M320_HE_v1": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE under AN-94"
+    },
     "U_AR160": {
       "readable_short": "AR160",
       "readable_long": "AR-160 Assault Rifle"
