@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.128
- * 14-MAY-2017
+ * Version 6.9.0.129
+ * 15-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.128</version_code>
+ * <version_code>6.9.0.129</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.128";
+        private const String PluginVersion = "6.9.0.129";
 
         public enum GameVersion {
             BF3,
@@ -7631,6 +7631,11 @@ namespace PRoConEvents
                                         }
                                         foreach (var match in matching) {
                                             match.DiscordObject = member;
+                                            // If their name is an exact match, assign the ID association
+                                            if (match.player_name == member.Username && String.IsNullOrEmpty(match.player_discord_id)) {
+                                                match.player_discord_id = member.ID;
+                                                UpdatePlayer(match);
+                                            }
                                         }
                                         onlineDiscordPlayers.AddRange(matching);
                                     }
