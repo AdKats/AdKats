@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.130
+ * Version 6.9.0.131
  * 15-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.130</version_code>
+ * <version_code>6.9.0.131</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.130";
+        private const String PluginVersion = "6.9.0.131";
 
         public enum GameVersion {
             BF3,
@@ -7566,8 +7566,6 @@ namespace PRoConEvents
                                     foreach (TeamSpeakClientViewer.TeamspeakClient client in _TeamspeakManager.GetPlayersOnTs())
                                     {
                                         IEnumerable<AdKatsPlayer> matching = _PlayerDictionary.Values.ToList().Where(dPlayer => 
-                                            // Do not include spectators in this list
-                                            dPlayer.player_type != PlayerType.Spectator &&
                                             // Match by IP or by name (only if no IP is available), percent matching over 80%
                                             ((!String.IsNullOrEmpty(client.AdvIpAddress) && !String.IsNullOrEmpty(dPlayer.player_ip) && client.AdvIpAddress == dPlayer.player_ip) || 
                                              ((String.IsNullOrEmpty(client.AdvIpAddress) || String.IsNullOrEmpty(dPlayer.player_ip)) && PercentMatch(client.TsName, dPlayer.player_name) > 80)));
@@ -7593,7 +7591,7 @@ namespace PRoConEvents
 
                                             var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
                                             var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
-                                            if (startDuration - startupDuration > 120) {
+                                            if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator) {
                                                 var joinMessage = _TeamspeakManager.JoinDisplayMessage.Replace("%player%", aPlayer.GetVerboseName()).Replace("%username%", aPlayer.TSClientObject.TsName);
                                                 switch (_TeamspeakManager.JoinDisplay) {
                                                     case VoipJoinDisplayType.Say:
@@ -7629,8 +7627,6 @@ namespace PRoConEvents
                                     var members = _DiscordManager.GetMembers(false, true, true);
                                     foreach (var member in members) {
                                         IEnumerable<AdKatsPlayer> matching = _PlayerDictionary.Values.ToList().Where(dPlayer =>
-                                            // Do not include spectators in this list
-                                            dPlayer.player_type != PlayerType.Spectator &&
                                             // Match by ID or by name (only if no ID is available), percent matching over 80%
                                             ((!String.IsNullOrEmpty(member.ID) && !String.IsNullOrEmpty(dPlayer.player_discord_id) && member.ID == dPlayer.player_discord_id) ||
                                              ((String.IsNullOrEmpty(member.ID) || String.IsNullOrEmpty(dPlayer.player_discord_id)) && PercentMatch(member.Username, dPlayer.player_name) > 80)));
@@ -7657,7 +7653,7 @@ namespace PRoConEvents
 
                                             var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
                                             var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
-                                            if (startDuration - startupDuration > 120) {
+                                            if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator) {
                                                 var joinMessage = _DiscordManager.JoinMessage.Replace("%player%", aPlayer.GetVerboseName()).Replace("%username%", aPlayer.DiscordObject.Username);
                                                 switch (_DiscordManager.JoinDisplay) {
                                                     case VoipJoinDisplayType.Say:
