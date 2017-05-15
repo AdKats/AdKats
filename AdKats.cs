@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.132
+ * Version 6.9.0.133
  * 15-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.132</version_code>
+ * <version_code>6.9.0.133</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.132";
+        private const String PluginVersion = "6.9.0.133";
 
         public enum GameVersion {
             BF3,
@@ -7632,8 +7632,12 @@ namespace PRoConEvents
                                         if (!matching.Any()) {
                                             // If there are no results by ID, do a name search
                                             matching = _PlayerDictionary.Values.ToList().Where(dPlayer =>
-                                                          // Match name, percent matching over 80%, ignoring any already matched
-                                                          String.IsNullOrEmpty(dPlayer.player_discord_id) && PercentMatch(member.Username, dPlayer.player_name) > 80);
+                                                          // Ignore any online players who already have a discord ID
+                                                          String.IsNullOrEmpty(dPlayer.player_discord_id) && 
+                                                          // Make sure there are no players already given this ID
+                                                          FetchPlayer(true, true, false, null, -1, null, null, null, member.ID) == null &&
+                                                          // Match name, percent matching over 80%
+                                                          PercentMatch(member.Username, dPlayer.player_name) > 80);
                                         }
                                         if (_DiscordManager.DebugMembers) {
                                             Log.Info("DiscordMember: " + member.Username + " | " + member.ID + " | " + ((matching.Any()) ? (matching.Count() + " online players match member.") : ("No matching online players.")));
@@ -9182,7 +9186,7 @@ namespace PRoConEvents
                                         else
                                         {
                                             //If they aren't in the list, fetch their information from the database
-                                            aPlayer = FetchPlayer(true, false, false, null, -1, playerInfo.SoldierName, playerInfo.GUID, null);
+                                            aPlayer = FetchPlayer(true, false, false, null, -1, playerInfo.SoldierName, playerInfo.GUID, null, null);
                                             if (aPlayer == null)
                                             {
                                                 //Do not handle the player if not returned
@@ -22882,7 +22886,7 @@ namespace PRoConEvents
                         return false;
                     }
                     //No online or left player found, run external fetch over checking for fuzzy match
-                    aPlayer = FetchPlayer(false, false, true, null, -1, playerNameInput, null, null);
+                    aPlayer = FetchPlayer(false, false, true, null, -1, playerNameInput, null, null, null);
                     if (aPlayer != null) {
                         resultMessage = "Offline player found.";
                         aPlayer.player_online = false;
@@ -30693,7 +30697,7 @@ namespace PRoConEvents
                             Log.Error("Player did not contain any identifiers when processing CBan. Ignoring.");
                             continue;
                         }
-                        record.target_player = FetchPlayer(true, false, false, null, -1, cBan.SoldierName, (!String.IsNullOrEmpty(cBan.Guid)) ? (cBan.Guid.ToUpper()) : (null), cBan.IpAddress);
+                        record.target_player = FetchPlayer(true, false, false, null, -1, cBan.SoldierName, (!String.IsNullOrEmpty(cBan.Guid)) ? (cBan.Guid.ToUpper()) : (null), cBan.IpAddress, null);
                         if (record.target_player == null)
                         {
                             Log.Error("Player could not be found/added when processing CBan. Ignoring.");
@@ -32947,7 +32951,7 @@ namespace PRoConEvents
                         if (success && record.target_player != null)
                         {
                             long oldID = record.target_player.player_id;
-                            record.target_player = FetchPlayer(false, true, false, null, oldID, null, null, null);
+                            record.target_player = FetchPlayer(false, true, false, null, oldID, null, null, null, null);
                             if (record.target_player == null)
                             {
                                 Log.Error("Unable to find player ID: " + oldID);
@@ -33078,7 +33082,7 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        tPlayer = FetchPlayer(false, true, false, null, targetID, null, null, null);
+                                        tPlayer = FetchPlayer(false, true, false, null, targetID, null, null, null, null);
                                     }
                                     record.target_player = tPlayer;
                                 }
@@ -33094,7 +33098,7 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        sPlayer = FetchPlayer(false, true, false, null, targetID, null, null, null);
+                                        sPlayer = FetchPlayer(false, true, false, null, targetID, null, null, null, null);
                                     }
                                     record.source_player = sPlayer;
                                 }
@@ -33185,7 +33189,7 @@ namespace PRoConEvents
                                 {
                                     Log.Debug(() => "id parsed! " + targetIDParse, 6);
                                     //Check if the player needs to be imported, or if they are already in the server
-                                    AdKatsPlayer importedPlayer = FetchPlayer(false, true, false, null, targetIDParse, null, null, null);
+                                    AdKatsPlayer importedPlayer = FetchPlayer(false, true, false, null, targetIDParse, null, null, null, null);
                                     if (importedPlayer == null)
                                     {
                                         continue;
@@ -33215,7 +33219,7 @@ namespace PRoConEvents
                                 {
                                     Log.Debug(() => "source id parsed! " + sourceIDParse, 6);
                                     //Check if the player needs to be imported, or if they are already in the server
-                                    AdKatsPlayer importedPlayer = FetchPlayer(false, true, false, null, sourceIDParse, null, null, null);
+                                    AdKatsPlayer importedPlayer = FetchPlayer(false, true, false, null, sourceIDParse, null, null, null, null);
                                     if (importedPlayer == null)
                                     {
                                         continue;
@@ -33298,7 +33302,7 @@ namespace PRoConEvents
                             //Grab the record
                             while (reader.Read())
                             {
-                                AdKatsPlayer ePlayer = FetchPlayer(false, false, false, null, reader.GetInt64("player_id"), null, null, null);
+                                AdKatsPlayer ePlayer = FetchPlayer(false, false, false, null, reader.GetInt64("player_id"), null, null, null, null);
                                 if (ePlayer != null)
                                 {
                                     ePlayer.player_server = new AdKatsServer(this)
@@ -33370,7 +33374,7 @@ namespace PRoConEvents
                             {
                                 if (Regex.Match(reader.GetString("player_name"), searchName, RegexOptions.IgnoreCase).Success)
                                 {
-                                    aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
+                                    aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null, null);
                                     if (aPlayer == null)
                                     {
                                         return null;
@@ -34244,7 +34248,7 @@ namespace PRoConEvents
                         //Grab the matching players
                         while (reader.Read())
                         {
-                            AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
+                            AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null, null);
                             if (aPlayer != null)
                             {
                                 resultPlayers.Add(aPlayer);
@@ -34265,10 +34269,10 @@ namespace PRoConEvents
             return true;
         }
 
-        private AdKatsPlayer FetchPlayer(Boolean allowUpdate, Boolean allowOtherGames, Boolean allowNameSubstringSearch, Int32? gameID, Int64 playerID, String playerName, String playerGUID, String playerIP)
+        private AdKatsPlayer FetchPlayer(Boolean allowUpdate, Boolean allowOtherGames, Boolean allowNameSubstringSearch, Int32? gameID, Int64 playerID, String playerName, String playerGUID, String playerIP, String playerDiscordID)
         {
             Log.Debug(() => "fetchPlayer starting!", 6);
-            //Create return list
+            //Create return object
             AdKatsPlayer aPlayer = null;
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
@@ -34285,7 +34289,7 @@ namespace PRoConEvents
                 AssignPlayerRole(aPlayer);
                 return aPlayer;
             }
-            if (playerID < 0 && String.IsNullOrEmpty(playerName) && String.IsNullOrEmpty(playerGUID) && String.IsNullOrEmpty(playerIP))
+            if (playerID < 0 && String.IsNullOrEmpty(playerName) && String.IsNullOrEmpty(playerGUID) && String.IsNullOrEmpty(playerIP) && String.IsNullOrEmpty(playerDiscordID))
             {
                 Log.Error("Attempted to fetch player with no information.");
             }
@@ -34295,16 +34299,44 @@ namespace PRoConEvents
                 {
                     if (playerID > 0)
                     {
-                        if (_FetchedPlayers.ContainsKey(playerID))
-                        {
-                            Log.Debug(() => "Attempting to fetch player " + playerID + " from pre-fetch list.", 6);
-                            if (_FetchedPlayers.TryGetValue(playerID, out aPlayer))
-                            {
-                                Log.Debug(() => "Player " + playerID + " successfully fetched from pre-fetch list.", 6);
-                                aPlayer.LastUsage = UtcNow();
-                                return aPlayer;
-                            }
-                        }
+                        aPlayer = _FetchedPlayers.Values.ToList().FirstOrDefault(dPlayer => dPlayer.player_id == playerID);
+                    }
+                    if (aPlayer != null) {
+                        Log.Debug(() => "Player " + playerID + " successfully fetched from pre-fetch list by ID.", 6);
+                        aPlayer.LastUsage = UtcNow();
+                        return aPlayer;
+                    }
+                    if (!String.IsNullOrEmpty(playerGUID)) {
+                        aPlayer = _FetchedPlayers.Values.ToList().FirstOrDefault(dPlayer => dPlayer.player_guid == playerGUID);
+                    }
+                    if (aPlayer != null) {
+                        Log.Debug(() => "Player " + playerID + " successfully fetched from pre-fetch list by GUID.", 6);
+                        aPlayer.LastUsage = UtcNow();
+                        return aPlayer;
+                    }
+                    if (!String.IsNullOrEmpty(playerIP)) {
+                        aPlayer = _FetchedPlayers.Values.ToList().FirstOrDefault(dPlayer => dPlayer.player_ip == playerIP);
+                    }
+                    if (aPlayer != null) {
+                        Log.Debug(() => "Player " + playerID + " successfully fetched from pre-fetch list by IP.", 6);
+                        aPlayer.LastUsage = UtcNow();
+                        return aPlayer;
+                    }
+                    if (!String.IsNullOrEmpty(playerName)) {
+                        aPlayer = _FetchedPlayers.Values.ToList().FirstOrDefault(dPlayer => dPlayer.player_name == playerName);
+                    }
+                    if (aPlayer != null) {
+                        Log.Debug(() => "Player " + playerID + " successfully fetched from pre-fetch list by Name.", 6);
+                        aPlayer.LastUsage = UtcNow();
+                        return aPlayer;
+                    }
+                    if (!String.IsNullOrEmpty(playerDiscordID)) {
+                        aPlayer = _FetchedPlayers.Values.ToList().FirstOrDefault(dPlayer => dPlayer.player_discord_id == playerDiscordID);
+                    }
+                    if (aPlayer != null) {
+                        Log.Debug(() => "Player " + playerID + " successfully fetched from pre-fetch list by Discord ID.", 6);
+                        aPlayer.LastUsage = UtcNow();
+                        return aPlayer;
                     }
                     using (MySqlConnection connection = GetDatabaseConnection())
                     {
@@ -34373,6 +34405,15 @@ namespace PRoConEvents
                                 }
                                 sql += " `IP_Address` = '" + playerIP + "' ";
                             }
+                            if (String.IsNullOrEmpty(playerGUID) && !String.IsNullOrEmpty(playerDiscordID)) {
+                                if (sqlEnder) {
+                                    sql += " WHERE ( ";
+                                    sqlEnder = false;
+                                } else {
+                                    sql += " OR ";
+                                }
+                                sql += " `DiscordID` = '" + playerDiscordID + "' ";
+                            }
                             if (!sqlEnder)
                             {
                                 sql += " ) ";
@@ -34433,7 +34474,7 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    Log.Debug(() => "No player matching search information. " + allowUpdate + ", " + allowOtherGames + ", " + ((gameID != null) ? (gameID + "") : ("No game ID")) + ", " + playerID + ", " + ((!String.IsNullOrEmpty(playerName)) ? (playerName) : ("No name search")) + ", " + ((!String.IsNullOrEmpty(playerGUID)) ? (playerGUID) : ("No GUID search")) + ", " + ((!String.IsNullOrEmpty(playerIP)) ? (playerIP) : ("No IP search")), 4);
+                                    Log.Debug(() => "No player matching search information. " + allowUpdate + ", " + allowOtherGames + ", " + ((gameID != null) ? (gameID + "") : ("No game ID")) + ", " + playerID + ", " + ((!String.IsNullOrEmpty(playerName)) ? (playerName) : ("No name search")) + ", " + ((!String.IsNullOrEmpty(playerGUID)) ? (playerGUID) : ("No GUID search")) + ", " + ((!String.IsNullOrEmpty(playerIP)) ? (playerIP) : ("No IP search")) + ", " + ((!String.IsNullOrEmpty(playerDiscordID)) ? (playerDiscordID) : ("No Discord ID search")), 4);
                                 }
                             }
                         }
@@ -34870,7 +34911,7 @@ namespace PRoConEvents
                             //Grab the matching players
                             while (reader.Read())
                             {
-                                AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
+                                AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null, null);
                                 if (aPlayer != null)
                                 {
                                     resultPlayers.Add(aPlayer);
@@ -35510,7 +35551,7 @@ namespace PRoConEvents
                                     {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         isDebug = false,
-                                        target_player = FetchPlayer(false, true, false, null, aBan.player_id, null, null, null),
+                                        target_player = FetchPlayer(false, true, false, null, aBan.player_id, null, null, null, null),
                                         source_name = "AdKats",
                                         record_message = "Ban Reason Expunged",
                                         record_time = UtcNow()
@@ -35519,7 +35560,7 @@ namespace PRoConEvents
                                 }
                                 if (aBan.ban_record.target_player == null)
                                 {
-                                    aBan.ban_record.target_player = FetchPlayer(false, true, false, null, aBan.player_id, null, null, null);
+                                    aBan.ban_record.target_player = FetchPlayer(false, true, false, null, aBan.player_id, null, null, null, null);
                                 }
                                 if (aBan.ban_record.target_player != null)
                                 {
@@ -35785,7 +35826,7 @@ namespace PRoConEvents
                     AdKatsRecord record = new AdKatsRecord();
                     record.record_time = UtcNow();
                     //Fetch the player
-                    record.target_player = FetchPlayer(true, true, false, null, -1, bbmBan.soldiername, bbmBan.eaguid, null);
+                    record.target_player = FetchPlayer(true, true, false, null, -1, bbmBan.soldiername, bbmBan.eaguid, null, null);
 
                     record.record_source = AdKatsRecord.Sources.InternalAutomated;
                     if (bbmBan.ban_length == "permanent")
@@ -37865,7 +37906,7 @@ namespace PRoConEvents
                                             aPlayer.LastUsage = UtcNow();
                                         }
                                         else {
-                                            aPlayer = FetchPlayer(true, true, false, (int?)gameID, playerID, playerName, playerGUID, playerIP);
+                                            aPlayer = FetchPlayer(true, true, false, (int?)gameID, playerID, playerName, playerGUID, playerIP, null);
                                             aUser.soldierDictionary.Add(playerID, aPlayer);
                                         }
                                         aPlayer.player_role = aUser.user_role;
@@ -37983,7 +38024,7 @@ namespace PRoConEvents
                                         asPlayer.player_group = _specialPlayerGroupKeyDictionary[playerGroup];
                                         if (playerID > 0)
                                         {
-                                            asPlayer.player_object = FetchPlayer(false, true, false, null, playerID, null, null, null);
+                                            asPlayer.player_object = FetchPlayer(false, true, false, null, playerID, null, null, null, null);
                                         }
                                         if (playerGame > 0)
                                         {
@@ -39451,7 +39492,7 @@ namespace PRoConEvents
                         Log.Error("Target player '" + record.GetTargetNames() + "' was not found in the server. And target_guid was not provided. Unable to process external command.");
                         return;
                     }
-                    record.target_player = FetchPlayer(true, false, false, null, -1, record.target_name, target_guid, null);
+                    record.target_player = FetchPlayer(true, false, false, null, -1, record.target_name, target_guid, null, null);
                 }
                 if (record.target_player != null)
                 {
