@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.131
+ * Version 6.9.0.132
  * 15-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.131</version_code>
+ * <version_code>6.9.0.132</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.131";
+        private const String PluginVersion = "6.9.0.132";
 
         public enum GameVersion {
             BF3,
@@ -7626,10 +7626,15 @@ namespace PRoConEvents
                                     //Check for online discord players
                                     var members = _DiscordManager.GetMembers(false, true, true);
                                     foreach (var member in members) {
-                                        IEnumerable<AdKatsPlayer> matching = _PlayerDictionary.Values.ToList().Where(dPlayer =>
-                                            // Match by ID or by name (only if no ID is available), percent matching over 80%
-                                            ((!String.IsNullOrEmpty(member.ID) && !String.IsNullOrEmpty(dPlayer.player_discord_id) && member.ID == dPlayer.player_discord_id) ||
-                                             ((String.IsNullOrEmpty(member.ID) || String.IsNullOrEmpty(dPlayer.player_discord_id)) && PercentMatch(member.Username, dPlayer.player_name) > 80)));
+                                        var matching = _PlayerDictionary.Values.ToList().Where(dPlayer =>
+                                            // Match by ID
+                                            member.ID == dPlayer.player_discord_id);
+                                        if (!matching.Any()) {
+                                            // If there are no results by ID, do a name search
+                                            matching = _PlayerDictionary.Values.ToList().Where(dPlayer =>
+                                                          // Match name, percent matching over 80%, ignoring any already matched
+                                                          String.IsNullOrEmpty(dPlayer.player_discord_id) && PercentMatch(member.Username, dPlayer.player_name) > 80);
+                                        }
                                         if (_DiscordManager.DebugMembers) {
                                             Log.Info("DiscordMember: " + member.Username + " | " + member.ID + " | " + ((matching.Any()) ? (matching.Count() + " online players match member.") : ("No matching online players.")));
                                         }
