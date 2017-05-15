@@ -1,22 +1,3 @@
 {
-   "channels":[
-      {
-         "position":4,
-         "id":"265655924432175106",
-         "name":"Administrators"
-      }
-   ],
-   "instant_invite":"https://discordapp.com/invite/JuK3fS",
-   "id":"127923958291890177",
-   "members":[
-      {
-         "username":"MaSt3rMiNd",
-         "status":"dnd",
-         "avatar_url":"https://cdn.discordapp.com/avatars/259989650452512771/a_d9e71648adef6aa871fa3d70332a2eef.jpg",
-         "avatar":"a_d9e71648adef6aa871fa3d70332a2eef",
-         "discriminator":"5904",
-         "id":"259989650452512771"
-      }
-   ],
-   "name":"wdfgamingnetwork"
+   "id":"127923958291890177"
 }
