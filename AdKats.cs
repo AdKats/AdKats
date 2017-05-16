@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.133
+ * Version 6.9.0.134
  * 15-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.133</version_code>
+ * <version_code>6.9.0.134</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.133";
+        private const String PluginVersion = "6.9.0.134";
 
         public enum GameVersion {
             BF3,
@@ -7635,7 +7635,7 @@ namespace PRoConEvents
                                                           // Ignore any online players who already have a discord ID
                                                           String.IsNullOrEmpty(dPlayer.player_discord_id) && 
                                                           // Make sure there are no players already given this ID
-                                                          FetchPlayer(true, true, false, null, -1, null, null, null, member.ID) == null &&
+                                                          member.PlayerObject == null &&
                                                           // Match name, percent matching over 80%
                                                           PercentMatch(member.Username, dPlayer.player_name) > 80);
                                         }
@@ -27105,6 +27105,10 @@ namespace PRoConEvents
                 //Update the player's discord ID on the object
                 record.target_player.player_discord_id = matchingMember.ID;
 
+                //Update the member object with the player
+                matchingMember.PlayerObject = record.target_player;
+                matchingMember.PlayerTested = true;
+
                 //Save info to the database
                 UpdatePlayer(record.target_player);
 
@@ -45780,9 +45784,6 @@ namespace PRoConEvents
                 if (onlyChannels) {
                     resultMembers = resultMembers.Where(aMember => aMember.Channel != null && (!ChannelNames.Any() || String.IsNullOrEmpty(ChannelNames.FirstOrDefault()) || ChannelNames.Contains(aMember.Channel.Name)));
                 }
-                if (DebugMembers) {
-                    _plugin.Log.Info("Discord: Found " + resultMembers.Count() + " matching voice members. " + Members.Count() + " total members. Last Update: " + _plugin.FormatNowDuration(LastUpdate, 3));
-                }
                 return resultMembers.ToList();
             }
 
@@ -45797,11 +45798,11 @@ namespace PRoConEvents
                                 // Update the server information at interval
                                 if (_plugin.NowDuration(LastUpdate) > _UpdateDuration) {
                                     if (DebugService) {
-                                        _plugin.Log.Warn("Ready to update discord server info.");
+                                        _plugin.Log.Info("Ready to update discord server info.");
                                     }
                                     var results = UpdateDiscordServerInfo();
                                     if (DebugService) {
-                                        _plugin.Log.Warn("Discord server info updated. Success: " + results);
+                                        _plugin.Log.Info("Discord server info updated. Success: " + results);
                                     }
                                 }
                             }
@@ -45861,23 +45862,45 @@ namespace PRoConEvents
                                 InstantInvite = (String)responseJSON["instant_invite"];
                                 // Channels
                                 ArrayList responseChannels = (ArrayList)responseJSON["channels"];
-                                Dictionary<String, DiscordChannel> builtChannels = new Dictionary<String, DiscordChannel>();
+                                List<String> validChannels = new List<String>();
                                 foreach (Hashtable channel in responseChannels) {
-                                    DiscordChannel builtChannel = new DiscordChannel();
-                                    builtChannel.ID = (String)channel["id"];
+                                    DiscordChannel builtChannel = null;
+                                    String ID = (String)channel["id"];
+                                    validChannels.Add(ID);
+                                    if (!Channels.TryGetValue(ID, out builtChannel)) {
+                                        builtChannel = new DiscordChannel();
+                                        builtChannel.ID = ID;
+                                        Channels[builtChannel.ID] = builtChannel;
+                                    }
                                     builtChannel.Name = (String)channel["name"];
                                     builtChannel.Position = Int32.Parse(channel["position"].ToString());
-                                    builtChannels[builtChannel.ID] = builtChannel;
                                 }
-                                Channels = builtChannels;
+                                //Remove all old channels
+                                List<String> removeChannelIDs = Channels.Keys.Where(ID => !validChannels.Contains(ID)).ToList();
+                                foreach (String removeID in removeChannelIDs) {
+                                    Channels.Remove(removeID);
+                                }
                                 // Members
                                 ArrayList responseMembers = (ArrayList)responseJSON["members"];
-                                Dictionary<String, DiscordMember> builtMembers = new Dictionary<String, DiscordMember>();
-                                // Upgrade this in the future to keep the same objects and just update them
+                                List<String> validMembers = new List<String>();
                                 foreach (Hashtable member in responseMembers) {
-                                    DiscordMember builtMember = new DiscordMember();
-                                    //id
-                                    builtMember.ID = (String)member["id"];
+                                    DiscordMember builtMember = null;
+                                    String ID = (String)member["id"];
+                                    validMembers.Add(ID);
+                                    if (!Members.TryGetValue(ID, out builtMember)) {
+                                        builtMember = new DiscordMember();
+                                        builtMember.ID = ID;
+                                        builtMember.Username = (String)member["username"];
+                                        builtMember.PlayerObject = _plugin.FetchPlayer(true, true, false, null, -1, null, null, null, builtMember.ID);
+                                        builtMember.PlayerTested = true;
+                                        if (builtMember.PlayerObject != null && DebugMembers) {
+                                            _plugin.Log.Info("Discord member " + builtMember.Username + " loaded with link to " + builtMember.PlayerObject.GetVerboseName());
+                                        }
+                                        Members[builtMember.ID] = builtMember;
+                                    }
+                                    if (builtMember.PlayerObject != null) {
+                                        builtMember.PlayerObject.LastUsage = _plugin.UtcNow();
+                                    }
                                     //username
                                     if (member.ContainsKey("username")) {
                                         builtMember.Username = (String)member["username"];
@@ -45940,9 +45963,12 @@ namespace PRoConEvents
                                     if (member.ContainsKey("discriminator")) {
                                         builtMember.Discriminator = (String)member["discriminator"];
                                     }
-                                    builtMembers[builtMember.ID] = builtMember;
                                 }
-                                Members = builtMembers;
+                                //Remove all old channels
+                                List<String> removeMemberIDs = Members.Keys.Where(ID => !validMembers.Contains(ID)).ToList();
+                                foreach (String removeID in removeMemberIDs) {
+                                    Members.Remove(removeID);
+                                }
                                 LastUpdate = _plugin.UtcNow();
                                 success = true;
                             } catch (Exception e) {
@@ -45985,6 +46011,8 @@ namespace PRoConEvents
                 public String AvatarURL;
                 public String Avatar;
                 public String Discriminator;
+                public Boolean PlayerTested;
+                public AdKatsPlayer PlayerObject;
             }
 
             public class DiscordGame {
