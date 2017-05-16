@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.135
+ * Version 6.9.0.136
  * 15-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.135</version_code>
+ * <version_code>6.9.0.136</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.135";
+        private const String PluginVersion = "6.9.0.136";
 
         public enum GameVersion {
             BF3,
@@ -16642,7 +16642,7 @@ namespace PRoConEvents
                         NowDuration(_DiscordManager.LastUpdate).TotalMinutes < 2.5 && 
                         record.command_type.command_playerInteraction &&
                         record.source_player.DiscordObject == null) {
-                        Log.Error("Admin commands may only be issued while in discord.");
+                        SendMessageToSource(record, "Admin commands may only be issued while in discord.");
                         FinalizeRecord(record);
                         return;
                     }
