@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.134
+ * Version 6.9.0.135
  * 15-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.134</version_code>
+ * <version_code>6.9.0.135</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.134";
+        private const String PluginVersion = "6.9.0.135";
 
         public enum GameVersion {
             BF3,
@@ -7635,7 +7635,7 @@ namespace PRoConEvents
                                                           // Ignore any online players who already have a discord ID
                                                           String.IsNullOrEmpty(dPlayer.player_discord_id) && 
                                                           // Make sure there are no players already given this ID
-                                                          member.PlayerObject == null &&
+                                                          member.PlayerObject == null && member.PlayerTested &&
                                                           // Match name, percent matching over 80%
                                                           PercentMatch(member.Username, dPlayer.player_name) > 80);
                                         }
@@ -34682,7 +34682,7 @@ namespace PRoConEvents
                     {
                         aPlayer.LastUsage = UtcNow();
                         //Remove all old values
-                        List<Int64> removeIDs = _FetchedPlayers.Where(pair => (UtcNow() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
+                        List<Int64> removeIDs = _FetchedPlayers.ToList().Where(pair => (UtcNow() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
                         foreach (Int64 removeID in removeIDs)
                         {
                             _FetchedPlayers.Remove(removeID);
@@ -45767,6 +45767,8 @@ namespace PRoConEvents
 
             public void Disable() {
                 Enabled = false;
+                Channels.Clear();
+                Members.Clear();
             }
 
             public List<DiscordChannel> GetChannels() {
@@ -45891,19 +45893,29 @@ namespace PRoConEvents
                                         builtMember = new DiscordMember();
                                         builtMember.ID = ID;
                                         builtMember.Username = (String)member["username"];
-                                        builtMember.PlayerObject = _plugin.FetchPlayer(true, true, false, null, -1, null, null, null, builtMember.ID);
-                                        builtMember.PlayerTested = true;
-                                        if (builtMember.PlayerObject != null && DebugMembers) {
-                                            _plugin.Log.Info("Discord member " + builtMember.Username + " loaded with link to " + builtMember.PlayerObject.GetVerboseName());
-                                        }
                                         Members[builtMember.ID] = builtMember;
-                                    }
-                                    if (builtMember.PlayerObject != null) {
-                                        builtMember.PlayerObject.LastUsage = _plugin.UtcNow();
                                     }
                                     //username
                                     if (member.ContainsKey("username")) {
                                         builtMember.Username = (String)member["username"];
+                                    }
+                                    // Player Object
+                                    if (builtMember.PlayerObject != null) {
+                                        builtMember.PlayerObject.LastUsage = _plugin.UtcNow();
+                                    }
+                                    if (!builtMember.PlayerTested && 
+                                        _plugin._threadsReady && 
+                                        _plugin._firstPlayerListComplete && 
+                                        !_plugin._databaseConnectionCriticalState) {
+                                        builtMember.PlayerTested = true;
+                                        builtMember.PlayerObject = _plugin.FetchPlayer(true, true, false, null, -1, null, null, null, builtMember.ID);
+                                        // Do not accept memory-only players, only those with real IDs
+                                        if (builtMember.PlayerObject != null && builtMember.PlayerObject.player_id <= 0) {
+                                            builtMember.PlayerObject = null;
+                                        }
+                                        if (builtMember.PlayerObject != null && DebugMembers) {
+                                            _plugin.Log.Info("Discord member " + builtMember.Username + " loaded with link to " + builtMember.PlayerObject.GetVerboseName());
+                                        }
                                     }
                                     //nick
                                     if (member.ContainsKey("nick")) {
@@ -45916,10 +45928,14 @@ namespace PRoConEvents
                                     //bot
                                     if (member.ContainsKey("bot")) {
                                         builtMember.Bot = (Boolean)member["bot"];
+                                    } else {
+                                        builtMember.Bot = false;
                                     }
                                     //channel_id
                                     if (member.ContainsKey("channel_id")) {
                                         Channels.TryGetValue((String)member["channel_id"], out builtMember.Channel);
+                                    } else {
+                                        builtMember.Channel = null;
                                     }
                                     //game
                                     if (member.ContainsKey("game")) {
@@ -45930,38 +45946,56 @@ namespace PRoConEvents
                                             builtGame.Name = (String)responseGame["name"];
                                         }
                                         builtMember.Game = builtGame;
+                                    } else {
+                                        builtMember.Game = null;
                                     }
                                     //mute
                                     if (member.ContainsKey("mute")) {
                                         builtMember.Mute = (Boolean)member["mute"];
+                                    } else {
+                                        builtMember.Mute = false;
                                     }
                                     //self_mute
                                     if (member.ContainsKey("self_mute")) {
                                         builtMember.SelfMute = (Boolean)member["self_mute"];
+                                    } else {
+                                        builtMember.SelfMute = false;
                                     }
                                     //suppress
                                     if (member.ContainsKey("suppress")) {
                                         builtMember.Suppress = (Boolean)member["suppress"];
+                                    } else {
+                                        builtMember.Suppress = false;
                                     }
                                     //deaf
                                     if (member.ContainsKey("deaf")) {
                                         builtMember.Deaf = (Boolean)member["deaf"];
+                                    } else {
+                                        builtMember.Deaf = false;
                                     }
                                     //self_deaf
                                     if (member.ContainsKey("self_deaf")) {
                                         builtMember.SelfDeaf = (Boolean)member["self_deaf"];
+                                    } else {
+                                        builtMember.SelfDeaf = false;
                                     }
                                     //avatar_url
                                     if (member.ContainsKey("avatar_url")) {
                                         builtMember.AvatarURL = (String)member["avatar_url"];
+                                    } else {
+                                        builtMember.AvatarURL = null;
                                     }
                                     //avatar
                                     if (member.ContainsKey("avatar")) {
                                         builtMember.Avatar = (String)member["avatar"];
+                                    } else {
+                                        builtMember.Avatar = null;
                                     }
                                     //discriminator
                                     if (member.ContainsKey("discriminator")) {
                                         builtMember.Discriminator = (String)member["discriminator"];
+                                    } else {
+                                        builtMember.Discriminator = null;
                                     }
                                 }
                                 //Remove all old channels
