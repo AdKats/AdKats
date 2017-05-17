@@ -81,6 +81,36 @@ CREATE TRIGGER `Player_Update_BlankDataFix` BEFORE UPDATE ON `tbl_playerdata`
     END IF;
 END$$
 
+DROP TRIGGER IF EXISTS `Player_Update_BlankDataFix`$$
+DROP TRIGGER IF EXISTS `Player_Update_BlankDataFix2`$$
+CREATE TRIGGER `Player_Update_BlankDataFix2` BEFORE UPDATE ON `tbl_playerdata`
+ FOR EACH ROW BEGIN
+    IF (NEW.SoldierName IS NULL OR CHAR_LENGTH(NEW.SoldierName) = 0) 
+       AND OLD.SoldierName IS NOT NULL
+       AND CHAR_LENGTH(OLD.SoldierName) > 0
+        THEN SET NEW.SoldierName = OLD.SoldierName;
+    END IF;
+    IF (NEW.EAGUID IS NULL OR CHAR_LENGTH(NEW.EAGUID) = 0)
+        AND OLD.EAGUID IS NOT NULL 
+        AND CHAR_LENGTH(OLD.EAGUID) > 0
+        THEN SET NEW.EAGUID = OLD.EAGUID;
+    END IF;
+    IF (NEW.PBGUID IS NULL OR CHAR_LENGTH(NEW.PBGUID) = 0)
+        AND OLD.PBGUID IS NOT NULL 
+        AND CHAR_LENGTH(OLD.PBGUID) > 0
+        THEN SET NEW.PBGUID = OLD.PBGUID;
+    END IF;
+    IF (NEW.IP_Address IS NULL OR CHAR_LENGTH(NEW.IP_Address) = 0)
+        AND OLD.IP_Address IS NOT NULL 
+        AND CHAR_LENGTH(OLD.IP_Address) > 0
+        AND OLD.IP_Address <> '127.0.0.1'
+        THEN SET NEW.IP_Address = OLD.IP_Address;
+    END IF;
+    IF NEW.ClanTag IS NULL
+        THEN SET NEW.ClanTag = OLD.ClanTag;
+    END IF;
+END$$
+
 DELIMITER ;
 
 DROP TABLE IF EXISTS `adkats_bans`;
