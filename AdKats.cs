@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.137
+ * Version 6.9.0.138
  * 18-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.137</version_code>
+ * <version_code>6.9.0.138</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.137";
+        private const String PluginVersion = "6.9.0.138";
 
         public enum GameVersion {
             BF3,
@@ -7597,7 +7597,10 @@ namespace PRoConEvents
                                             var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
                                             var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
                                             if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator && NowDuration(aPlayer.VoipJoinTime).TotalMinutes > 15.0) {
-                                                var joinMessage = _TeamspeakManager.JoinDisplayMessage.Replace("%player%", aPlayer.GetVerboseName()).Replace("%username%", aPlayer.TSClientObject.TsName);
+                                                var playerName = aPlayer.GetVerboseName();
+                                                var username = aPlayer.TSClientObject.TsName;
+                                                var playerUsername = playerName + (aPlayer.player_name.ToLower() != username.ToLower() ? " (" + username + ")" : "");
+                                                var joinMessage = _TeamspeakManager.JoinDisplayMessage.Replace("%player%", playerName).Replace("%username%", username).Replace("%playerusername%", playerUsername);
                                                 switch (_TeamspeakManager.JoinDisplay) {
                                                     case VoipJoinDisplayType.Say:
                                                         AdminSayMessage(joinMessage);
@@ -7669,7 +7672,10 @@ namespace PRoConEvents
                                             var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
                                             var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
                                             if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator && NowDuration(aPlayer.VoipJoinTime).TotalMinutes > 15.0) {
-                                                var joinMessage = _DiscordManager.JoinMessage.Replace("%player%", aPlayer.GetVerboseName()).Replace("%username%", aPlayer.DiscordObject.Username);
+                                                var playerName = aPlayer.GetVerboseName();
+                                                var username = aPlayer.DiscordObject.Username;
+                                                var playerUsername = playerName + (aPlayer.player_name.ToLower() != username.ToLower() ? " (" + username + ")" : "");
+                                                var joinMessage = _DiscordManager.JoinMessage.Replace("%player%", playerName).Replace("%username%", username).Replace("%playerusername%", playerUsername);
                                                 switch (_DiscordManager.JoinDisplay) {
                                                     case VoipJoinDisplayType.Say:
                                                         AdminSayMessage(joinMessage);
@@ -45764,7 +45770,7 @@ namespace PRoConEvents
             public Boolean DebugMembers;
             public Boolean DebugService;
             public VoipJoinDisplayType JoinDisplay = VoipJoinDisplayType.Disabled;
-            public String JoinMessage = "%player% (%username%) joined discord! Welcome!";
+            public String JoinMessage = "%playerusername% joined discord! Welcome!";
             private TimeSpan _UpdateDuration = TimeSpan.FromSeconds(29);
             //Vars
             public String ServerName;
@@ -46148,7 +46154,7 @@ namespace PRoConEvents
             private Object _teamspeakLocker = new Object();
 
             public VoipJoinDisplayType JoinDisplay = VoipJoinDisplayType.Disabled;
-            public String JoinDisplayMessage = "%player% (%username%) joined teamspeak! Welcome!";
+            public String JoinDisplayMessage = "%playerusername% joined teamspeak! Welcome!";
             public Int32 UpdateIntervalSeconds = 30;
             public Boolean UseWebService = false;
             public String WebServiceURL = "";
