@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.136
- * 15-MAY-2017
+ * Version 6.9.0.137
+ * 18-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.136</version_code>
+ * <version_code>6.9.0.137</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.136";
+        private const String PluginVersion = "6.9.0.137";
 
         public enum GameVersion {
             BF3,
@@ -218,6 +218,7 @@ namespace PRoConEvents
         //Debug
         private String _debugSoldierName = "ColColonCleaner";
         private Boolean _toldCol;
+        private Boolean _debugDisplayPlayerFetches;
 
         //Timing
         private readonly DateTime _proconStartTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
@@ -2204,6 +2205,10 @@ namespace PRoConEvents
                         else if (tmp == 5682) {
                             _DiscordManager.DebugService = !_DiscordManager.DebugService;
                             Log.Info("Discord Debug Display: " + _DiscordManager.DebugService);
+                        } 
+                        else if (tmp == 2563) {
+                            _debugDisplayPlayerFetches = !_debugDisplayPlayerFetches;
+                            Log.Info("Player Fetch Debug Display: " + _debugDisplayPlayerFetches);
                         }
                         else if (tmp != Log.DebugLevel)
                         {
@@ -7591,7 +7596,7 @@ namespace PRoConEvents
 
                                             var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
                                             var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
-                                            if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator) {
+                                            if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator && NowDuration(aPlayer.VoipJoinTime).TotalMinutes > 15.0) {
                                                 var joinMessage = _TeamspeakManager.JoinDisplayMessage.Replace("%player%", aPlayer.GetVerboseName()).Replace("%username%", aPlayer.TSClientObject.TsName);
                                                 switch (_TeamspeakManager.JoinDisplay) {
                                                     case VoipJoinDisplayType.Say:
@@ -7604,6 +7609,7 @@ namespace PRoConEvents
                                                         AdminTellMessage(joinMessage);
                                                         break;
                                                 }
+                                                aPlayer.VoipJoinTime = UtcNow();
                                             }
                                             accessUpdateRequired = true;
                                         }
@@ -7662,7 +7668,7 @@ namespace PRoConEvents
 
                                             var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
                                             var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
-                                            if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator) {
+                                            if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator && NowDuration(aPlayer.VoipJoinTime).TotalMinutes > 15.0) {
                                                 var joinMessage = _DiscordManager.JoinMessage.Replace("%player%", aPlayer.GetVerboseName()).Replace("%username%", aPlayer.DiscordObject.Username);
                                                 switch (_DiscordManager.JoinDisplay) {
                                                     case VoipJoinDisplayType.Say:
@@ -7675,6 +7681,7 @@ namespace PRoConEvents
                                                         AdminTellMessage(joinMessage);
                                                         break;
                                                 }
+                                                aPlayer.VoipJoinTime = UtcNow();
                                             }
                                             accessUpdateRequired = true;
                                         }
@@ -8609,7 +8616,7 @@ namespace PRoConEvents
                     Boolean updateTeamInfo = true;
                     if (aPlayer.RequiredTeam != null && 
                         aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey && 
-                        oldTeam.TeamKey != "Neutral" &&
+                        //oldTeam.TeamKey != "Neutral" &&
                         !PlayerIsAdmin(aPlayer))
                     {
                         if (RunAssist(aPlayer, null, null, true) &&
@@ -34291,6 +34298,7 @@ namespace PRoConEvents
                 };
                 aPlayer.SetIP(playerIP);
                 AssignPlayerRole(aPlayer);
+                Log.Warn(aPlayer.player_name + " " + aPlayer.player_guid + " " + aPlayer.player_ip + " loaded without a database connection!");
                 return aPlayer;
             }
             if (playerID < 0 && String.IsNullOrEmpty(playerName) && String.IsNullOrEmpty(playerGUID) && String.IsNullOrEmpty(playerIP) && String.IsNullOrEmpty(playerDiscordID))
@@ -34436,6 +34444,9 @@ namespace PRoConEvents
                             sql += @"
                             LIMIT 1";
                             command.CommandText = sql;
+                            if (_debugDisplayPlayerFetches) {
+                                PrintPreparedCommand(command);
+                            }
                             using (MySqlDataReader reader = SafeExecuteReader(command))
                             {
                                 if (reader.Read())
@@ -34478,7 +34489,12 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    Log.Debug(() => "No player matching search information. " + allowUpdate + ", " + allowOtherGames + ", " + ((gameID != null) ? (gameID + "") : ("No game ID")) + ", " + playerID + ", " + ((!String.IsNullOrEmpty(playerName)) ? (playerName) : ("No name search")) + ", " + ((!String.IsNullOrEmpty(playerGUID)) ? (playerGUID) : ("No GUID search")) + ", " + ((!String.IsNullOrEmpty(playerIP)) ? (playerIP) : ("No IP search")) + ", " + ((!String.IsNullOrEmpty(playerDiscordID)) ? (playerDiscordID) : ("No Discord ID search")), 4);
+                                    var infoString = "No player matching search information. " + allowUpdate + ", " + allowOtherGames + ", " + ((gameID != null) ? (gameID + "") : ("No game ID")) + ", " + playerID + ", " + ((!String.IsNullOrEmpty(playerName)) ? (playerName) : ("No name search")) + ", " + ((!String.IsNullOrEmpty(playerGUID)) ? (playerGUID) : ("No GUID search")) + ", " + ((!String.IsNullOrEmpty(playerIP)) ? (playerIP) : ("No IP search")) + ", " + ((!String.IsNullOrEmpty(playerDiscordID)) ? (playerDiscordID) : ("No Discord ID search"));
+                                    if (_debugDisplayPlayerFetches) {
+                                        Log.Info(infoString);
+                                    } else {
+                                        Log.Debug(() => infoString, 4);
+                                    }
                                 }
                             }
                         }
@@ -34551,6 +34567,9 @@ namespace PRoConEvents
                                         command.Parameters.AddWithValue("@SoldierName", String.IsNullOrEmpty(playerName) ? null : playerName);
                                         command.Parameters.AddWithValue("@EAGUID", String.IsNullOrEmpty(playerGUID) ? null : playerGUID);
                                         command.Parameters.AddWithValue("@IP_Address", String.IsNullOrEmpty(playerIP) ? null : playerIP);
+                                    }
+                                    if (_debugDisplayPlayerFetches) {
+                                        PrintPreparedCommand(command);
                                     }
                                     //Attempt to execute the query
                                     if (SafeExecuteNonQuery(command) > 0)
@@ -43474,6 +43493,7 @@ namespace PRoConEvents
             public Int64 player_id = -1;
             public String player_ip { get; private set; }
             public String player_discord_id;
+            public DateTime VoipJoinTime = DateTime.UtcNow - TimeSpan.FromMinutes(15);
             public DiscordManager.DiscordMember DiscordObject;
             public TeamSpeakClientViewer.TeamspeakClient TSClientObject;
             public String player_name = null;
@@ -45908,7 +45928,7 @@ namespace PRoConEvents
                                         _plugin._firstPlayerListComplete && 
                                         !_plugin._databaseConnectionCriticalState) {
                                         builtMember.PlayerTested = true;
-                                        builtMember.PlayerObject = _plugin.FetchPlayer(true, true, false, null, -1, null, null, null, builtMember.ID);
+                                        builtMember.PlayerObject = _plugin.FetchPlayer(false, false, false, null, -1, null, null, null, builtMember.ID);
                                         // Do not accept memory-only players, only those with real IDs
                                         if (builtMember.PlayerObject != null && builtMember.PlayerObject.player_id <= 0) {
                                             builtMember.PlayerObject = null;
