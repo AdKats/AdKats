@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.138
+ * Version 6.9.0.139
  * 18-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.138</version_code>
+ * <version_code>6.9.0.139</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.138";
+        private const String PluginVersion = "6.9.0.139";
 
         public enum GameVersion {
             BF3,
@@ -4081,7 +4081,7 @@ namespace PRoConEvents
                     QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Announcement", typeof(String), _TeamspeakManager.JoinDisplay.ToString()));
                 } 
                 else if (Regex.Match(strVariable, @"TeamSpeak Player Join Message").Success) {
-                    if (_TeamspeakManager.JoinDisplayMessage != strValue && strValue.Contains("%player%")) {
+                    if (_TeamspeakManager.JoinDisplayMessage != strValue && (strValue.Contains("%player%") || strValue.Contains("%username%") || strValue.Contains("%playerusername%"))) {
                         _TeamspeakManager.JoinDisplayMessage = strValue;
                         QueueSettingForUpload(new CPluginVariable(@"TeamSpeak Player Join Message", typeof(String), _TeamspeakManager.JoinDisplayMessage));
                     }
@@ -4293,7 +4293,7 @@ namespace PRoConEvents
                     }
                     QueueSettingForUpload(new CPluginVariable(@"Discord Player Join Announcement", typeof(String), _DiscordManager.JoinDisplay.ToString()));
                 } else if (Regex.Match(strVariable, @"Discord Player Join Message").Success) {
-                    if (_DiscordManager.JoinMessage != strValue && strValue.Contains("%player%")) {
+                    if (_DiscordManager.JoinMessage != strValue && (strValue.Contains("%player%") || strValue.Contains("%username%") || strValue.Contains("%playerusername%"))) {
                         _DiscordManager.JoinMessage = strValue;
                         QueueSettingForUpload(new CPluginVariable(@"Discord Player Join Message", typeof(String), _DiscordManager.JoinMessage));
                     }
