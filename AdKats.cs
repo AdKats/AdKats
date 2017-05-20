@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.139
+ * Version 6.9.0.140
  * 18-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.139</version_code>
+ * <version_code>6.9.0.140</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.139";
+        private const String PluginVersion = "6.9.0.140";
 
         public enum GameVersion {
             BF3,
@@ -7599,7 +7599,10 @@ namespace PRoConEvents
                                             if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator && NowDuration(aPlayer.VoipJoinTime).TotalMinutes > 15.0) {
                                                 var playerName = aPlayer.GetVerboseName();
                                                 var username = aPlayer.TSClientObject.TsName;
-                                                var playerUsername = playerName + (aPlayer.player_name.ToLower() != username.ToLower() ? " (" + username + ")" : "");
+                                                var playerUsername = playerName + (
+                                                        aPlayer.player_name.ToLower() != username.ToLower() &&
+                                                        !aPlayer.player_name.ToLower().Contains(username.ToLower()) &&
+                                                        !username.ToLower().Contains(aPlayer.player_name.ToLower())  ? " (" + username + ")" : "");
                                                 var joinMessage = _TeamspeakManager.JoinDisplayMessage.Replace("%player%", playerName).Replace("%username%", username).Replace("%playerusername%", playerUsername);
                                                 switch (_TeamspeakManager.JoinDisplay) {
                                                     case VoipJoinDisplayType.Say:
@@ -7674,7 +7677,10 @@ namespace PRoConEvents
                                             if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator && NowDuration(aPlayer.VoipJoinTime).TotalMinutes > 15.0) {
                                                 var playerName = aPlayer.GetVerboseName();
                                                 var username = aPlayer.DiscordObject.Username;
-                                                var playerUsername = playerName + (aPlayer.player_name.ToLower() != username.ToLower() ? " (" + username + ")" : "");
+                                                var playerUsername = playerName + (
+                                                        aPlayer.player_name.ToLower() != username.ToLower() &&
+                                                        !aPlayer.player_name.ToLower().Contains(username.ToLower()) &&
+                                                        !username.ToLower().Contains(aPlayer.player_name.ToLower()) ? " (" + username + ")" : "");
                                                 var joinMessage = _DiscordManager.JoinMessage.Replace("%player%", playerName).Replace("%username%", username).Replace("%playerusername%", playerUsername);
                                                 switch (_DiscordManager.JoinDisplay) {
                                                     case VoipJoinDisplayType.Say:
@@ -29769,7 +29775,7 @@ namespace PRoConEvents
                 record.record_action_executed = true;
                 List<AdKatsPlayer> onlineAdminList = FetchOnlineAdminSoldiers();
                 String onlineAdmins = "Admins: [" + onlineAdminList.Count + " Online] ";
-                onlineAdmins = onlineAdminList.Aggregate(onlineAdmins, (current, aPlayer) => current + (aPlayer.GetVerboseName() + " (" + GetPlayerTeamKey(aPlayer) + "/" + (_PlayerDictionary.Values.Where(innerPlayer => innerPlayer.fbpInfo.TeamID == aPlayer.fbpInfo.TeamID).OrderBy(innerPlayer => innerPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(aPlayer) + 1) + "), "));
+                onlineAdmins = onlineAdminList.Aggregate(onlineAdmins, (current, aPlayer) => current + (aPlayer.GetVerboseName() + " (" + GetPlayerTeamKey(aPlayer).Replace("Neutral", "Spectator") + "/" + (_PlayerDictionary.Values.Where(innerPlayer => innerPlayer.fbpInfo.TeamID == aPlayer.fbpInfo.TeamID).OrderBy(innerPlayer => innerPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(aPlayer) + 1) + "), "));
                 //Send online admins
                 SendMessageToSource(record, onlineAdmins.Trim().TrimEnd(','));
             }
