@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.140
- * 18-MAY-2017
+ * Version 6.9.0.141
+ * 20-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.140</version_code>
+ * <version_code>6.9.0.141</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.140";
+        private const String PluginVersion = "6.9.0.141";
 
         public enum GameVersion {
             BF3,
@@ -1610,11 +1610,11 @@ namespace PRoConEvents
                     if (IsActiveSettingSection(discordMonitorSection)) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Monitor Discord Players", typeof(Boolean), _DiscordPlayerMonitorView));
                         if (_DiscordPlayerMonitorView) {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _DiscordPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _DiscordPlayers.Values.OrderBy(aPlayer => aPlayer.DiscordObject.Channel.Name).Select(aPlayer => aPlayer.player_name + " [" + aPlayer.DiscordObject.Username + "] (" + aPlayer.DiscordObject.Channel.Name + ") " + (String.IsNullOrEmpty(aPlayer.player_discord_id) ? "[Name]" : "[ID]")).ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _DiscordPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _DiscordPlayers.Values.OrderBy(aPlayer => aPlayer.DiscordObject.Channel.Name).Select(aPlayer => aPlayer.player_name + " [" + aPlayer.DiscordObject.Name + "] (" + aPlayer.DiscordObject.Channel.Name + ") " + (String.IsNullOrEmpty(aPlayer.player_discord_id) ? "[Name]" : "[ID]")).ToArray()));
                             var discordMembers = _DiscordManager.GetMembers(false, true, true);
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord Channel Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => aMember.Channel.Name).Select(aMember => aMember.Username + " (" + aMember.Channel.Name + ")").ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord Channel Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => aMember.Channel.Name).Select(aMember => aMember.Name + " (" + aMember.Channel.Name + ")").ToArray()));
                             discordMembers = _DiscordManager.GetMembers(false, false, false);
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord All Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => (aMember.Channel != null ? aMember.Channel.Name : "_NO VOICE_")).Select(aMember => aMember.Username + " (" + (aMember.Channel != null ? aMember.Channel.Name : "_NO VOICE_") + ")").ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord All Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => (aMember.Channel != null ? aMember.Channel.Name : "_NO VOICE_")).Select(aMember => aMember.Name + " (" + (aMember.Channel != null ? aMember.Channel.Name : "_NO VOICE_") + ")").ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Enable Discord Player Monitor", typeof(Boolean), _DiscordPlayerMonitorEnable));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Server ID", typeof(String), _DiscordManager.ServerID));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Channel Names", typeof(String[]), _DiscordManager.ChannelNames));
@@ -7649,15 +7649,15 @@ namespace PRoConEvents
                                                           // Make sure there are no players already given this ID
                                                           member.PlayerObject == null && member.PlayerTested &&
                                                           // Match name, percent matching over 80%
-                                                          PercentMatch(member.Username, dPlayer.player_name) > 80);
+                                                          PercentMatch(member.Name, dPlayer.player_name) > 80);
                                         }
                                         if (_DiscordManager.DebugMembers) {
-                                            Log.Info("DiscordMember: " + member.Username + " | " + member.ID + " | " + ((matching.Any()) ? (matching.Count() + " online players match member.") : ("No matching online players.")));
+                                            Log.Info("DiscordMember: " + member.Name + " | " + member.ID + " | " + ((matching.Any()) ? (matching.Count() + " online players match member.") : ("No matching online players.")));
                                         }
                                         foreach (var match in matching) {
                                             match.DiscordObject = member;
                                             // If their name is an exact match, assign the ID association
-                                            if (match.player_name == member.Username && String.IsNullOrEmpty(match.player_discord_id)) {
+                                            if (match.player_name == member.Name && String.IsNullOrEmpty(match.player_discord_id)) {
                                                 match.player_discord_id = member.ID;
                                                 UpdatePlayer(match);
                                             }
@@ -7676,7 +7676,7 @@ namespace PRoConEvents
                                             var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
                                             if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator && NowDuration(aPlayer.VoipJoinTime).TotalMinutes > 15.0) {
                                                 var playerName = aPlayer.GetVerboseName();
-                                                var username = aPlayer.DiscordObject.Username;
+                                                var username = aPlayer.DiscordObject.Name;
                                                 var playerUsername = playerName + (
                                                         aPlayer.player_name.ToLower() != username.ToLower() &&
                                                         !aPlayer.player_name.ToLower().Contains(username.ToLower()) &&
@@ -15488,8 +15488,8 @@ namespace PRoConEvents
                                             ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                             _MULTIBalancerUnswitcherDisabled = true;
                                             PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2.TeamName + " to team " + team1.TeamName);
-                                            if (dicPlayer != null)
-                                            {
+                                            if (dicPlayer != null) {
+                                                dicPlayer.RequiredTeam = team1;
                                                 AdKatsRecord assistRecord = dicPlayer.TargetedRecords.FirstOrDefault(record => record.command_type.command_key == "self_assist" && record.command_action.command_key == "self_assist_unconfirmed");
                                                 if (assistRecord != null) {
                                                     AdminSayMessage(assistRecord.target_player.GetVerboseName() + ", thank you for assisting " + team1.TeamName + "!");
@@ -15498,7 +15498,6 @@ namespace PRoConEvents
                                                 }
                                             }
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "1", "1", "true");
-                                            dicPlayer.RequiredTeam = team1;
                                             _LastPlayerMoveIssued = UtcNow();
                                             team1.TeamPlayerCount++;
                                             team2.TeamPlayerCount--;
@@ -22478,14 +22477,14 @@ namespace PRoConEvents
                                     tempMemberName = parameters[0];
                                     // Pull the discord member
                                     matchingMember = _DiscordManager.GetMembers(false, true, true)
-                                        .FirstOrDefault(aMember => aMember.Username.ToLower().Contains(tempMemberName.ToLower()));
+                                        .FirstOrDefault(aMember => aMember.Name.ToLower().Contains(tempMemberName.ToLower()));
                                     if (matchingMember == null) {
                                         SendMessageToSource(record, "No matching discord member for '" + tempMemberName + "'.");
                                         FinalizeRecord(record);
                                         return;
                                     }
                                     if (matchingMember.ID == record.target_player.player_discord_id) {
-                                        SendMessageToSource(record, record.target_player.GetVerboseName() + " already linked with discord member " + matchingMember.Username + ".");
+                                        SendMessageToSource(record, record.target_player.GetVerboseName() + " already linked with discord member " + matchingMember.Name + ".");
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -22497,7 +22496,7 @@ namespace PRoConEvents
                                     tempMemberName = parameters[1];
                                     // Pull the discord member
                                     matchingMember = _DiscordManager.GetMembers(false, true, true)
-                                        .FirstOrDefault(aMember => aMember.Username.ToLower().Contains(tempMemberName.ToLower()));
+                                        .FirstOrDefault(aMember => aMember.Name.ToLower().Contains(tempMemberName.ToLower()));
                                     if (matchingMember == null) {
                                         SendMessageToSource(record, "No matching discord member for '" + tempMemberName + "'.");
                                         FinalizeRecord(record);
@@ -27131,7 +27130,7 @@ namespace PRoConEvents
                 //Save info to the database
                 UpdatePlayer(record.target_player);
 
-                SendMessageToSource(record, record.target_player.GetVerboseName() + " linked with discord member " + matchingMember.Username + ".");
+                SendMessageToSource(record, record.target_player.GetVerboseName() + " linked with discord member " + matchingMember.Name + ".");
 
                 // Update the setting page since the list there needs to be updated
                 UpdateSettingPage();
@@ -45784,6 +45783,7 @@ namespace PRoConEvents
             private Dictionary<String, DiscordChannel> Channels;
             private Dictionary<String, DiscordMember> Members;
             public DateTime LastUpdate = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+            public Int32 ConnectionIssueCount = 0;
 
             public DiscordManager(AdKats plugin) {
                 _plugin = plugin;
@@ -45924,17 +45924,14 @@ namespace PRoConEvents
                                     if (!Members.TryGetValue(ID, out builtMember)) {
                                         builtMember = new DiscordMember();
                                         builtMember.ID = ID;
-                                        builtMember.Username = (String)member["username"];
+                                        builtMember.Name = (String)member["username"];
                                         Members[builtMember.ID] = builtMember;
                                     }
                                     //username
                                     if (member.ContainsKey("username")) {
-                                        builtMember.Username = (String)member["username"];
+                                        builtMember.Name = (String)member["username"];
                                     }
                                     // Player Object
-                                    if (builtMember.PlayerObject != null) {
-                                        builtMember.PlayerObject.LastUsage = _plugin.UtcNow();
-                                    }
                                     if (!builtMember.PlayerTested && 
                                         _plugin._threadsReady && 
                                         _plugin._firstPlayerListComplete && 
@@ -45946,12 +45943,17 @@ namespace PRoConEvents
                                             builtMember.PlayerObject = null;
                                         }
                                         if (builtMember.PlayerObject != null && DebugMembers) {
-                                            _plugin.Log.Info("Discord member " + builtMember.Username + " loaded with link to " + builtMember.PlayerObject.GetVerboseName());
+                                            _plugin.Log.Info("Discord member " + builtMember.Name + " loaded with link to " + builtMember.PlayerObject.GetVerboseName());
                                         }
+                                    }
+                                    // Update their last usage time so they aren't purged from memory
+                                    if (builtMember.PlayerObject != null) {
+                                        builtMember.PlayerObject.LastUsage = _plugin.UtcNow();
                                     }
                                     //nick
                                     if (member.ContainsKey("nick")) {
-                                        builtMember.Nick = (String)member["nick"];
+                                        // Replace their username with their nickname, since that's what client's see
+                                        builtMember.Name = (String)member["nick"];
                                     }
                                     //status
                                     if (member.ContainsKey("status")) {
@@ -46037,9 +46039,12 @@ namespace PRoConEvents
                                 }
                                 LastUpdate = _plugin.UtcNow();
                                 success = true;
+                                ConnectionIssueCount = 0;
                             } catch (Exception e) {
                                 if (e is WebException) {
-                                    _plugin.Log.Warn("Issue connecting to discord widget URL: " + widgetURL);
+                                    if (++ConnectionIssueCount > 3) {
+                                        _plugin.Log.Warn("Issue connecting to discord widget URL (" + ConnectionIssueCount + "): " + widgetURL);
+                                    }
                                 } else {
                                     _plugin.HandleException(new AdKatsException("Error while parsing discord widget data.", e));
                                 }
@@ -46063,7 +46068,7 @@ namespace PRoConEvents
 
             public class DiscordMember {
                 public String ID;
-                public String Username;
+                public String Name;
                 public String Nick;
                 public String Status;
                 public DiscordChannel Channel;
