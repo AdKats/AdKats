@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.143
+ * Version 6.9.0.144
  * 23-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.143</version_code>
+ * <version_code>6.9.0.144</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.143";
+        private const String PluginVersion = "6.9.0.144";
 
         public enum GameVersion {
             BF3,
@@ -36853,9 +36853,9 @@ namespace PRoConEvents
                                 }
                                 if (SendQuery("SELECT command_id FROM adkats_commands WHERE command_key = 'player_whitelisthackerchecker'", false)) {
                                     Log.Info("Updating command player_whitelisthackerchecker to new definition player_whitelistanticheat.");
-                                    SendNonQuery("Updating command player_whitelisthackerchecker command_text to new definition.", "UPDATE adkats_commands SET adkats_commands.command_text = 'acwhitelist' WHERE command_key = 'player_whitelisthackerchecker'", true);
-                                    SendNonQuery("Updating command player_whitelisthackerchecker command_name to new definition.", "UPDATE adkats_commands SET adkats_commands.command_name = 'AntiCheat Whitelist Player' WHERE command_key = 'player_whitelisthackerchecker'", true);
-                                    SendNonQuery("Updating command player_whitelisthackerchecker command_key to new definition.", "UPDATE adkats_commands SET adkats_commands.command_key = 'player_whitelistanticheat' WHERE command_key = 'player_whitelisthackerchecker'", true);
+                                    SendNonQuery("Updating command player_whitelisthackerchecker command_text to new definition.", "UPDATE adkats_commands SET adkats_commands.command_text = 'acwhitelist' WHERE command_id = 65", true);
+                                    SendNonQuery("Updating command player_whitelisthackerchecker command_name to new definition.", "UPDATE adkats_commands SET adkats_commands.command_name = 'AntiCheat Whitelist Player' WHERE command_id = 65", true);
+                                    SendNonQuery("Updating command player_whitelisthackerchecker command_key to new definition.", "UPDATE adkats_commands SET adkats_commands.command_key = 'player_whitelistanticheat' WHERE command_id = 65", true);
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(66))
                                 {
@@ -37029,9 +37029,9 @@ namespace PRoConEvents
                                 }
                                 if (SendQuery("SELECT command_id FROM adkats_commands WHERE command_key = 'player_whitelisthackerchecker_remove'", false)) {
                                     Log.Info("Updating command player_whitelisthackerchecker_remove to new definition player_whitelistanticheat_remove.");
-                                    SendNonQuery("Updating command player_whitelisthackerchecker_remove command_text to new definition.", "UPDATE adkats_commands SET adkats_commands.command_text = 'unacwhitelist' WHERE command_key = 'player_whitelisthackerchecker'", true);
-                                    SendNonQuery("Updating command player_whitelisthackerchecker_remove command_name to new definition.", "UPDATE adkats_commands SET adkats_commands.command_name = 'Remove AntiCheat Whitelist' WHERE command_key = 'player_whitelisthackerchecker'", true);
-                                    SendNonQuery("Updating command player_whitelisthackerchecker_remove command_key to new definition.", "UPDATE adkats_commands SET adkats_commands.command_key = 'player_whitelistanticheat_remove' WHERE command_key = 'player_whitelistanticheat_remove'", true);
+                                    SendNonQuery("Updating command player_whitelisthackerchecker_remove command_text to new definition.", "UPDATE adkats_commands SET adkats_commands.command_text = 'unacwhitelist' WHERE command_id = 99", true);
+                                    SendNonQuery("Updating command player_whitelisthackerchecker_remove command_name to new definition.", "UPDATE adkats_commands SET adkats_commands.command_name = 'Remove AntiCheat Whitelist' WHERE command_id = 99", true);
+                                    SendNonQuery("Updating command player_whitelisthackerchecker_remove command_key to new definition.", "UPDATE adkats_commands SET adkats_commands.command_key = 'player_whitelistanticheat_remove' WHERE command_id = 99", true);
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(100))
                                 {
