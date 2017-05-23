@@ -2,8 +2,8 @@
 	"SpecialGroups":[
 		{
 			"group_id":0, 
-			"group_key":"whitelist_hackerchecker",
-			"group_name":"Hacker-Checker Whitelist"
+			"group_key":"whitelist_anticheat",
+			"group_name":"Anti-Cheat Whitelist"
 		},
 		{
 			"group_id":1,
