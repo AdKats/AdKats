@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.144
- * 23-MAY-2017
+ * Version 6.9.0.145
+ * 27-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.144</version_code>
+ * <version_code>6.9.0.145</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.144";
+        private const String PluginVersion = "6.9.0.145";
 
         public enum GameVersion {
             BF3,
@@ -37866,23 +37866,13 @@ namespace PRoConEvents
                             command.CommandText = @"
                             SELECT 
 	                            `adkats_users`.`user_id`,
-	                            `adkats_usersoldiers`.`player_id`,
-	                            `tbl_playerdata`.`GameID` AS `game_id`,
-	                            `tbl_playerdata`.`ClanTag` AS `clan_tag`,
-	                            `tbl_playerdata`.`SoldierName` AS `player_name`,
-	                            `tbl_playerdata`.`EAGUID` AS `player_guid`,
-	                            `tbl_playerdata`.`IP_Address` AS `player_ip`,
-	                            `tbl_playerdata`.`DiscordID` AS `player_discord_id`
+	                            `adkats_usersoldiers`.`player_id`
                             FROM 
 	                            `adkats_users`
                             INNER JOIN
 	                            `adkats_usersoldiers`
                             ON 
 	                            `adkats_users`.`user_id` = `adkats_usersoldiers`.`user_id`
-                            INNER JOIN
-	                            `tbl_playerdata`
-                            ON
-	                            `adkats_usersoldiers`.`player_id` = `tbl_playerdata`.`PlayerID`
                             ORDER BY 
                                 `user_id`
                             ASC";
@@ -37892,22 +37882,13 @@ namespace PRoConEvents
                             command.CommandText = @"
                             SELECT 
 	                            `adkats_users`.`user_id`,
-	                            `adkats_usersoldiers`.`player_id`,
-	                            `tbl_playerdata`.`ClanTag` AS `clan_tag`,
-	                            `tbl_playerdata`.`SoldierName` AS `player_name`,
-	                            `tbl_playerdata`.`EAGUID` AS `player_guid`,
-	                            `tbl_playerdata`.`IP_Address` AS `player_ip`,
-	                            `tbl_playerdata`.`DiscordID` AS `player_discord_id`
+	                            `adkats_usersoldiers`.`player_id`
                             FROM 
 	                            `adkats_users`
                             INNER JOIN
 	                            `adkats_usersoldiers`
                             ON 
 	                            `adkats_users`.`user_id` = `adkats_usersoldiers`.`user_id`
-                            INNER JOIN
-	                            `tbl_playerdata`
-                            ON
-	                            `adkats_usersoldiers`.`player_id` = `tbl_playerdata`.`PlayerID`
                             ORDER BY 
                                 `user_id`
                             ASC";
@@ -37932,52 +37913,17 @@ namespace PRoConEvents
                                     }
                                     int userID = reader.GetInt32("user_id"); //0
                                     int playerID = reader.GetInt32("player_id"); //1
-                                    long gameID = (_serverInfo.GameID > 0) ? (reader.GetInt32("game_id")) : (_serverInfo.GameID); //2
-                                    String clanTag = null;
-                                    if (!reader.IsDBNull(3))
-                                    {
-                                        clanTag = reader.GetString("clan_tag"); //3
-                                    }
-                                    String playerName = null;
-                                    if (!reader.IsDBNull(4))
-                                    {
-                                        playerName = reader.GetString("player_name"); //4
-                                    }
-                                    String playerGUID = null;
-                                    if (!reader.IsDBNull(5))
-                                    {
-                                        playerGUID = reader.GetString("player_guid"); //5
-                                    }
-                                    String playerIP = null;
-                                    if (!reader.IsDBNull(6))
-                                    {
-                                        playerIP = reader.GetString("player_ip"); //6
-                                    }
-                                    String playerDiscordID = null;
-                                    if (!reader.IsDBNull(7)) {
-                                        playerDiscordID = reader.GetString("player_discord_id"); //7
-                                    }
 
                                     AdKatsUser aUser;
                                     if (_userCache.TryGetValue(userID, out aUser))
                                     {
                                         AdKatsPlayer aPlayer;
-                                        if (aUser.soldierDictionary.TryGetValue(playerID, out aPlayer))
-                                        {
-                                            aPlayer.game_id = gameID;
-                                            aPlayer.player_clanTag = clanTag;
-                                            aPlayer.player_name = playerName;
-                                            aPlayer.player_guid = playerGUID;
-                                            aPlayer.SetIP(playerIP);
-                                            aPlayer.player_discord_id = playerDiscordID;
-                                            aPlayer.LastUsage = UtcNow();
-                                        }
-                                        else {
-                                            aPlayer = FetchPlayer(true, true, false, (int?)gameID, playerID, playerName, playerGUID, playerIP, null);
+                                        if (!aUser.soldierDictionary.TryGetValue(playerID, out aPlayer)) {
+                                            aPlayer = FetchPlayer(false, true, false, null, playerID, null, null, null, null);
                                             aUser.soldierDictionary.Add(playerID, aPlayer);
                                         }
                                         aPlayer.player_role = aUser.user_role;
-
+                                        aPlayer.LastUsage = UtcNow();
                                         aPlayer.update_playerUpdated = true;
                                     }
                                     else
