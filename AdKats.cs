@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.145
+ * Version 6.9.0.146
  * 27-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.145</version_code>
+ * <version_code>6.9.0.146</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.145";
+        private const String PluginVersion = "6.9.0.146";
 
         public enum GameVersion {
             BF3,
@@ -414,6 +414,10 @@ namespace PRoConEvents
         private readonly Dictionary<String, AdKatsRole> _RoleKeyDictionary = new Dictionary<String, AdKatsRole>();
         private readonly Dictionary<String, AdKatsRole> _RoleNameDictionary = new Dictionary<String, AdKatsRole>();
         private Boolean _PlayerRoleRefetch;
+        private List<CPluginVariable> _RoleCommandCache = null;
+        private DateTime _RoleCommandCacheUpdate = DateTime.UtcNow - TimeSpan.FromMinutes(5);
+        private TimeSpan _RoleCommandCacheUpdateBufferDuration = TimeSpan.FromSeconds(5);
+        private DateTime _RoleCommandCacheUpdateBufferStart = DateTime.UtcNow - TimeSpan.FromSeconds(5);
 
         //Users
         private const Int32 DbUserFetchFrequency = 300;
@@ -1838,32 +1842,42 @@ namespace PRoConEvents
                     if (IsActiveSettingSection("4")) {
                         //Role Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("4") + t + "Add Role", typeof(String), ""));
-                        if (_RoleIDDictionary.Count > 0) {
-                            lock (_RoleIDDictionary) {
-                                foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList()) {
-                                    lock (_CommandIDDictionary) {
-                                        Random random = new Random();
-                                        String rolePrefix = GetSettingSection("4") + t + "RLE" + aRole.role_id + s + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + s;
-                                        lstReturn.AddRange(from aCommand in _CommandNameDictionary.Values
-                                                           where 
-                                                           aCommand.command_active == AdKatsCommand.CommandActive.Active && 
-                                                           aCommand.command_key != "command_confirm" && 
-                                                           aCommand.command_key != "command_cancel"
-                                                           where 
-                                                           aRole.role_key != "guest_default" || 
-                                                           !aCommand.command_playerInteraction
-                                                           let allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key)
-                                                           let display = rolePrefix + "CDE" + aCommand.command_id + s + aCommand.command_name + ((aCommand.command_playerInteraction) ? (" [ADMIN]") : ("")) + ((aCommand.command_playerInteraction && allowed) ? (" <---") : (""))
-                                                           select new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
-                                        //Do not display the delete option for default guest
-                                        if (aRole.role_key != "guest_default") {
-                                            lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof(String), ""));
+                        if (NowDuration(_RoleCommandCacheUpdate).TotalMinutes < 5 && 
+                            _RoleCommandCache != null && 
+                            NowDuration(_RoleCommandCacheUpdateBufferStart) > _RoleCommandCacheUpdateBufferDuration) {
+                            lstReturn.AddRange(_RoleCommandCache);
+                        } else {
+                            List<CPluginVariable> roleCommands = new List<CPluginVariable>();
+                            if (_RoleIDDictionary.Count > 0) {
+                                lock (_RoleIDDictionary) {
+                                    foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList()) {
+                                        lock (_CommandIDDictionary) {
+                                            Random random = new Random();
+                                            String rolePrefix = GetSettingSection("4") + t + "RLE" + aRole.role_id + s + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + s;
+                                            roleCommands.AddRange(from aCommand in _CommandNameDictionary.Values
+                                                               where
+                                                               aCommand.command_active == AdKatsCommand.CommandActive.Active &&
+                                                               aCommand.command_key != "command_confirm" &&
+                                                               aCommand.command_key != "command_cancel"
+                                                               where
+                                                               aRole.role_key != "guest_default" ||
+                                                               !aCommand.command_playerInteraction
+                                                               let allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key)
+                                                               let display = rolePrefix + "CDE" + aCommand.command_id + s + aCommand.command_name + ((aCommand.command_playerInteraction) ? (" [ADMIN]") : ("")) + ((aCommand.command_playerInteraction && allowed) ? (" <---") : (""))
+                                                               select new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
+                                            //Do not display the delete option for default guest
+                                            if (aRole.role_key != "guest_default") {
+                                                roleCommands.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof(String), ""));
+                                            }
                                         }
                                     }
                                 }
+                            } else {
+                                roleCommands.Add(new CPluginVariable(GetSettingSection("4") + t + "Role List Empty", typeof(String), "No valid roles found in database."));
                             }
-                        } else {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("4") + t + "Role List Empty", typeof(String), "No valid roles found in database."));
+                            lstReturn.AddRange(roleCommands);
+                            _RoleCommandCache = roleCommands;
+                            _RoleCommandCacheUpdate = UtcNow();
                         }
                     }
 
@@ -5465,8 +5479,8 @@ namespace PRoConEvents
                     {
                         //Fetch needed role
                         AdKatsRole aRole = null;
-                        if (_RoleIDDictionary.TryGetValue(roleID, out aRole))
-                        {
+                        if (_RoleIDDictionary.TryGetValue(roleID, out aRole)) {
+                            _RoleCommandCacheUpdateBufferStart = UtcNow();
                             QueueRoleForRemoval(aRole);
                         }
                         else
@@ -6400,6 +6414,7 @@ namespace PRoConEvents
                                 }
                             }
                             //Queue it for upload
+                            _RoleCommandCacheUpdateBufferStart = UtcNow();
                             QueueRoleForUpload(aRole);
                         }
                         else
