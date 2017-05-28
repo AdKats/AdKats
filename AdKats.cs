@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.147
- * 27-MAY-2017
+ * Version 6.9.0.148
+ * 28-MAY-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.147</version_code>
+ * <version_code>6.9.0.148</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.147";
+        private const String PluginVersion = "6.9.0.148";
 
         public enum GameVersion {
             BF3,
@@ -450,9 +450,10 @@ namespace PRoConEvents
         private Int32 _AutomaticForgiveLastForgiveDays = 14;
         private Boolean _IROActive = true;
         private Boolean _IROOverridesLowPop;
+        private Int32 _IROOverridesLowPopInfractions = 5;
         private Int32 _IROTimeout = 10;
         private Boolean _OnlyKillOnLowPop = true;
-        private String[] _PunishmentHierarchy = { "warn", "kill", "kick", "tban60", "tban120", "tbanday", "tban2days", "tban3days", "tbanweek", "tban2weeks", "tbanmonth", "ban" };
+        private String[] _PunishmentHierarchy = { "kill", "kick", "tban120", "kill", "kick", "tbanday", "kick", "tbanweek", "kick", "tban2weeks", "kick", "tbanmonth", "kick", "ban" };
 
         //Teamswap
         private Int32 _TeamSwapTicketWindowHigh = 500000;
@@ -1212,6 +1213,9 @@ namespace PRoConEvents
                         if (_IROActive) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "IRO Timeout Minutes", typeof(Int32), _IROTimeout));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "IRO Punishment Overrides Low Pop", typeof(Boolean), _IROOverridesLowPop));
+                            if (_IROOverridesLowPop) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "IRO Punishment Infractions Required to Override", typeof(Int32), _IROOverridesLowPopInfractions));
+                            }
                         }
                     }
 
@@ -5686,8 +5690,14 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Overrides Low Pop", typeof(Boolean), _IROOverridesLowPop));
                     }
-                }
-                else if (Regex.Match(strVariable, @"IRO Timeout Minutes").Success)
+                } else if (Regex.Match(strVariable, @"IRO Punishment Infractions Required to Override").Success) {
+                    Int32 IROOverridesLowPopInfractions = Int32.Parse(strValue);
+                    if (IROOverridesLowPopInfractions != _IROOverridesLowPopInfractions) {
+                        _IROOverridesLowPopInfractions = IROOverridesLowPopInfractions;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Infractions Required to Override", typeof(Int32), _IROOverridesLowPopInfractions));
+                    }
+                } else if (Regex.Match(strVariable, @"IRO Timeout Minutes").Success)
                 {
                     Int32 timeout = Int32.Parse(strValue);
                     if (timeout != _IROTimeout)
@@ -24762,7 +24772,7 @@ namespace PRoConEvents
                     }
 
                     Boolean isLowPop = _OnlyKillOnLowPop && (_PlayerDictionary.Count < _highPopulationPlayerCount);
-                    Boolean iroOverride = record.isIRO && _IROOverridesLowPop;
+                    Boolean iroOverride = record.isIRO && _IROOverridesLowPop && points >= _IROOverridesLowPopInfractions;
 
                     Log.Debug(() => "Server low population: " + isLowPop + " (" + _PlayerDictionary.Count + " <? " + _highPopulationPlayerCount + ") | Override: " + iroOverride, 5);
 
@@ -31497,6 +31507,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"High Population Value", typeof(Int32), _highPopulationPlayerCount));
                 QueueSettingForUpload(new CPluginVariable(@"Use IRO Punishment", typeof(Boolean), _IROActive));
                 QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Overrides Low Pop", typeof(Boolean), _IROOverridesLowPop));
+                QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Infractions Required to Override", typeof(Int32), _IROOverridesLowPopInfractions));
                 QueueSettingForUpload(new CPluginVariable(@"IRO Timeout Minutes", typeof(Int32), _IROTimeout));
                 QueueSettingForUpload(new CPluginVariable(@"Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Send Emails", typeof(Boolean), _UseEmail));
