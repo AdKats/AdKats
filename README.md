@@ -2239,7 +2239,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         <td>Source updates.</td>
     </tr>
     <tr>
-        <td>api.gamerethos.net</td>
+        <td>adkats.gamerethos.net</td>
         <td>Version management, and backup source for definition files.</td>
     </tr>
     <tr>
