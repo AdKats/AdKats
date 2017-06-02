@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.148
- * 28-MAY-2017
+ * Version 6.9.0.149
+ * 1-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.148</version_code>
+ * <version_code>6.9.0.149</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.148";
+        private const String PluginVersion = "6.9.0.149";
 
         public enum GameVersion {
             BF3,
@@ -729,7 +729,7 @@ namespace PRoConEvents
         //Rules
         private Double _ServerRulesDelay = 0.5;
         private Double _ServerRulesInterval = 5;
-        private String[] _ServerRulesList = { "This server has not set rules yet." };
+        private String[] _ServerRulesList = { "No AdKats rules have been set." };
         private Boolean _ServerRulesNumbers = true;
         private Boolean _ServerRulesYell;
 
@@ -8976,13 +8976,13 @@ namespace PRoConEvents
                                             }
                                             foreach (AdKatsPlayer player in reporters.Values)
                                             {
-                                                PlayerSayMessage(player.player_name, "Player " + aPlayer.GetVerboseName() + " you reported has left the server.");
+                                                PlayerSayMessage(player.player_name, "Player " + aPlayer.GetVerboseName() + " you reported has left.");
                                             }
                                         }
                                     }
                                     if (!toldAdmins && aPlayer.player_type == PlayerType.Spectator)
                                     {
-                                        OnlineAdminSayMessage(((PlayerIsAdmin(aPlayer)) ? ("Admin ") : ("")) + aPlayer.GetVerboseName() + " stopped spectating the server.", aPlayer.player_name);
+                                        OnlineAdminSayMessage(((PlayerIsAdmin(aPlayer)) ? ("Admin ") : ("")) + aPlayer.GetVerboseName() + " stopped spectating.", aPlayer.player_name);
                                     }
                                     //Shut down any running conversations
                                     if (aPlayer.conversationPartner != null)
@@ -9007,7 +9007,7 @@ namespace PRoConEvents
                                         }
                                         else
                                         {
-                                            PlayerSayMessage(partner.player_name, aPlayer.GetVerboseName() + " has left the server. Private conversation closed.");
+                                            PlayerSayMessage(partner.player_name, aPlayer.GetVerboseName() + " has left. Private conversation closed.");
                                             partner.conversationPartner = null;
                                         }
                                         aPlayer.conversationPartner = null;
@@ -9059,8 +9059,8 @@ namespace PRoConEvents
                                     //Check for glitched players
                                     if (String.IsNullOrEmpty(playerInfo.GUID)) {
                                         if ((UtcNow() - _lastGlitchedPlayerNotification).TotalMinutes > 5) {
-                                            OnlineAdminSayMessage(playerInfo.SoldierName + " is glitched in the server, their player has no GUID.");
-                                            Log.Warn(playerInfo.SoldierName + " is glitched in the server, their player has no GUID.");
+                                            OnlineAdminSayMessage(playerInfo.SoldierName + " is glitched, their player has no GUID.");
+                                            Log.Warn(playerInfo.SoldierName + " is glitched, their player has no GUID.");
                                             _lastGlitchedPlayerNotification = UtcNow();
                                         }
                                         continue;
@@ -9192,7 +9192,7 @@ namespace PRoConEvents
                                         aPlayer = _PlayerLeftDictionary.Values.FirstOrDefault(oPlayer => oPlayer.player_guid == playerInfo.GUID);
                                         if (aPlayer != null)
                                         {
-                                            Log.Debug(() => "Player " + playerInfo.SoldierName + " rejoined the server.", 3);
+                                            Log.Debug(() => "Player " + playerInfo.SoldierName + " re-joined.", 3);
                                             //Remove them from the left dictionary
                                             _PlayerLeftDictionary.Remove(playerInfo.SoldierName);
                                             //check for name changes
@@ -9227,7 +9227,7 @@ namespace PRoConEvents
                                                     // Don't show the message if the person kicked themselves
                                                     aRecord.source_name != aPlayer.player_name))
                                             {
-                                                OnlineAdminSayMessage("Kicked player " + aPlayer.GetVerboseName() + " rejoined the server.");
+                                                OnlineAdminSayMessage("Kicked player " + aPlayer.GetVerboseName() + " re-joined.");
                                             }
                                         }
                                         else
@@ -9319,7 +9319,7 @@ namespace PRoConEvents
                                                     target_name = aPlayer.player_name,
                                                     target_player = aPlayer,
                                                     source_name = "SpectatorManager",
-                                                    record_message = "You may not spectate the server at this time.",
+                                                    record_message = "You may not spectate at this time.",
                                                     record_time = UtcNow()
                                                 };
                                                 QueueRecordForProcessing(record);
@@ -9334,7 +9334,7 @@ namespace PRoConEvents
                                                     target_name = aPlayer.player_name,
                                                     target_player = aPlayer,
                                                     source_name = "SpectatorManager",
-                                                    record_message = "Whitelist required to spectate this server.",
+                                                    record_message = "Whitelist required to spectate.",
                                                     record_time = UtcNow()
                                                 };
                                                 QueueRecordForProcessing(record);
@@ -9346,7 +9346,7 @@ namespace PRoConEvents
                                             //Notify reputable players
                                             if (isAdmin || aPlayer.player_aa)
                                             {
-                                                String message = ((isAdmin) ? ("Admin ") : ("Admin assistant ")) + aPlayer.GetVerboseName() + " joined the server as a " + joinLocation + ".";
+                                                String message = ((isAdmin) ? ("Admin ") : ("Admin assistant ")) + aPlayer.GetVerboseName() + " joined as a " + joinLocation + ".";
                                                 if (_InformReputablePlayersOfAdminJoins)
                                                 {
                                                     List<AdKatsPlayer> reputablePlayers = _PlayerDictionary.Values.Where(iPlayer => iPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(iPlayer)).ToList();
@@ -9362,7 +9362,7 @@ namespace PRoConEvents
                                             }
                                             else if (aPlayer.player_type == PlayerType.Spectator)
                                             {
-                                                OnlineAdminSayMessage(((PlayerIsAdmin(aPlayer)) ? ("Admin ") : ("")) + aPlayer.GetVerboseName() + " is now spectating the server.");
+                                                OnlineAdminSayMessage(((PlayerIsAdmin(aPlayer)) ? ("Admin ") : ("")) + aPlayer.GetVerboseName() + " is now spectating.");
                                             }
                                             //If populating, add player
                                             if (_populationPopulating && _populationStatus == PopulationState.Low && aPlayer.player_type == PlayerType.Player && _populationPopulatingPlayers.Count < _lowPopulationPlayerCount)
@@ -9534,7 +9534,7 @@ namespace PRoConEvents
                                             }
                                             else
                                             {
-                                                PlayerSayMessage(partner.player_name, aPlayer.GetVerboseName() + " has left the server. Private conversation closed.");
+                                                PlayerSayMessage(partner.player_name, aPlayer.GetVerboseName() + " has left. Private conversation closed.");
                                                 partner.conversationPartner = null;
                                             }
                                             aPlayer.conversationPartner = null;
@@ -12790,7 +12790,7 @@ namespace PRoConEvents
                     //Handle Dev Notifications
                     if (soldierName == "ColColonCleaner" && !_toldCol)
                     {
-                        PlayerTellMessage("ColColonCleaner", "CONGRATS! This server is running AdKats " + PluginVersion + "!");
+                        PlayerTellMessage("ColColonCleaner", "AdKats " + PluginVersion + " running!");
                         _toldCol = true;
                     }
 
@@ -15210,7 +15210,7 @@ namespace PRoConEvents
                                             }
                                             else
                                             {
-                                                OnlineAdminSayMessage("Warning, another running instance of AdKats was detected on this server. That instance will terminate shortly.");
+                                                OnlineAdminSayMessage("Warning, another running instance of AdKats was detected. That instance will terminate shortly.");
                                             }
                                         }
                                         else
@@ -15742,13 +15742,13 @@ namespace PRoConEvents
                                 {
                                     if (PlayerIsAdmin(record.target_player))
                                     {
-                                        SendMessageToSource(record, ((record.source_name.ToLower().Contains("pepsi")) ? ("Bad Pepsi. ") : ("")) + record.GetTargetNames() + " is an admin, they already know the server rules.");
+                                        SendMessageToSource(record, ((record.source_name.ToLower().Contains("pepsi")) ? ("Bad Pepsi. ") : ("")) + record.GetTargetNames() + " is an admin, they already know the rules.");
                                         FinalizeRecord(record);
                                         return;
                                     }
                                     if (record.target_player.player_reputation > _reputationThresholdGood)
                                     {
-                                        SendMessageToSource(record, record.GetTargetNames() + " is reputable, they know the server rules.");
+                                        SendMessageToSource(record, record.GetTargetNames() + " is reputable, they know the rules.");
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -15776,7 +15776,7 @@ namespace PRoConEvents
                             {
                                 if (record.target_player != null && !record.target_player.player_online && record.target_player.TargetedRecords.Any(aRecord => (aRecord.command_action.command_key == "player_kick" || aRecord.command_action.command_key == "player_ban_temp" || aRecord.command_action.command_key == "player_ban_perm") && (UtcNow() - aRecord.record_time).TotalSeconds < 300))
                                 {
-                                    SendMessageToSource(record, record.GetTargetNames() + " has already been removed from the server by an admin.");
+                                    SendMessageToSource(record, record.GetTargetNames() + " has already been removed by an admin.");
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -16120,7 +16120,7 @@ namespace PRoConEvents
                         case "player_whitelistreport":
                             if (GetMatchingASPlayersOfGroup("whitelist_report", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already in the Report whitelist for this server.");
+                                SendMessageToSource(record, "Matching player already in the Report whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16129,7 +16129,7 @@ namespace PRoConEvents
                         case "player_whitelistspambot":
                             if (GetMatchingASPlayersOfGroup("whitelist_spambot", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already in the SpamBot whitelist for this server.");
+                                SendMessageToSource(record, "Matching player already in the SpamBot whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16138,7 +16138,7 @@ namespace PRoConEvents
                         case "player_whitelistaa":
                             if (GetMatchingASPlayersOfGroup("whitelist_adminassistant", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already in the Admin Assistant whitelist for this server.");
+                                SendMessageToSource(record, "Matching player already in the Admin Assistant whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16147,7 +16147,7 @@ namespace PRoConEvents
                         case "player_whitelistping":
                             if (GetMatchingASPlayersOfGroup("whitelist_ping", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already in the Ping whitelist for this server.");
+                                SendMessageToSource(record, "Matching player already in the Ping whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16156,7 +16156,7 @@ namespace PRoConEvents
                         case "player_whitelistanticheat":
                             if (GetMatchingASPlayersOfGroup("whitelist_anticheat", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already in the AntiCheat whitelist for this server.");
+                                SendMessageToSource(record, "Matching player already in the AntiCheat whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16165,7 +16165,7 @@ namespace PRoConEvents
                         case "player_slotspectator":
                             if (GetMatchingASPlayersOfGroup("slot_spectator", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already in spectator slot list for this server.");
+                                SendMessageToSource(record, "Matching player already in spectator slot list.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16174,7 +16174,7 @@ namespace PRoConEvents
                         case "player_slotreserved":
                             if (GetMatchingASPlayersOfGroup("slot_reserved", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already in reserved slot list for this server.");
+                                SendMessageToSource(record, "Matching player already in reserved slot list.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16183,7 +16183,7 @@ namespace PRoConEvents
                         case "player_whitelistbalance":
                             if (GetMatchingASPlayersOfGroup("whitelist_multibalancer", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already in the autobalance whitelist for this server.");
+                                SendMessageToSource(record, "Matching player already in the autobalance whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16192,7 +16192,7 @@ namespace PRoConEvents
                         case "player_blacklistdisperse":
                             if (GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already under autobalance dispersion for this server.");
+                                SendMessageToSource(record, "Matching player already under autobalance dispersion.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16201,7 +16201,7 @@ namespace PRoConEvents
                         case "player_whitelistpopulator":
                             if (GetMatchingASPlayersOfGroup("whitelist_populator", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already under populator whitelist for this server.");
+                                SendMessageToSource(record, "Matching player already under populator whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16210,7 +16210,7 @@ namespace PRoConEvents
                         case "player_whitelistteamkill":
                             if (GetMatchingASPlayersOfGroup("whitelist_teamkill", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already under TeamKillTracker whitelist for this server.");
+                                SendMessageToSource(record, "Matching player already under TeamKillTracker whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16219,7 +16219,7 @@ namespace PRoConEvents
                         case "player_whitelistreport_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_report", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not in the Report whitelist for this server.");
+                                SendMessageToSource(record, "Matching player not in the Report whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16228,7 +16228,7 @@ namespace PRoConEvents
                         case "player_whitelistspambot_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_spambot", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not in the SpamBot whitelist for this server.");
+                                SendMessageToSource(record, "Matching player not in the SpamBot whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16237,7 +16237,7 @@ namespace PRoConEvents
                         case "player_whitelistaa_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_adminassistant", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not in the Admin Assistant whitelist for this server.");
+                                SendMessageToSource(record, "Matching player not in the Admin Assistant whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16246,7 +16246,7 @@ namespace PRoConEvents
                         case "player_whitelistping_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_ping", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not in the Ping whitelist for this server.");
+                                SendMessageToSource(record, "Matching player not in the Ping whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16255,7 +16255,7 @@ namespace PRoConEvents
                         case "player_whitelistanticheat_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_anticheat", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not in the AntiCheat whitelist for this server.");
+                                SendMessageToSource(record, "Matching player not in the AntiCheat whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16264,7 +16264,7 @@ namespace PRoConEvents
                         case "player_slotspectator_remove":
                             if (!GetMatchingASPlayersOfGroup("slot_spectator", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not in spectator slot list for this server.");
+                                SendMessageToSource(record, "Matching player not in spectator slot list.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16273,7 +16273,7 @@ namespace PRoConEvents
                         case "player_slotreserved_remove":
                             if (!GetMatchingASPlayersOfGroup("slot_reserved", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not in reserved slot list for this server.");
+                                SendMessageToSource(record, "Matching player not in reserved slot list.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16282,7 +16282,7 @@ namespace PRoConEvents
                         case "player_whitelistbalance_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_multibalancer", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not in the autobalance whitelist for this server.");
+                                SendMessageToSource(record, "Matching player not in the autobalance whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16291,7 +16291,7 @@ namespace PRoConEvents
                         case "player_blacklistdisperse_remove":
                             if (!GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not under autobalance dispersion for this server.");
+                                SendMessageToSource(record, "Matching player not under autobalance dispersion.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16300,7 +16300,7 @@ namespace PRoConEvents
                         case "player_whitelistpopulator_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_populator", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not under populator whitelist for this server.");
+                                SendMessageToSource(record, "Matching player not under populator whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16309,7 +16309,7 @@ namespace PRoConEvents
                         case "player_whitelistteamkill_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_teamkill", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not under TeamKillTracker whitelist for this server.");
+                                SendMessageToSource(record, "Matching player not under TeamKillTracker whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16318,7 +16318,7 @@ namespace PRoConEvents
                         case "player_blacklistspectator":
                             if (GetMatchingASPlayersOfGroup("blacklist_spectator", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already in the spectator blacklist for this server.");
+                                SendMessageToSource(record, "Matching player already in the spectator blacklist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16327,7 +16327,7 @@ namespace PRoConEvents
                         case "player_blacklistspectator_remove":
                             if (!GetMatchingASPlayersOfGroup("blacklist_spectator", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not in the spectator blacklist for this server.");
+                                SendMessageToSource(record, "Matching player not in the spectator blacklist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16336,7 +16336,7 @@ namespace PRoConEvents
                         case "player_blacklistreport":
                             if (GetMatchingASPlayersOfGroup("blacklist_report", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already in the report source blacklist for this server.");
+                                SendMessageToSource(record, "Matching player already in the report source blacklist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16345,7 +16345,7 @@ namespace PRoConEvents
                         case "player_blacklistreport_remove":
                             if (!GetMatchingASPlayersOfGroup("blacklist_report", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not in the report source blacklist for this server.");
+                                SendMessageToSource(record, "Matching player not in the report source blacklist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16354,7 +16354,7 @@ namespace PRoConEvents
                         case "player_whitelistcommand":
                             if (GetMatchingASPlayersOfGroup("whitelist_commandtarget", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already in the command target whitelist for this server.");
+                                SendMessageToSource(record, "Matching player already in the command target whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16363,7 +16363,7 @@ namespace PRoConEvents
                         case "player_whitelistcommand_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_commandtarget", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not in the command target whitelist for this server.");
+                                SendMessageToSource(record, "Matching player not in the command target whitelist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16372,7 +16372,7 @@ namespace PRoConEvents
                         case "player_blacklistautoassist":
                             if (GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player already in the auto-assist blacklist for this server.");
+                                SendMessageToSource(record, "Matching player already in the auto-assist blacklist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16381,7 +16381,7 @@ namespace PRoConEvents
                         case "player_blacklistautoassist_remove":
                             if (!GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player).Any())
                             {
-                                SendMessageToSource(record, "Matching player not in the auto-assist blacklist for this server.");
+                                SendMessageToSource(record, "Matching player not in the auto-assist blacklist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -23907,7 +23907,7 @@ namespace PRoConEvents
                         SendMessageToSource(record, "Log saved for " + record.GetTargetNames());
                         break;
                     case "self_feedback":
-                        SendMessageToSource(record, "Feedback saved for the server.");
+                        SendMessageToSource(record, "Feedback saved.");
                         break;
                     case "player_population_success":
                         SendPopulationSuccess(record);
@@ -24971,7 +24971,7 @@ namespace PRoConEvents
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " autobalance dispersion on this server.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " autobalance dispersion.";
                             SendMessageToSource(record, message);
                             Log.Debug(() => message, 3);
                             FetchAllAccess(true);
@@ -25001,7 +25001,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_multibalancer", record.target_player);
                 if (matchingPlayers.Count > 0)
                 {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already under autobalance whitelist for this server.");
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already under autobalance whitelist.");
                     return;
                 }
                 using (MySqlConnection connection = GetDatabaseConnection())
@@ -25047,7 +25047,7 @@ namespace PRoConEvents
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " autobalance whitelist on this server.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " autobalance whitelist.";
                             SendMessageToSource(record, message);
                             Log.Debug(() => message, 3);
                             FetchAllAccess(true);
@@ -25077,7 +25077,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("slot_reserved", record.target_player);
                 if (matchingPlayers.Count > 0)
                 {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in reserved slot list for this server.");
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in reserved slot list.");
                     return;
                 }
                 using (MySqlConnection connection = GetDatabaseConnection())
@@ -25123,7 +25123,7 @@ namespace PRoConEvents
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " reserved slot on this server.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " reserved slot.";
                             SendMessageToSource(record, message);
                             Log.Debug(() => message, 3);
                             FetchAllAccess(true);
@@ -25153,7 +25153,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("slot_spectator", record.target_player);
                 if (matchingPlayers.Count > 0)
                 {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in spectator slot list for this server.");
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in spectator slot list.");
                     return;
                 }
                 using (MySqlConnection connection = GetDatabaseConnection())
@@ -25199,7 +25199,7 @@ namespace PRoConEvents
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " spectator slot on this server.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " spectator slot.";
                             SendMessageToSource(record, message);
                             Log.Debug(() => message, 3);
                             FetchAllAccess(true);
@@ -25644,7 +25644,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_spambot", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the SpamBot whitelist for this server.");
+                    SendMessageToSource(record, "Matching player not in the SpamBot whitelist.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -25770,7 +25770,7 @@ namespace PRoConEvents
                         target_name = record.target_player.player_name,
                         target_player = record.target_player,
                         source_name = "SpectatorManager",
-                        record_message = "You may not spectate the server at this time.",
+                        record_message = "You may not spectate at this time.",
                         record_time = UtcNow()
                     });
                 }
@@ -25801,7 +25801,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_spectator", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the spectator blacklist for this server.");
+                    SendMessageToSource(record, "Matching player not in the spectator blacklist.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -25942,7 +25942,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_report", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the report source blacklist for this server.");
+                    SendMessageToSource(record, "Matching player not in the report source blacklist.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -26083,7 +26083,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_commandtarget", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the command target whitelist for this server.");
+                    SendMessageToSource(record, "Matching player not in the command target whitelist.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -26223,7 +26223,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the auto-assist blacklist for this server.");
+                    SendMessageToSource(record, "Matching player not in the auto-assist blacklist.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -26283,7 +26283,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_report", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the Report whitelist for this server.");
+                    SendMessageToSource(record, "Matching player not in the Report whitelist.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -26343,7 +26343,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_adminassistant", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the Admin Assistant whitelist for this server.");
+                    SendMessageToSource(record, "Matching player not in the Admin Assistant whitelist.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -26403,7 +26403,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_ping", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the Ping whitelist for this server.");
+                    SendMessageToSource(record, "Matching player not in the Ping whitelist.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -26463,7 +26463,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_anticheat", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the AntiCheat whitelist for this server.");
+                    SendMessageToSource(record, "Matching player not in the AntiCheat whitelist.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -26523,7 +26523,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("slot_spectator", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the spectator slot list for this server.");
+                    SendMessageToSource(record, "Matching player not in the spectator slot list.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -26583,7 +26583,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("slot_reserved", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the reserved slot list for this server.");
+                    SendMessageToSource(record, "Matching player not in the reserved slot list.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -26643,7 +26643,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_multibalancer", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the autobalance whitelist for this server.");
+                    SendMessageToSource(record, "Matching player not in the autobalance whitelist.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -26703,7 +26703,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not under autobalance dispersion for this server.");
+                    SendMessageToSource(record, "Matching player not under autobalance dispersion.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -26842,7 +26842,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_populator", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the populator whitelist for this server.");
+                    SendMessageToSource(record, "Matching player not in the populator whitelist.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -26982,7 +26982,7 @@ namespace PRoConEvents
                 List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_teamkill", record.target_player);
                 if (!matchingPlayers.Any())
                 {
-                    SendMessageToSource(record, "Matching player not in the TeamKillTracker whitelist for this server.");
+                    SendMessageToSource(record, "Matching player not in the TeamKillTracker whitelist.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -28516,7 +28516,7 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                PlayerTellMessage(record.target_player.player_name, "Thank you for helping populate the server!");
+                PlayerTellMessage(record.target_player.player_name, "Thank you for helping populate!");
             }
             catch (Exception e)
             {
@@ -39534,7 +39534,7 @@ namespace PRoConEvents
                 {
                     if (String.IsNullOrEmpty(target_guid))
                     {
-                        Log.Error("Target player '" + record.GetTargetNames() + "' was not found in the server. And target_guid was not provided. Unable to process external command.");
+                        Log.Error("Target player '" + record.GetTargetNames() + "' was not found. And target_guid was not provided. Unable to process external command.");
                         return;
                     }
                     record.target_player = FetchPlayer(true, false, false, null, -1, record.target_name, target_guid, null, null);
@@ -42282,20 +42282,27 @@ namespace PRoConEvents
                                     {
                                         pluginSource = ClientDownloadTimer(client, testURL);
                                     }
-                                }
-                                catch (Exception e)
-                                {
-                                    if (_pluginUpdateCaller != null)
-                                    {
-                                        SendMessageToSource(_pluginUpdateCaller, "Unable to download plugin update.");
+                                } 
+                                catch (Exception) {
+                                    try {
+                                        string stableURL = "http://adkats.gamerethos.net/api/fetch/branch/master" + "?cacherand=" + Environment.TickCount;
+                                        string testURL = "http://adkats.gamerethos.net/api/fetch/branch/test" + "?cacherand=" + Environment.TickCount;
+                                        if (_pluginVersionStatus == VersionStatus.OutdatedBuild) {
+                                            pluginSource = ClientDownloadTimer(client, stableURL);
+                                        } else {
+                                            pluginSource = ClientDownloadTimer(client, testURL);
+                                        }
+                                    } catch (Exception) {
+                                        if (_pluginUpdateCaller != null) {
+                                            SendMessageToSource(_pluginUpdateCaller, "Unable to download plugin update.");
+                                        }
+                                        if (_pluginVersionStatus == VersionStatus.OutdatedBuild) {
+                                            Log.Error("Unable to download plugin update to version " + _latestPluginVersion);
+                                        }
+                                        _pluginUpdateCaller = null;
+                                        LogThreadExit();
+                                        return;
                                     }
-                                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                                    {
-                                        Log.Error("Unable to download plugin update to version " + _latestPluginVersion);
-                                    }
-                                    _pluginUpdateCaller = null;
-                                    LogThreadExit();
-                                    return;
                                 }
                             }
                             if (String.IsNullOrEmpty(pluginSource))
@@ -44036,7 +44043,7 @@ namespace PRoConEvents
             // Handlers for kills during the event for each round
             public Dictionary<Int32, Func<AdKats, String, Boolean>> KillHandlers;
 
-            //Old server values, the server should return to these values after the event is over
+            //Old server values, should return to these values after the event is over
             public CServerInfo OldServerInfo;
 
             public AdKatsEvent()
@@ -44849,7 +44856,7 @@ namespace PRoConEvents
                             //sb.Append("<h4>Current Information on " + record.target_name + ":</h4>");
                             int numReports = Plugin._RoundReports.Values.Count(aRecord => aRecord.target_name == record.target_name);
                             sb.Append("Reported " + numReports + " times during the current round.<br/>");
-                            sb.Append("Has " + Plugin.FetchPoints(record.target_player, false, true) + " infraction points on this server.<br/>");
+                            sb.Append("Has " + Plugin.FetchPoints(record.target_player, false, true) + " infraction points.<br/>");
                             sb.Append("Score: " + playerInfo.Score + "<br/>");
                             sb.Append("Kills: " + playerInfo.Kills + "<br/>");
                             sb.Append("Deaths: " + playerInfo.Deaths + "<br/>");
