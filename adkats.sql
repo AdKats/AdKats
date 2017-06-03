@@ -53,35 +53,6 @@ CREATE TRIGGER `tbl_chatlog_player_id_insert` BEFORE INSERT ON `tbl_chatlog`
 $$
 
 DROP TRIGGER IF EXISTS `Player_Update_BlankDataFix`$$
-CREATE TRIGGER `Player_Update_BlankDataFix` BEFORE UPDATE ON `tbl_playerdata`
- FOR EACH ROW BEGIN
-    IF (NEW.SoldierName IS NULL OR CHAR_LENGTH(NEW.SoldierName) = 0) 
-       AND OLD.SoldierName IS NOT NULL
-       AND CHAR_LENGTH(OLD.SoldierName) > 0
-        THEN SET NEW.SoldierName = OLD.SoldierName;
-    END IF;
-    IF (NEW.EAGUID IS NULL OR CHAR_LENGTH(NEW.EAGUID) = 0)
-        AND OLD.EAGUID IS NOT NULL 
-        AND CHAR_LENGTH(OLD.EAGUID) > 0
-        THEN SET NEW.EAGUID = OLD.EAGUID;
-    END IF;
-    IF (NEW.PBGUID IS NULL OR CHAR_LENGTH(NEW.PBGUID) = 0)
-        AND OLD.PBGUID IS NOT NULL 
-        AND CHAR_LENGTH(OLD.PBGUID) > 0
-        THEN SET NEW.PBGUID = OLD.PBGUID;
-    END IF;
-    IF (NEW.IP_Address IS NULL OR CHAR_LENGTH(NEW.IP_Address) = 0)
-        AND OLD.IP_Address IS NOT NULL 
-        AND CHAR_LENGTH(OLD.IP_Address) > 0
-        AND OLD.IP_Address NOT IN ('127.0.0.1', '100.100.100.100')
-        THEN SET NEW.IP_Address = OLD.IP_Address;
-    END IF;
-    IF CHAR_LENGTH(NEW.ClanTag) = 0
-        THEN SET NEW.ClanTag = NULL;
-    END IF;
-END$$
-
-DROP TRIGGER IF EXISTS `Player_Update_BlankDataFix`$$
 DROP TRIGGER IF EXISTS `Player_Update_BlankDataFix2`$$
 CREATE TRIGGER `Player_Update_BlankDataFix2` BEFORE UPDATE ON `tbl_playerdata`
  FOR EACH ROW BEGIN
@@ -112,6 +83,20 @@ CREATE TRIGGER `Player_Update_BlankDataFix2` BEFORE UPDATE ON `tbl_playerdata`
 END$$
 
 DELIMITER ;
+
+DROP TABLE IF EXISTS `adkats_battlelog_players`;
+CREATE TABLE `adkats_battlelog_players` (
+  `player_id` int(10) unsigned NOT NULL,
+  `persona_id` bigint(20) unsigned NOT NULL,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `gravatar` varchar(32) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `persona_banned` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`player_id`),
+  UNIQUE KEY `adkats_battlelog_players_player_id_persona_id_unique` (`player_id`,`persona_id`),
+  KEY `adkats_battlelog_players_persona_id_index` (`persona_id`),
+  KEY `adkats_battlelog_players_user_id_index` (`user_id`),
+  CONSTRAINT `adkats_battlelog_players_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Player Battlelog Info';
 
 DROP TABLE IF EXISTS `adkats_bans`;
 CREATE TABLE IF NOT EXISTS `adkats_bans` (
