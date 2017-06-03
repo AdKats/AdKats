@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.149
- * 1-JUN-2017
+ * Version 6.9.0.150
+ * 3-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.149</version_code>
+ * <version_code>6.9.0.150</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.149";
+        private const String PluginVersion = "6.9.0.150";
 
         public enum GameVersion {
             BF3,
@@ -13705,7 +13705,7 @@ namespace PRoConEvents
                                 Log.Debug(() => "Reading " + aPlayer.GetVerboseName() + " for AntiCheat", 5);
                                 _AntiCheatCheckedPlayers.Add(aPlayer.player_guid);
                                 if (!String.IsNullOrEmpty(aPlayer.player_name) &&
-                                    !String.IsNullOrEmpty(aPlayer.player_personaID) &&
+                                    !String.IsNullOrEmpty(aPlayer.player_battlelog_personaID) &&
                                     FetchPlayerStatInformation(aPlayer)) {
                                     RunStatSiteHackCheck(aPlayer, false);
                                     _AntiCheatCheckedPlayersStats.Add(aPlayer.player_guid);
@@ -29210,7 +29210,11 @@ namespace PRoConEvents
                         _threadMasterWaitHandle.WaitOne(2000);
                         SendMessageToSource(record, "First seen: " + FormatTimeString(UtcNow() - record.target_player.player_firstseen, 3) + " ago.");
                         _threadMasterWaitHandle.WaitOne(2000);
-                        SendMessageToSource(record, "Time on server: " + FormatTimeString(record.target_player.player_serverplaytime, 3) + " + current session.");
+                        if (_PlayerDictionary.ContainsKey(record.target_player.player_name)) {
+                            SendMessageToSource(record, "Time on server: " + FormatTimeString(record.target_player.player_serverplaytime + NowDuration(record.target_player.JoinTime), 3) + ".");
+                        } else {
+                            SendMessageToSource(record, "Time on server: " + FormatTimeString(record.target_player.player_serverplaytime, 3) + ".");
+                        }
                         _threadMasterWaitHandle.WaitOne(2000);
                         String playerLoc = "Unknown";
                         if (!String.IsNullOrEmpty(record.target_player.player_ip))
@@ -31111,6 +31115,21 @@ namespace PRoConEvents
             if (_databaseConnectionCriticalState)
             {
                 return false;
+            }
+            if (!ConfirmTable("adkats_battlelog_players")) {
+                Log.Info("Battlelog information table not found. Attempting to add.");
+                SendNonQuery("Adding battlelog information table", @"
+                    CREATE TABLE `adkats_battlelog_players` (
+                      `player_id` int(10) unsigned NOT NULL,
+                      `persona_id` bigint(20) unsigned NOT NULL,
+                      `user_id` bigint(20) unsigned NOT NULL,
+                      `gravatar` varchar(32) COLLATE utf8_unicode_ci DEFAULT NULL,
+                      `persona_banned` tinyint(1) NOT NULL DEFAULT 0,
+                      PRIMARY KEY (`player_id`),
+                      UNIQUE KEY `adkats_battlelog_players_player_id_persona_id_unique` (`player_id`,`persona_id`),
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Player Battlelog Info';", true);
+                SendNonQuery("Adding battlelog information table foreign keys", @"
+                    ALTER TABLE `adkats_battlelog_players` ADD CONSTRAINT `adkats_battlelog_players_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE", true);
             }
             if (!ConfirmTable("adkats_battlecries"))
             {
@@ -34427,14 +34446,18 @@ namespace PRoConEvents
                                 `tbl_playerdata`.`IP_Address` as `player_ip`,
                                 `tbl_playerdata`.`DiscordID` as `player_discord_id`,
                                 `tbl_playerdata`.`ClanTag` as `player_clantag`,
-                                `adkats_battlecries`.`player_battlecry`";
+                                `adkats_battlecries`.`player_battlecry`,
+                                `adkats_battlelog_players`.`persona_id` as `player_personaID`,
+                                `adkats_battlelog_players`.`user_id` as `player_userID`";
                             if (_serverInfo.GameID > 0)
                             {
                                 sql += ",`GameID` as `game_id` ";
                             }
                             sql += "FROM `" + _mySqlSchemaName + @"`.`tbl_playerdata` 
                                     LEFT JOIN `adkats_battlecries` 
-                                    ON `tbl_playerdata`.`PlayerID` = `adkats_battlecries`.`player_id` ";
+                                    ON `tbl_playerdata`.`PlayerID` = `adkats_battlecries`.`player_id`
+                                    LEFT JOIN `adkats_battlelog_players` 
+                                    ON `tbl_playerdata`.`PlayerID` = `adkats_battlelog_players`.`player_id` ";
                             bool sqlEnder = true;
                             if (playerID >= 0)
                             {
@@ -34549,6 +34572,17 @@ namespace PRoConEvents
                                     if (!reader.IsDBNull(7))
                                     {
                                         aPlayer.player_battlecry = reader.GetString("player_battlecry");
+                                    }
+                                    if (!reader.IsDBNull(8)) 
+                                    {
+                                        aPlayer.player_battlelog_personaID = reader.GetString("player_personaID");
+                                    }
+                                    if (!reader.IsDBNull(9)) 
+                                    {
+                                        aPlayer.player_battlelog_userID = reader.GetString("player_userID");
+                                    }
+                                    if (!String.IsNullOrEmpty(aPlayer.player_battlelog_personaID) && !String.IsNullOrEmpty(aPlayer.player_battlelog_userID)) {
+                                        aPlayer.BLInfoStored = true;
                                     }
                                 }
                                 else
@@ -34829,6 +34863,28 @@ namespace PRoConEvents
                             if (SafeExecuteNonQuery(command) > 0)
                             {
                                 Log.Debug(() => "Update player info success.", 5);
+                            }
+                        }
+                        if (!String.IsNullOrEmpty(aPlayer.player_battlelog_personaID) && !String.IsNullOrEmpty(aPlayer.player_battlelog_personaID) && !aPlayer.BLInfoStored) {
+                            using (MySqlCommand command = connection.CreateCommand()) {
+                                command.CommandText = @"
+                                REPLACE INTO
+	                                `adkats_battlelog_players`
+                                (
+                                    `player_id`,
+                                    `persona_id`,
+                                    `user_id`
+                                )
+                                VALUES
+                                (
+                                    @player_id,
+                                    @persona_id,
+                                    @user_id
+                                )";
+                                command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
+                                command.Parameters.AddWithValue("@persona_id", aPlayer.player_battlelog_personaID);
+                                command.Parameters.AddWithValue("@user_id", aPlayer.player_battlelog_userID);
+                                Int32 rowsAffected = SafeExecuteNonQuery(command);
                             }
                         }
                     }
@@ -40086,7 +40142,7 @@ namespace PRoConEvents
                     }
                     tPlayer["player_name"] = aPlayer.player_name;
                     tPlayer["player_online"] = aPlayer.player_online;
-                    tPlayer["player_personaID"] = aPlayer.player_personaID;
+                    tPlayer["player_personaID"] = aPlayer.player_battlelog_personaID;
                     tPlayer["player_clanTag"] = aPlayer.player_clanTag;
                     tPlayer["player_aa"] = aPlayer.player_aa;
                     tPlayer["player_ping"] = Math.Round(aPlayer.player_ping_avg, 2);
@@ -40211,14 +40267,28 @@ namespace PRoConEvents
                         {
                             DoBattlelogWait();
                             String response = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/user/" + aPlayer.player_name + "?cacherand=" + Environment.TickCount);
-                            Match pid = Regex.Match(response, @"bf3/soldier/" + aPlayer.player_name + @"/stats/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                            if (!pid.Success)
-                            {
-                                //HandleException(new AdKatsException("Could not find BF3 persona ID for " + aPlayer.player_name));
-                                return false;
+                            var update = false;
+                            if (String.IsNullOrEmpty(aPlayer.player_battlelog_personaID)) {
+                                Match pid = Regex.Match(response, @"bf3/soldier/" + aPlayer.player_name + @"/stats/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                                if (!pid.Success) {
+                                    return false;
+                                }
+                                aPlayer.player_battlelog_personaID = pid.Groups[1].Value.Trim();
+                                Log.Debug(() => "Persona ID fetched for " + aPlayer.player_name + ", " + aPlayer.player_battlelog_personaID, 4);
+                                update = true;
                             }
-                            aPlayer.player_personaID = pid.Groups[1].Value.Trim();
-                            Log.Debug(() => "Persona ID fetched for " + aPlayer.player_name, 4);
+                            if (String.IsNullOrEmpty(aPlayer.player_battlelog_userID)) {
+                                Match uid = Regex.Match(response, @"/bf3/user/overviewBoxStats/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                                if (!uid.Success) {
+                                    return false;
+                                }
+                                aPlayer.player_battlelog_userID = uid.Groups[1].Value.Trim();
+                                Log.Debug(() => "User ID fetched for " + aPlayer.player_name + ", " + aPlayer.player_battlelog_userID, 4);
+                                update = true;
+                            }
+                            if (update) {
+                                UpdatePlayer(aPlayer);
+                            }
                             Match tag = Regex.Match(response, @"\[\s*([a-zA-Z0-9]+)\s*\]\s*" + aPlayer.player_name, RegexOptions.IgnoreCase | RegexOptions.Singleline);
                             if (!tag.Success || String.IsNullOrEmpty(tag.Groups[1].Value.Trim()))
                             {
@@ -40249,26 +40319,40 @@ namespace PRoConEvents
                     {
                         try
                         {
-                            if (String.IsNullOrEmpty(aPlayer.player_personaID))
+                            // Always fetch when using experimental tools temporarily
+                            if (String.IsNullOrEmpty(aPlayer.player_battlelog_personaID) || _UseExperimentalTools)
                             {
                                 DoBattlelogWait();
 
+                                var update = false;
                                 String personaResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/user/" + aPlayer.player_name + "?cacherand=" + Environment.TickCount);
                                 Match pid = Regex.Match(personaResponse, @"bf4/soldier/" + aPlayer.player_name + @"/stats/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                                if (!pid.Success)
-                                {
+                                if (!pid.Success) {
                                     HandleException(new AdKatsException("Could not find persona ID for " + aPlayer.player_name));
                                     if (!String.IsNullOrEmpty(personaResponse)) {
                                         ExecuteCommand("procon.protected.send", "admin.kickPlayer", aPlayer.player_name, "Battlelog info fetch issue. Please re-join.");
                                     }
                                     return false;
+                                } else {
+                                    aPlayer.player_battlelog_personaID = pid.Groups[1].Value.Trim();
+                                    Log.Debug(() => "Persona ID fetched for " + aPlayer.player_name + ", " + aPlayer.player_battlelog_personaID, 4);
+                                    update = true;
                                 }
-                                aPlayer.player_personaID = pid.Groups[1].Value.Trim();
-                                Log.Debug(() => "Persona ID fetched for " + aPlayer.player_name, 4);
+                                Match uid = Regex.Match(personaResponse, @"data-user-id=""(\d+)"">", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                                if (!uid.Success) {
+                                    HandleException(new AdKatsException("Could not find user ID for " + aPlayer.player_name));
+                                } else {
+                                    aPlayer.player_battlelog_userID = uid.Groups[1].Value.Trim();
+                                    Log.Debug(() => "User ID fetched for " + aPlayer.player_name + ", " + aPlayer.player_battlelog_userID, 4);
+                                    update = true;
+                                }
+                                if (update) {
+                                    UpdatePlayer(aPlayer);
+                                }
                             }
 
                             DoBattlelogWait();
-                            String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawoverviewpopulate/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount);
+                            String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawoverviewpopulate/" + aPlayer.player_battlelog_personaID + "/1/?cacherand=" + Environment.TickCount);
                             Hashtable json = (Hashtable)JSON.JsonDecode(overviewResponse);
                             Hashtable data = (Hashtable)json["data"];
                             Hashtable info = null;
@@ -40310,7 +40394,7 @@ namespace PRoConEvents
                     {
                         try
                         {
-                            if (String.IsNullOrEmpty(aPlayer.player_personaID))
+                            if (String.IsNullOrEmpty(aPlayer.player_battlelog_personaID))
                             {
                                 //Get persona (thanks areBen)
                                 DoBattlelogWait();
@@ -40320,10 +40404,12 @@ namespace PRoConEvents
                                     response = ClientDownloadTimer(client, @"http://api.bfhstats.com/api/playerInfo?plat=pc&name=" + aPlayer.player_name + "&opt=&output=json");
                                     Hashtable json = (Hashtable)JSON.JsonDecode(response);
 
-                                    if (json.ContainsKey("player"))
-                                    {
-                                        aPlayer.player_personaID = ((Hashtable)json["player"])["id"].ToString();
-                                        Log.Debug(() => "Fetched Persona ID from P-STATS NETWORK API for " + aPlayer.player_name, 3);
+                                    if (json.ContainsKey("player")) {
+                                        aPlayer.player_battlelog_personaID = ((Hashtable)json["player"])["id"].ToString();
+                                        Log.Debug(() => "Fetched Persona ID from P-STATS NETWORK API for " + aPlayer.player_name + ", " + aPlayer.player_battlelog_personaID, 3);
+                                        aPlayer.player_battlelog_userID = ((Hashtable)json["player"])["uId"].ToString();
+                                        Log.Debug(() => "Fetched User ID from P-STATS NETWORK API for " + aPlayer.player_name + ", " + aPlayer.player_battlelog_userID, 3);
+                                        UpdatePlayer(aPlayer);
                                     }
                                     else
                                     {
@@ -40332,23 +40418,40 @@ namespace PRoConEvents
                                 }
                                 catch (Exception)
                                 {
-                                    // If all else fails, get PID by NAME from Battlelog :(
+                                    // If all else fails, get PID/UID by NAME from Battlelog :(
                                     response = ClientDownloadTimer(client, @"http://battlelog.battlefield.com/bfh/user/" + aPlayer.player_name);
 
+                                    var update = false;
                                     Match pid = Regex.Match(response, @"bfh/agent/" + aPlayer.player_name + @"/stats/(\d+)/pc/", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                                    if (pid.Success)
-                                    {
-                                        aPlayer.player_personaID = pid.Groups[1].Value.Trim();
-                                        Log.Debug(() => "Fetched Persona ID from Battlelog for " + aPlayer.player_name, 3);
+                                    if (!pid.Success) {
+                                        HandleException(new AdKatsException("Could not find persona ID for " + aPlayer.player_name));
+                                        if (!String.IsNullOrEmpty(response)) {
+                                            ExecuteCommand("procon.protected.send", "admin.kickPlayer", aPlayer.player_name, "Battlelog info fetch issue. Please re-join.");
+                                        }
+                                        return false;
+                                    } else {
+                                        aPlayer.player_battlelog_personaID = pid.Groups[1].Value.Trim();
+                                        Log.Debug(() => "Persona ID fetched from Battlelog for " + aPlayer.player_name + ", " + aPlayer.player_battlelog_personaID, 4);
+                                        update = true;
                                     }
-                                    //additional catch statements for failed webrequest/etc.
+                                    Match uid = Regex.Match(response, @"data-user-id=""(\d+)"">", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                                    if (!uid.Success) {
+                                        HandleException(new AdKatsException("Could not find user ID for " + aPlayer.player_name));
+                                    } else {
+                                        aPlayer.player_battlelog_userID = uid.Groups[1].Value.Trim();
+                                        Log.Debug(() => "User ID fetched from Battlelog for " + aPlayer.player_name + ", " + aPlayer.player_battlelog_userID, 4);
+                                        update = true;
+                                    }
+                                    if (update) {
+                                        UpdatePlayer(aPlayer);
+                                    }
                                 }
                             }
 
-                            if (!String.IsNullOrEmpty(aPlayer.player_personaID)) {
+                            if (!String.IsNullOrEmpty(aPlayer.player_battlelog_personaID)) {
                                 //Get tag
                                 DoBattlelogWait();
-                                String soldierResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bfh/agent/" + aPlayer.player_name + "/stats/" + aPlayer.player_personaID + "/pc/?cacherand=" + Environment.TickCount);
+                                String soldierResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bfh/agent/" + aPlayer.player_name + "/stats/" + aPlayer.player_battlelog_personaID + "/pc/?cacherand=" + Environment.TickCount);
                                 Match tag = Regex.Match(soldierResponse, @"\[\s*([a-zA-Z0-9]+)\s*\]\s*</span>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                                 if (!tag.Success || String.IsNullOrEmpty(tag.Groups[1].Value.Trim())) {
                                     Log.Debug(() => "Could not find BFHL clan tag for " + aPlayer.player_name, 4);
@@ -40395,7 +40498,7 @@ namespace PRoConEvents
         }
 
         public Boolean FetchPlayerStatInformation(AdKatsPlayer aPlayer) {
-            if (aPlayer == null || String.IsNullOrEmpty(aPlayer.player_name) || String.IsNullOrEmpty(aPlayer.player_personaID)) {
+            if (aPlayer == null || String.IsNullOrEmpty(aPlayer.player_name) || String.IsNullOrEmpty(aPlayer.player_battlelog_personaID)) {
                 Log.Error("Attempted to fetch player stats info without needed info.");
                 return false;
             }
@@ -40405,7 +40508,7 @@ namespace PRoConEvents
                         //Fetch stats
                         AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
                         DoBattlelogWait();
-                        String weaponResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/weaponsPopulateStats/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount);
+                        String weaponResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/weaponsPopulateStats/" + aPlayer.player_battlelog_personaID + "/1/?cacherand=" + Environment.TickCount);
                         Hashtable responseData = (Hashtable) JSON.JsonDecode(weaponResponse);
 
                         if (responseData != null && 
@@ -40479,7 +40582,7 @@ namespace PRoConEvents
                         if (_useAntiCheatLIVESystem) {
                             //Fetch vehicle stats
                             DoBattlelogWait();
-                            String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/vehiclesPopulateStats/" + aPlayer.player_personaID + "/1/");
+                            String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/vehiclesPopulateStats/" + aPlayer.player_battlelog_personaID + "/1/");
                             Hashtable vehicleResponseData = (Hashtable) JSON.JsonDecode(vehicleResponse);
 
                             if (vehicleResponseData != null && 
@@ -40558,7 +40661,7 @@ namespace PRoConEvents
                         if (_useAntiCheatLIVESystem) {
                             //Handle overview stats
                             DoBattlelogWait();
-                            String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawdetailedstatspopulate/" + aPlayer.player_personaID + "/1/?cacherand=" + Environment.TickCount);
+                            String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawdetailedstatspopulate/" + aPlayer.player_battlelog_personaID + "/1/?cacherand=" + Environment.TickCount);
                             Hashtable json = (Hashtable) JSON.JsonDecode(overviewResponse);
                             Hashtable data = (Hashtable) json["data"];
                             Hashtable overviewStatsTable = null;
@@ -40580,7 +40683,7 @@ namespace PRoConEvents
 
                         //Handle specific weapon stats
                         DoBattlelogWait();
-                        String response = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/");
+                        String response = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawWeaponsPopulateStats/" + aPlayer.player_battlelog_personaID + "/1/stats/");
                         Hashtable responseData = (Hashtable) JSON.JsonDecode(response);
 
                         if (responseData.ContainsKey("type") && (String) responseData["type"] == "success" && responseData.ContainsKey("message") && (String) responseData["message"] == "OK" && responseData.ContainsKey("data")) {
@@ -40651,7 +40754,7 @@ namespace PRoConEvents
                         if (_useAntiCheatLIVESystem) {
                             //Fetch vehicle stats
                             DoBattlelogWait();
-                            String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/en/warsawvehiclesPopulateStats/" + aPlayer.player_personaID + "/1/stats/");
+                            String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/en/warsawvehiclesPopulateStats/" + aPlayer.player_battlelog_personaID + "/1/stats/");
                             Hashtable vehicleResponseData = (Hashtable) JSON.JsonDecode(vehicleResponse);
 
                             if (vehicleResponseData.ContainsKey("type") &&
@@ -40726,7 +40829,7 @@ namespace PRoConEvents
                         //Fetch stats
                         AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
                         DoBattlelogWait();
-                        String weaponResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bfh/BFHWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/?cacherand=" + Environment.TickCount);
+                        String weaponResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bfh/BFHWeaponsPopulateStats/" + aPlayer.player_battlelog_personaID + "/1/stats/?cacherand=" + Environment.TickCount);
                         Hashtable responseData = (Hashtable) JSON.JsonDecode(weaponResponse);
 
                         if (responseData.ContainsKey("type") && (String) responseData["type"] == "success" && responseData.ContainsKey("message") && (String) responseData["message"] == "OK" && responseData.ContainsKey("data")) {
@@ -43540,7 +43643,9 @@ namespace PRoConEvents
             public TimeSpan player_serverplaytime = TimeSpan.FromSeconds(0);
             public Boolean player_spawnedOnce = false;
             public PlayerType player_type = PlayerType.Player;
-            public String player_personaID = null;
+            public Boolean BLInfoStored = false;
+            public String player_battlelog_personaID = null;
+            public String player_battlelog_userID = null;
             private Boolean player_locked;
             private DateTime player_locked_start = DateTime.UtcNow;
             private TimeSpan player_locked_duration = TimeSpan.Zero;
