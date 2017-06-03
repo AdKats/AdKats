@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.150
+ * Version 6.9.0.151
  * 3-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.150</version_code>
+ * <version_code>6.9.0.151</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.150";
+        private const String PluginVersion = "6.9.0.151";
 
         public enum GameVersion {
             BF3,
@@ -12398,7 +12398,7 @@ namespace PRoConEvents
                                             }
                                             else
                                             {
-                                                Log.Debug(() => "Skipping additional auto-actions for multi-kill event.", 2);
+                                                Log.Debug(() => "Skipping additional auto-actions for multi-kill event.", 3);
                                                 continue;
                                             }
 
@@ -12643,7 +12643,7 @@ namespace PRoConEvents
                                         }
                                         else
                                         {
-                                            Log.Debug(() => "Skipping additional auto-actions for multi-kill event.", 2);
+                                            Log.Debug(() => "Skipping additional auto-actions for multi-kill event.", 3);
                                         }
                                     }
                                     else
@@ -40319,8 +40319,7 @@ namespace PRoConEvents
                     {
                         try
                         {
-                            // Always fetch when using experimental tools temporarily
-                            if (String.IsNullOrEmpty(aPlayer.player_battlelog_personaID) || _UseExperimentalTools)
+                            if (String.IsNullOrEmpty(aPlayer.player_battlelog_personaID))
                             {
                                 DoBattlelogWait();
 
