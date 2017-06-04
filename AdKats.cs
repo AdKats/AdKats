@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.151
- * 3-JUN-2017
+ * Version 6.9.0.152
+ * 4-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.151</version_code>
+ * <version_code>6.9.0.152</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.151";
+        private const String PluginVersion = "6.9.0.152";
 
         public enum GameVersion {
             BF3,
@@ -13667,7 +13667,7 @@ namespace PRoConEvents
                         try
                         {
                             if (_BattlelogFetchQueue.Count >= 5) {
-                                Log.Debug(() => "AntiCheat waiting on battlelog fetches to complete.", 4);
+                                Log.Debug(() => "AntiCheat waiting on battlelog fetches to complete [" + _BattlelogFetchQueue.Count + "].", 4);
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(10));
                                 continue;
                             }
@@ -28019,7 +28019,9 @@ namespace PRoConEvents
             {
                 record.record_action_executed = true;
                 PlayerSayMessage(record.target_player.player_name, record.record_message);
-                SendMessageToSource(record, record.GetTargetNames() + " has been told '" + record.record_message + "' by SAY");
+                if (record.record_source != AdKatsRecord.Sources.ServerCommand) {
+                    SendMessageToSource(record, record.GetTargetNames() + " has been told '" + record.record_message + "' by SAY");
+                }
             }
             catch (Exception e)
             {
@@ -28460,7 +28462,9 @@ namespace PRoConEvents
             {
                 record.record_action_executed = true;
                 PlayerYellMessage(record.target_player.player_name, record.record_message);
-                SendMessageToSource(record, record.GetTargetNames() + " has been told '" + record.record_message + "' by YELL");
+                if (record.record_source != AdKatsRecord.Sources.ServerCommand) {
+                    SendMessageToSource(record, record.GetTargetNames() + " has been told '" + record.record_message + "' by YELL");
+                }
             }
             catch (Exception e)
             {
@@ -28499,7 +28503,9 @@ namespace PRoConEvents
             {
                 record.record_action_executed = true;
                 PlayerTellMessage(record.target_player.player_name, record.record_message);
-                SendMessageToSource(record, record.GetTargetNames() + " has been told '" + record.record_message + "' by TELL");
+                if (record.record_source != AdKatsRecord.Sources.ServerCommand) {
+                    SendMessageToSource(record, record.GetTargetNames() + " has been told '" + record.record_message + "' by TELL");
+                }
             }
             catch (Exception e)
             {
