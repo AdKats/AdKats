@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.152
- * 4-JUN-2017
+ * Version 6.9.0.153
+ * 5-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.152</version_code>
+ * <version_code>6.9.0.153</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.152";
+        private const String PluginVersion = "6.9.0.153";
 
         public enum GameVersion {
             BF3,
@@ -2368,7 +2368,7 @@ namespace PRoConEvents
                     if (enforceSingleInstance != _enforceSingleInstance)
                     {
                         _enforceSingleInstance = enforceSingleInstance;
-                        if (!_enforceSingleInstance)
+                        if (!_enforceSingleInstance && _threadsReady)
                         {
                             var message = "Running multiple instances of AdKats on the same server is a very bad idea. If you are sure this won't happen, it's safe to disable this setting.";
                             Log.Warn(message);
@@ -31132,7 +31132,7 @@ namespace PRoConEvents
                       `gravatar` varchar(32) COLLATE utf8_unicode_ci DEFAULT NULL,
                       `persona_banned` tinyint(1) NOT NULL DEFAULT 0,
                       PRIMARY KEY (`player_id`),
-                      UNIQUE KEY `adkats_battlelog_players_player_id_persona_id_unique` (`player_id`,`persona_id`),
+                      UNIQUE KEY `adkats_battlelog_players_player_id_persona_id_unique` (`player_id`,`persona_id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Player Battlelog Info';", true);
                 SendNonQuery("Adding battlelog information table foreign keys", @"
                     ALTER TABLE `adkats_battlelog_players` ADD CONSTRAINT `adkats_battlelog_players_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE", true);
