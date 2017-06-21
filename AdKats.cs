@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.153
- * 5-JUN-2017
+ * Version 6.9.0.154
+ * 20-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.153</version_code>
+ * <version_code>6.9.0.154</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.153";
+        private const String PluginVersion = "6.9.0.154";
 
         public enum GameVersion {
             BF3,
@@ -141,23 +141,7 @@ namespace PRoConEvents
             "Mike",
             "November",
             "Oscar",
-            "Papa"/*,
-            "Quebec",
-            "Romeo",
-            "Sierra",
-            "Tango",
-            "Uniform",
-            "Victor",
-            "Whiskey",
-            "Xray",
-            "Yankee",
-            "Zulu",
-            "Haggard",
-            "Sweetwater",
-            "Preston",
-            "Redford",
-            "Faith",
-            "Celeste"*/
+            "Papa"
         };
         private const Boolean FullDebug = false;
         private const Boolean SlowMoOnException = false;
@@ -237,7 +221,6 @@ namespace PRoConEvents
         private DateTime _lastDatabaseTimeout = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastDbActionFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastDbSettingFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private DateTime _lastSuccessfulPlayerList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastSettingPageUpdate = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastSettingPageUpdateRequest = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastUserFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
@@ -249,8 +232,8 @@ namespace PRoConEvents
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
         private DateTime _LastBattlelogIssue = DateTime.UtcNow - TimeSpan.FromSeconds(30);
-        private DateTime _LastServerInfoFire = DateTime.UtcNow - TimeSpan.FromSeconds(30);
-        private DateTime _LastPlayerListFire = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+        private DateTime _LastServerInfoTrigger = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+        private DateTime _LastServerInfoReceive = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private Object _battlelogLocker = new Object();
         private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(2.5);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
@@ -263,6 +246,14 @@ namespace PRoConEvents
         private DateTime _lastIPAPIError = DateTime.UtcNow;
         private DateTime _lastBattlelogFrequencyMessage = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private Queue<DateTime> _BattlelogActionTimes = new Queue<DateTime>();
+        private DateTime _LastPlayerListTrigger = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+        private Queue<DateTime> _PlayerListTriggerTimes = new Queue<DateTime>();
+        private DateTime _LastPlayerListReceive = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+        private Queue<DateTime> _PlayerListReceiveTimes = new Queue<DateTime>();
+        private DateTime _LastPlayerListSuccess = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+        private Queue<DateTime> _PlayerListSuccessTimes = new Queue<DateTime>();
+        private Boolean _DebugPlayerListing = false;
+        private DateTime _LastDebugPlayerListingMessage = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private Queue<TimeSpan> _startupDurations = new Queue<TimeSpan>();
 
         //Server
@@ -2233,6 +2224,10 @@ namespace PRoConEvents
                         else if (tmp == 2563) {
                             _debugDisplayPlayerFetches = !_debugDisplayPlayerFetches;
                             Log.Info("Player Fetch Debug Display: " + _debugDisplayPlayerFetches);
+                        } 
+                        else if (tmp == 7621) {
+                            _DebugPlayerListing = !_DebugPlayerListing;
+                            Log.Info("Player Listing Debug Display: " + _DebugPlayerListing);
                         }
                         else if (tmp != Log.DebugLevel)
                         {
@@ -7096,7 +7091,7 @@ namespace PRoConEvents
                     DateTime lastShortKeepAliveCheck = UtcNow();
                     DateTime lastLongKeepAliveCheck = UtcNow();
                     DateTime lastVeryLongKeepAliveCheck = UtcNow();
-                    ExecuteCommand("procon.protected.send", "serverInfo");
+                    DoServerInfoTrigger();
                     DateTime lastMemoryWarning = UtcNow();
                     while (true)
                     {
@@ -7186,6 +7181,11 @@ namespace PRoConEvents
                                         _lastBattlelogFrequencyMessage = UtcNow();
                                     }
                                 }
+                            }
+
+                            if (_DebugPlayerListing && NowDuration(_LastDebugPlayerListingMessage).TotalSeconds > 30.0) {
+                                Log.Info("PlayerListing: " + Math.Round(getPlayerListTriggerRate(), 1) + " Triggers/min, " + Math.Round(getPlayerListReceiveRate(), 1) + " Receives/min, " + Math.Round(getPlayerListSuccessRate(), 1) + " Success/min");
+                                _LastDebugPlayerListingMessage = UtcNow();
                             }
 
                             //Check for unswitcher disable - every 5 seconds
@@ -7481,7 +7481,7 @@ namespace PRoConEvents
                                 //Player listing check
                                 if (_pluginEnabled &&
                                     _firstPlayerListComplete &&
-                                    NowDuration(_lastSuccessfulPlayerList).TotalMinutes > 10.0) {
+                                    NowDuration(_LastPlayerListSuccess).TotalMinutes > 10.0) {
                                     //Create report record
                                     QueueRecordForProcessing(new AdKatsRecord {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -7812,15 +7812,19 @@ namespace PRoConEvents
                             }
 
                             //Server info fetch - every 5 seconds
-                            if (_threadsReady && NowDuration(_LastServerInfoFire).TotalSeconds > 4.5)
+                            if (_threadsReady && 
+                                NowDuration(_LastServerInfoReceive).TotalSeconds > 4.9 && 
+                                NowDuration(_LastServerInfoTrigger).TotalSeconds > 4.9)
                             {
-                                ExecuteCommand("procon.protected.send", "serverInfo");
+                                DoServerInfoTrigger();
                             }
 
                             //Player Info fetch - every 5 seconds
-                            if (_threadsReady && NowDuration(_LastPlayerListFire).TotalSeconds > 4.5)
+                            if (_threadsReady && 
+                                NowDuration(_LastPlayerListReceive).TotalSeconds > 4.9 && 
+                                NowDuration(_LastPlayerListTrigger).TotalSeconds > 4.9)
                             {
-                                ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+                                DoPlayerListTrigger();
                             }
                             
                             if (_pluginEnabled) {
@@ -8765,9 +8769,9 @@ namespace PRoConEvents
                 //Only handle the list if it is an "All players" list
                 if (cpsSubset.Subset == CPlayerSubset.PlayerSubsetType.All)
                 {
-                    _LastPlayerListFire = UtcNow();
+                    DoPlayerListReceive();
                     //Return if small duration (5 seconds) since last player list
-                    if ((UtcNow() - _lastSuccessfulPlayerList) < TimeSpan.FromSeconds(5))
+                    if ((UtcNow() - _LastPlayerListSuccess) < TimeSpan.FromSeconds(5))
                     {
                         return;
                     }
@@ -8904,9 +8908,8 @@ namespace PRoConEvents
                         {
                             Log.Debug(() => "No inbound player listing actions. Waiting for Input.", 5);
                             //Wait for input
-                            if (!_firstPlayerListStarted)
-                            {
-                                ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+                            if (!_firstPlayerListStarted) {
+                                DoPlayerListTrigger();
                                 Thread.Sleep(1000);
                             }
                             if ((UtcNow() - loopStart).TotalMilliseconds > 1000)
@@ -8919,7 +8922,7 @@ namespace PRoConEvents
                             if (_firstPlayerListComplete)
                             {
                                 //Case where all players are gone after first player list
-                                _lastSuccessfulPlayerList = UtcNow();
+                                _LastPlayerListSuccess = UtcNow();
                             }
                             continue;
                         }
@@ -9727,7 +9730,7 @@ namespace PRoConEvents
                         }
 
                         //Update last successful player list time
-                        _lastSuccessfulPlayerList = UtcNow();
+                        DoPlayerListSuccess();
                         //Set required handles 
                         _PlayerListUpdateWaitHandle.Set();
                         _TeamswapWaitHandle.Set();
@@ -10120,11 +10123,11 @@ namespace PRoConEvents
                         if (serverInfo != null)
                         {
                             //Get the server info
-                            if (NowDuration(_LastServerInfoFire).TotalSeconds < 9.5)
+                            if (NowDuration(_LastServerInfoReceive).TotalSeconds < 9.5)
                             {
                                 return;
                             }
-                            _LastServerInfoFire = UtcNow();
+                            _LastServerInfoReceive = UtcNow();
                             _serverInfo.SetInfoObject(serverInfo);
                             if (serverInfo.TeamScores != null)
                             {
@@ -10957,7 +10960,7 @@ namespace PRoConEvents
                     //Change round state
                     _roundState = RoundState.Loaded;
                     //Request new server info
-                    ExecuteCommand("procon.protected.send", "serverInfo");
+                    DoServerInfoTrigger();
                     //Completely clear all round-specific data
                     _endingRound = false;
                     _surrenderVoteList.Clear();
@@ -29047,7 +29050,7 @@ namespace PRoConEvents
                         _threadMasterWaitHandle.WaitOne(3000);
                         SendMessageToSource(record, "AdKats " + PluginVersion + ": " + FormatTimeString(UtcNow() - _AdKatsRunningTime, 10));
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "Last Player List: " + FormatTimeString(UtcNow() - _lastSuccessfulPlayerList, 10) + " ago");
+                        SendMessageToSource(record, "Last Player List: " + FormatTimeString(UtcNow() - _LastPlayerListSuccess, 10) + " ago");
                         _threadMasterWaitHandle.WaitOne(3000);
                         SendMessageToSource(record, "Server has been in " + _populationStatus.ToString().ToLower() + " population for " + FormatTimeString(UtcNow() - _populationTransitionTime, 3));
                         Double totalPopulationDuration = _populationDurations[PopulationState.Low].TotalSeconds + _populationDurations[PopulationState.Medium].TotalSeconds + _populationDurations[PopulationState.High].TotalSeconds;
@@ -38617,7 +38620,7 @@ namespace PRoConEvents
                 }
                 Log.Info("Fetching player list.");
                 //Call player listing immediately
-                ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+                DoPlayerListTrigger();
             }
             else
             {
@@ -43303,6 +43306,69 @@ namespace PRoConEvents
             catch (Exception e) {
                 HandleException(new AdKatsException("Error performing battlelog wait.", e));
                 _threadMasterWaitHandle.WaitOne(_BattlelogWaitDuration);
+            }
+        }
+
+        private void DoServerInfoTrigger() {
+            _LastServerInfoTrigger = UtcNow();
+            ExecuteCommand("procon.protected.send", "serverInfo");
+        }
+
+        private void DoPlayerListTrigger() {
+            lock (_PlayerListTriggerTimes) {
+                while (_PlayerListTriggerTimes.Any() && NowDuration(_PlayerListTriggerTimes.Peek()).TotalMinutes > 4) {
+                    _PlayerListTriggerTimes.Dequeue();
+                }
+                _LastPlayerListTrigger = UtcNow();
+                _PlayerListTriggerTimes.Enqueue(_LastPlayerListTrigger);
+                ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+            }
+        }
+
+        private Double getPlayerListTriggerRate() {
+            lock(_PlayerListTriggerTimes) {
+                while (_PlayerListTriggerTimes.Any() && NowDuration(_PlayerListTriggerTimes.Peek()).TotalMinutes > 4) {
+                    _PlayerListTriggerTimes.Dequeue();
+                }
+                return _PlayerListTriggerTimes.Count() / NowDuration(_PlayerListTriggerTimes.Min()).TotalMinutes;
+            }
+        }
+
+        private void DoPlayerListReceive() {
+            lock (_PlayerListReceiveTimes) {
+                while (_PlayerListReceiveTimes.Any() && NowDuration(_PlayerListReceiveTimes.Peek()).TotalMinutes > 4) {
+                    _PlayerListReceiveTimes.Dequeue();
+                }
+                _LastPlayerListReceive = UtcNow();
+                _PlayerListReceiveTimes.Enqueue(_LastPlayerListReceive);
+            }
+        }
+
+        private Double getPlayerListReceiveRate() {
+            lock (_PlayerListReceiveTimes) {
+                while (_PlayerListReceiveTimes.Any() && NowDuration(_PlayerListReceiveTimes.Peek()).TotalMinutes > 4) {
+                    _PlayerListReceiveTimes.Dequeue();
+                }
+                return _PlayerListReceiveTimes.Count() / NowDuration(_PlayerListReceiveTimes.Min()).TotalMinutes;
+            }
+        }
+
+        private void DoPlayerListSuccess() {
+            lock (_PlayerListSuccessTimes) {
+                while (_PlayerListSuccessTimes.Any() && NowDuration(_PlayerListSuccessTimes.Peek()).TotalMinutes > 4) {
+                    _PlayerListSuccessTimes.Dequeue();
+                }
+                _LastPlayerListSuccess = UtcNow();
+                _PlayerListSuccessTimes.Enqueue(_LastPlayerListSuccess);
+            }
+        }
+
+        private Double getPlayerListSuccessRate() {
+            lock (_PlayerListSuccessTimes) {
+                while (_PlayerListSuccessTimes.Any() && NowDuration(_PlayerListSuccessTimes.Peek()).TotalMinutes > 4) {
+                    _PlayerListSuccessTimes.Dequeue();
+                }
+                return _PlayerListSuccessTimes.Count() / NowDuration(_PlayerListSuccessTimes.Min()).TotalMinutes;
             }
         }
 
