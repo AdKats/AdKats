@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.154
- * 20-JUN-2017
+ * Version 6.9.0.155
+ * 21-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.154</version_code>
+ * <version_code>6.9.0.155</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.154";
+        private const String PluginVersion = "6.9.0.155";
 
         public enum GameVersion {
             BF3,
@@ -250,8 +250,10 @@ namespace PRoConEvents
         private Queue<DateTime> _PlayerListTriggerTimes = new Queue<DateTime>();
         private DateTime _LastPlayerListReceive = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private Queue<DateTime> _PlayerListReceiveTimes = new Queue<DateTime>();
-        private DateTime _LastPlayerListSuccess = DateTime.UtcNow - TimeSpan.FromSeconds(30);
-        private Queue<DateTime> _PlayerListSuccessTimes = new Queue<DateTime>();
+        private DateTime _LastPlayerListAccept = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+        private Queue<DateTime> _PlayerListAcceptTimes = new Queue<DateTime>();
+        private DateTime _LastPlayerListProcessed = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+        private Queue<DateTime> _PlayerListProcessedTimes = new Queue<DateTime>();
         private Boolean _DebugPlayerListing = false;
         private DateTime _LastDebugPlayerListingMessage = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private Queue<TimeSpan> _startupDurations = new Queue<TimeSpan>();
@@ -7184,7 +7186,7 @@ namespace PRoConEvents
                             }
 
                             if (_DebugPlayerListing && NowDuration(_LastDebugPlayerListingMessage).TotalSeconds > 30.0) {
-                                Log.Info("PlayerListing: " + Math.Round(getPlayerListTriggerRate(), 1) + " Triggers/min, " + Math.Round(getPlayerListReceiveRate(), 1) + " Receives/min, " + Math.Round(getPlayerListSuccessRate(), 1) + " Success/min");
+                                Log.Info("PlayerListing: " + Math.Round(getPlayerListTriggerRate(), 1) + " Triggered/min, " + Math.Round(getPlayerListReceiveRate(), 1) + " Received/min, " + Math.Round(getPlayerListAcceptRate(), 1) + " Accepted/min, " + Math.Round(getPlayerListProcessedRate(), 1) + " Processed/min");
                                 _LastDebugPlayerListingMessage = UtcNow();
                             }
 
@@ -7481,7 +7483,7 @@ namespace PRoConEvents
                                 //Player listing check
                                 if (_pluginEnabled &&
                                     _firstPlayerListComplete &&
-                                    NowDuration(_LastPlayerListSuccess).TotalMinutes > 10.0) {
+                                    NowDuration(_LastPlayerListProcessed).TotalMinutes > 10.0) {
                                     //Create report record
                                     QueueRecordForProcessing(new AdKatsRecord {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -7813,16 +7815,16 @@ namespace PRoConEvents
 
                             //Server info fetch - every 5 seconds
                             if (_threadsReady && 
-                                NowDuration(_LastServerInfoReceive).TotalSeconds > 4.9 && 
-                                NowDuration(_LastServerInfoTrigger).TotalSeconds > 4.9)
+                                NowDuration(_LastServerInfoReceive).TotalSeconds > 4.5 && 
+                                NowDuration(_LastServerInfoTrigger).TotalSeconds > 4.5)
                             {
                                 DoServerInfoTrigger();
                             }
 
                             //Player Info fetch - every 5 seconds
                             if (_threadsReady && 
-                                NowDuration(_LastPlayerListReceive).TotalSeconds > 4.9 && 
-                                NowDuration(_LastPlayerListTrigger).TotalSeconds > 4.9)
+                                NowDuration(_LastPlayerListAccept).TotalSeconds > 4.5 && 
+                                NowDuration(_LastPlayerListTrigger).TotalSeconds > 4.5)
                             {
                                 DoPlayerListTrigger();
                             }
@@ -8770,8 +8772,8 @@ namespace PRoConEvents
                 if (cpsSubset.Subset == CPlayerSubset.PlayerSubsetType.All)
                 {
                     DoPlayerListReceive();
-                    //Return if small duration (5 seconds) since last player list
-                    if ((UtcNow() - _LastPlayerListSuccess) < TimeSpan.FromSeconds(5))
+                    //Return if small duration (5 seconds) since last accepted player list
+                    if (NowDuration(_LastPlayerListAccept).TotalSeconds < 5.0)
                     {
                         return;
                     }
@@ -8803,6 +8805,7 @@ namespace PRoConEvents
                         Log.Debug(() => "Player list queued for processing", 6);
                         _PlayerProcessingWaitHandle.Set();
                     }
+                    DoPlayerListAccept();
                 }
             }
             catch (Exception e)
@@ -8922,7 +8925,7 @@ namespace PRoConEvents
                             if (_firstPlayerListComplete)
                             {
                                 //Case where all players are gone after first player list
-                                _LastPlayerListSuccess = UtcNow();
+                                _LastPlayerListProcessed = UtcNow();
                             }
                             continue;
                         }
@@ -9730,7 +9733,7 @@ namespace PRoConEvents
                         }
 
                         //Update last successful player list time
-                        DoPlayerListSuccess();
+                        DoPlayerListProcessed();
                         //Set required handles 
                         _PlayerListUpdateWaitHandle.Set();
                         _TeamswapWaitHandle.Set();
@@ -29050,7 +29053,7 @@ namespace PRoConEvents
                         _threadMasterWaitHandle.WaitOne(3000);
                         SendMessageToSource(record, "AdKats " + PluginVersion + ": " + FormatTimeString(UtcNow() - _AdKatsRunningTime, 10));
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "Last Player List: " + FormatTimeString(UtcNow() - _LastPlayerListSuccess, 10) + " ago");
+                        SendMessageToSource(record, "Last Player List: " + FormatTimeString(UtcNow() - _LastPlayerListProcessed, 10) + " ago");
                         _threadMasterWaitHandle.WaitOne(3000);
                         SendMessageToSource(record, "Server has been in " + _populationStatus.ToString().ToLower() + " population for " + FormatTimeString(UtcNow() - _populationTransitionTime, 3));
                         Double totalPopulationDuration = _populationDurations[PopulationState.Low].TotalSeconds + _populationDurations[PopulationState.Medium].TotalSeconds + _populationDurations[PopulationState.High].TotalSeconds;
@@ -43353,22 +43356,41 @@ namespace PRoConEvents
             }
         }
 
-        private void DoPlayerListSuccess() {
-            lock (_PlayerListSuccessTimes) {
-                while (_PlayerListSuccessTimes.Any() && NowDuration(_PlayerListSuccessTimes.Peek()).TotalMinutes > 4) {
-                    _PlayerListSuccessTimes.Dequeue();
+        private void DoPlayerListAccept() {
+            lock (_PlayerListAcceptTimes) {
+                while (_PlayerListAcceptTimes.Any() && NowDuration(_PlayerListAcceptTimes.Peek()).TotalMinutes > 4) {
+                    _PlayerListAcceptTimes.Dequeue();
                 }
-                _LastPlayerListSuccess = UtcNow();
-                _PlayerListSuccessTimes.Enqueue(_LastPlayerListSuccess);
+                _LastPlayerListAccept = UtcNow();
+                _PlayerListAcceptTimes.Enqueue(_LastPlayerListAccept);
             }
         }
 
-        private Double getPlayerListSuccessRate() {
-            lock (_PlayerListSuccessTimes) {
-                while (_PlayerListSuccessTimes.Any() && NowDuration(_PlayerListSuccessTimes.Peek()).TotalMinutes > 4) {
-                    _PlayerListSuccessTimes.Dequeue();
+        private Double getPlayerListAcceptRate() {
+            lock (_PlayerListAcceptTimes) {
+                while (_PlayerListAcceptTimes.Any() && NowDuration(_PlayerListAcceptTimes.Peek()).TotalMinutes > 4) {
+                    _PlayerListAcceptTimes.Dequeue();
                 }
-                return _PlayerListSuccessTimes.Count() / NowDuration(_PlayerListSuccessTimes.Min()).TotalMinutes;
+                return _PlayerListAcceptTimes.Count() / NowDuration(_PlayerListAcceptTimes.Min()).TotalMinutes;
+            }
+        }
+
+        private void DoPlayerListProcessed() {
+            lock (_PlayerListProcessedTimes) {
+                while (_PlayerListProcessedTimes.Any() && NowDuration(_PlayerListProcessedTimes.Peek()).TotalMinutes > 4) {
+                    _PlayerListProcessedTimes.Dequeue();
+                }
+                _LastPlayerListProcessed = UtcNow();
+                _PlayerListProcessedTimes.Enqueue(_LastPlayerListProcessed);
+            }
+        }
+
+        private Double getPlayerListProcessedRate() {
+            lock (_PlayerListProcessedTimes) {
+                while (_PlayerListProcessedTimes.Any() && NowDuration(_PlayerListProcessedTimes.Peek()).TotalMinutes > 4) {
+                    _PlayerListProcessedTimes.Dequeue();
+                }
+                return _PlayerListProcessedTimes.Count() / NowDuration(_PlayerListProcessedTimes.Min()).TotalMinutes;
             }
         }
 
