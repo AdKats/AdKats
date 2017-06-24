@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.155
- * 21-JUN-2017
+ * Version 6.9.0.156
+ * 23-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.155</version_code>
+ * <version_code>6.9.0.156</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.155";
+        private const String PluginVersion = "6.9.0.156";
 
         public enum GameVersion {
             BF3,
@@ -703,6 +703,11 @@ namespace PRoConEvents
         private Boolean _DisplayTicketRatesInProconChat;
         private Boolean _InformReputablePlayersOfAdminJoins = false;
         private Boolean _InformAdminsOfAdminJoins = true;
+        private Boolean _UseAllCapsLimiter = false;
+        private Int32 _AllCapsLimterPercentage = 80;
+        private Int32 _AllCapsLimiterWarnThreshold = 2;
+        private Int32 _AllCapsLimiterKillThreshold = 4;
+        private Int32 _AllCapsLimiterKickThreshold = 5;
 
         //SpamBot
         private Boolean _spamBotEnabled;
@@ -1271,7 +1276,7 @@ namespace PRoConEvents
 
                     if (IsActiveSettingSection("A12")) {
                         //Message Settings
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display Admin Name in Action Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display Targeted Player Left Notification", typeof(Boolean), _ShowTargetedPlayerLeftNotification));
@@ -1282,13 +1287,20 @@ namespace PRoConEvents
                         }
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Inform reputable players of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Inform admins of admin joins", typeof(Boolean), _InformAdminsOfAdminJoins));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Yell display time seconds", typeof(int), _YellDuration));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Yell display time seconds", typeof(Int32), _YellDuration));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Pre-Message List", typeof(String[]), _PreMessageList.ToArray()));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
                         if (_UseFirstSpawnMessage) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "First spawn message text", typeof(String), _FirstSpawnMessage));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use First Spawn Reputation and Infraction Message", typeof(Boolean), _useFirstSpawnRepMessage));
+                        }
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use All Caps Limiter", typeof(Boolean), _UseAllCapsLimiter));
+                        if (_UseAllCapsLimiter) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Character Percentage", typeof(Int32), _AllCapsLimterPercentage));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Warn Threshold", typeof(Int32), _AllCapsLimiterWarnThreshold));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Kill Threshold", typeof(Int32), _AllCapsLimiterKillThreshold));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Kick Threshold", typeof(Int32), _AllCapsLimiterKickThreshold));
                         }
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use Perk Expiration Notification", typeof(Boolean), _UsePerkExpirationNotify));
                         if (_UsePerkExpirationNotify)
@@ -6287,7 +6299,7 @@ namespace PRoConEvents
                     _battlecryDeniedWords = CPluginVariable.DecodeStringArray(strValue);
                     QueueSettingForUpload(new CPluginVariable(@"Player Battlecry Denied Words", typeof(String), CPluginVariable.EncodeStringArray(_battlecryDeniedWords)));
                 }
-                else if (Regex.Match(strVariable, @"Display Admin Name in Kick and Ban Announcement").Success)
+                else if (Regex.Match(strVariable, @"Display Admin Name in ").Success)
                 {
                     Boolean display = Boolean.Parse(strValue);
                     if (display != _ShowAdminNameInAnnouncement)
@@ -6372,8 +6384,58 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Inform admins of admin joins", typeof(Boolean), _InformAdminsOfAdminJoins));
                     }
-                }
-                else if (Regex.Match(strVariable, @"Add User").Success)
+                } else if (Regex.Match(strVariable, @"Use All Caps Limiter").Success) {
+                    Boolean UseAllCapsLimiter = Boolean.Parse(strValue);
+                    if (UseAllCapsLimiter != _UseAllCapsLimiter) {
+                        _UseAllCapsLimiter = UseAllCapsLimiter;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Use All Caps Limiter", typeof(Boolean), _UseAllCapsLimiter));
+                    }
+                } else if (Regex.Match(strVariable, @"All Caps Limiter Character Percentage").Success) {
+                    Int32 AllCapsLimterPercentage = Int32.Parse(strValue);
+                    if (_AllCapsLimterPercentage != AllCapsLimterPercentage) {
+                        if (AllCapsLimterPercentage < 50) {
+                            Log.Error("All Caps Limiter Character Percentage cannot be less than 50%.");
+                            AllCapsLimterPercentage = 50;
+                        }
+                        if (AllCapsLimterPercentage > 100) {
+                            Log.Error("All Caps Limiter Character Percentage cannot be greater than 100%.");
+                            AllCapsLimterPercentage = 100;
+                        }
+                        _AllCapsLimterPercentage = AllCapsLimterPercentage;
+                        QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Character Percentage", typeof(Int32), _AllCapsLimterPercentage));
+                    }
+                } else if (Regex.Match(strVariable, @"All Caps Limiter Warn Threshold").Success) {
+                    Int32 AllCapsLimiterWarnThreshold = Int32.Parse(strValue);
+                    if (_AllCapsLimiterWarnThreshold != AllCapsLimiterWarnThreshold) {
+                        if (AllCapsLimiterWarnThreshold < 1) {
+                            Log.Error("All Caps Limiter Warn Threshold cannot be less than 1.");
+                            AllCapsLimiterWarnThreshold = 1;
+                        }
+                        _AllCapsLimiterWarnThreshold = AllCapsLimiterWarnThreshold;
+                        QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Warn Threshold", typeof(Int32), _AllCapsLimiterWarnThreshold));
+                    }
+                } else if (Regex.Match(strVariable, @"All Caps Limiter Kill Threshold").Success) {
+                    Int32 AllCapsLimiterKillThreshold = Int32.Parse(strValue);
+                    if (_AllCapsLimiterKillThreshold != AllCapsLimiterKillThreshold) {
+                        if (AllCapsLimiterKillThreshold < 2) {
+                            Log.Error("All Caps Limiter Kill Threshold cannot be less than 2.");
+                            AllCapsLimiterKillThreshold = 2;
+                        }
+                        _AllCapsLimiterKillThreshold = AllCapsLimiterKillThreshold;
+                        QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Kill Threshold", typeof(Int32), _AllCapsLimiterKillThreshold));
+                    }
+                } else if (Regex.Match(strVariable, @"All Caps Limiter Kick Threshold").Success) {
+                    Int32 AllCapsLimiterKickThreshold = Int32.Parse(strValue);
+                    if (_AllCapsLimiterKickThreshold != AllCapsLimiterKickThreshold) {
+                        if (AllCapsLimiterKickThreshold < 3) {
+                            Log.Error("All Caps Limiter Kick Threshold cannot be less than 3.");
+                            AllCapsLimiterKickThreshold = 3;
+                        }
+                        _AllCapsLimiterKickThreshold = AllCapsLimiterKickThreshold;
+                        QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Kick Threshold", typeof(Int32), _AllCapsLimiterKickThreshold));
+                    }
+                } else if (Regex.Match(strVariable, @"Add User").Success)
                 {
                     if (IsSoldierNameValid(strValue))
                     {
@@ -8772,8 +8834,8 @@ namespace PRoConEvents
                 if (cpsSubset.Subset == CPlayerSubset.PlayerSubsetType.All)
                 {
                     DoPlayerListReceive();
-                    //Return if small duration (5 seconds) since last accepted player list
-                    if (NowDuration(_LastPlayerListAccept).TotalSeconds < 5.0)
+                    //Return if small duration (1 second) since last accepted player list
+                    if (NowDuration(_LastPlayerListAccept).TotalSeconds < 1.0)
                     {
                         return;
                     }
@@ -15160,10 +15222,6 @@ namespace PRoConEvents
                             AdKatsPlayer aPlayer;
                             if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer))
                             {
-                                if (aPlayer.player_guid == "EA_18141AAC8A0A9BB2A2C8093F6E00B936" && messageObject.Message.ToLower().Contains("obama"))
-                                {
-                                    ExecuteCommand("procon.protected.send", "admin.killPlayer", aPlayer.player_name);
-                                }
                                 if (!_AFKIgnoreChat)
                                 {
                                     //Update player last action
@@ -15279,6 +15337,53 @@ namespace PRoConEvents
                                             }
                                             QueueRecordForProcessing(record);
                                             continue;
+                                        }
+                                    }
+                                }
+                                //Check if the all caps system should act on this player
+                                if (_UseAllCapsLimiter && 
+                                    GetStringUpperPercentage(messageObject.Message) >= _AllCapsLimterPercentage) {
+                                    AdKatsPlayer allCapsPlayer = null;
+                                    if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out allCapsPlayer)) {
+                                        if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterKickThreshold) {
+                                            //Kick
+                                            QueueRecordForProcessing(new AdKatsRecord {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("player_kick"),
+                                                command_numeric = 0,
+                                                target_name = allCapsPlayer.player_name,
+                                                target_player = allCapsPlayer,
+                                                source_name = "ChatManager",
+                                                record_message = "Excessively speaking in all-caps.",
+                                                record_time = UtcNow()
+                                            });
+                                        } else if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterKillThreshold) {
+                                            //Kill
+                                            QueueRecordForProcessing(new AdKatsRecord {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("player_kill"),
+                                                command_numeric = 0,
+                                                target_name = allCapsPlayer.player_name,
+                                                target_player = allCapsPlayer,
+                                                source_name = "ChatManager",
+                                                record_message = "Continuing to speak in all-caps.",
+                                                record_time = UtcNow()
+                                            });
+                                        } else if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterWarnThreshold) {
+                                            //Warn
+                                            QueueRecordForProcessing(new AdKatsRecord {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("player_warn"),
+                                                command_numeric = 0,
+                                                target_name = allCapsPlayer.player_name,
+                                                target_player = allCapsPlayer,
+                                                source_name = "ChatManager",
+                                                record_message = "Speaking in all-caps.",
+                                                record_time = UtcNow()
+                                            });
                                         }
                                     }
                                 }
@@ -24181,6 +24286,8 @@ namespace PRoConEvents
                                 {
                                     AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                                 }
+                            } else {
+                                AdminSayMessage(record.GetTargetNames() + " KILLED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                             }
                             int seconds = (int)UtcNow().Subtract(record.target_player.lastDeath).TotalSeconds;
                             Log.Debug(() => "Killing player. Player last died " + seconds + " seconds ago.", 3);
@@ -24211,6 +24318,8 @@ namespace PRoConEvents
                                     {
                                         AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                                     }
+                                } else {
+                                    AdminSayMessage(record.GetTargetNames() + " KILLED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                                 }
                                 if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name))
                                 {
@@ -24306,7 +24415,11 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    SendMessageToSource(record, "You WARNED " + record.GetTargetNames() + " for " + record.record_message);
+                    if (record.record_source != AdKatsRecord.Sources.InGame && 
+                        record.record_source != AdKatsRecord.Sources.InternalAutomated && 
+                        record.record_source != AdKatsRecord.Sources.ServerCommand) {
+                        SendMessageToSource(record, "You WARNED " + record.GetTargetNames() + " for " + record.record_message);
+                    }
                     AdminSayMessage(record.GetTargetNames() + " WARNED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                     PlayerTellMessage(record.target_name, "Warned by admin for " + record.record_message, true, 3);
                 }
@@ -24417,11 +24530,11 @@ namespace PRoConEvents
                     {
                         AdminSayMessage(record.GetTargetNames() + " was KICKED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                     }
-                    if (record.target_player.fbpInfo != null)
+                    if (record.target_player.fbpInfo != null) 
                     {
                         SendMessageToSource(record, "You KICKED " + record.GetTargetNames() + " from " + GetPlayerTeamName(record.target_player) + " for " + record.record_message);
-                    }
-                    else
+                    } 
+                    else 
                     {
                         SendMessageToSource(record, "You KICKED " + record.GetTargetNames() + " for " + record.record_message);
                     }
@@ -27190,8 +27303,13 @@ namespace PRoConEvents
                     if (!_RoundMutedPlayers.ContainsKey(record.target_player.player_name))
                     {
                         _RoundMutedPlayers.Add(record.target_player.player_name, 0);
+                        AdminSayMessage(record.GetTargetNames() + " has been muted for this round.");
+                        if (record.record_source != AdKatsRecord.Sources.InGame &&
+                            record.record_source != AdKatsRecord.Sources.InternalAutomated &&
+                            record.record_source != AdKatsRecord.Sources.ServerCommand) {
+                            SendMessageToSource(record, record.GetTargetNames() + " has been muted for this round.");
+                        }
                         PlayerSayMessage(record.target_player.player_name, _MutedPlayerMuteMessage);
-                        SendMessageToSource(record, record.GetTargetNames() + " has been muted for this round.");
                     }
                     else
                     {
@@ -31596,6 +31714,11 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"Inform reputable players of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
                 QueueSettingForUpload(new CPluginVariable(@"Inform admins of admin joins", typeof(Boolean), _InformAdminsOfAdminJoins));
+                QueueSettingForUpload(new CPluginVariable(@"Use All Caps Limiter", typeof(Boolean), _UseAllCapsLimiter));
+                QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Character Percentage", typeof(Int32), _AllCapsLimterPercentage));
+                QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Warn Threshold", typeof(Int32), _AllCapsLimiterWarnThreshold));
+                QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Kill Threshold", typeof(Int32), _AllCapsLimiterKillThreshold));
+                QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Kick Threshold", typeof(Int32), _AllCapsLimiterKickThreshold));
                 QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
                 QueueSettingForUpload(new CPluginVariable(@"Enforce Single Instance", typeof(Boolean), _enforceSingleInstance));
@@ -43445,6 +43568,14 @@ namespace PRoConEvents
             return 0;
         }
 
+        public Int32 GetStringUpperPercentage(String input) {
+            Int32 upperCount = 0;
+            foreach (var character in input.ToCharArray()) {
+                if (char.IsUpper(character)) upperCount++;
+            }
+            return (Int32)Math.Round((Double)upperCount / (Double)input.Length * 100.0);
+        }
+
         private void FetchIPLocation(AdKatsPlayer aPlayer)
         {
             if (String.IsNullOrEmpty(aPlayer.player_ip) || (aPlayer.location != null && aPlayer.location.status == "success" && aPlayer.player_ip == aPlayer.location.IP))
@@ -43756,6 +43887,7 @@ namespace PRoConEvents
             public Boolean player_ping_added { get; private set; }
             public Boolean player_ping_manual = false;
             public AdKatsPlayer conversationPartner = null;
+            public Int32 AllCapsMessages = 0;
 
             public Dictionary<Int64, AdKatsPlayerStats> RoundStats;
             public AdKatsTopStats TopStats;
