@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.156
+ * Version 6.9.0.157
  * 23-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.156</version_code>
+ * <version_code>6.9.0.157</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.156";
+        private const String PluginVersion = "6.9.0.157";
 
         public enum GameVersion {
             BF3,
@@ -46156,6 +46156,9 @@ namespace PRoConEvents
             }
 
             public List<DiscordMember> GetMembers(Boolean onlyActive, Boolean onlyVoice, Boolean onlyChannels) {
+                if (!Members.Any()) {
+                    return new List<DiscordMember>();
+                }
                 var resultMembers = Members.Values.Where(aMember => !aMember.Bot);
                 if (onlyActive) {
                     resultMembers = resultMembers.Where(aMember => aMember.Status == "online");
