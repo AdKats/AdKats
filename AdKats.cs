@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.158
+ * Version 6.9.0.159
  * 24-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.158</version_code>
+ * <version_code>6.9.0.159</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.158";
+        private const String PluginVersion = "6.9.0.159";
 
         public enum GameVersion {
             BF3,
@@ -6412,6 +6412,13 @@ namespace PRoConEvents
                             Log.Error("All Caps Limiter Warn Threshold cannot be less than 1.");
                             AllCapsLimiterWarnThreshold = 1;
                         }
+                        if (_threadsReady) {
+                            if (AllCapsLimiterWarnThreshold >= _AllCapsLimiterKillThreshold) {
+                                Log.Error("All Caps Limiter Warn Threshold must be less than All Caps Limiter Kill Threshold.");
+                                //Reset the value
+                                AllCapsLimiterWarnThreshold = _AllCapsLimiterWarnThreshold;
+                            }
+                        }
                         _AllCapsLimiterWarnThreshold = AllCapsLimiterWarnThreshold;
                         QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Warn Threshold", typeof(Int32), _AllCapsLimiterWarnThreshold));
                     }
@@ -6422,6 +6429,18 @@ namespace PRoConEvents
                             Log.Error("All Caps Limiter Kill Threshold cannot be less than 2.");
                             AllCapsLimiterKillThreshold = 2;
                         }
+                        if (_threadsReady) {
+                            if (AllCapsLimiterKillThreshold >= _AllCapsLimiterKickThreshold) {
+                                Log.Error("All Caps Limiter Kill Threshold must be less than All Caps Limiter Kick Threshold.");
+                                //Reset the value
+                                AllCapsLimiterKillThreshold = _AllCapsLimiterKillThreshold;
+                            }
+                            if (AllCapsLimiterKillThreshold <= _AllCapsLimiterWarnThreshold) {
+                                Log.Error("All Caps Limiter Kill Threshold must be greater than All Caps Limiter Warn Threshold.");
+                                //Reset the value
+                                AllCapsLimiterKillThreshold = _AllCapsLimiterKillThreshold;
+                            }
+                        }
                         _AllCapsLimiterKillThreshold = AllCapsLimiterKillThreshold;
                         QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Kill Threshold", typeof(Int32), _AllCapsLimiterKillThreshold));
                     }
@@ -6431,6 +6450,13 @@ namespace PRoConEvents
                         if (AllCapsLimiterKickThreshold < 3) {
                             Log.Error("All Caps Limiter Kick Threshold cannot be less than 3.");
                             AllCapsLimiterKickThreshold = 3;
+                        }
+                        if (_threadsReady) {
+                            if (AllCapsLimiterKickThreshold <= _AllCapsLimiterKillThreshold) {
+                                Log.Error("All Caps Limiter Kick Threshold must be greater than All Caps Limiter Kill Threshold.");
+                                //Reset the value
+                                AllCapsLimiterKickThreshold = _AllCapsLimiterKickThreshold;
+                            }
                         }
                         _AllCapsLimiterKickThreshold = AllCapsLimiterKickThreshold;
                         QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Kick Threshold", typeof(Int32), _AllCapsLimiterKickThreshold));
@@ -15245,6 +15271,15 @@ namespace PRoConEvents
                             {
                                 messageObject.Message = messageObject.Message.Substring(1);
                                 isCommand = true;
+                            }
+
+                            if (isCommand) {
+                                //Confirm it's actually a valid command in AdKats
+                                String[] splitConfirmCommand = messageObject.Message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                                if (splitConfirmCommand.Length < 1 ||
+                                    !_CommandTextDictionary.ContainsKey(splitConfirmCommand[0].ToLower())) {
+                                    isCommand = false;
+                                }
                             }
 
                             if (isCommand && _threadsReady && _firstPlayerListComplete)
