@@ -15343,48 +15343,55 @@ namespace PRoConEvents
                                 //Check if the all caps system should act on this player
                                 if (_UseAllCapsLimiter && 
                                     GetStringUpperPercentage(messageObject.Message) >= _AllCapsLimterPercentage) {
-                                    AdKatsPlayer allCapsPlayer = null;
-                                    if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out allCapsPlayer)) {
-                                        allCapsPlayer.AllCapsMessages++;
-                                        if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterKickThreshold) {
-                                            //Kick
-                                            QueueRecordForProcessing(new AdKatsRecord {
-                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
-                                                command_type = GetCommandByKey("player_kick"),
-                                                command_numeric = 0,
-                                                target_name = allCapsPlayer.player_name,
-                                                target_player = allCapsPlayer,
-                                                source_name = "ChatManager",
-                                                record_message = "Excessively speaking in all-caps.",
-                                                record_time = UtcNow()
-                                            });
-                                        } else if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterKillThreshold) {
-                                            //Kill
-                                            QueueRecordForProcessing(new AdKatsRecord {
-                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
-                                                command_type = GetCommandByKey("player_kill"),
-                                                command_numeric = 0,
-                                                target_name = allCapsPlayer.player_name,
-                                                target_player = allCapsPlayer,
-                                                source_name = "ChatManager",
-                                                record_message = "Continuing to speak in all-caps.",
-                                                record_time = UtcNow()
-                                            });
-                                        } else if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterWarnThreshold) {
-                                            //Warn
-                                            QueueRecordForProcessing(new AdKatsRecord {
-                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
-                                                command_type = GetCommandByKey("player_warn"),
-                                                command_numeric = 0,
-                                                target_name = allCapsPlayer.player_name,
-                                                target_player = allCapsPlayer,
-                                                source_name = "ChatManager",
-                                                record_message = "Speaking in all-caps.",
-                                                record_time = UtcNow()
-                                            });
+                                    if (isCommand) {
+                                        Log.Debug(() => messageObject.Speaker + " chat triggered all caps, but ignoring since message is command.", 3);
+                                    } else if (messageObject.Hidden) {
+                                        Log.Debug(() => messageObject.Speaker + " chat triggered all caps, but ignoring since message is hidden.", 3);
+                                    } else {
+                                        Log.Debug(() => messageObject.Speaker + " is speaking in all caps and message is valid. Acting.", 7);
+                                        AdKatsPlayer allCapsPlayer = null;
+                                        if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out allCapsPlayer)) {
+                                            allCapsPlayer.AllCapsMessages++;
+                                            if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterKickThreshold) {
+                                                //Kick
+                                                QueueRecordForProcessing(new AdKatsRecord {
+                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                    server_id = _serverInfo.ServerID,
+                                                    command_type = GetCommandByKey("player_kick"),
+                                                    command_numeric = 0,
+                                                    target_name = allCapsPlayer.player_name,
+                                                    target_player = allCapsPlayer,
+                                                    source_name = "ChatManager",
+                                                    record_message = "Excessively speaking in all-caps.",
+                                                    record_time = UtcNow()
+                                                });
+                                            } else if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterKillThreshold) {
+                                                //Kill
+                                                QueueRecordForProcessing(new AdKatsRecord {
+                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                    server_id = _serverInfo.ServerID,
+                                                    command_type = GetCommandByKey("player_kill"),
+                                                    command_numeric = 0,
+                                                    target_name = allCapsPlayer.player_name,
+                                                    target_player = allCapsPlayer,
+                                                    source_name = "ChatManager",
+                                                    record_message = "Continuing to speak in all-caps.",
+                                                    record_time = UtcNow()
+                                                });
+                                            } else if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterWarnThreshold) {
+                                                //Warn
+                                                QueueRecordForProcessing(new AdKatsRecord {
+                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                    server_id = _serverInfo.ServerID,
+                                                    command_type = GetCommandByKey("player_warn"),
+                                                    command_numeric = 0,
+                                                    target_name = allCapsPlayer.player_name,
+                                                    target_player = allCapsPlayer,
+                                                    source_name = "ChatManager",
+                                                    record_message = "Speaking in all-caps.",
+                                                    record_time = UtcNow()
+                                                });
+                                            }
                                         }
                                     }
                                 }
@@ -35278,11 +35285,11 @@ namespace PRoConEvents
             return aBan;
         }
 
-        private void ErrorOrRespond(AdKatsRecord debugRecord, String message) {
+        private void InfoOrRespond(AdKatsRecord debugRecord, String message) {
             if (debugRecord != null) {
                 SendMessageToSource(debugRecord, message);
             } else {
-                Log.Error(message);
+                Log.Info(message);
             }
         }
 
@@ -35295,13 +35302,13 @@ namespace PRoConEvents
             String rejectionMessage = "Error";
             if (!GetTeamByID(1, out team1)) {
                 if (_roundState == RoundState.Playing) {
-                    ErrorOrRespond(debugRecord, "Teams not loaded when they should be.");
+                    InfoOrRespond(debugRecord, "Teams not loaded when they should be.");
                 }
                 return false;
             }
             if (!GetTeamByID(2, out team2)) {
                 if (_roundState == RoundState.Playing) {
-                    ErrorOrRespond(debugRecord, "Teams not loaded when they should be.");
+                    InfoOrRespond(debugRecord, "Teams not loaded when they should be.");
                 }
                 return false;
             }
@@ -35321,7 +35328,7 @@ namespace PRoConEvents
                 friendlyTeam = team2;
                 enemyTeam = team1;
             } else {
-                ErrorOrRespond(debugRecord, "Invalid teams when attempting to assist.");
+                InfoOrRespond(debugRecord, "Invalid teams when attempting to assist.");
                 return false;
             }
 
@@ -35330,7 +35337,7 @@ namespace PRoConEvents
                 realRecord.record_message = recordMessage;
             }
             if (!auto) {
-                ErrorOrRespond(debugRecord, recordMessage);
+                InfoOrRespond(debugRecord, recordMessage);
             }
             Boolean canAssist = true;
             rejectionMessage = "team ";
@@ -35370,10 +35377,10 @@ namespace PRoConEvents
                     rejectionMessage += "would be too strong";
                 }
                 if (!auto) {
-                    ErrorOrRespond(debugRecord,
+                    InfoOrRespond(debugRecord,
                     "Old Diff " + Math.Round(oldPercDiff, 1) + " | " +
                     "New Diff " + Math.Round(newPercDiff, 1) + "");
-                    ErrorOrRespond(debugRecord,
+                    InfoOrRespond(debugRecord,
                         "Old " + friendlyTeam.TeamKey + "(" + Math.Round(oldFriendlyPower) + ")/" + enemyTeam.TeamKey + "(" + Math.Round(oldEnemyPower) + ") | " +
                         "New " + friendlyTeam.TeamKey + "(" + Math.Round(newFriendlyPower) + ")/" + enemyTeam.TeamKey + "(" + Math.Round(newEnemyPower) + ")");
                 }
@@ -35401,7 +35408,7 @@ namespace PRoConEvents
                 } else if (debugRecord != null) {
                     rejectionMessage = debugRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " rejected, " + rejectionMessage;
                     if (!auto) {
-                        ErrorOrRespond(debugRecord, rejectionMessage);
+                        InfoOrRespond(debugRecord, rejectionMessage);
                     }
                 }
             } else {
