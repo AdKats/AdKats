@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.157
- * 23-JUN-2017
+ * Version 6.9.0.158
+ * 24-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.157</version_code>
+ * <version_code>6.9.0.158</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.157";
+        private const String PluginVersion = "6.9.0.158";
 
         public enum GameVersion {
             BF3,
@@ -15345,6 +15345,7 @@ namespace PRoConEvents
                                     GetStringUpperPercentage(messageObject.Message) >= _AllCapsLimterPercentage) {
                                     AdKatsPlayer allCapsPlayer = null;
                                     if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out allCapsPlayer)) {
+                                        allCapsPlayer.AllCapsMessages++;
                                         if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterKickThreshold) {
                                             //Kick
                                             QueueRecordForProcessing(new AdKatsRecord {
