@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.159
+ * Version 6.9.0.160
  * 24-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.159</version_code>
+ * <version_code>6.9.0.160</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.159";
+        private const String PluginVersion = "6.9.0.160";
 
         public enum GameVersion {
             BF3,
@@ -705,9 +705,10 @@ namespace PRoConEvents
         private Boolean _InformAdminsOfAdminJoins = true;
         private Boolean _UseAllCapsLimiter = false;
         private Int32 _AllCapsLimterPercentage = 80;
-        private Int32 _AllCapsLimiterWarnThreshold = 2;
-        private Int32 _AllCapsLimiterKillThreshold = 4;
-        private Int32 _AllCapsLimiterKickThreshold = 5;
+        private Int32 _AllCapsLimterMinimumCharacters = 15;
+        private Int32 _AllCapsLimiterWarnThreshold = 3;
+        private Int32 _AllCapsLimiterKillThreshold = 5;
+        private Int32 _AllCapsLimiterKickThreshold = 6;
 
         //SpamBot
         private Boolean _spamBotEnabled;
@@ -1298,6 +1299,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use All Caps Limiter", typeof(Boolean), _UseAllCapsLimiter));
                         if (_UseAllCapsLimiter) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Character Percentage", typeof(Int32), _AllCapsLimterPercentage));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Minimum Characters", typeof(Int32), _AllCapsLimterMinimumCharacters));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Warn Threshold", typeof(Int32), _AllCapsLimiterWarnThreshold));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Kill Threshold", typeof(Int32), _AllCapsLimiterKillThreshold));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Kick Threshold", typeof(Int32), _AllCapsLimiterKickThreshold));
@@ -6404,6 +6406,20 @@ namespace PRoConEvents
                         }
                         _AllCapsLimterPercentage = AllCapsLimterPercentage;
                         QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Character Percentage", typeof(Int32), _AllCapsLimterPercentage));
+                    }
+                } else if (Regex.Match(strVariable, @"All Caps Limiter Minimum Characters").Success) {
+                    Int32 AllCapsLimterMinimumCharacters = Int32.Parse(strValue);
+                    if (_AllCapsLimterMinimumCharacters != AllCapsLimterMinimumCharacters) {
+                        if (AllCapsLimterMinimumCharacters < 5) {
+                            Log.Error("All Caps Limiter Minimum Characters cannot be less than 5.");
+                            AllCapsLimterMinimumCharacters = 5;
+                        }
+                        if (AllCapsLimterMinimumCharacters > 100) {
+                            Log.Error("All Caps Limiter Minimum Characters cannot be greater than 100.");
+                            AllCapsLimterMinimumCharacters = 100;
+                        }
+                        _AllCapsLimterMinimumCharacters = AllCapsLimterMinimumCharacters;
+                        QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Minimum Characters", typeof(Int32), _AllCapsLimterMinimumCharacters));
                     }
                 } else if (Regex.Match(strVariable, @"All Caps Limiter Warn Threshold").Success) {
                     Int32 AllCapsLimiterWarnThreshold = Int32.Parse(strValue);
@@ -15377,7 +15393,9 @@ namespace PRoConEvents
                                 }
                                 //Check if the all caps system should act on this player
                                 if (_UseAllCapsLimiter && 
-                                    GetStringUpperPercentage(messageObject.Message) >= _AllCapsLimterPercentage) {
+                                    GetStringUpperPercentage(messageObject.Message) >= _AllCapsLimterPercentage &&
+                                    messageObject.Message.Length >= _AllCapsLimterMinimumCharacters &&
+                                    messageObject.Subset != AdKatsChatMessage.ChatSubset.Squad) {
                                     if (isCommand) {
                                         Log.Debug(() => messageObject.Speaker + " chat triggered all caps, but ignoring since message is command.", 3);
                                     } else if (messageObject.Hidden) {
@@ -15397,7 +15415,7 @@ namespace PRoConEvents
                                                     target_name = allCapsPlayer.player_name,
                                                     target_player = allCapsPlayer,
                                                     source_name = "ChatManager",
-                                                    record_message = "Excessively speaking in all-caps.",
+                                                    record_message = "Excessive all-caps in all/team chat.",
                                                     record_time = UtcNow()
                                                 });
                                             } else if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterKillThreshold) {
@@ -15410,7 +15428,7 @@ namespace PRoConEvents
                                                     target_name = allCapsPlayer.player_name,
                                                     target_player = allCapsPlayer,
                                                     source_name = "ChatManager",
-                                                    record_message = "Continuing to speak in all-caps.",
+                                                    record_message = "All-caps in all/team chat.",
                                                     record_time = UtcNow()
                                                 });
                                             } else if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterWarnThreshold) {
@@ -15423,7 +15441,7 @@ namespace PRoConEvents
                                                     target_name = allCapsPlayer.player_name,
                                                     target_player = allCapsPlayer,
                                                     source_name = "ChatManager",
-                                                    record_message = "Speaking in all-caps.",
+                                                    record_message = "All-caps in all/team chat.",
                                                     record_time = UtcNow()
                                                 });
                                             }
@@ -31759,6 +31777,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Inform admins of admin joins", typeof(Boolean), _InformAdminsOfAdminJoins));
                 QueueSettingForUpload(new CPluginVariable(@"Use All Caps Limiter", typeof(Boolean), _UseAllCapsLimiter));
                 QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Character Percentage", typeof(Int32), _AllCapsLimterPercentage));
+                QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Minimum Characters", typeof(Int32), _AllCapsLimterMinimumCharacters));
                 QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Warn Threshold", typeof(Int32), _AllCapsLimiterWarnThreshold));
                 QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Kill Threshold", typeof(Int32), _AllCapsLimiterKillThreshold));
                 QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Kick Threshold", typeof(Int32), _AllCapsLimiterKickThreshold));
