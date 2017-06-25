@@ -89,6 +89,11 @@
 			"group_id":17,
 			"group_key":"whitelist_squadsplit_advanced",
 			"group_name":"Advanced Squad Split Whitelist"
+		},
+		{
+			"group_id":18,
+			"group_key":"blacklist_allcaps",
+			"group_name":"All-Caps Chat Blacklist"
 		}
 	]
 }
