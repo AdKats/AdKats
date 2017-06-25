@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.160
+ * Version 6.9.0.161
  * 24-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.160</version_code>
+ * <version_code>6.9.0.161</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.160";
+        private const String PluginVersion = "6.9.0.161";
 
         public enum GameVersion {
             BF3,
@@ -704,6 +704,7 @@ namespace PRoConEvents
         private Boolean _InformReputablePlayersOfAdminJoins = false;
         private Boolean _InformAdminsOfAdminJoins = true;
         private Boolean _UseAllCapsLimiter = false;
+        private Boolean _AllCapsLimiterSpecifiedPlayersOnly = false;
         private Int32 _AllCapsLimterPercentage = 80;
         private Int32 _AllCapsLimterMinimumCharacters = 15;
         private Int32 _AllCapsLimiterWarnThreshold = 3;
@@ -906,6 +907,7 @@ namespace PRoConEvents
             AddSettingSection("A12", "Messaging Settings");
             AddSettingSection("A12-2", "SpamBot Settings");
             AddSettingSection("A12-3", "Battlecry Settings - Thanks WDF");
+            AddSettingSection("A12-4", "All-Caps Chat Monitor");
             AddSettingSection("A13", "Banning Settings");
             AddSettingSection("A13-2", "Ban Enforcer Settings");
             AddSettingSection("A13-3", "Mini Ban Management");
@@ -1296,14 +1298,6 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "First spawn message text", typeof(String), _FirstSpawnMessage));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use First Spawn Reputation and Infraction Message", typeof(Boolean), _useFirstSpawnRepMessage));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use All Caps Limiter", typeof(Boolean), _UseAllCapsLimiter));
-                        if (_UseAllCapsLimiter) {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Character Percentage", typeof(Int32), _AllCapsLimterPercentage));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Minimum Characters", typeof(Int32), _AllCapsLimterMinimumCharacters));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Warn Threshold", typeof(Int32), _AllCapsLimiterWarnThreshold));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Kill Threshold", typeof(Int32), _AllCapsLimiterKillThreshold));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "All Caps Limiter Kick Threshold", typeof(Int32), _AllCapsLimiterKickThreshold));
-                        }
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use Perk Expiration Notification", typeof(Boolean), _UsePerkExpirationNotify));
                         if (_UsePerkExpirationNotify)
                         {
@@ -1328,6 +1322,18 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Player Battlecry Volume", "enum.battlecryVolumeEnum(Disabled|Say|Yell|Tell)", _battlecryVolume.ToString()));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Player Battlecry Max Length", typeof(Int32), _battlecryMaxLength));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Player Battlecry Denied Words", typeof(String[]), _battlecryDeniedWords));
+                    }
+
+                    if (IsActiveSettingSection("A12-4")) {
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "Use All Caps Limiter", typeof(Boolean), _UseAllCapsLimiter));
+                        if (_UseAllCapsLimiter) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Only Limit Specified Players", typeof(Boolean), _AllCapsLimiterSpecifiedPlayersOnly));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Character Percentage", typeof(Int32), _AllCapsLimterPercentage));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Minimum Characters", typeof(Int32), _AllCapsLimterMinimumCharacters));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Warn Threshold", typeof(Int32), _AllCapsLimiterWarnThreshold));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Kill Threshold", typeof(Int32), _AllCapsLimiterKillThreshold));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Kick Threshold", typeof(Int32), _AllCapsLimiterKickThreshold));
+                        }
                     }
 
                     if (IsActiveSettingSection("A13")) {
@@ -6393,6 +6399,13 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use All Caps Limiter", typeof(Boolean), _UseAllCapsLimiter));
                     }
+                } else if (Regex.Match(strVariable, @"All Caps Limiter Only Limit Specified Players").Success) {
+                    Boolean AllCapsLimiterSpecifiedPlayersOnly = Boolean.Parse(strValue);
+                    if (AllCapsLimiterSpecifiedPlayersOnly != _AllCapsLimiterSpecifiedPlayersOnly) {
+                        _AllCapsLimiterSpecifiedPlayersOnly = AllCapsLimiterSpecifiedPlayersOnly;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Only Limit Specified Players", typeof(Boolean), _AllCapsLimiterSpecifiedPlayersOnly));
+                    }
                 } else if (Regex.Match(strVariable, @"All Caps Limiter Character Percentage").Success) {
                     Int32 AllCapsLimterPercentage = Int32.Parse(strValue);
                     if (_AllCapsLimterPercentage != AllCapsLimterPercentage) {
@@ -6410,9 +6423,9 @@ namespace PRoConEvents
                 } else if (Regex.Match(strVariable, @"All Caps Limiter Minimum Characters").Success) {
                     Int32 AllCapsLimterMinimumCharacters = Int32.Parse(strValue);
                     if (_AllCapsLimterMinimumCharacters != AllCapsLimterMinimumCharacters) {
-                        if (AllCapsLimterMinimumCharacters < 5) {
-                            Log.Error("All Caps Limiter Minimum Characters cannot be less than 5.");
-                            AllCapsLimterMinimumCharacters = 5;
+                        if (AllCapsLimterMinimumCharacters < 1) {
+                            Log.Error("All Caps Limiter Minimum Characters cannot be less than 1.");
+                            AllCapsLimterMinimumCharacters = 1;
                         }
                         if (AllCapsLimterMinimumCharacters > 100) {
                             Log.Error("All Caps Limiter Minimum Characters cannot be greater than 100.");
@@ -15395,56 +15408,54 @@ namespace PRoConEvents
                                 if (_UseAllCapsLimiter && 
                                     GetStringUpperPercentage(messageObject.Message) >= _AllCapsLimterPercentage &&
                                     messageObject.Message.Length >= _AllCapsLimterMinimumCharacters &&
-                                    messageObject.Subset != AdKatsChatMessage.ChatSubset.Squad) {
+                                    messageObject.Subset != AdKatsChatMessage.ChatSubset.Squad &&
+                                    (!_AllCapsLimiterSpecifiedPlayersOnly || GetMatchingVerboseASPlayersOfGroup("blacklist_allcaps", aPlayer).Any())) {
                                     if (isCommand) {
-                                        Log.Debug(() => messageObject.Speaker + " chat triggered all caps, but ignoring since message is command.", 3);
+                                        Log.Debug(() => aPlayer.GetVerboseName() + " chat triggered all caps, but ignoring since message is command.", 3);
                                     } else if (messageObject.Hidden) {
-                                        Log.Debug(() => messageObject.Speaker + " chat triggered all caps, but ignoring since message is hidden.", 3);
+                                        Log.Debug(() => aPlayer.GetVerboseName() + " chat triggered all caps, but ignoring since message is hidden.", 3);
                                     } else {
-                                        Log.Debug(() => messageObject.Speaker + " is speaking in all caps and message is valid. Acting.", 7);
-                                        AdKatsPlayer allCapsPlayer = null;
-                                        if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out allCapsPlayer)) {
-                                            allCapsPlayer.AllCapsMessages++;
-                                            if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterKickThreshold) {
-                                                //Kick
-                                                QueueRecordForProcessing(new AdKatsRecord {
-                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
-                                                    command_type = GetCommandByKey("player_kick"),
-                                                    command_numeric = 0,
-                                                    target_name = allCapsPlayer.player_name,
-                                                    target_player = allCapsPlayer,
-                                                    source_name = "ChatManager",
-                                                    record_message = "Excessive all-caps in all/team chat.",
-                                                    record_time = UtcNow()
-                                                });
-                                            } else if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterKillThreshold) {
-                                                //Kill
-                                                QueueRecordForProcessing(new AdKatsRecord {
-                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
-                                                    command_type = GetCommandByKey("player_kill"),
-                                                    command_numeric = 0,
-                                                    target_name = allCapsPlayer.player_name,
-                                                    target_player = allCapsPlayer,
-                                                    source_name = "ChatManager",
-                                                    record_message = "All-caps in all/team chat.",
-                                                    record_time = UtcNow()
-                                                });
-                                            } else if (allCapsPlayer.AllCapsMessages >= _AllCapsLimiterWarnThreshold) {
-                                                //Warn
-                                                QueueRecordForProcessing(new AdKatsRecord {
-                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
-                                                    command_type = GetCommandByKey("player_warn"),
-                                                    command_numeric = 0,
-                                                    target_name = allCapsPlayer.player_name,
-                                                    target_player = allCapsPlayer,
-                                                    source_name = "ChatManager",
-                                                    record_message = "All-caps in all/team chat.",
-                                                    record_time = UtcNow()
-                                                });
-                                            }
+                                        Log.Debug(() => aPlayer.GetVerboseName() + " is speaking in all caps and message is valid. Acting.", 7);
+                                        aPlayer.AllCapsMessages++;
+                                        if (aPlayer.AllCapsMessages >= _AllCapsLimiterKickThreshold) {
+                                            //Kick
+                                            QueueRecordForProcessing(new AdKatsRecord {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("player_kick"),
+                                                command_numeric = 0,
+                                                target_name = aPlayer.player_name,
+                                                target_player = aPlayer,
+                                                source_name = "ChatManager",
+                                                record_message = "Excessive all-caps in all/team chat.",
+                                                record_time = UtcNow()
+                                            });
+                                        } else if (aPlayer.AllCapsMessages >= _AllCapsLimiterKillThreshold) {
+                                            //Kill
+                                            QueueRecordForProcessing(new AdKatsRecord {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("player_kill"),
+                                                command_numeric = 0,
+                                                target_name = aPlayer.player_name,
+                                                target_player = aPlayer,
+                                                source_name = "ChatManager",
+                                                record_message = "All-caps in all/team chat.",
+                                                record_time = UtcNow()
+                                            });
+                                        } else if (aPlayer.AllCapsMessages >= _AllCapsLimiterWarnThreshold) {
+                                            //Warn
+                                            QueueRecordForProcessing(new AdKatsRecord {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("player_warn"),
+                                                command_numeric = 0,
+                                                target_name = aPlayer.player_name,
+                                                target_player = aPlayer,
+                                                source_name = "ChatManager",
+                                                record_message = "All-caps in all/team chat.",
+                                                record_time = UtcNow()
+                                            });
                                         }
                                     }
                                 }
@@ -16461,7 +16472,7 @@ namespace PRoConEvents
                             Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                         case "player_blacklistdisperse_remove":
-                            if (!GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player).Any())
+                            if (!GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player).Any()) 
                             {
                                 SendMessageToSource(record, "Matching player not under autobalance dispersion.");
                                 FinalizeRecord(record);
@@ -16554,6 +16565,22 @@ namespace PRoConEvents
                             if (!GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player).Any())
                             {
                                 SendMessageToSource(record, "Matching player not in the auto-assist blacklist.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_blacklistallcaps":
+                            if (GetMatchingASPlayersOfGroup("blacklist_allcaps", record.target_player).Any()) {
+                                SendMessageToSource(record, "Matching player already under all-caps chat blacklist.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_blacklistallcaps_remove":
+                            if (!GetMatchingASPlayersOfGroup("blacklist_allcaps", record.target_player).Any()) {
+                                SendMessageToSource(record, "Matching player not under all-caps chat blacklist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -22715,6 +22742,156 @@ namespace PRoConEvents
                             }
                         }
                         break;
+                    case "player_blacklistallcaps": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (_serverInfo.ServerType == "OFFICIAL") {
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            if (!_UseAllCapsLimiter) {
+                                SendMessageToSource(record, "Enable 'Use All Caps Limiter' to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            String defaultReason = "All-Caps Chat Blacklist";
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 3);
+
+                            if (parameters.Length > 0) {
+                                String stringDuration = parameters[0].ToLower();
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
+                                if (stringDuration == "perm") {
+                                    //20 years in minutes
+                                    record.command_numeric = 10518984;
+                                    defaultReason = "Permanent " + defaultReason;
+                                } else {
+                                    //Default is minutes
+                                    Double recordDuration = 0.0;
+                                    Double durationMultiplier = 1.0;
+                                    if (stringDuration.EndsWith("s")) {
+                                        stringDuration = stringDuration.TrimEnd('s');
+                                        durationMultiplier = (1.0 / 60.0);
+                                    } else if (stringDuration.EndsWith("m")) {
+                                        stringDuration = stringDuration.TrimEnd('m');
+                                        durationMultiplier = 1.0;
+                                    } else if (stringDuration.EndsWith("h")) {
+                                        stringDuration = stringDuration.TrimEnd('h');
+                                        durationMultiplier = 60.0;
+                                    } else if (stringDuration.EndsWith("d")) {
+                                        stringDuration = stringDuration.TrimEnd('d');
+                                        durationMultiplier = 1440.0;
+                                    } else if (stringDuration.EndsWith("w")) {
+                                        stringDuration = stringDuration.TrimEnd('w');
+                                        durationMultiplier = 10080.0;
+                                    } else if (stringDuration.EndsWith("y")) {
+                                        stringDuration = stringDuration.TrimEnd('y');
+                                        durationMultiplier = 525949.0;
+                                    }
+                                    if (!Double.TryParse(stringDuration, out recordDuration)) {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                    if (record.command_numeric <= 0) {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
+                                }
+                            }
+
+                            switch (parameters.Length) {
+                                case 0:
+                                    //No parameters
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    //time
+                                    if (record.record_source != AdKatsRecord.Sources.InGame) {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = record.source_name;
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                case 2:
+                                    //time
+                                    //player
+                                    record.target_name = parameters[1];
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                case 3:
+                                    //time
+                                    //player
+                                    //reason
+                                    record.target_name = parameters[1];
+                                    Log.Debug(() => "target: " + record.target_name, 6);
+                                    record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
+                                    if (record.record_message == null) {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    Log.Debug(() => "" + record.record_message, 6);
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_blacklistallcaps_remove": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_UseAllCapsLimiter) {
+                                SendMessageToSource(record, "Enable 'Use All Caps Limiter' to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length) {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame) {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing All-Caps Chat Blacklist";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing All-Caps Chat Blacklist";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record)) {
+                                        CompleteTargetInformation(record, false, true, true);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     case "command_confirm":
                         Log.Debug(() => "attempting to confirm command", 6);
                         AdKatsRecord recordAttempt = null;
@@ -24136,6 +24313,12 @@ namespace PRoConEvents
                     case "player_discordlink":
                         UpdatePlayerDiscordLink(record);
                         break;
+                    case "player_blacklistallcaps":
+                        AllCapsBlacklistTarget(record);
+                        break;
+                    case "player_blacklistallcaps_remove":
+                        AllCapsBlacklistRemoveTarget(record);
+                        break;
                     case "player_changename":
                     case "player_changetag":
                     case "player_changeip":
@@ -25170,6 +25353,65 @@ namespace PRoConEvents
                 FinalizeRecord(record);
             }
             Log.Debug(() => "Exiting DisperseTarget", 6);
+        }
+
+        public void AllCapsBlacklistTarget(AdKatsRecord record) {
+            Log.Debug(() => "Entering AllCapsBlacklistTarget", 6);
+            try {
+                record.record_action_executed = true;
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    using (MySqlCommand command = connection.CreateCommand()) {
+                        command.CommandText = @"
+                        INSERT INTO
+	                        `adkats_specialplayers`
+                        (
+	                        `player_group`,
+	                        `player_id`,
+                            `player_server`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
+                        )
+                        VALUES
+                        (
+	                        'blacklist_allcaps',
+	                        @player_id,
+                            @player_server,
+                            @player_identifier,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                        )";
+                        if (record.target_player.player_id <= 0) {
+                            Log.Error("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 10518984) {
+                            record.command_numeric = 10518984;
+                        }
+                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                        command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@player_identifier", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
+
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
+                        if (rowsAffected > 0) {
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " all-caps chat blacklist.";
+                            SendMessageToSource(record, message);
+                            Log.Debug(() => message, 3);
+                            FetchAllAccess(true);
+                        } else {
+                            Log.Error("Unable to add player to all-caps chat blacklist. Error uploading.");
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                record.record_exception = new AdKatsException("Error while taking action for all-caps chat blacklist record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting AllCapsBlacklistTarget", 6);
         }
 
         public void BalanceWhitelistTarget(AdKatsRecord record)
@@ -26925,6 +27167,53 @@ namespace PRoConEvents
                 FinalizeRecord(record);
             }
             Log.Debug(() => "Exiting BalanceDisperseRemoveTarget", 6);
+        }
+
+        public void AllCapsBlacklistRemoveTarget(AdKatsRecord record) {
+            Log.Debug(() => "Entering AllCapsBlacklistRemoveTarget", 6);
+            try {
+                //Case for multiple targets
+                if (record.target_player == null) {
+                    SendMessageToSource(record, "AllCapsBlacklistRemoveTarget not available for multiple targets.");
+                    Log.Error("AllCapsBlacklistRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_allcaps", record.target_player);
+                if (!matchingPlayers.Any()) {
+                    SendMessageToSource(record, "Matching player not under all-caps chat blacklist.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    Boolean updated = false;
+                    foreach (AdKatsSpecialPlayer asPlayer in matchingPlayers) {
+                        using (MySqlCommand command = connection.CreateCommand()) {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0) {
+                                String message = "Player " + record.GetTargetNames() + " removed from all-caps chat blacklist.";
+                                Log.Debug(() => message, 3);
+                                updated = true;
+                            } else {
+                                Log.Error("Unable to remove player from all-caps chat blacklist. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated) {
+                        String message = "Player " + record.GetTargetNames() + " removed from all-caps chat blacklist.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            } catch (Exception e) { 
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting AllCapsBlacklistRemoveTarget", 6);
         }
 
         public void PopulatorWhitelistTarget(AdKatsRecord record)
@@ -31776,6 +32065,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Inform reputable players of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
                 QueueSettingForUpload(new CPluginVariable(@"Inform admins of admin joins", typeof(Boolean), _InformAdminsOfAdminJoins));
                 QueueSettingForUpload(new CPluginVariable(@"Use All Caps Limiter", typeof(Boolean), _UseAllCapsLimiter));
+                QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Only Limit Specified Players", typeof(Boolean), _AllCapsLimiterSpecifiedPlayersOnly));
                 QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Character Percentage", typeof(Int32), _AllCapsLimterPercentage));
                 QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Minimum Characters", typeof(Int32), _AllCapsLimterMinimumCharacters));
                 QueueSettingForUpload(new CPluginVariable(@"All Caps Limiter Warn Threshold", typeof(Int32), _AllCapsLimiterWarnThreshold));
@@ -37459,6 +37749,14 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command player_discordlink", "INSERT INTO `adkats_commands` VALUES(128, 'Active', 'player_discordlink', 'Log', 'Link Player to Discord Member', 'discordlink', TRUE, 'AnyHidden')", true);
                                     newCommands = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(129)) {
+                                    SendNonQuery("Adding command player_blacklistallcaps", "INSERT INTO `adkats_commands` VALUES(129, 'Active', 'player_blacklistallcaps', 'Log', 'All-Caps Chat Blacklist', 'allcapsblacklist', TRUE, 'Any')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(130)) {
+                                    SendNonQuery("Adding command player_blacklistallcaps_remove", "INSERT INTO `adkats_commands` VALUES(130, 'Active', 'player_blacklistallcaps_remove', 'Log', 'Remove All-Caps Chat Blacklist', 'unallcapsblacklist', TRUE, 'Any')", true);
+                                    newCommands = true;
+                                }
                                 if (newCommands)
                                 {
                                     FetchCommands();
@@ -37606,6 +37904,8 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_debugassist"] = "Runs a mock assist command on a player to see what the results would be, along with debug information.";
             _CommandDescriptionDictionary["player_changetag"] = "Invisible command. Issued when a player changes their clan tag.";
             _CommandDescriptionDictionary["player_discordlink"] = "Links a player with a currently online discord member.";
+            _CommandDescriptionDictionary["player_blacklistallcaps"] = "Adds the target player to all-caps chat blacklist for the server.";
+            _CommandDescriptionDictionary["player_blacklistallcaps_remove"] = "Removes a player from the all-caps chat blacklist.";
         }
 
         private void FillReadableMapModeDictionaries() {
