@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.161
- * 24-JUN-2017
+ * Version 6.9.0.163
+ * 26-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.161</version_code>
+ * <version_code>6.9.0.163</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.161";
+        private const String PluginVersion = "6.9.0.163";
 
         public enum GameVersion {
             BF3,
@@ -2217,42 +2217,36 @@ namespace PRoConEvents
                 } else if (Regex.Match(strVariable, @"Debug level").Success)
                 {
                     Int32 tmp;
-                    if (int.TryParse(strValue, out tmp))
-                    {
-                        if (tmp == 8345)
-                        {
+                    if (int.TryParse(strValue, out tmp)) {
+                        if (tmp == -10) {
+                            Log.Info("8345: Clear all fetched players and left players.");
+                            Log.Info("3958: Print average database read/write durations.");
+                            Log.Info("5682: Toggle discord debug.");
+                            Log.Info("2563: Toggle player fetch debug.");
+                            Log.Info("7621: Toggle player listing debug.");
+                        }
+                        if (tmp == 8345) {
                             _FetchedPlayers.Clear();
                             _PlayerLeftDictionary.Clear();
-                        }
-                        else if (tmp == 3958)
-                        {
+                        } else if (tmp == 3958) {
                             Log.Info("Avg Read: " + _DatabaseReadAverageDuration + " | Avg Write: " + _DatabaseWriteAverageDuration);
-                        } 
-                        else if (tmp == 4533) 
-                        {
+                        } else if (tmp == 4533) {
                             Environment.Exit(4533);
-                        }
-                        else if (tmp == 5837) 
-                        {
-                            Log.Info("Server Round: " + _serverInfo.InfoObject.CurrentRound);
-                        } 
-                        else if (tmp == 3840) {
+                        } else if (tmp == 3840) {
                             _ShowQuerySettings = true;
-                        }
-                        else if (tmp == 5682) {
+                        } else if (tmp == 5682) {
                             _DiscordManager.DebugService = !_DiscordManager.DebugService;
                             Log.Info("Discord Debug Display: " + _DiscordManager.DebugService);
-                        } 
-                        else if (tmp == 2563) {
+                        } else if (tmp == 2563) {
                             _debugDisplayPlayerFetches = !_debugDisplayPlayerFetches;
                             Log.Info("Player Fetch Debug Display: " + _debugDisplayPlayerFetches);
-                        } 
-                        else if (tmp == 7621) {
+                        } else if (tmp == 7621) {
                             _DebugPlayerListing = !_DebugPlayerListing;
                             Log.Info("Player Listing Debug Display: " + _DebugPlayerListing);
-                        }
-                        else if (tmp != Log.DebugLevel)
-                        {
+                        } else if (tmp != Log.DebugLevel) {
+                            if (tmp < 0) {
+                                tmp = 0;
+                            }
                             Log.DebugLevel = tmp;
                             //Once setting has been changed, upload the change to database
                             QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof(int), Log.DebugLevel));
@@ -10443,7 +10437,8 @@ namespace PRoConEvents
                             {
                                 Boolean canFire = true;
                                 Boolean fired = false;
-                                String denyReason = "";
+                                Int32 denyReasonModulo = 1;
+                                String denyReason = "Unknown reason";
                                 String readyPercentage = "";
 
                                 //Action
@@ -10633,8 +10628,6 @@ namespace PRoConEvents
                                             TimeSpan remaining = TimeSpan.FromSeconds((config_triggers_min - _surrenderAutoTriggerCountCurrent) * 10);
                                             denyReason = "~" + FormatTimeString(remaining, 2) + " till it can fire.";
                                         }
-
-                                        var losingReason = false;
                                         if (canFire &&
                                             config_action == AutoSurrenderAction.Nuke &&
                                             mapUpTeam != winningTeam) {
@@ -10642,12 +10635,12 @@ namespace PRoConEvents
                                             if (_surrenderAutoNukeLosingTeams) {
                                                 if (ticketGap > _surrenderAutoNukeLosingMaxDiff) {
                                                     canFire = false;
-                                                    losingReason = true;
+                                                    denyReasonModulo = 3;
                                                     denyReason = mapUpTeam.TeamKey + " losing by more than " + _surrenderAutoNukeLosingMaxDiff + " tickets.";
                                                 }
                                             } else {
                                                 canFire = false;
-                                                losingReason = true;
+                                                denyReasonModulo = 3;
                                                 denyReason = mapUpTeam.TeamKey + " is losing.";
                                             }
                                         }
@@ -10655,17 +10648,20 @@ namespace PRoConEvents
                                         if (canFire && winningTeam.TeamTicketCount > config_tickets_max)
                                         {
                                             canFire = false;
+                                            denyReasonModulo = 2;
                                             denyReason = winningTeam.TeamKey + " has more than " + config_tickets_max + " tickets. (" + winningTeam.TeamTicketCount + ")";
                                         }
                                         
                                         if (canFire && losingTeam.TeamTicketCount < config_tickets_min)
                                         {
                                             canFire = false;
+                                            denyReasonModulo = 2;
                                             denyReason = losingTeam.TeamKey + " has less than " + config_tickets_min + " tickets. (" + losingTeam.TeamTicketCount + ")";
                                         }
 
                                         if (canFire && ticketGap < config_tickets_gap_min) {
                                             canFire = false;
+                                            denyReasonModulo = 2;
                                             denyReason = "Less than " + config_tickets_gap_min + " tickets between teams. (" + ticketGap + ")";
                                         }
 
@@ -10734,7 +10730,7 @@ namespace PRoConEvents
                                                 {
                                                     if (config_action == AutoSurrenderAction.Nuke)
                                                     {
-                                                        if (_surrenderAutoAnnounceNukePrep && (!losingReason || _surrenderAutoTriggerCountCurrent % 3 == 0))
+                                                        if (_surrenderAutoAnnounceNukePrep && _surrenderAutoTriggerCountCurrent % denyReasonModulo == 0)
                                                         {
                                                             AdminSayMessage(mapUpTeam.TeamKey + " auto-nuke " + (getNukeCount(mapUpTeam.TeamID) + 1) + " ready and waiting. " + denyReason);
                                                         }
@@ -24530,7 +24526,7 @@ namespace PRoConEvents
                                 {
                                     AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                                 }
-                            } else {
+                            } else if (record.source_name != "PlayerMuteSystem") {
                                 AdminSayMessage(record.GetTargetNames() + " KILLED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                             }
                             int seconds = (int)UtcNow().Subtract(record.target_player.lastDeath).TotalSeconds;
@@ -24562,7 +24558,7 @@ namespace PRoConEvents
                                     {
                                         AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                                     }
-                                } else {
+                                } else if (record.source_name != "PlayerMuteSystem") {
                                     AdminSayMessage(record.GetTargetNames() + " KILLED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                                 }
                                 if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name))
@@ -39213,28 +39209,28 @@ namespace PRoConEvents
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
-                        SELECT
-	                        'isAdminAssistant'
-                        FROM 
-	                        `adkats_records_main`
-                        WHERE (
-	                        SELECT count(`command_action`) 
-	                        FROM `adkats_records_main` 
-	                        WHERE `command_action` = " + GetCommandByKey("player_report_confirm").command_id + @"
-	                        AND `source_id` = " + aPlayer.player_id + @" 
-	                        AND (`adkats_records_main`.`record_time` BETWEEN date_sub(UTC_TIMESTAMP(),INTERVAL 30 DAY) AND UTC_TIMESTAMP())
-                        ) >= " + _MinimumRequiredMonthlyReports + @" LIMIT 1
+                        (SELECT
+	                         'isAdminAssistant'
+                         FROM 
+	                         `adkats_records_main`
+                         WHERE (
+	                         SELECT count(`command_action`) 
+	                         FROM `adkats_records_main` 
+	                         WHERE `command_action` = " + GetCommandByKey("player_report_confirm").command_id + @"
+	                         AND `source_id` = " + aPlayer.player_id + @" 
+	                         AND (`adkats_records_main`.`record_time` BETWEEN date_sub(UTC_TIMESTAMP(),INTERVAL 30 DAY) AND UTC_TIMESTAMP())
+                         ) >= " + _MinimumRequiredMonthlyReports + @" LIMIT 1)
                         UNION
-                        SELECT
-	                        'isGrandfatheredAdminAssistant'
-                        FROM 
-	                        `adkats_records_main`
-                        WHERE (
-	                        SELECT count(`command_action`) 
-	                        FROM `adkats_records_main` 
-	                        WHERE `command_action` = " + GetCommandByKey("player_report_confirm").command_id + @" 
-	                        AND `source_id` = " + aPlayer.player_id + @"
-                        ) >= 75";
+                        (SELECT
+	                         'isGrandfatheredAdminAssistant'
+                         FROM 
+	                         `adkats_records_main`
+                         WHERE (
+	                         SELECT count(`command_action`) 
+	                         FROM `adkats_records_main` 
+	                         WHERE `command_action` = " + GetCommandByKey("player_report_confirm").command_id + @" 
+	                         AND `source_id` = " + aPlayer.player_id + @"
+                         ) >= 75 LIMIT 1)";
                         using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
                             if (reader.Read())
