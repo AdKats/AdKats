@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.163
- * 26-JUN-2017
+ * Version 6.9.0.164
+ * 27-JUN-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.163</version_code>
+ * <version_code>6.9.0.164</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.163";
+        private const String PluginVersion = "6.9.0.164";
 
         public enum GameVersion {
             BF3,
@@ -2224,8 +2224,7 @@ namespace PRoConEvents
                             Log.Info("5682: Toggle discord debug.");
                             Log.Info("2563: Toggle player fetch debug.");
                             Log.Info("7621: Toggle player listing debug.");
-                        }
-                        if (tmp == 8345) {
+                        } else if (tmp == 8345) {
                             _FetchedPlayers.Clear();
                             _PlayerLeftDictionary.Clear();
                         } else if (tmp == 3958) {
@@ -43800,7 +43799,7 @@ namespace PRoConEvents
 
         private void DoPlayerListTrigger() {
             lock (_PlayerListTriggerTimes) {
-                while (_PlayerListTriggerTimes.Any() && NowDuration(_PlayerListTriggerTimes.Peek()).TotalMinutes > 4) {
+                while (_PlayerListTriggerTimes.Any() && NowDuration(_PlayerListTriggerTimes.Peek()).TotalMinutes > 7.5) {
                     _PlayerListTriggerTimes.Dequeue();
                 }
                 _LastPlayerListTrigger = UtcNow();
@@ -43811,7 +43810,7 @@ namespace PRoConEvents
 
         private Double getPlayerListTriggerRate() {
             lock(_PlayerListTriggerTimes) {
-                while (_PlayerListTriggerTimes.Any() && NowDuration(_PlayerListTriggerTimes.Peek()).TotalMinutes > 4) {
+                while (_PlayerListTriggerTimes.Any() && NowDuration(_PlayerListTriggerTimes.Peek()).TotalMinutes > 7.5) {
                     _PlayerListTriggerTimes.Dequeue();
                 }
                 return _PlayerListTriggerTimes.Count() / NowDuration(_PlayerListTriggerTimes.Min()).TotalMinutes;
@@ -43820,7 +43819,7 @@ namespace PRoConEvents
 
         private void DoPlayerListReceive() {
             lock (_PlayerListReceiveTimes) {
-                while (_PlayerListReceiveTimes.Any() && NowDuration(_PlayerListReceiveTimes.Peek()).TotalMinutes > 4) {
+                while (_PlayerListReceiveTimes.Any() && NowDuration(_PlayerListReceiveTimes.Peek()).TotalMinutes > 7.5) {
                     _PlayerListReceiveTimes.Dequeue();
                 }
                 _LastPlayerListReceive = UtcNow();
@@ -43830,7 +43829,7 @@ namespace PRoConEvents
 
         private Double getPlayerListReceiveRate() {
             lock (_PlayerListReceiveTimes) {
-                while (_PlayerListReceiveTimes.Any() && NowDuration(_PlayerListReceiveTimes.Peek()).TotalMinutes > 4) {
+                while (_PlayerListReceiveTimes.Any() && NowDuration(_PlayerListReceiveTimes.Peek()).TotalMinutes > 7.5) {
                     _PlayerListReceiveTimes.Dequeue();
                 }
                 return _PlayerListReceiveTimes.Count() / NowDuration(_PlayerListReceiveTimes.Min()).TotalMinutes;
@@ -43839,7 +43838,7 @@ namespace PRoConEvents
 
         private void DoPlayerListAccept() {
             lock (_PlayerListAcceptTimes) {
-                while (_PlayerListAcceptTimes.Any() && NowDuration(_PlayerListAcceptTimes.Peek()).TotalMinutes > 4) {
+                while (_PlayerListAcceptTimes.Any() && NowDuration(_PlayerListAcceptTimes.Peek()).TotalMinutes > 7.5) {
                     _PlayerListAcceptTimes.Dequeue();
                 }
                 _LastPlayerListAccept = UtcNow();
@@ -43849,7 +43848,7 @@ namespace PRoConEvents
 
         private Double getPlayerListAcceptRate() {
             lock (_PlayerListAcceptTimes) {
-                while (_PlayerListAcceptTimes.Any() && NowDuration(_PlayerListAcceptTimes.Peek()).TotalMinutes > 4) {
+                while (_PlayerListAcceptTimes.Any() && NowDuration(_PlayerListAcceptTimes.Peek()).TotalMinutes > 7.5) {
                     _PlayerListAcceptTimes.Dequeue();
                 }
                 return _PlayerListAcceptTimes.Count() / NowDuration(_PlayerListAcceptTimes.Min()).TotalMinutes;
@@ -43858,7 +43857,7 @@ namespace PRoConEvents
 
         private void DoPlayerListProcessed() {
             lock (_PlayerListProcessedTimes) {
-                while (_PlayerListProcessedTimes.Any() && NowDuration(_PlayerListProcessedTimes.Peek()).TotalMinutes > 4) {
+                while (_PlayerListProcessedTimes.Any() && NowDuration(_PlayerListProcessedTimes.Peek()).TotalMinutes > 7.5) {
                     _PlayerListProcessedTimes.Dequeue();
                 }
                 _LastPlayerListProcessed = UtcNow();
@@ -43868,7 +43867,7 @@ namespace PRoConEvents
 
         private Double getPlayerListProcessedRate() {
             lock (_PlayerListProcessedTimes) {
-                while (_PlayerListProcessedTimes.Any() && NowDuration(_PlayerListProcessedTimes.Peek()).TotalMinutes > 4) {
+                while (_PlayerListProcessedTimes.Any() && NowDuration(_PlayerListProcessedTimes.Peek()).TotalMinutes > 7.5) {
                     _PlayerListProcessedTimes.Dequeue();
                 }
                 return _PlayerListProcessedTimes.Count() / NowDuration(_PlayerListProcessedTimes.Min()).TotalMinutes;
