@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.164
- * 27-JUN-2017
+ * Version 6.9.0.165
+ * 11-JUL-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.164</version_code>
+ * <version_code>6.9.0.165</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.164";
+        private const String PluginVersion = "6.9.0.165";
 
         public enum GameVersion {
             BF3,
@@ -7854,7 +7854,7 @@ namespace PRoConEvents
 
                                 if (_pluginEnabled && _threadsReady && _firstPlayerListComplete && _enforceSingleInstance)
                                 {
-                                    AdminSayMessage("/AdKatsInstanceCheck " + _instanceKey + " " + Math.Round((UtcNow() - _AdKatsRunningTime).TotalSeconds), false);
+                                    AdminSayMessage("/AdKatsInstanceCheck " + _instanceKey + " " + Math.Round((UtcNow() - _AdKatsRunningTime).TotalSeconds), true);
                                 }
 
                                 //Enable if auto-enable wanted
@@ -14958,7 +14958,7 @@ namespace PRoConEvents
             {
                 if (String.IsNullOrEmpty(message))
                 {
-                    Log.Error("message null in adminSay");
+                    Log.Error("Attempted to say an empty message.");
                     return;
                 }
                 var spambotMessage = false;
