@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.165
+ * Version 6.9.0.166
  * 11-JUL-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.165</version_code>
+ * <version_code>6.9.0.166</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.165";
+        private const String PluginVersion = "6.9.0.166";
 
         public enum GameVersion {
             BF3,
@@ -7854,7 +7854,7 @@ namespace PRoConEvents
 
                                 if (_pluginEnabled && _threadsReady && _firstPlayerListComplete && _enforceSingleInstance)
                                 {
-                                    AdminSayMessage("/AdKatsInstanceCheck " + _instanceKey + " " + Math.Round((UtcNow() - _AdKatsRunningTime).TotalSeconds), true);
+                                    AdminSayMessage("/AdKatsInstanceCheck " + _instanceKey + " " + Math.Round((UtcNow() - _AdKatsRunningTime).TotalSeconds), false);
                                 }
 
                                 //Enable if auto-enable wanted
@@ -10824,12 +10824,12 @@ namespace PRoConEvents
                                                 {
                                                     if (config_action == AutoSurrenderAction.Nuke) {
                                                         if (_surrenderAutoAnnounceNukePrep) {
-                                                            AdminSayMessage("Auto-nuke countdown paused at " + readyPercentage + "." + denyReason);
+                                                            AdminSayMessage("Auto-nuke countdown paused at " + readyPercentage + ".");
                                                         }
                                                     }
                                                     else
                                                     {
-                                                        OnlineAdminSayMessage("Auto-surrender countdown paused at " + readyPercentage + "." + denyReason);
+                                                        OnlineAdminSayMessage("Auto-surrender countdown paused at " + readyPercentage + ".");
                                                     }
                                                 }
                                                 else
@@ -42352,7 +42352,7 @@ namespace PRoConEvents
             Int32 modifier = 0;
             Int32 hour = 0;
             String population = "Unknown";
-            if (_PlayerDictionary.Values.ToList().Count(player => player.player_type == PlayerType.Player) >= _serverInfo.InfoObject.MaxPlayerCount - 1) {
+            if (_PlayerDictionary.Any() && _PlayerDictionary.Values.ToList().Count(player => player.player_type == PlayerType.Player) >= _serverInfo.InfoObject.MaxPlayerCount - 1) {
                 baseTrigger = (Int32)_pingEnforcerFullTriggerMS;
                 hour = DateTime.Now.Hour;
                 modifier = _pingEnforcerFullTimeModifier[DateTime.Now.Hour];
@@ -43927,10 +43927,16 @@ namespace PRoConEvents
 
         public Int32 GetStringUpperPercentage(String input) {
             Int32 upperCount = 0;
+            Int32 totalCount = 0;
             foreach (var character in input.ToCharArray()) {
-                if (char.IsUpper(character)) upperCount++;
+                if (char.IsLetter(character)) {
+                    totalCount++;
+                    if (char.IsUpper(character)) {
+                        upperCount++;
+                    }
+                }
             }
-            return (Int32)Math.Round((Double)upperCount / (Double)input.Length * 100.0);
+            return (Int32)Math.Round((Double)upperCount / (Double)totalCount * 100.0);
         }
 
         private void FetchIPLocation(AdKatsPlayer aPlayer)
