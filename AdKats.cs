@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.166
- * 11-JUL-2017
+ * Version 6.9.0.167
+ * 15-JUL-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.166</version_code>
+ * <version_code>6.9.0.167</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.166";
+        private const String PluginVersion = "6.9.0.167";
 
         public enum GameVersion {
             BF3,
@@ -9136,6 +9136,7 @@ namespace PRoConEvents
                                     _populationPopulatingPlayers.Remove(aPlayer.player_name);
                                     //Add player to the left dictionary
                                     aPlayer.player_online = false;
+                                    aPlayer.player_new = false;
                                     aPlayer.player_server = null;
                                     aPlayer.player_spawnedOnce = false;
                                     aPlayer.LiveKills.Clear();
@@ -9659,6 +9660,7 @@ namespace PRoConEvents
                                         _populationPopulatingPlayers.Remove(aPlayer.player_name);
                                         //Add player to the left dictionary
                                         aPlayer.player_online = false;
+                                        aPlayer.player_new = false;
                                         aPlayer.player_server = null;
                                         aPlayer.player_spawnedOnce = false;
                                         aPlayer.ClearPingEntries();
