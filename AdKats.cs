@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.167
- * 15-JUL-2017
+ * Version 6.9.0.168
+ * 21-JUL-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.167</version_code>
+ * <version_code>6.9.0.168</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.167";
+        private const String PluginVersion = "6.9.0.168";
 
         public enum GameVersion {
             BF3,
@@ -10838,12 +10838,12 @@ namespace PRoConEvents
                                                 {
                                                     if (config_action == AutoSurrenderAction.Nuke) {
                                                         if (_surrenderAutoAnnounceNukePrep) {
-                                                            AdminSayMessage("Auto-nuke countdown paused." + denyReason);
+                                                            AdminSayMessage("Auto-nuke countdown paused.");
                                                         }
                                                     }
                                                     else
                                                     {
-                                                        OnlineAdminSayMessage("Auto-surrender countdown paused." + denyReason);
+                                                        OnlineAdminSayMessage("Auto-surrender countdown paused.");
                                                     }
                                                 }
                                             }
@@ -19515,14 +19515,14 @@ namespace PRoConEvents
 
                             if (record.source_player != null && record.source_player.player_type == PlayerType.Spectator)
                             {
-                                SendMessageToSource(record, "You cannot use !" + GetCommandByKey("player_pull").command_text + " as a spectator.");
+                                SendMessageToSource(record, "You cannot use !" + GetCommandByKey("player_join").command_text + " as a spectator.");
                                 FinalizeRecord(record);
                                 return;
                             }
 
                             if (record.source_player != null && (record.source_player.player_type == PlayerType.CommanderMobile || record.source_player.player_type == PlayerType.CommanderPC))
                             {
-                                SendMessageToSource(record, "You cannot use !" + GetCommandByKey("player_pull").command_text + " as a commander.");
+                                SendMessageToSource(record, "You cannot use !" + GetCommandByKey("player_join").command_text + " as a commander.");
                                 FinalizeRecord(record);
                                 return;
                             }
