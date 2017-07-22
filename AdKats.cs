@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.168
- * 21-JUL-2017
+ * Version 6.9.0.169
+ * 22-JUL-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.168</version_code>
+ * <version_code>6.9.0.169</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.168";
+        private const String PluginVersion = "6.9.0.169";
 
         public enum GameVersion {
             BF3,
@@ -12036,6 +12036,8 @@ namespace PRoConEvents
                         return "AUTO-PRIMARIES ONLY!";
                     case "Grenades Only":
                         return "GRENADES ONLY!";
+                    case "No Restrictions":
+                        return "ALL WEAPONS!";
                 }
             } catch (Exception e) {
                 HandleException(new AdKatsException("Error while getting event message.", e));
@@ -12202,6 +12204,9 @@ namespace PRoConEvents
                             aKill.weaponCode != "DamageArea") {
                             return true;
                         }
+                        break;
+                    case "No Restrictions":
+                        return true;
                         break;
                     default:
                         Log.Error("Unknown restriction type when processing event kill");
@@ -15977,7 +15982,7 @@ namespace PRoConEvents
                                     return;
                                 }
                                 if (_UseExperimentalTools) {
-                                    if (_serverInfo.ServerID == 1 && EventActive()) {
+                                    if (EventActive()) {
                                         SendMessageToSource(record, "ROUND " + String.Format("{0:n0}", _roundID) + " EVENT. REPORT DISABLED.");
                                         FinalizeRecord(record);
                                         return;
@@ -20544,6 +20549,12 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
+
+                            if (EventActive()) {
+                                SendMessageToSource(record, "ROUND " + String.Format("{0:n0}", _roundID) + " EVENT. RULES ARE BASED ON THE CURRENT ROUND EVENT.");
+                                FinalizeRecord(record);
+                                return;
+                            }
 
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 1);
