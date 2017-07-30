@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.170
- * 22-JUL-2017
+ * Version 6.9.0.171
+ * 30-JUL-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.170</version_code>
+ * <version_code>6.9.0.171</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.170";
+        private const String PluginVersion = "6.9.0.171";
 
         public enum GameVersion {
             BF3,
@@ -12120,7 +12120,7 @@ namespace PRoConEvents
                         break;
                     case "Bolt Sniper Only":
                         // BOLT ACTIONS ONLY!
-                        if (aKill.weaponCategory != DamageTypes.SniperRifle &&
+                        if ((aKill.weaponCategory != DamageTypes.SniperRifle || aKill.weaponCode == "U_SR338") &&
                             aKill.weaponCode != "DamageArea") {
                             return true;
                         }
@@ -12206,7 +12206,8 @@ namespace PRoConEvents
                         }
                         break;
                     case "No Restrictions":
-                        return true;
+                        // Everything is allowed, always return false
+                        return false;
                         break;
                     default:
                         Log.Error("Unknown restriction type when processing event kill");
@@ -12661,7 +12662,7 @@ namespace PRoConEvents
                 {
                     if (_UseExperimentalTools &&
                         EventActive()) {
-                        if (aKill.killerCPI.TeamID != aKill.victimCPI.TeamID) {
+                        if (aKill.killerCPI.TeamID != aKill.victimCPI.TeamID && _roundState == RoundState.Playing) {
                             var killSpam = (aKill.killer.lastKill.AddSeconds(2) > UtcNow());
                             aKill.killer.lastKill = UtcNow();
                             String recordMessage; 
@@ -12671,7 +12672,7 @@ namespace PRoConEvents
                                     aKill.killer.TargetedRecords.Any(targetedRecord =>
                                     (targetedRecord.command_numeric == _roundID) &&
                                     (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
-                                    (UtcNow() - targetedRecord.record_time).TotalMinutes < 10)) {
+                                    (UtcNow() - targetedRecord.record_time).TotalMinutes < 7.5)) {
                                     aCommand = GetCommandByKey("player_kick");
                                 }
                                 QueueRecordForProcessing(new AdKatsRecord {
@@ -12845,7 +12846,14 @@ namespace PRoConEvents
                             Log.Info("Starting Ticket Count: " + _startingTicketCount);
                         }
 
-                        if (_UseExperimentalTools && _gameVersion == GameVersion.BF4 && _serverInfo != null && _serverInfo.GetRoundElapsedTime().TotalSeconds < 30) {
+                        if (EventActive()) {
+                            StartAndLogThread(new Thread(new ThreadStart(delegate {
+                                Thread.CurrentThread.Name = "RoundWelcome";
+                                Thread.Sleep(TimeSpan.FromSeconds(17));
+                                AdminTellMessage("WELCOME TO ROUND EVENT " + String.Format("{0:n0}", _roundID) + "! " + GetEventMessage(false));
+                                LogThreadExit();
+                            })));
+                        } else if (_UseExperimentalTools && _gameVersion == GameVersion.BF4 && _serverInfo != null && _serverInfo.GetRoundElapsedTime().TotalSeconds < 30) {
                             if (_serverInfo.ServerName.ToLower().Contains("metro") && _serverInfo.ServerName.ToLower().Contains("no explosives")) {
                                 StartAndLogThread(new Thread(new ThreadStart(delegate {
                                     Thread.CurrentThread.Name = "RoundWelcome";
