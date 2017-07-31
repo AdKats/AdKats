@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.172
+ * Version 6.9.0.173
  * 30-JUL-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.172</version_code>
+ * <version_code>6.9.0.173</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.172";
+        private const String PluginVersion = "6.9.0.173";
 
         public enum GameVersion {
             BF3,
@@ -814,10 +814,12 @@ namespace PRoConEvents
             "Rush 300",
             "Rush 500",
             "Conquest 500",
+            "Conquest 1000",
             "Conquest 2000",
             "Domination 500",
             "Domination 500 Hardcore",
-            "Domination 1100",
+            "Domination 750",
+            "Domination 1000",
         };
         private static readonly String[] _EventRoundRestrictionOptions = new String[] {
             "No Restrictions",
@@ -11142,7 +11144,7 @@ namespace PRoConEvents
         }
 
         private void ProcessPresetNormal() {
-            var delayMS = 125;
+            var delayMS = 250;
             ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.friendlyFire", "false");
             ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.killCam", "true");
             ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.miniMap", "true");
@@ -11163,7 +11165,7 @@ namespace PRoConEvents
         }
 
         private void ProcessEventMapMode(String mapModeCode) {
-            var delayMS = 125;
+            var delayMS = 250;
             Log.Debug(() => "Entering ProcessEventMapMode", 7);
             try {
                 switch (mapModeCode) {
@@ -11215,7 +11217,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
                         GoalTickets = 100;
                         TicketRatio = 75 / 100.0;
-                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
@@ -11229,7 +11231,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
                         GoalTickets = 300;
                         TicketRatio = 75 / 100.0;
-                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
@@ -11243,7 +11245,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
                         GoalTickets = 500;
                         TicketRatio = 75 / 100.0;
-                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
@@ -11257,7 +11259,21 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
                         GoalTickets = 500;
                         TicketRatio = 800 / 100.0;
-                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        OnlineAdminSayMessage("Event round setup complete!");
+                        break;
+                    case "Conquest 1000":
+                        ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "240");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
+                        GoalTickets = 1000;
+                        TicketRatio = 800 / 100.0;
+                        GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
@@ -11271,7 +11287,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
                         GoalTickets = 2000;
                         TicketRatio = 800 / 100.0;
-                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
@@ -11289,7 +11305,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "5");
                         GoalTickets = 1600;
                         TicketRatio = 800 / 100.0;
-                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         break;
                     case "Domination 500":
@@ -11302,7 +11318,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
                         GoalTickets = 500;
                         TicketRatio = 300 / 100.0;
-                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
@@ -11319,7 +11335,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "0");
                         GoalTickets = 500;
                         TicketRatio = 300 / 100.0;
-                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
@@ -11333,11 +11349,26 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
                         GoalTickets = 750;
                         TicketRatio = 300 / 100.0;
-                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        OnlineAdminSayMessage("Event round setup complete!");
+                        break;
+                    case "Domination 1000":
+                        ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "240");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
+                        GoalTickets = 1000;
+                        TicketRatio = 300 / 100.0;
+                        GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     default:
+                        Log.Error("Unknown mode type when processing event transition.");
                         break;
                 }
             } catch (Exception e) {
@@ -11403,14 +11434,14 @@ namespace PRoConEvents
                         //ACTIVE ROUND
                         for (int i = 0; i < 8; i++) {
                             AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! " + GetEventMessage(true));
-                            Thread.Sleep(1000);
+                            Thread.Sleep(2000);
                         }
                         ProcessEventMapMode(GetActiveEventRoundNumber(true));
                     } else if (nRound == _EventTestRoundNumber) {
                         //TEST ROUND
                         for (int i = 0; i < 8; i++) {
                             AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! TESTING! TESTING!");
-                            Thread.Sleep(1000);
+                            Thread.Sleep(2000);
                         }
                         ProcessEventMapMode("Domination 500");
                     } else {
@@ -12041,6 +12072,44 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while getting event message.", e));
             }
             Log.Debug(() => "Exiting GetEventMessage", 7);
+            return "UNKNOWN";
+        }
+
+        private String GetEventDescription(Boolean nextRound) {
+            Log.Debug(() => "Entering GetEventDescription", 7);
+            try {
+                switch (GetEventRoundRestrictionCode(GetActiveEventRoundNumber(nextRound))) {
+                    case "Knives Only":
+                        return "KNIFE ONLY! Only kills with knives are allowed.";
+                    case "Bolt Sniper Only":
+                        return "BOLT SNIPER ONLY! Only bolt action sniper rifles are allowed. Melee is NOT allowed.";
+                    case "Mares Leg Only":
+                        return "Mares LEG ONLY! Only kills with the mares leg are allowed. Melee is NOT allowed.";
+                    case "Defibs Only":
+                        return "DEFIBS ONLY! Only kills with the medic's defibrilators are allowed.";
+                    case "Bow And Knives Only":
+                        return "BOW/KNIVES ONLY! Only kills with the phantom bow and knives are allowed.";
+                    case "Repair Tool Only":
+                        return "REPAIR TOOL ONLY! Only kills with the engineer's repair tool are allowed.";
+                    case "Pistols Only":
+                        return "PISTOLS ONLY! Only kills with pistols are allowed, automatic pistols included. The shorty is not a pistol. Melee is NOT allowed.";
+                    case "Shotguns Only":
+                        return "SHOTGUNS ONLY! Only kills with shotguns are allowed. Any ammo type in the shotguns are allowed. Melee is NOT allowed.";
+                    case "No Explosives":
+                        return "NO EXPLOSIVES! Kills with explosive weapons are not allowed. All other weapons are allowed.";
+                    case "Explosives Only":
+                        return "EXPLOSIVES ONLY! Only kills with explosive weapons are allowed. 12G frag rounds are shotgun kills, not explosive kills. Melee is NOT allowed.";
+                    case "Automatics Only":
+                        return "AUTO-PRIMARIES ONLY! Only automatic primary weapons are allowed. Assault rifles, carbines, LMGs, etc. Burst primaries are allowed. Melee is NOT allowed.";
+                    case "Grenades Only":
+                        return "GRENADES ONLY! Only kills with grenades are allowed. M67, V40, etc. Melee is NOT allowed.";
+                    case "No Restrictions":
+                        return "ALL WEAPONS! No weapon restrictions. Go nuts.";
+                }
+            } catch (Exception e) {
+                HandleException(new AdKatsException("Error while getting event description.", e));
+            }
+            Log.Debug(() => "Exiting GetEventDescription", 7);
             return "UNKNOWN";
         }
 
@@ -20557,7 +20626,7 @@ namespace PRoConEvents
                             CancelSourcePendingAction(record);
 
                             if (EventActive()) {
-                                SendMessageToSource(record, "ROUND " + String.Format("{0:n0}", _roundID) + " EVENT. " + GetEventMessage(false));
+                                SendMessageToSource(record, "ROUND " + String.Format("{0:n0}", _roundID) + " EVENT. " + GetEventDescription(false));
                                 FinalizeRecord(record);
                                 return;
                             }
