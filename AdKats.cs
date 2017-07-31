@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.171
+ * Version 6.9.0.172
  * 30-JUL-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.171</version_code>
+ * <version_code>6.9.0.172</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.171";
+        private const String PluginVersion = "6.9.0.172";
 
         public enum GameVersion {
             BF3,
@@ -11142,7 +11142,7 @@ namespace PRoConEvents
         }
 
         private void ProcessPresetNormal() {
-            var delayMS = 100;
+            var delayMS = 125;
             ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.friendlyFire", "false");
             ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.killCam", "true");
             ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.miniMap", "true");
@@ -11163,131 +11163,120 @@ namespace PRoConEvents
         }
 
         private void ProcessEventMapMode(String mapModeCode) {
-            var delayMS = 100;
+            var delayMS = 125;
             Log.Debug(() => "Entering ProcessEventMapMode", 7);
             try {
                 switch (mapModeCode) {
+                    case "Declaration":
+                        Int32 GoalTickets = 0;
+                        Double TicketRatio = 0;
+                        Int32 GMC = 0;
+                        break;
                     case "TDM 100":
+                        ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "240");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.ticketBleedRate", "75");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "100");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "400");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillCountForKick", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillKickForBan", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "0");
-                        ProcessPresetNormal();
+                        OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case "TDM 300":
+                        ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "240");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.ticketBleedRate", "75");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "400");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillCountForKick", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillKickForBan", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "0");
-                        ProcessPresetNormal();
+                        OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case "TDM 500":
+                        ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "240");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.ticketBleedRate", "75");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "500");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "400");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillCountForKick", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillKickForBan", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "0");
-                        ProcessPresetNormal();
+                        OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case "Rush 100":
+                        ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "240");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.ticketBleedRate", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "100");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "400");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillCountForKick", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillKickForBan", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "0");
-                        ProcessPresetNormal();
+                        GoalTickets = 100;
+                        TicketRatio = 75 / 100.0;
+                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case "Rush 300":
+                        ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "240");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.ticketBleedRate", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "400");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillCountForKick", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillKickForBan", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "0");
-                        ProcessPresetNormal();
+                        GoalTickets = 300;
+                        TicketRatio = 75 / 100.0;
+                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case "Rush 500":
+                        ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "240");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.ticketBleedRate", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "500");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "400");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillCountForKick", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillKickForBan", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "0");
-                        ProcessPresetNormal();
+                        GoalTickets = 500;
+                        TicketRatio = 75 / 100.0;
+                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case "Conquest 500":
+                        ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "240");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.ticketBleedRate", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "400");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillCountForKick", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillKickForBan", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "0");
-                        ProcessPresetNormal();
+                        GoalTickets = 500;
+                        TicketRatio = 800 / 100.0;
+                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case "Conquest 2000":
+                        ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "240");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.ticketBleedRate", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "400");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillCountForKick", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillKickForBan", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "0");
-                        ProcessPresetNormal();
+                        GoalTickets = 2000;
+                        TicketRatio = 800 / 100.0;
+                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case "Conquest Reset":
+                        ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
@@ -11295,58 +11284,58 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "300");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "100");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.ticketBleedRate", "100");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "300");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillCountForKick", "5");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillKickForBan", "3");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "5");
-                        ProcessPresetNormal();
+                        GoalTickets = 1600;
+                        TicketRatio = 800 / 100.0;
+                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         break;
                     case "Domination 500":
+                        ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "240");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.ticketBleedRate", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "400");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillCountForKick", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillKickForBan", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "0");
-                        ProcessPresetNormal();
+                        GoalTickets = 500;
+                        TicketRatio = 300 / 100.0;
+                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case "Domination 500 Hardcore":
+                        ProcessPresetHardcore();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "240");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.ticketBleedRate", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "400");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillCountForKick", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillKickForBan", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "0");
-                        ProcessPresetHardcore();
+                        GoalTickets = 500;
+                        TicketRatio = 300 / 100.0;
+                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case "Domination 750":
+                        ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.idleTimeout", "240");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.playerRespawnTime", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.ticketBleedRate", "75");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "400");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillCountForKick", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillKickForBan", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.teamKillValueForKick", "0");
-                        ProcessPresetNormal();
+                        GoalTickets = 750;
+                        TicketRatio = 300 / 100.0;
+                        GMC = (Int32)(GoalTickets / TicketRatio);
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     default:
                         break;
@@ -11404,16 +11393,24 @@ namespace PRoConEvents
                         _pingEnforcerEnable = false;
                         _surrenderVoteEnable = false;
                         _surrenderAutoEnable = false;
-                        ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "False");
+                        var nextCode = GetEventRoundRestrictionCode(GetActiveEventRoundNumber(true));
+                        if (nextCode == "Automatics Only" ||
+                            nextCode == "Bow And Knives Only") {
+                            ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
+                        } else {
+                            ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "False");
+                        }
                         //ACTIVE ROUND
                         for (int i = 0; i < 8; i++) {
                             AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! " + GetEventMessage(true));
+                            Thread.Sleep(1000);
                         }
                         ProcessEventMapMode(GetActiveEventRoundNumber(true));
                     } else if (nRound == _EventTestRoundNumber) {
                         //TEST ROUND
                         for (int i = 0; i < 8; i++) {
                             AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! TESTING! TESTING!");
+                            Thread.Sleep(1000);
                         }
                         ProcessEventMapMode("Domination 500");
                     } else {
@@ -11428,6 +11425,7 @@ namespace PRoConEvents
                         ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
                         ProcessEventMapMode("Conquest Reset");
                     }
+                    UploadAllSettings();
                     UpdateSettingPage();
                 }
 
@@ -12171,16 +12169,15 @@ namespace PRoConEvents
                         break;
                     case "No Explosives":
                         // NO EXPLOSIVES!
-                        if (Regex.Match(aKill.weaponCode, @"(?:_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk|_3GL|USAS|MGL)", RegexOptions.IgnoreCase).Success) {
-                            if (!Regex.Match(aKill.weaponCode, @"(?:_Flechette|_Slug|_Dart|_SHG)", RegexOptions.IgnoreCase).Success) {
-                                return true;
-                            }
+                        if (aKill.weaponCategory == DamageTypes.Explosive || aKill.weaponCategory == DamageTypes.ProjectileExplosive) {
+                            return true;
                         }
                         break;
                     case "Explosives Only":
                         // EXPLOSIVES ONLY!
-                        if (!Regex.Match(aKill.weaponCode, @"(?:_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk|_3GL|USAS|MGL)", RegexOptions.IgnoreCase).Success ||
-                            Regex.Match(aKill.weaponCode, @"(?:_Flechette|_Slug|_Dart|_SHG)", RegexOptions.IgnoreCase).Success) {
+                        if (aKill.weaponCategory != DamageTypes.Explosive &&
+                            aKill.weaponCategory != DamageTypes.ProjectileExplosive &&
+                            aKill.weaponCode != "DamageArea") {
                             return true;
                         }
                         break;
@@ -12190,6 +12187,7 @@ namespace PRoConEvents
                              aKill.weaponCategory != DamageTypes.Carbine &&
                              aKill.weaponCategory != DamageTypes.LMG &&
                              aKill.weaponCategory != DamageTypes.SMG &&
+                             aKill.weaponCode != "U_Groza-4" &&
                              aKill.weaponCode != "DamageArea") ||
                             aKill.weaponCode == "dlSHTR") {
                             return true;
