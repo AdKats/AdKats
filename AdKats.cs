@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.173
- * 30-JUL-2017
+ * Version 6.9.0.174
+ * 31-JUL-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.173</version_code>
+ * <version_code>6.9.0.174</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.173";
+        private const String PluginVersion = "6.9.0.174";
 
         public enum GameVersion {
             BF3,
@@ -10584,7 +10584,7 @@ namespace PRoConEvents
                                     }
 
                                     int playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
-                                    int neededPlayers = Math.Min(_surrenderAutoMinimumPlayers - playerCount, 0);
+                                    int neededPlayers = Math.Max(_surrenderAutoMinimumPlayers - playerCount, 0);
                                     var ticketGap = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount);
 
                                     if (canFire && 
@@ -11420,44 +11420,49 @@ namespace PRoConEvents
 
                 if (_UseExperimentalTools && _EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
                     var nRound = _roundID + 1;
-                    if (EventActive(nRound)) {
-                        _pingEnforcerEnable = false;
-                        _surrenderVoteEnable = false;
-                        _surrenderAutoEnable = false;
-                        var nextCode = GetEventRoundRestrictionCode(GetActiveEventRoundNumber(true));
-                        if (nextCode == "Automatics Only" ||
-                            nextCode == "Bow And Knives Only") {
-                            ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
+                    StartAndLogThread(new Thread(new ThreadStart(delegate {
+                        Thread.CurrentThread.Name = "EventAnnounce";
+                        Thread.Sleep(TimeSpan.FromSeconds(5));
+                        if (EventActive(nRound)) {
+                            _pingEnforcerEnable = false;
+                            _surrenderVoteEnable = false;
+                            _surrenderAutoEnable = false;
+                            var nextCode = GetEventRoundRestrictionCode(GetActiveEventRoundNumber(true));
+                            if (nextCode == "Automatics Only" ||
+                                nextCode == "Bow And Knives Only") {
+                                ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
+                            } else {
+                                ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "False");
+                            }
+                            //ACTIVE ROUND
+                            for (int i = 0; i < 8; i++) {
+                                AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! " + GetEventMessage(true));
+                                Thread.Sleep(2000);
+                            }
+                            ProcessEventMapMode(GetActiveEventRoundNumber(true));
+                        } else if (nRound == _EventTestRoundNumber) {
+                            //TEST ROUND
+                            for (int i = 0; i < 8; i++) {
+                                AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! TESTING! TESTING!");
+                                Thread.Sleep(2000);
+                            }
+                            ProcessEventMapMode("Domination 500");
                         } else {
-                            ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "False");
+                            //NORMAL ROUND
+                            if (nRound >= _CurrentEventRoundNumber + _EventRoundSelections.Count()) {
+                                // Reset the current event number, as the event has ended.
+                                _CurrentEventRoundNumber = 999999;
+                            }
+                            _pingEnforcerEnable = true;
+                            _surrenderVoteEnable = true;
+                            _surrenderAutoEnable = true;
+                            ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
+                            ProcessEventMapMode("Conquest Reset");
                         }
-                        //ACTIVE ROUND
-                        for (int i = 0; i < 8; i++) {
-                            AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! " + GetEventMessage(true));
-                            Thread.Sleep(2000);
-                        }
-                        ProcessEventMapMode(GetActiveEventRoundNumber(true));
-                    } else if (nRound == _EventTestRoundNumber) {
-                        //TEST ROUND
-                        for (int i = 0; i < 8; i++) {
-                            AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! TESTING! TESTING!");
-                            Thread.Sleep(2000);
-                        }
-                        ProcessEventMapMode("Domination 500");
-                    } else {
-                        //NORMAL ROUND
-                        if (nRound >= _CurrentEventRoundNumber + _EventRoundSelections.Count()) {
-                            // Reset the current event number, as the event has ended.
-                            _CurrentEventRoundNumber = 999999;
-                        }
-                        _pingEnforcerEnable = true;
-                        _surrenderVoteEnable = true;
-                        _surrenderAutoEnable = true;
-                        ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
-                        ProcessEventMapMode("Conquest Reset");
-                    }
-                    UploadAllSettings();
-                    UpdateSettingPage();
+                        UploadAllSettings();
+                        UpdateSettingPage();
+                        LogThreadExit();
+                    })));
                 }
 
                 if (_serverInfo.ServerName.Contains("[FPSG] 24/7 Operation Lockers")) {
