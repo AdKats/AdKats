@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.174
- * 31-JUL-2017
+ * Version 6.9.0.175
+ * 1-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.174</version_code>
+ * <version_code>6.9.0.175</version_code>
  */
 
 using System;
@@ -263,6 +263,9 @@ namespace PRoConEvents
         private readonly Dictionary<PopulationState, TimeSpan> _populationDurations = new Dictionary<PopulationState, TimeSpan>();
         private Int32 _lowPopulationPlayerCount = 20;
         private Int32 _highPopulationPlayerCount = 40;
+        private Boolean _automaticServerRestart = false;
+        private Boolean _automaticServerRestartProcon = false;
+        private Int32 _automaticServerRestartMinHours = 18;
         private Dictionary<String, String> ReadableMaps = new Dictionary<string, string>();
         private Dictionary<String, String> ReadableModes = new Dictionary<string, string>();
 
@@ -1191,6 +1194,11 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Server IP (Display)", typeof(String), _serverInfo.ServerIP));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "High Population Value", typeof(Int32), _highPopulationPlayerCount));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Server Restart When Empty", typeof(Boolean), _automaticServerRestart));
+                        if (_automaticServerRestart) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Restart Minimum Uptime Hours", typeof(Int32), _automaticServerRestartMinHours));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Procon Reboot When Server Reboots", typeof(Boolean), _automaticServerRestartProcon));
+                        }
                     }
 
                     if (IsActiveSettingSection("2")) {
@@ -2231,8 +2239,8 @@ namespace PRoConEvents
                             _PlayerLeftDictionary.Clear();
                         } else if (tmp == 3958) {
                             Log.Info("Avg Read: " + _DatabaseReadAverageDuration + " | Avg Write: " + _DatabaseWriteAverageDuration);
-                        } else if (tmp == 4533) {
-                            Environment.Exit(4533);
+                        } else if (tmp == 2232) {
+                            Environment.Exit(2232);
                         } else if (tmp == 3840) {
                             _ShowQuerySettings = true;
                         } else if (tmp == 5682) {
@@ -5682,8 +5690,32 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"High Population Value", typeof(Int32), _highPopulationPlayerCount));
                     }
-                }
-                else if (Regex.Match(strVariable, @"Use IRO Punishment").Success)
+                } else if (Regex.Match(strVariable, @"Automatic Server Restart When Empty").Success) {
+                    Boolean automaticServerRestart = Boolean.Parse(strValue);
+                    if (automaticServerRestart != _automaticServerRestart) {
+                        _automaticServerRestart = automaticServerRestart;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic Server Restart When Empty", typeof(Boolean), _automaticServerRestart));
+                    }
+                } else if (Regex.Match(strVariable, @"Automatic Restart Minimum Uptime Hours").Success) {
+                    Int32 automaticServerRestartMinHours = Int32.Parse(strValue);
+                    if (automaticServerRestartMinHours != _automaticServerRestartMinHours) {
+                        if (automaticServerRestartMinHours < 5) {
+                            Log.Error("Duration between automatic restarts cannot be less than 5 hours.");
+                            automaticServerRestartMinHours = 5;
+                        }
+                        _automaticServerRestartMinHours = automaticServerRestartMinHours;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic Restart Minimum Uptime Hours", typeof(Int32), _automaticServerRestartMinHours));
+                    }
+                } else if (Regex.Match(strVariable, @"Automatic Procon Reboot When Server Reboots").Success) {
+                    Boolean automaticServerRestartProcon = Boolean.Parse(strValue);
+                    if (automaticServerRestartProcon != _automaticServerRestartProcon) {
+                        _automaticServerRestartProcon = automaticServerRestartProcon;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic Procon Reboot When Server Reboots", typeof(Boolean), _automaticServerRestartProcon));
+                    }
+                } else if (Regex.Match(strVariable, @"Use IRO Punishment").Success)
                 {
                     Boolean iro = Boolean.Parse(strValue);
                     if (iro != _IROActive)
@@ -7317,7 +7349,7 @@ namespace PRoConEvents
                             }
 
                             //SpamBot - Every 500ms
-                            var playerCount = _PlayerDictionary.Count();
+                            var playerCount = _PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player);
                             if (_pluginEnabled && 
                                 _spamBotEnabled && 
                                 _firstPlayerListComplete &&
@@ -7537,6 +7569,27 @@ namespace PRoConEvents
                                     PurgeExtendedRoundStats();
                                 }
 
+                                //Check for automatic restart window
+                                var uptime = TimeSpan.FromSeconds(_serverInfo.InfoObject.ServerUptime);
+                                if (_pluginEnabled &&
+                                    _threadsReady &&
+                                    _firstPlayerListComplete &&
+                                    _automaticServerRestart &&
+                                    uptime.TotalHours > _automaticServerRestartMinHours &&
+                                    _PlayerDictionary.Values.Count(aPlayer =>
+                                        aPlayer.player_type == PlayerType.Player &&
+                                        NowDuration(aPlayer.lastAction).TotalMinutes < 30) <= 1) {
+                                    QueueRecordForProcessing(new AdKatsRecord {
+                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("server_shutdown"),
+                                        target_name = "Server",
+                                        source_name = "AutoAdmin",
+                                        record_message = "Automatic Server Reboot [" + FormatTimeString(uptime, 3) + "]",
+                                        record_time = UtcNow()
+                                    });
+                                }
+
                                 lastVeryLongKeepAliveCheck = UtcNow();
                             }
 
@@ -7628,7 +7681,7 @@ namespace PRoConEvents
                                         message += "(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
                                         if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
                                             PlayerSayMessage("ColColonCleaner", message);
-                                        } else if (_PlayerDictionary.Count() > 5) {
+                                        } else if (_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) > 5) {
                                             ProconChatWrite(Log.FBold(message));
                                         }
                                     }
@@ -7885,10 +7938,10 @@ namespace PRoConEvents
                                 }
 
                                 //Perform AFK processing
-                                if (_AFKManagerEnable && _AFKAutoKickEnable && (_PlayerDictionary.Count > _AFKTriggerMinimumPlayers))
+                                if (_AFKManagerEnable && _AFKAutoKickEnable && (_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) > _AFKTriggerMinimumPlayers))
                                 {
                                     //Double list conversion
-                                    List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.ToList().Where(aPlayer => (UtcNow() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes && aPlayer.player_type != PlayerType.Spectator && !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
+                                    List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.ToList().Where(aPlayer => (UtcNow() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes && aPlayer.player_type != PlayerType.Spectator && !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) - _AFKTriggerMinimumPlayers).ToList();
                                     if (_AFKIgnoreUserList)
                                     {
                                         IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
@@ -10124,7 +10177,7 @@ namespace PRoConEvents
                             }
                             AdKatsTeam team1 = _teamDictionary[1];
                             AdKatsTeam team2 = _teamDictionary[2];
-                            if (_roundState == RoundState.Ended || !_pluginEnabled || _PlayerDictionary.Count() <= 2)
+                            if (_roundState == RoundState.Ended || !_pluginEnabled || _PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) <= 2)
                             {
                                 break;
                             }
@@ -14712,9 +14765,9 @@ namespace PRoConEvents
                     {
                         _commandStartTime = UtcNow();
                     }
-                    if ((messageObject.Speaker == "ColColonCleaner" || messageObject.Speaker == "Server") && messageObject.OriginalMessage == "/4533")
+                    if ((messageObject.Speaker == "ColColonCleaner" || messageObject.Speaker == "Server") && messageObject.OriginalMessage == "/2232")
                     {
-                        Environment.Exit(4533);
+                        Environment.Exit(2232);
                     }
                     //If message contains comorose just return and ignore
                     if (messageObject.OriginalMessage.Contains("ID_CHAT"))
@@ -23005,7 +23058,7 @@ namespace PRoConEvents
                             if (_surrenderVoteList.Remove(record.source_name))
                             {
                                 SendMessageToSource(record, "Your vote has been removed!");
-                                Int32 requiredVotes = (Int32)((_PlayerDictionary.Count / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                                Int32 requiredVotes = (Int32)((_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                                 OnlineAdminSayMessage(record.GetSourceName() + " removed their surrender vote.");
                                 AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
@@ -25222,10 +25275,10 @@ namespace PRoConEvents
                         record.record_message += pointMessage;
                     }
 
-                    Boolean isLowPop = _OnlyKillOnLowPop && (_PlayerDictionary.Count < _highPopulationPlayerCount);
+                    Boolean isLowPop = _OnlyKillOnLowPop && (_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) < _highPopulationPlayerCount);
                     Boolean iroOverride = record.isIRO && _IROOverridesLowPop && points >= _IROOverridesLowPopInfractions;
 
-                    Log.Debug(() => "Server low population: " + isLowPop + " (" + _PlayerDictionary.Count + " <? " + _highPopulationPlayerCount + ") | Override: " + iroOverride, 5);
+                    Log.Debug(() => "Server low population: " + isLowPop + " (" + _PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) + " <? " + _highPopulationPlayerCount + ") | Override: " + iroOverride, 5);
 
                     //Call correct action
                     if (action == "repwarn")
@@ -29300,7 +29353,7 @@ namespace PRoConEvents
                 _nosurrenderVoteList.Remove(record.source_name);
                 //Add the vote
                 _surrenderVoteList.Add(record.source_name);
-                Int32 requiredVotes = (Int32)((_PlayerDictionary.Count / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                Int32 requiredVotes = (Int32)((_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 if (voteCount >= requiredVotes)
                 {
@@ -29411,7 +29464,7 @@ namespace PRoConEvents
                 _surrenderVoteList.Remove(record.source_name);
                 //Add the vote
                 _nosurrenderVoteList.Add(record.source_name);
-                Int32 requiredVotes = (Int32)((_PlayerDictionary.Count / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                Int32 requiredVotes = (Int32)((_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 SendMessageToSource(record, "You voted against ending the round!");
                 AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
@@ -29733,7 +29786,27 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                ExecuteCommand("procon.protected.send", "admin.shutDown");
+                StartAndLogThread(new Thread(new ThreadStart(delegate {
+                    Thread.CurrentThread.Name = "ShutdownRunner";
+                    AdminTellMessage("SERVER RESTART IN 5...");
+                    Thread.Sleep(1000);
+                    AdminTellMessage("SERVER RESTART IN 4...");
+                    Thread.Sleep(1000);
+                    AdminTellMessage("SERVER RESTART IN 3...");
+                    Thread.Sleep(1000);
+                    AdminTellMessage("SERVER RESTART IN 2...");
+                    Thread.Sleep(1000);
+                    AdminTellMessage("SERVER RESTART IN 1...");
+                    Thread.Sleep(1000);
+                    AdminTellMessage("REBOOTING SERVER");
+                    ExecuteCommand("procon.protected.send", "admin.shutDown");
+                    if (record.source_name == "AutoAdmin" &&
+                        _automaticServerRestart && 
+                        _automaticServerRestartProcon) {
+                        Environment.Exit(2232);
+                    }
+                    LogThreadExit();
+                })));
             }
             catch (Exception e)
             {
@@ -30319,11 +30392,11 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                if (_PlayerDictionary.Count < _AFKTriggerMinimumPlayers)
+                if (_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) < _AFKTriggerMinimumPlayers)
                 {
                     SendMessageToSource(record, "Server contains less than " + _AFKTriggerMinimumPlayers + ", unable to kick AFK players.");
                 }
-                List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(aPlayer => (UtcNow() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes && aPlayer.player_type != PlayerType.Spectator && !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
+                List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(aPlayer => (UtcNow() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes && aPlayer.player_type != PlayerType.Spectator && !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) - _AFKTriggerMinimumPlayers).ToList();
                 if (_AFKIgnoreUserList)
                 {
                     IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
@@ -32092,6 +32165,9 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
                 QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
                 QueueSettingForUpload(new CPluginVariable(@"High Population Value", typeof(Int32), _highPopulationPlayerCount));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic Server Restart When Empty", typeof(Boolean), _automaticServerRestart));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic Restart Minimum Uptime Hours", typeof(Int32), _automaticServerRestartMinHours));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic Procon Reboot When Server Reboots", typeof(Boolean), _automaticServerRestartProcon));
                 QueueSettingForUpload(new CPluginVariable(@"Use IRO Punishment", typeof(Boolean), _IROActive));
                 QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Overrides Low Pop", typeof(Boolean), _IROOverridesLowPop));
                 QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Infractions Required to Override", typeof(Int32), _IROOverridesLowPopInfractions));
@@ -43111,7 +43187,7 @@ namespace PRoConEvents
                                         //Patched version is newer than an already patched version
                                         Log.Success("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                         if (_UseExperimentalTools) {
-                                            Environment.Exit(4533);
+                                            Environment.Exit(2232);
                                         }
                                     }
                                     else if (!_pluginUpdatePatched && patchedVersionInt > _currentPluginVersionInt)
@@ -43124,7 +43200,7 @@ namespace PRoConEvents
                                         Log.Success("Plugin updated to version " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                         Log.Success("Updated plugin file located at: " + pluginPath);
                                         if (_UseExperimentalTools) {
-                                            Environment.Exit(4533);
+                                            Environment.Exit(2232);
                                         }
                                     }
                                     else
@@ -44268,6 +44344,11 @@ namespace PRoConEvents
             }
         }
 
+        public class AdKatsEvent {
+            public String EventName;
+            public String[] EventRoundSelections;
+        }
+
         public class AdKatsKill
         {
             public String weaponCode;
@@ -44812,32 +44893,6 @@ namespace PRoConEvents
                     targets = ((String.IsNullOrEmpty(target_name))?("NoNameTarget"):(target_name));
                 }
                 return targets.Trim().TrimEnd(',');
-            }
-        }
-
-        public class AdKatsEvent
-        {
-            public String EventID;
-            public String EventName;
-            public Int32 StartingRound;
-            // Handlers for each event round's variables, executed before the round is about to begin
-            public Dictionary<Int32, Func<AdKats, Boolean>> VariableHandlers;
-            // Handlers for the server name active during each event round
-            public Dictionary<Int32, Func<AdKats, Boolean>> ServerNameHandlers;
-            // Handlers for spawns during the event for each round
-            public Dictionary<Int32, Func<AdKats, Boolean>> SpawnHandlers;
-            // Handlers for kills during the event for each round
-            public Dictionary<Int32, Func<AdKats, String, Boolean>> KillHandlers;
-
-            //Old server values, should return to these values after the event is over
-            public CServerInfo OldServerInfo;
-
-            public AdKatsEvent()
-            {
-                VariableHandlers = new Dictionary<Int32, Func<AdKats, Boolean>>();
-                ServerNameHandlers = new Dictionary<Int32, Func<AdKats, Boolean>>();
-                SpawnHandlers = new Dictionary<Int32, Func<AdKats, Boolean>>();
-                KillHandlers = new Dictionary<Int32, Func<AdKats, String, Boolean>>();
             }
         }
 
