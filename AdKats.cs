@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.175
- * 1-AUG-2017
+ * Version 6.9.0.176
+ * 2-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.175</version_code>
+ * <version_code>6.9.0.176</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.174";
+        private const String PluginVersion = "6.9.0.176";
 
         public enum GameVersion {
             BF3,
@@ -7570,24 +7570,42 @@ namespace PRoConEvents
                                 }
 
                                 //Check for automatic restart window
-                                var uptime = TimeSpan.FromSeconds(_serverInfo.InfoObject.ServerUptime);
-                                if (_pluginEnabled &&
+                                if (_automaticServerRestart &&
+                                    _pluginEnabled &&
                                     _threadsReady &&
-                                    _firstPlayerListComplete &&
-                                    _automaticServerRestart &&
-                                    uptime.TotalHours > _automaticServerRestartMinHours &&
-                                    _PlayerDictionary.Values.Count(aPlayer =>
-                                        aPlayer.player_type == PlayerType.Player &&
-                                        NowDuration(aPlayer.lastAction).TotalMinutes < 30) <= 1) {
-                                    QueueRecordForProcessing(new AdKatsRecord {
-                                        record_source = AdKatsRecord.Sources.InternalAutomated,
-                                        server_id = _serverInfo.ServerID,
-                                        command_type = GetCommandByKey("server_shutdown"),
-                                        target_name = "Server",
-                                        source_name = "AutoAdmin",
-                                        record_message = "Automatic Server Reboot [" + FormatTimeString(uptime, 3) + "]",
-                                        record_time = UtcNow()
-                                    });
+                                    _firstPlayerListComplete) {
+                                    Boolean restart = true;
+                                    var uptime = TimeSpan.FromSeconds(_serverInfo.InfoObject.ServerUptime);
+                                    var uptimeString = FormatTimeString(uptime, 3);
+                                    if (uptime.TotalHours < _automaticServerRestartMinHours) {
+                                        restart = false;
+                                        if (_UseExperimentalTools) {
+                                            Log.Info("ServerReboot: Uptime less than " + _automaticServerRestartMinHours + " hour limit. [" + uptimeString + "]");
+                                        }
+                                    }
+                                    Int32 count = _PlayerDictionary.Values.Count(aPlayer =>
+                                                    aPlayer.player_type == PlayerType.Player &&
+                                                    NowDuration(aPlayer.lastAction).TotalMinutes < 30);
+                                    if (count > 1) {
+                                        restart = false;
+                                        if (_UseExperimentalTools) {
+                                            Log.Info("ServerReboot: " + count + " active players, need 1 or fewer to reboot.");
+                                        }
+                                    }
+                                    if (restart) {
+                                        if (_UseExperimentalTools) {
+                                            Log.Success("ServerReboot: Rebooting server.");
+                                        }
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("server_shutdown"),
+                                            target_name = "Server",
+                                            source_name = "AutoAdmin",
+                                            record_message = "Automatic Server Restart [" + FormatTimeString(uptime, 3) + "]",
+                                            record_time = UtcNow()
+                                        });
+                                    }
                                 }
 
                                 lastVeryLongKeepAliveCheck = UtcNow();
