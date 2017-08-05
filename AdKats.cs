@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.178
+ * Version 6.9.0.179
  * 5-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.178</version_code>
+ * <version_code>6.9.0.179</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.178";
+        private const String PluginVersion = "6.9.0.179";
 
         public enum GameVersion {
             BF3,
@@ -11494,12 +11494,13 @@ namespace PRoConEvents
                     var nRound = _roundID + 1;
                     StartAndLogThread(new Thread(new ThreadStart(delegate {
                         Thread.CurrentThread.Name = "EventAnnounce";
-                        Thread.Sleep(TimeSpan.FromSeconds(5));
+                        Thread.Sleep(TimeSpan.FromSeconds(6));
+                        // The new _roundID is fetched by now
                         if (EventActive(nRound)) {
                             _pingEnforcerEnable = false;
                             _surrenderVoteEnable = false;
                             _surrenderAutoEnable = false;
-                            var nextCode = GetEventRoundRestrictionCode(GetActiveEventRoundNumber(true));
+                            var nextCode = GetEventRoundRestrictionCode(GetActiveEventRoundNumber(false));
                             if (nextCode == "Automatics Only" ||
                                 nextCode == "Bow And Knives Only") {
                                 ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
@@ -11508,10 +11509,10 @@ namespace PRoConEvents
                             }
                             //ACTIVE ROUND
                             for (int i = 0; i < 8; i++) {
-                                AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! " + GetEventMessage(true));
+                                AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! " + GetEventMessage(false));
                                 Thread.Sleep(2000);
                             }
-                            ProcessEventMapMode(GetActiveEventRoundNumber(true));
+                            ProcessEventMapMode(GetActiveEventRoundNumber(false));
                         } else if (nRound == _EventTestRoundNumber) {
                             //TEST ROUND
                             for (int i = 0; i < 8; i++) {
