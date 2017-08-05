@@ -20,9 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
+ * Version 6.9.0.178
  * 5-AUG-2017
  * 
  * Automatic Update Information
+ * <version_code>6.9.0.178</version_code>
  */
 
 using System;
@@ -64,6 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
+        private const String PluginVersion = "6.9.0.178";
 
         public enum GameVersion {
             BF3,
@@ -12351,6 +12354,7 @@ namespace PRoConEvents
                         }
                         break;
                     case "Headshots Only":
+                        // HEADSHOTS ONLY!
                         if (!aKill.IsHeadshot &&
                             aKill.weaponCode != "DamageArea") {
                             QueueRecordForProcessing(new AdKatsRecord {
