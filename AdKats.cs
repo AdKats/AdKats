@@ -20,11 +20,9 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.177
  * 5-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.177</version_code>
  */
 
 using System;
@@ -66,7 +64,6 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.177";
 
         public enum GameVersion {
             BF3,
@@ -837,7 +834,8 @@ namespace PRoConEvents
             "Defibs Only",
             "Bow And Knives Only",
             "Bolt Sniper Only",
-            "Repair Tool Only"
+            "Repair Tool Only",
+            "Headshots Only"
         };
         private String[] _EventRoundSelections = new String[] {
             _EventRoundMapModeOptions[0] + "/" + _EventRoundRestrictionOptions[0],
@@ -12141,6 +12139,8 @@ namespace PRoConEvents
                         return "AUTO-PRIMARIES ONLY!";
                     case "Grenades Only":
                         return "GRENADES ONLY!";
+                    case "Headshots Only":
+                        return "HEADSHOTS ONLY!";
                     case "No Restrictions":
                         return "ALL WEAPONS!";
                 }
@@ -12179,6 +12179,8 @@ namespace PRoConEvents
                         return "AUTO-PRIMARIES ONLY! Only automatic primary weapons are allowed. Assault rifles, carbines, LMGs, etc. Burst primaries are allowed. Melee is NOT allowed.";
                     case "Grenades Only":
                         return "GRENADES ONLY! Only kills with grenades are allowed. M67, V40, etc. Melee is NOT allowed.";
+                    case "Headshots Only":
+                        return "HEADSHOTS ONLY! No weapon restrictions, however you must kill with headshots. If you kill without a headshot you are auto-killed.";
                     case "No Restrictions":
                         return "ALL WEAPONS! No weapon restrictions. Go nuts.";
                 }
@@ -12348,10 +12350,25 @@ namespace PRoConEvents
                             return true;
                         }
                         break;
+                    case "Headshots Only":
+                        if (!aKill.IsHeadshot &&
+                            aKill.weaponCode != "DamageArea") {
+                            QueueRecordForProcessing(new AdKatsRecord {
+                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                server_id = _serverInfo.ServerID,
+                                command_type = GetCommandByKey("player_kill"),
+                                command_numeric = _roundID,
+                                target_name = aKill.killer.player_name,
+                                target_player = aKill.killer,
+                                source_name = "AutoAdmin",
+                                record_time = UtcNow(),
+                                record_message = "HEADSHOTS ONLY! ROUND " + String.Format("{ 0:n0 }", _roundID) + " EVENT"
+                            });
+                        }
+                        return false;
                     case "No Restrictions":
                         // Everything is allowed, always return false
                         return false;
-                        break;
                     default:
                         Log.Error("Unknown restriction type when processing event kill");
                         break;
