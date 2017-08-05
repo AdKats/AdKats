@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.176
- * 2-AUG-2017
+ * Version 6.9.0.177
+ * 5-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.176</version_code>
+ * <version_code>6.9.0.177</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.176";
+        private const String PluginVersion = "6.9.0.177";
 
         public enum GameVersion {
             BF3,
@@ -7586,7 +7586,7 @@ namespace PRoConEvents
                                     Int32 count = _PlayerDictionary.Values.Count(aPlayer =>
                                                     aPlayer.player_type == PlayerType.Player &&
                                                     NowDuration(aPlayer.lastAction).TotalMinutes < 30);
-                                    if (count > 1) {
+                                    if (restart && count > 1) {
                                         restart = false;
                                         if (_UseExperimentalTools) {
                                             Log.Info("ServerReboot: " + count + " active players, need 1 or fewer to reboot.");
@@ -29821,6 +29821,8 @@ namespace PRoConEvents
                     if (record.source_name == "AutoAdmin" &&
                         _automaticServerRestart && 
                         _automaticServerRestartProcon) {
+                        // Wait 30 seconds for the server to reboot
+                        Thread.Sleep(TimeSpan.FromSeconds(30));
                         Environment.Exit(2232);
                     }
                     LogThreadExit();
