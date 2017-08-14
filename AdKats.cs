@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.179
- * 5-AUG-2017
+ * Version 6.9.0.180
+ * 14-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.179</version_code>
+ * <version_code>6.9.0.180</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.179";
+        private const String PluginVersion = "6.9.0.180";
 
         public enum GameVersion {
             BF3,
@@ -486,6 +486,7 @@ namespace PRoConEvents
         private String _pingEnforcerMessagePrefix = "Please fix your ping and join us again.";
         private String[] _pingEnforcerIgnoreRoles = { };
         private Boolean _attemptManualPingWhenMissing = false;
+        private Boolean _pingEnforcerDisplayProconChat = true;
 
         //Commander manager
         private Boolean _CMDRManagerEnable = false;
@@ -1493,6 +1494,7 @@ namespace PRoConEvents
                                 lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Ignore Roles", typeof(String[]), _pingEnforcerIgnoreRoles));
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Message Prefix", typeof(String), _pingEnforcerMessagePrefix));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Display Ping Enforcer Messages In Procon Chat", typeof(Boolean), _pingEnforcerDisplayProconChat));
                         }
                     }
 
@@ -2696,8 +2698,14 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
                     }
-                }
-                else if (Regex.Match(strVariable, @"Ping Kick Ignore User List").Success)
+                } else if (Regex.Match(strVariable, @"Display Ping Enforcer Messages In Procon Chat").Success) {
+                    Boolean pingEnforcerDisplayProconChat = Boolean.Parse(strValue);
+                    if (pingEnforcerDisplayProconChat != _pingEnforcerDisplayProconChat) {
+                        _pingEnforcerDisplayProconChat = pingEnforcerDisplayProconChat;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Display Ping Enforcer Messages In Procon Chat", typeof(Boolean), _pingEnforcerDisplayProconChat));
+                    }
+                } else if (Regex.Match(strVariable, @"Ping Kick Ignore User List").Success)
                 {
                     Boolean pingEnforcerIgnoreUserList = Boolean.Parse(strValue);
                     if (pingEnforcerIgnoreUserList != _pingEnforcerIgnoreUserList)
@@ -9339,9 +9347,9 @@ namespace PRoConEvents
                                                 //Warn players of limit and spikes
                                                 if (ping > currentTriggerMS) {
                                                     if (aPlayer.player_pings_full && aPlayer.player_ping_avg < currentTriggerMS && ping > (aPlayer.player_ping_avg * 1.5)) {
-                                                        PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping) + "ms] Avg: [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")));
+                                                        PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping) + "ms] Avg: [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")), _pingEnforcerDisplayProconChat, 1);
                                                     } else {
-                                                        PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")));
+                                                        PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")), _pingEnforcerDisplayProconChat, 1);
                                                     }
                                                 }
                                                 Boolean acted = false;
@@ -12328,7 +12336,8 @@ namespace PRoConEvents
                         // EXPLOSIVES ONLY!
                         if (aKill.weaponCategory != DamageTypes.Explosive &&
                             aKill.weaponCategory != DamageTypes.ProjectileExplosive &&
-                            aKill.weaponCode != "DamageArea") {
+                            aKill.weaponCode != "DamageArea" &&
+                            aKill.weaponCode != "Death") {
                             return true;
                         }
                         break;
@@ -32300,6 +32309,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Minimum Players", typeof(Int32), _pingEnforcerTriggerMinimumPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
                 QueueSettingForUpload(new CPluginVariable(@"Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
+                QueueSettingForUpload(new CPluginVariable(@"Display Ping Enforcer Messages In Procon Chat", typeof(Boolean), _pingEnforcerDisplayProconChat));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Ignore User List", typeof(Boolean), _pingEnforcerIgnoreUserList));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerIgnoreRoles)));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Message Prefix", typeof(String), _pingEnforcerMessagePrefix));
