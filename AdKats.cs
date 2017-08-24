@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.186
+ * Version 6.9.0.187
  * 24-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.186</version_code>
+ * <version_code>6.9.0.187</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.186";
+        private const String PluginVersion = "6.9.0.187";
 
         public enum GameVersion {
             BF3,
@@ -4725,9 +4725,8 @@ namespace PRoConEvents
                         _EventWeeklyRepeat = EventWeeklyRepeat;
                         _CurrentEventRoundNumber = 999999;
                         if (_EventWeeklyRepeat) {
-                            var local = DateTime.Now.Date;
-                            _EventDate = GetNextWeekday(local, _EventWeeklyDay);
-                            if (GetEventRoundDateTime() < local) {
+                            _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
+                            if (GetEventRoundDateTime() < DateTime.Now) {
                                 // If the given event date is today, but is already in the past
                                 // reset it to the same day next week
                                 _EventDate = _EventDate.AddDays(7);
@@ -4769,9 +4768,8 @@ namespace PRoConEvents
                         _EventWeeklyDay = update;
                         _CurrentEventRoundNumber = 999999;
                         if (_EventWeeklyRepeat) {
-                            var local = DateTime.Now.Date;
-                            _EventDate = GetNextWeekday(local, _EventWeeklyDay);
-                            if (GetEventRoundDateTime() < local) {
+                            _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
+                            if (GetEventRoundDateTime() < DateTime.Now) {
                                 // If the given event date is today, but is already in the past
                                 // reset it to the same day next week
                                 _EventDate = _EventDate.AddDays(7);
@@ -7777,9 +7775,8 @@ namespace PRoConEvents
                                 }
 
                                 if (_EventWeeklyRepeat) {
-                                    var local = DateTime.Now.Date;
-                                    _EventDate = GetNextWeekday(local, _EventWeeklyDay);
-                                    if (GetEventRoundDateTime() < local) {
+                                    _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
+                                    if (GetEventRoundDateTime() < DateTime.Now) {
                                         // If the given event date is today, but is already in the past
                                         // reset it to the same day next week
                                         _EventDate = _EventDate.AddDays(7);
