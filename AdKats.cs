@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.181
+ * Version 6.9.0.182
  * 23-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.181</version_code>
+ * <version_code>6.9.0.182</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.181";
+        private const String PluginVersion = "6.9.0.182";
 
         public enum GameVersion {
             BF3,
@@ -7591,23 +7591,14 @@ namespace PRoConEvents
                                     var uptimeString = FormatTimeString(uptime, 3);
                                     if (uptime.TotalHours < _automaticServerRestartMinHours) {
                                         restart = false;
-                                        if (_UseExperimentalTools) {
-                                            Log.Info("ServerReboot: Uptime less than " + _automaticServerRestartMinHours + " hour limit. [" + uptimeString + "]");
-                                        }
                                     }
                                     Int32 count = _PlayerDictionary.Values.Count(aPlayer =>
                                                     aPlayer.player_type == PlayerType.Player &&
                                                     NowDuration(aPlayer.lastAction).TotalMinutes < 30);
                                     if (restart && count > 1) {
                                         restart = false;
-                                        if (_UseExperimentalTools) {
-                                            Log.Info("ServerReboot: " + count + " active players, need 1 or fewer to reboot.");
-                                        }
                                     }
                                     if (restart) {
-                                        if (_UseExperimentalTools) {
-                                            Log.Success("ServerReboot: Rebooting server.");
-                                        }
                                         QueueRecordForProcessing(new AdKatsRecord {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
                                             server_id = _serverInfo.ServerID,
@@ -12363,10 +12354,8 @@ namespace PRoConEvents
                         break;
                     case "Headshots Only":
                         // HEADSHOTS ONLY!
-                        Log.Info(aKill.killer.GetVerboseName() + " killed in headshots only. Headshot? " + aKill.IsHeadshot);
                         if (!aKill.IsHeadshot &&
                             aKill.weaponCode != "DamageArea") {
-                            Log.Info("Not a headshot. Killing.");
                             QueueRecordForProcessing(new AdKatsRecord {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
@@ -12864,7 +12853,6 @@ namespace PRoConEvents
                         }
                     } else if (_UseWeaponLimiter && !gKillHandled)
                     {
-                        Log.Write(aKill.killer.GetVerboseName() + " killed. Headshot? " + aKill.IsHeadshot);
                         //Check for restricted weapon
                         if (Regex.Match(aKill.weaponCode, @"(?:" + _WeaponLimiterString + ")", RegexOptions.IgnoreCase).Success)
                         {
