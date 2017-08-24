@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.185
+ * Version 6.9.0.186
  * 24-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.185</version_code>
+ * <version_code>6.9.0.186</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.185";
+        private const String PluginVersion = "6.9.0.186";
 
         public enum GameVersion {
             BF3,
@@ -4727,11 +4727,12 @@ namespace PRoConEvents
                         if (_EventWeeklyRepeat) {
                             var local = DateTime.Now.Date;
                             _EventDate = GetNextWeekday(local, _EventWeeklyDay);
-                            if (_EventDate < local) {
+                            if (GetEventRoundDateTime() < local) {
                                 // If the given event date is today, but is already in the past
                                 // reset it to the same day next week
                                 _EventDate = _EventDate.AddDays(7);
                             }
+                            QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                         }
                         QueueSettingForUpload(new CPluginVariable(@"Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
                     }
@@ -4770,11 +4771,12 @@ namespace PRoConEvents
                         if (_EventWeeklyRepeat) {
                             var local = DateTime.Now.Date;
                             _EventDate = GetNextWeekday(local, _EventWeeklyDay);
-                            if (_EventDate < local) {
+                            if (GetEventRoundDateTime() < local) {
                                 // If the given event date is today, but is already in the past
                                 // reset it to the same day next week
                                 _EventDate = _EventDate.AddDays(7);
                             }
+                            QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                         }
                         QueueSettingForUpload(new CPluginVariable(@"Event Day", typeof(String), _EventWeeklyDay.ToString()));
                     }
@@ -7777,11 +7779,12 @@ namespace PRoConEvents
                                 if (_EventWeeklyRepeat) {
                                     var local = DateTime.Now.Date;
                                     _EventDate = GetNextWeekday(local, _EventWeeklyDay);
-                                    if (_EventDate < local) {
+                                    if (GetEventRoundDateTime() < local) {
                                         // If the given event date is today, but is already in the past
                                         // reset it to the same day next week
                                         _EventDate = _EventDate.AddDays(7);
                                     }
+                                    QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                                 }
                                 if (_UseExperimentalTools && _EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
                                     var eventDate = GetEventRoundDateTime();
