@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.184
- * 23-AUG-2017
+ * Version 6.9.0.185
+ * 24-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.184</version_code>
+ * <version_code>6.9.0.185</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.184";
+        private const String PluginVersion = "6.9.0.185";
 
         public enum GameVersion {
             BF3,
@@ -4725,7 +4725,7 @@ namespace PRoConEvents
                         _EventWeeklyRepeat = EventWeeklyRepeat;
                         _CurrentEventRoundNumber = 999999;
                         if (_EventWeeklyRepeat) {
-                            var local = DateTime.Now;
+                            var local = DateTime.Now.Date;
                             _EventDate = GetNextWeekday(local, _EventWeeklyDay);
                             if (_EventDate < local) {
                                 // If the given event date is today, but is already in the past
@@ -4768,7 +4768,7 @@ namespace PRoConEvents
                         _EventWeeklyDay = update;
                         _CurrentEventRoundNumber = 999999;
                         if (_EventWeeklyRepeat) {
-                            var local = DateTime.Now;
+                            var local = DateTime.Now.Date;
                             _EventDate = GetNextWeekday(local, _EventWeeklyDay);
                             if (_EventDate < local) {
                                 // If the given event date is today, but is already in the past
@@ -7774,8 +7774,8 @@ namespace PRoConEvents
                                     }
                                 }
 
-                                var local = DateTime.Now;
                                 if (_EventWeeklyRepeat) {
+                                    var local = DateTime.Now.Date;
                                     _EventDate = GetNextWeekday(local, _EventWeeklyDay);
                                     if (_EventDate < local) {
                                         // If the given event date is today, but is already in the past
@@ -7785,7 +7785,7 @@ namespace PRoConEvents
                                 }
                                 if (_UseExperimentalTools && _EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
                                     var eventDate = GetEventRoundDateTime();
-                                    if (local < eventDate && _CurrentEventRoundNumber == 999999) {
+                                    if (DateTime.Now < eventDate && _CurrentEventRoundNumber == 999999) {
                                         // The event date is set, and in the future
                                         var estimateEventRoundNumber = FetchEstimatedEventRoundNumber();
                                         // At 3 rounds away, lock in the round number for the event
@@ -7804,8 +7804,8 @@ namespace PRoConEvents
                                         serverName = _eventConcreteCountdownServerName;
                                     }
                                     // Before the event
-                                    else if (local < eventDate && 
-                                             Math.Abs((eventDate - local).TotalDays) < _EventAnnounceDayDifference) {
+                                    else if (DateTime.Now < eventDate && 
+                                             Math.Abs((eventDate - DateTime.Now).TotalDays) < _EventAnnounceDayDifference) {
                                         serverName = _eventCountdownServerName;
                                     }
                                     //After the event, and otherwise
