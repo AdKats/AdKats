@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.190
+ * Version 6.9.0.191
  * 25-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.190</version_code>
+ * <version_code>6.9.0.191</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.190";
+        private const String PluginVersion = "6.9.0.191";
 
         public enum GameVersion {
             BF3,
@@ -4815,7 +4815,9 @@ namespace PRoConEvents
                     _EventRoundOptions[roundNumber] = AdKatsEventOption.FromDisplay(strValue);
                     QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
                 } else if (Regex.Match(strVariable, @"Event Round Codes").Success) {
-                    _EventRoundOptions = CPluginVariable.DecodeStringArray(strValue).Select(option => AdKatsEventOption.FromCode(option)).ToList();
+                    if (strValue.Trim().Length > 0) {
+                        _EventRoundOptions = CPluginVariable.DecodeStringArray(strValue).Select(option => AdKatsEventOption.FromCode(option)).ToList();
+                    }
                     QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
                 } else if (Regex.Match(strVariable, @"Poll Option Count").Success) {
                     Int32 optionCount = Int32.Parse(strValue);
@@ -4845,8 +4847,10 @@ namespace PRoConEvents
                     Int32 optionNumber = Int32.Parse(regex.Match(strVariable).Value) - 1;
                     _EventRoundPollOptions[optionNumber] = AdKatsEventOption.FromDisplay(strValue);
                     QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
-                } else if (Regex.Match(strVariable, @"Event Round Poll Options").Success) {
-                    _EventRoundPollOptions = CPluginVariable.DecodeStringArray(strValue).Select(option => AdKatsEventOption.FromCode(option)).ToList();
+                } else if (Regex.Match(strVariable, @"Event Round Poll Codes").Success) {
+                    if (strValue.Trim().Length > 0) {
+                        _EventRoundPollOptions = CPluginVariable.DecodeStringArray(strValue).Select(option => AdKatsEventOption.FromCode(option)).ToList();
+                    }
                     QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
                 } 
                 else if (Regex.Match(strVariable, @"Use LIVE Anti Cheat System").Success) 
