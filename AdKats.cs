@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.193
+ * Version 6.9.0.194
  * 25-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.193</version_code>
+ * <version_code>6.9.0.194</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.193";
+        private const String PluginVersion = "6.9.0.194";
 
         public enum GameVersion {
             BF3,
@@ -4815,7 +4815,12 @@ namespace PRoConEvents
                     if (strValue == "Remove") {
                         _EventRoundOptions.RemoveAt(roundNumber);
                     } else {
-                        _EventRoundOptions[roundNumber] = AdKatsEventOption.FromDisplay(strValue);
+                        var newOption = AdKatsEventOption.FromDisplay(strValue);
+                        if (_EventRoundOptions.Any(option => option.Mode == newOption.Mode && option.Rule == newOption.Rule)) {
+                            Log.Error("Round option " + newOption.getModeRuleDisplay() + " already exists.");
+                            return;
+                        }
+                        _EventRoundOptions[roundNumber] = newOption;
                     }
                     QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
                 } else if (Regex.Match(strVariable, @"Event Round Codes").Success) {
@@ -4868,7 +4873,12 @@ namespace PRoConEvents
                     if (strValue == "Remove") {
                         _EventRoundPollOptions.RemoveAt(optionNumber);
                     } else {
-                        _EventRoundPollOptions[optionNumber] = AdKatsEventOption.FromDisplay(strValue);
+                        var newOption = AdKatsEventOption.FromDisplay(strValue);
+                        if (_EventRoundPollOptions.Any(option => option.Mode == newOption.Mode && option.Rule == newOption.Rule)) {
+                            Log.Error("Poll option " + newOption.getModeRuleDisplay() + " already exists.");
+                            return;
+                        }
+                        _EventRoundOptions[optionNumber] = newOption;
                     }
                     QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
                 } else if (Regex.Match(strVariable, @"Event Round Poll Codes").Success) {
