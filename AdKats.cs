@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.187
+ * Version 6.9.0.188
  * 24-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.187</version_code>
+ * <version_code>6.9.0.188</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.187";
+        private const String PluginVersion = "6.9.0.188";
 
         public enum GameVersion {
             BF3,
@@ -797,20 +797,26 @@ namespace PRoConEvents
         HashSet<String> _AntiCheatCheckedPlayers = new HashSet<String>();
         HashSet<String> _AntiCheatCheckedPlayersStats = new HashSet<String>();
 
+        //Polling
+        private AdKatsPoll _ActivePoll = null;        
+
         //Experimental
         private Boolean _UseExperimentalTools;
         private Boolean _ShowQuerySettings;
         private readonly Ping _PingProcessor = new Ping();
-        private Boolean _WeaponCodesTableTested;
-        private Boolean _WeaponCodesTableConfirmed;
         private Boolean _UseGrenadeCookCatcher;
+        private Dictionary<String, AdKatsPlayer> _RoundCookers = new Dictionary<String, AdKatsPlayer>();
+        private Boolean _UseWeaponLimiter;
+        private String _WeaponLimiterExceptionString = "_Flechette|_Slug|_Dart|_SHG";
+        private String _WeaponLimiterString = "ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk|_3GL|USAS|MGL|UCAV";
+
+        //Events
         private Boolean _EventWeeklyRepeat = false;
         private DayOfWeek _EventWeeklyDay = DayOfWeek.Saturday;
         private DateTime _EventDate = GetLocalEpochTime();
         private Double _EventHour = 0;
         private Int32 _EventTestRoundNumber = 999999;
         private Int32 _EventAnnounceDayDifference = 7;
-        private Int32 _EventRoundCount = 10;
         private Int32 _CurrentEventRoundNumber = 999999;
         private static readonly String[] _EventRoundMapModeOptions = new String[] {
             "TDM 100",
@@ -844,25 +850,12 @@ namespace PRoConEvents
             "Bow And Knives Only",
             "Bolt Sniper Only",
             "Repair Tool Only",
-            "Headshots Only"
+            "Headshots Only",
+            "No Headshots"
         };
-        private String[] _EventRoundSelections = new String[] {
-            _EventRoundMapModeOptions[0] + "/" + _EventRoundRestrictionOptions[0],
-            _EventRoundMapModeOptions[0] + "/" + _EventRoundRestrictionOptions[0],
-            _EventRoundMapModeOptions[0] + "/" + _EventRoundRestrictionOptions[0],
-            _EventRoundMapModeOptions[0] + "/" + _EventRoundRestrictionOptions[0],
-            _EventRoundMapModeOptions[0] + "/" + _EventRoundRestrictionOptions[0],
-            _EventRoundMapModeOptions[0] + "/" + _EventRoundRestrictionOptions[0],
-            _EventRoundMapModeOptions[0] + "/" + _EventRoundRestrictionOptions[0],
-            _EventRoundMapModeOptions[0] + "/" + _EventRoundRestrictionOptions[0],
-            _EventRoundMapModeOptions[0] + "/" + _EventRoundRestrictionOptions[0],
-            _EventRoundMapModeOptions[0] + "/" + _EventRoundRestrictionOptions[0]
-        };
+        private List<AdKatsEventOption> _EventRoundOptions = new List<AdKatsEventOption>();
+        private List<AdKatsEventOption> _EventRoundPollOptions = new List<AdKatsEventOption>();
         private String _EventRoundOptionsEnum;
-        private Dictionary<String, AdKatsPlayer> _RoundCookers = new Dictionary<String, AdKatsPlayer>();
-        private Boolean _UseWeaponLimiter;
-        private String _WeaponLimiterExceptionString = "_Flechette|_Slug";
-        private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
         private String _eventBaseServerName = "Event Base Server Name";
         private String _eventCountdownServerName = "Event Countdown Server Name";
         private String _eventConcreteCountdownServerName = "Event Concrete Countdown Server Name";
@@ -977,6 +970,12 @@ namespace PRoConEvents
                 }
             }
             _EventRoundOptionsEnum += ")";
+
+            //Add a single option as the initial setting
+            _EventRoundOptions.Add(new AdKatsEventOption() {
+                Mode = _EventRoundMapModeOptions[0],
+                Rule = _EventRoundRestrictionOptions[0]
+            });
 
             //Init the punishment severity index
             _PunishmentSeverityIndex = new List<String> {
@@ -1730,9 +1729,9 @@ namespace PRoConEvents
                         if (_UseExperimentalTools) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + t + "Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
 
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Round Settings" + t + "Event Round Count", typeof(Int32), _EventRoundCount));
-                            for (int roundNumber = 0; roundNumber < _EventRoundSelections.Count(); roundNumber++) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundSelections[roundNumber]));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Round Settings" + t + "Event Duration Rounds", typeof(Int32), _EventRoundOptions.Count()));
+                            for (int roundNumber = 0; roundNumber < _EventRoundOptions.Count(); roundNumber++) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundOptions[roundNumber].getModeRule()));
                             }
                             
                             lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
@@ -1753,10 +1752,15 @@ namespace PRoConEvents
                                 lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [3] Schedule Display" + t + "Concrete Event Round Number (display)", typeof(String), _CurrentEventRoundNumber == 999999 ? "Undecided." : String.Format("{0:n0}", _CurrentEventRoundNumber)));
                             }
 
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Name Settings" + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Name Settings" + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Name Settings" + t + "Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Name Settings" + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Poll Settings" + t + "Poll Option Count", typeof(Int32), _EventRoundPollOptions.Count()));
+                            for (int optionNumber = 0; optionNumber < _EventRoundPollOptions.Count(); optionNumber++) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Poll Settings" + t + "Event Poll Option " + (optionNumber + 1), _EventRoundOptionsEnum, _EventRoundPollOptions[optionNumber].getModeRule()));
+                            }
+
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Settings" + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Settings" + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Settings" + t + "Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Settings" + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
 
                             lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Display" + t + "Processed Base Server Name (display)", typeof(String), ProcessEventServerName(_eventBaseServerName, false, false)));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Display" + t + "Processed Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventCountdownServerName, false, false)));
@@ -4817,37 +4821,68 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Int32), _EventAnnounceDayDifference));
                     }
-                } else if (Regex.Match(strVariable, @"Event Round Count").Success) {
+                } else if (Regex.Match(strVariable, @"Event Duration Rounds").Success) {
                     Int32 roundCount = Int32.Parse(strValue);
-                    if (roundCount != _EventRoundCount) {
-                        if (roundCount < 1) {
-                            roundCount = 1;
+                    if (roundCount != _EventRoundOptions.Count()) {
+                        if (roundCount < 0) {
+                            roundCount = 0;
                         }
-                        _EventRoundCount = roundCount;
                         // Rebuild the round selection list
-                        var selectionsList = _EventRoundSelections.ToList();
-                        List<String> resultList = new List<String>();
+                        List<AdKatsEventOption> resultList = new List<AdKatsEventOption>();
                         for (int roundNumber = 0; roundNumber < roundCount; roundNumber++) {
                             // If the round option already exists, save it
-                            if (roundNumber < _EventRoundSelections.Count()) {
-                                resultList.Add(_EventRoundSelections[roundNumber]);
+                            if (roundNumber < _EventRoundOptions.Count()) {
+                                resultList.Add(_EventRoundOptions[roundNumber]);
                             } else {
-                                resultList.Add(_EventRoundMapModeOptions[0] + "/" + _EventRoundRestrictionOptions[0]);
+                                resultList.Add(new AdKatsEventOption() {
+                                    Mode = _EventRoundMapModeOptions[0],
+                                    Rule = _EventRoundRestrictionOptions[0]
+                                });
                             }
                         }
-                        _EventRoundSelections = resultList.ToArray();
+                        _EventRoundOptions = resultList;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Event Round Count", typeof(Int32), _EventRoundCount));
-                        QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundSelections));
+                        QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRule()).ToArray()));
                     }
                 } else if (Regex.Match(strVariable, @"Event Round \d+ Options").Success) {
                     var regex = new Regex("[0-9]+");
                     Int32 roundNumber = Int32.Parse(regex.Match(strVariable).Value) - 1;
-                    _EventRoundSelections[roundNumber] = strValue;
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundSelections));
+                    _EventRoundOptions[roundNumber] = AdKatsEventOption.FromCode(strValue);
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRule()).ToArray()));
                 } else if (Regex.Match(strVariable, @"Event Round Options").Success) {
-                    _EventRoundSelections = CPluginVariable.DecodeStringArray(strValue);
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundSelections));
+                    _EventRoundOptions = CPluginVariable.DecodeStringArray(strValue).Select(option => AdKatsEventOption.FromCode(option)).ToList();
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRule()).ToArray()));
+                } else if (Regex.Match(strVariable, @"Poll Option Count").Success) {
+                    Int32 optionCount = Int32.Parse(strValue);
+                    if (optionCount != _EventRoundPollOptions.Count()) {
+                        if (optionCount < 0) {
+                            optionCount = 0;
+                        }
+                        // Rebuild the option selection list
+                        List<AdKatsEventOption> optionList = new List<AdKatsEventOption>();
+                        for (int optionNumber = 0; optionNumber < optionCount; optionNumber++) {
+                            // If the option already exists, save it
+                            if (optionNumber < _EventRoundPollOptions.Count()) {
+                                optionList.Add(_EventRoundPollOptions[optionNumber]);
+                            } else {
+                                optionList.Add(new AdKatsEventOption() {
+                                    Mode = _EventRoundMapModeOptions[0],
+                                    Rule = _EventRoundRestrictionOptions[0]
+                                });
+                            }
+                        }
+                        _EventRoundPollOptions = optionList;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Options", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRule()).ToArray()));
+                    }
+                } else if (Regex.Match(strVariable, @"Event Poll Option \d+").Success) {
+                    var regex = new Regex("[0-9]+");
+                    Int32 optionNumber = Int32.Parse(regex.Match(strVariable).Value) - 1;
+                    _EventRoundPollOptions[optionNumber] = AdKatsEventOption.FromCode(strValue);
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Options", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRule()).ToArray()));
+                } else if (Regex.Match(strVariable, @"Event Round Poll Options").Success) {
+                    _EventRoundPollOptions = CPluginVariable.DecodeStringArray(strValue).Select(option => AdKatsEventOption.FromCode(option)).ToList();
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Options", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRule()).ToArray()));
                 } 
                 else if (Regex.Match(strVariable, @"Use LIVE Anti Cheat System").Success) 
                 {
@@ -11312,7 +11347,7 @@ namespace PRoConEvents
         }
 
         private void ProcessEventMapMode(Int32 eventRoundNumber) {
-            ProcessEventMapMode(GetEventRoundMapModeCode(eventRoundNumber));
+            ProcessEventMapMode(GetEventRoundModeCode(eventRoundNumber));
         }
 
         private void ProcessEventMapMode(String mapModeCode) {
@@ -11562,7 +11597,9 @@ namespace PRoConEvents
                     _AssistAttemptQueue.Clear();
                 }
 
-                if (_UseExperimentalTools && _EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
+                if (_UseExperimentalTools &&
+                    _EventRoundOptions.Any() &&
+                    _EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
                     var nRound = _roundID + 1;
                     StartAndLogThread(new Thread(new ThreadStart(delegate {
                         Thread.CurrentThread.Name = "EventAnnounce";
@@ -11572,7 +11609,7 @@ namespace PRoConEvents
                             _pingEnforcerEnable = false;
                             _surrenderVoteEnable = false;
                             _surrenderAutoEnable = false;
-                            var nextCode = GetEventRoundRestrictionCode(GetActiveEventRoundNumber(false));
+                            var nextCode = GetEventRoundRuleCode(GetActiveEventRoundNumber(false));
                             if (nextCode == "Automatics Only" ||
                                 nextCode == "Bow And Knives Only") {
                                 ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
@@ -11594,7 +11631,7 @@ namespace PRoConEvents
                             ProcessEventMapMode("Domination 500");
                         } else {
                             //NORMAL ROUND
-                            if (nRound >= _CurrentEventRoundNumber + _EventRoundSelections.Count()) {
+                            if (nRound >= _CurrentEventRoundNumber + _EventRoundOptions.Count()) {
                                 // Reset the current event number, as the event has ended.
                                 _CurrentEventRoundNumber = 999999;
                             }
@@ -12190,7 +12227,7 @@ namespace PRoConEvents
         private String GetEventMessage(Boolean nextRound) {
             Log.Debug(() => "Entering GetEventMessage", 7);
             try {
-                switch (GetEventRoundRestrictionCode(GetActiveEventRoundNumber(nextRound))) {
+                switch (GetEventRoundRuleCode(GetActiveEventRoundNumber(nextRound))) {
                     case "Knives Only":
                         return "KNIFE ONLY!";
                     case "Bolt Sniper Only":
@@ -12217,6 +12254,8 @@ namespace PRoConEvents
                         return "GRENADES ONLY!";
                     case "Headshots Only":
                         return "HEADSHOTS ONLY!";
+                    case "No Headshots":
+                        return "NO HEADSHOTS!";
                     case "No Restrictions":
                         return "ALL WEAPONS!";
                 }
@@ -12230,7 +12269,7 @@ namespace PRoConEvents
         private String GetEventDescription(Boolean nextRound) {
             Log.Debug(() => "Entering GetEventDescription", 7);
             try {
-                switch (GetEventRoundRestrictionCode(GetActiveEventRoundNumber(nextRound))) {
+                switch (GetEventRoundRuleCode(GetActiveEventRoundNumber(nextRound))) {
                     case "Knives Only":
                         return "KNIFE ONLY! Only kills with knives are allowed.";
                     case "Bolt Sniper Only":
@@ -12257,6 +12296,8 @@ namespace PRoConEvents
                         return "GRENADES ONLY! Only kills with grenades are allowed. M67, V40, etc. Melee is NOT allowed.";
                     case "Headshots Only":
                         return "HEADSHOTS ONLY! No weapon restrictions, however you must kill with headshots. If you kill without a headshot you are auto-killed.";
+                    case "No Headshots":
+                        return "NO HEADSHOTS! No weapon restrictions, however you cannot kill with headshots. If you kill with a headshot you are auto-killed.";
                     case "No Restrictions":
                         return "ALL WEAPONS! No weapon restrictions. Go nuts.";
                 }
@@ -12283,20 +12324,14 @@ namespace PRoConEvents
             return 999999;
         }
 
-        private String GetEventRoundMapModeCode(Int32 eventRoundNumber) {
+        private String GetEventRoundModeCode(Int32 eventRoundNumber) {
             Log.Debug(() => "Entering GetEventRoundMapModeCode", 7);
             try {
-                if (eventRoundNumber < 0 || eventRoundNumber >= _EventRoundSelections.Count()) {
+                if (!_EventRoundOptions.Any() || eventRoundNumber < 0 || eventRoundNumber >= _EventRoundOptions.Count()) {
                     Log.Error("Event round number " + eventRoundNumber + " was invalid when fetching map mode code.");
                     return "UNKNOWN";
                 }
-                // Get all text before the slash, the map mode info
-                var match = Regex.Match(_EventRoundSelections[eventRoundNumber], "^[a-zA-Z0-9 ]+");
-                if (match.Success) {
-                    return match.Value;
-                } else {
-                    Log.Error("Not able to find map mode code in " + _EventRoundSelections[eventRoundNumber]);
-                }
+                return _EventRoundOptions[eventRoundNumber].Mode;
             } catch (Exception e) {
                 HandleException(new AdKatsException("Error while getting event round map mode code.", e));
             }
@@ -12304,20 +12339,14 @@ namespace PRoConEvents
             return "UNKNOWN";
         }
 
-        private String GetEventRoundRestrictionCode(Int32 eventRoundNumber) {
+        private String GetEventRoundRuleCode(Int32 eventRoundNumber) {
             Log.Debug(() => "Entering GetEventRoundRestrictionCode", 7);
             try {
-                if (eventRoundNumber < 0 || eventRoundNumber >= _EventRoundSelections.Count()) {
+                if (!_EventRoundOptions.Any() || eventRoundNumber < 0 || eventRoundNumber >= _EventRoundOptions.Count()) {
                     Log.Error("Event round number " + eventRoundNumber + " was invalid when fetching restriction code.");
                     return "UNKNOWN";
                 }
-                // Get all text after the slash, the restriction info
-                var match = Regex.Match(_EventRoundSelections[eventRoundNumber], "[a-zA-Z0-9 ]+$");
-                if (match.Success) {
-                    return match.Value;
-                } else {
-                    Log.Error("Not able to find restriction code in " + _EventRoundSelections[eventRoundNumber]);
-                }
+                return _EventRoundOptions[eventRoundNumber].Rule;
             } catch (Exception e) {
                 HandleException(new AdKatsException("Error while getting event round restriction code.", e));
             }
@@ -12329,7 +12358,7 @@ namespace PRoConEvents
             Log.Debug(() => "Entering ProcessEventKill", 7);
             try {
                 message = GetEventMessage(false) + " ROUND " + String.Format("{0:n0}", _roundID) + " EVENT";
-                switch (GetEventRoundRestrictionCode(GetActiveEventRoundNumber(false))) {
+                switch (GetEventRoundRuleCode(GetActiveEventRoundNumber(false))) {
                     case "Knives Only":
                         // KNIFE ONLY!
                         // Only 5 knife codes known, fuzzy match for unknown knife types
@@ -12444,6 +12473,23 @@ namespace PRoConEvents
                             });
                         }
                         return false;
+                    case "No Headshots":
+                        // NO HEADSHOTS!
+                        if (aKill.IsHeadshot &&
+                            aKill.weaponCode != "DamageArea") {
+                            QueueRecordForProcessing(new AdKatsRecord {
+                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                server_id = _serverInfo.ServerID,
+                                command_type = GetCommandByKey("player_kill"),
+                                command_numeric = _roundID,
+                                target_name = aKill.killer.player_name,
+                                target_player = aKill.killer,
+                                source_name = "AutoAdmin",
+                                record_time = UtcNow(),
+                                record_message = "NO HEADSHOTS THIS ROUND!"
+                            });
+                        }
+                        return false;
                     case "No Restrictions":
                         // Everything is allowed, always return false
                         return false;
@@ -12465,9 +12511,10 @@ namespace PRoConEvents
         }
 
         private Boolean EventActive(Int32 roundID) {
-            return _CurrentEventRoundNumber != 999999 &&
+            return _EventRoundOptions.Any() &&
+                   _CurrentEventRoundNumber != 999999 &&
                    roundID >= _CurrentEventRoundNumber &&
-                   roundID < _CurrentEventRoundNumber + _EventRoundSelections.Count();
+                   roundID < _CurrentEventRoundNumber + _EventRoundOptions.Count();
         }
 
         private void ProcessPlayerKill(AdKatsKill aKill)
@@ -32248,8 +32295,8 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Event Hour in 24 format", typeof(Double), _EventHour));
                 QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Boolean), _EventTestRoundNumber));
                 QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Int32), _EventAnnounceDayDifference));
-                QueueSettingForUpload(new CPluginVariable(@"Event Round Count", typeof(Int32), _EventRoundCount));
-                QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundSelections));
+                QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRule()).ToArray()));
+                QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Options", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRule()).ToArray()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Base Server Name", typeof(String), _eventBaseServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Countdown Server Name", typeof(String), _eventCountdownServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
@@ -38037,6 +38084,14 @@ namespace PRoConEvents
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(130)) {
                                     SendNonQuery("Adding command player_blacklistallcaps_remove", "INSERT INTO `adkats_commands` VALUES(130, 'Active', 'player_blacklistallcaps_remove', 'Log', 'Remove All-Caps Chat Blacklist', 'unallcapsblacklist', TRUE, 'Any')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(131)) {
+                                    SendNonQuery("Adding command poll_trigger", "INSERT INTO `adkats_commands` VALUES(131, 'Active', 'poll_trigger', 'Log', 'Trigger Poll', 'poll', FALSE, 'Any')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(132)) {
+                                    SendNonQuery("Adding command poll_vote", "INSERT INTO `adkats_commands` VALUES(132, 'Active', 'poll_vote', 'Log', 'Vote In Poll', 'vote', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (newCommands)
@@ -44472,6 +44527,32 @@ namespace PRoConEvents
         public class AdKatsEvent {
             public String EventName;
             public String[] EventRoundSelections;
+        }
+
+        public class AdKatsEventOption {
+            public String Mode;
+            public String Rule;
+
+            public String getModeRule() {
+                return Mode + "/" + Rule;
+            }
+
+            public static AdKatsEventOption FromCode(String code) {
+                var split = code.Split('/');
+                return new AdKatsEventOption() {
+                    Mode = split[0],
+                    Rule = split[1]
+                };
+            }
+        }
+
+        public class AdKatsPoll {
+            public String ID;
+            public String Name;
+            public String Description;
+            public Dictionary<Int32, String> Options;
+            public Dictionary<String, Int32> Votes;
+            public Func<AdKats, Boolean> Action;
         }
 
         public class AdKatsKill
