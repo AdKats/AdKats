@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.192
+ * Version 6.9.0.193
  * 25-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.192</version_code>
+ * <version_code>6.9.0.193</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.192";
+        private const String PluginVersion = "6.9.0.193";
 
         public enum GameVersion {
             BF3,
@@ -927,7 +927,7 @@ namespace PRoConEvents
             foreach (String mapMode in AdKatsEventOption.MapModeOptions) {
                 foreach (String rule in AdKatsEventOption.RuleOptions) {
                     if (String.IsNullOrEmpty(_EventRoundOptionsEnum)) {
-                        _EventRoundOptionsEnum += "enum.EventRoundOptionsEnum_" + random.Next(100000, 999999) + "(";
+                        _EventRoundOptionsEnum += "enum.EventRoundOptionsEnum_" + random.Next(100000, 999999) + "(Remove|";
                     } else {
                         _EventRoundOptionsEnum += "|";
                     }
@@ -4812,7 +4812,11 @@ namespace PRoConEvents
                 } else if (Regex.Match(strVariable, @"Event Round \d+ Options").Success) {
                     var regex = new Regex("[0-9]+");
                     Int32 roundNumber = Int32.Parse(regex.Match(strVariable).Value) - 1;
-                    _EventRoundOptions[roundNumber] = AdKatsEventOption.FromDisplay(strValue);
+                    if (strValue == "Remove") {
+                        _EventRoundOptions.RemoveAt(roundNumber);
+                    } else {
+                        _EventRoundOptions[roundNumber] = AdKatsEventOption.FromDisplay(strValue);
+                    }
                     QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
                 } else if (Regex.Match(strVariable, @"Event Round Codes").Success) {
                     if (strValue.Trim().Length > 0) {
@@ -4832,10 +4836,26 @@ namespace PRoConEvents
                             if (optionNumber < _EventRoundPollOptions.Count()) {
                                 optionList.Add(_EventRoundPollOptions[optionNumber]);
                             } else {
-                                optionList.Add(new AdKatsEventOption() {
-                                    Mode = AdKatsEventOption.MapModeOptions[0],
-                                    Rule = AdKatsEventOption.RuleOptions[0]
-                                });
+                                String chosenMapMode = null;
+                                String chosenRule = null;
+                                foreach (String mapMode in AdKatsEventOption.MapModeOptions) {
+                                    foreach (String rule in AdKatsEventOption.RuleOptions) {
+                                        if (!optionList.Any(option => option.Mode == mapMode && option.Rule == rule)) {
+                                            chosenMapMode = mapMode;
+                                            chosenRule = rule;
+                                            break;
+                                        }
+                                    }
+                                    if (chosenMapMode != null && chosenRule != null) {
+                                        break;
+                                    }
+                                }
+                                if (chosenMapMode != null && chosenRule != null) {
+                                    optionList.Add(new AdKatsEventOption() {
+                                        Mode = chosenMapMode,
+                                        Rule = chosenRule
+                                    });
+                                }
                             }
                         }
                         _EventRoundPollOptions = optionList;
@@ -4845,7 +4865,11 @@ namespace PRoConEvents
                 } else if (Regex.Match(strVariable, @"Event Poll Option \d+").Success) {
                     var regex = new Regex("[0-9]+");
                     Int32 optionNumber = Int32.Parse(regex.Match(strVariable).Value) - 1;
-                    _EventRoundPollOptions[optionNumber] = AdKatsEventOption.FromDisplay(strValue);
+                    if (strValue == "Remove") {
+                        _EventRoundPollOptions.RemoveAt(optionNumber);
+                    } else {
+                        _EventRoundPollOptions[optionNumber] = AdKatsEventOption.FromDisplay(strValue);
+                    }
                     QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
                 } else if (Regex.Match(strVariable, @"Event Round Poll Codes").Success) {
                     if (strValue.Trim().Length > 0) {
