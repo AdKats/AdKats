@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.188
- * 24-AUG-2017
+ * Version 6.9.0.189
+ * 25-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.188</version_code>
+ * <version_code>6.9.0.189</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.188";
+        private const String PluginVersion = "6.9.0.189";
 
         public enum GameVersion {
             BF3,
@@ -818,41 +818,6 @@ namespace PRoConEvents
         private Int32 _EventTestRoundNumber = 999999;
         private Int32 _EventAnnounceDayDifference = 7;
         private Int32 _CurrentEventRoundNumber = 999999;
-        private static readonly String[] _EventRoundMapModeOptions = new String[] {
-            "TDM 100",
-            "TDM 300",
-            "TDM 500",
-            "Rush 100",
-            "Rush 300",
-            "Rush 500",
-            "Conquest 500",
-            "Conquest 1000",
-            "Conquest 2000",
-            "CTF 7",
-            "CTF 5",
-            "CTF 3",
-            "Domination 500",
-            "Domination 500 Hardcore",
-            "Domination 750",
-            "Domination 1000",
-        };
-        private static readonly String[] _EventRoundRestrictionOptions = new String[] {
-            "No Restrictions",
-            "Knives Only",
-            "No Explosives",
-            "Grenades Only",
-            "Automatics Only",
-            "Pistols Only",
-            "Shotguns Only",
-            "Explosives Only",
-            "Mares Leg Only",
-            "Defibs Only",
-            "Bow And Knives Only",
-            "Bolt Sniper Only",
-            "Repair Tool Only",
-            "Headshots Only",
-            "No Headshots"
-        };
         private List<AdKatsEventOption> _EventRoundOptions = new List<AdKatsEventOption>();
         private List<AdKatsEventOption> _EventRoundPollOptions = new List<AdKatsEventOption>();
         private String _EventRoundOptionsEnum;
@@ -959,22 +924,22 @@ namespace PRoConEvents
             //Build event round options enum
             _EventRoundOptionsEnum = String.Empty;
             random = new Random(Environment.TickCount);
-            foreach (String mapMode in _EventRoundMapModeOptions) {
-                foreach (String restriction in _EventRoundRestrictionOptions) {
+            foreach (String mapMode in AdKatsEventOption.MapModeOptions) {
+                foreach (String rule in AdKatsEventOption.RuleOptions) {
                     if (String.IsNullOrEmpty(_EventRoundOptionsEnum)) {
                         _EventRoundOptionsEnum += "enum.EventRoundOptionsEnum_" + random.Next(100000, 999999) + "(";
                     } else {
                         _EventRoundOptionsEnum += "|";
                     }
-                    _EventRoundOptionsEnum += mapMode + "/" + restriction;
+                    _EventRoundOptionsEnum += mapMode + "/" + rule;
                 }
             }
             _EventRoundOptionsEnum += ")";
 
             //Add a single option as the initial setting
             _EventRoundOptions.Add(new AdKatsEventOption() {
-                Mode = _EventRoundMapModeOptions[0],
-                Rule = _EventRoundRestrictionOptions[0]
+                Mode = AdKatsEventOption.MapModeOptions[0],
+                Rule = AdKatsEventOption.RuleOptions[0]
             });
 
             //Init the punishment severity index
@@ -1731,7 +1696,7 @@ namespace PRoConEvents
 
                             lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Round Settings" + t + "Event Duration Rounds", typeof(Int32), _EventRoundOptions.Count()));
                             for (int roundNumber = 0; roundNumber < _EventRoundOptions.Count(); roundNumber++) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundOptions[roundNumber].getModeRule()));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundOptions[roundNumber].getModeRuleDisplay()));
                             }
                             
                             lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
@@ -1754,7 +1719,7 @@ namespace PRoConEvents
 
                             lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Poll Settings" + t + "Poll Option Count", typeof(Int32), _EventRoundPollOptions.Count()));
                             for (int optionNumber = 0; optionNumber < _EventRoundPollOptions.Count(); optionNumber++) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Poll Settings" + t + "Event Poll Option " + (optionNumber + 1), _EventRoundOptionsEnum, _EventRoundPollOptions[optionNumber].getModeRule()));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Poll Settings" + t + "Event Poll Option " + (optionNumber + 1), _EventRoundOptionsEnum, _EventRoundPollOptions[optionNumber].getModeRuleDisplay()));
                             }
 
                             lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Settings" + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
@@ -4835,23 +4800,23 @@ namespace PRoConEvents
                                 resultList.Add(_EventRoundOptions[roundNumber]);
                             } else {
                                 resultList.Add(new AdKatsEventOption() {
-                                    Mode = _EventRoundMapModeOptions[0],
-                                    Rule = _EventRoundRestrictionOptions[0]
+                                    Mode = AdKatsEventOption.MapModeOptions[0],
+                                    Rule = AdKatsEventOption.RuleOptions[0]
                                 });
                             }
                         }
                         _EventRoundOptions = resultList;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRule()).ToArray()));
+                        QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
                     }
                 } else if (Regex.Match(strVariable, @"Event Round \d+ Options").Success) {
                     var regex = new Regex("[0-9]+");
                     Int32 roundNumber = Int32.Parse(regex.Match(strVariable).Value) - 1;
-                    _EventRoundOptions[roundNumber] = AdKatsEventOption.FromCode(strValue);
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRule()).ToArray()));
-                } else if (Regex.Match(strVariable, @"Event Round Options").Success) {
+                    _EventRoundOptions[roundNumber] = AdKatsEventOption.FromDisplay(strValue);
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                } else if (Regex.Match(strVariable, @"Event Round Codes").Success) {
                     _EventRoundOptions = CPluginVariable.DecodeStringArray(strValue).Select(option => AdKatsEventOption.FromCode(option)).ToList();
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRule()).ToArray()));
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
                 } else if (Regex.Match(strVariable, @"Poll Option Count").Success) {
                     Int32 optionCount = Int32.Parse(strValue);
                     if (optionCount != _EventRoundPollOptions.Count()) {
@@ -4866,23 +4831,23 @@ namespace PRoConEvents
                                 optionList.Add(_EventRoundPollOptions[optionNumber]);
                             } else {
                                 optionList.Add(new AdKatsEventOption() {
-                                    Mode = _EventRoundMapModeOptions[0],
-                                    Rule = _EventRoundRestrictionOptions[0]
+                                    Mode = AdKatsEventOption.MapModeOptions[0],
+                                    Rule = AdKatsEventOption.RuleOptions[0]
                                 });
                             }
                         }
                         _EventRoundPollOptions = optionList;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Options", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRule()).ToArray()));
+                        QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
                     }
                 } else if (Regex.Match(strVariable, @"Event Poll Option \d+").Success) {
                     var regex = new Regex("[0-9]+");
                     Int32 optionNumber = Int32.Parse(regex.Match(strVariable).Value) - 1;
-                    _EventRoundPollOptions[optionNumber] = AdKatsEventOption.FromCode(strValue);
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Options", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRule()).ToArray()));
+                    _EventRoundPollOptions[optionNumber] = AdKatsEventOption.FromDisplay(strValue);
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
                 } else if (Regex.Match(strVariable, @"Event Round Poll Options").Success) {
                     _EventRoundPollOptions = CPluginVariable.DecodeStringArray(strValue).Select(option => AdKatsEventOption.FromCode(option)).ToList();
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Options", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRule()).ToArray()));
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
                 } 
                 else if (Regex.Match(strVariable, @"Use LIVE Anti Cheat System").Success) 
                 {
@@ -32295,8 +32260,8 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Event Hour in 24 format", typeof(Double), _EventHour));
                 QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Boolean), _EventTestRoundNumber));
                 QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Int32), _EventAnnounceDayDifference));
-                QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRule()).ToArray()));
-                QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Options", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRule()).ToArray()));
+                QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Options", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Base Server Name", typeof(String), _eventBaseServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Countdown Server Name", typeof(String), _eventCountdownServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
@@ -44530,18 +44495,66 @@ namespace PRoConEvents
         }
 
         public class AdKatsEventOption {
+            public static readonly String[] MapModeOptions = new String[] {
+                "TDM 100",
+                "TDM 300",
+                "TDM 500",
+                "Rush 100",
+                "Rush 300",
+                "Rush 500",
+                "Conquest 500",
+                "Conquest 1000",
+                "Conquest 2000",
+                "CTF 7",
+                "CTF 5",
+                "CTF 3",
+                "Domination 500",
+                "Domination 500 Hardcore",
+                "Domination 750",
+                "Domination 1000",
+            };
+            public static readonly String[] RuleOptions = new String[] {
+                "No Restrictions",
+                "Knives Only",
+                "No Explosives",
+                "Grenades Only",
+                "Automatics Only",
+                "Pistols Only",
+                "Shotguns Only",
+                "Explosives Only",
+                "Mares Leg Only",
+                "Defibs Only",
+                "Bow And Knives Only",
+                "Bolt Sniper Only",
+                "Repair Tool Only",
+                "Headshots Only",
+                "No Headshots"
+            };
+
             public String Mode;
             public String Rule;
 
-            public String getModeRule() {
+            public String getModeRuleDisplay() {
                 return Mode + "/" + Rule;
+            }
+
+            public String getModeRuleCode() {
+                return Array.IndexOf(MapModeOptions, Mode) + "/" + Array.IndexOf(RuleOptions, Rule);
+            }
+
+            public static AdKatsEventOption FromDisplay(String code) {
+                var split = code.Split('/');
+                return new AdKatsEventOption() {
+                    Mode = split[0],
+                    Rule = split[1]
+                };
             }
 
             public static AdKatsEventOption FromCode(String code) {
                 var split = code.Split('/');
                 return new AdKatsEventOption() {
-                    Mode = split[0],
-                    Rule = split[1]
+                    Mode = MapModeOptions[Int32.Parse(split[0])],
+                    Rule = RuleOptions[Int32.Parse(split[1])]
                 };
             }
         }
