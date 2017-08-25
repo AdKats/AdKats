@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.191
+ * Version 6.9.0.192
  * 25-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.191</version_code>
+ * <version_code>6.9.0.192</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.191";
+        private const String PluginVersion = "6.9.0.192";
 
         public enum GameVersion {
             BF3,
@@ -32264,8 +32264,8 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Event Hour in 24 format", typeof(Double), _EventHour));
                 QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Boolean), _EventTestRoundNumber));
                 QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Int32), _EventAnnounceDayDifference));
-                QueueSettingForUpload(new CPluginVariable(@"Event Round Options", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
-                QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Options", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
+                QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Base Server Name", typeof(String), _eventBaseServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Countdown Server Name", typeof(String), _eventCountdownServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
