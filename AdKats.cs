@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.195
+ * Version 6.9.0.196
  * 25-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.195</version_code>
+ * <version_code>6.9.0.196</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.195";
+        private const String PluginVersion = "6.9.0.196";
 
         public enum GameVersion {
             BF3,
@@ -936,10 +936,7 @@ namespace PRoConEvents
             _EventRoundOptionsEnum += ")";
 
             //Add a single option as the initial setting
-            _EventRoundOptions.Add(new AdKatsEventOption() {
-                Mode = AdKatsEventOption.MapModeOptions.FirstOrDefault().Key,
-                Rule = AdKatsEventOption.RuleOptions.FirstOrDefault().Key
-            });
+            _EventRoundOptions.Add(AdKatsEventOption.Default());
 
             //Init the punishment severity index
             _PunishmentSeverityIndex = new List<String> {
@@ -37584,6 +37581,13 @@ namespace PRoConEvents
             public MapModeCode Mode;
             public RuleCode Rule;
 
+            public static AdKatsEventOption Default() {
+                return new AdKatsEventOption() {
+                    Mode = MapModeOptions.FirstOrDefault().Key,
+                    Rule = RuleOptions.FirstOrDefault().Key
+                };
+            }
+
             public String getModeRuleDisplay() {
                 return MapModeOptions[Mode] + "/" + RuleOptions[Rule];
             }
@@ -37592,8 +37596,16 @@ namespace PRoConEvents
                 return Mode + "/" + Rule;
             }
 
-            public static AdKatsEventOption FromDisplay(String code) {
-                var split = code.Split('/');
+            public static AdKatsEventOption FromDisplay(String display) {
+                if (!display.Contains('/')) {
+                    return Default();
+                }
+                var split = display.Split('/');
+                if (split.Length != 2 ||
+                    !MapModeOptions.Any(mode => mode.Value == split[0]) ||
+                    !RuleOptions.Any(rule => rule.Value == split[1])) {
+                    return Default();
+                }
                 return new AdKatsEventOption() {
                     Mode = MapModeOptions.FirstOrDefault(mode => mode.Value == split[0]).Key,
                     Rule = RuleOptions.FirstOrDefault(rule => rule.Value == split[1]).Key
@@ -37601,10 +37613,22 @@ namespace PRoConEvents
             }
 
             public static AdKatsEventOption FromCode(String code) {
+                if (!code.Contains('-')) {
+                    return Default();
+                }
                 var split = code.Split('-');
+                if (split.Length != 2) {
+                    return Default();
+                }
+                var parsedMode = (MapModeCode)Enum.Parse(typeof(MapModeCode), split[0]);
+                var parsedRule = (RuleCode)Enum.Parse(typeof(RuleCode), split[1]);
+                if (!MapModeOptions.ContainsKey(parsedMode) ||
+                    !RuleOptions.ContainsKey(parsedRule)) {
+                    return Default();
+                }
                 return new AdKatsEventOption() {
-                    Mode = (MapModeCode)Enum.Parse(typeof(MapModeCode), split[0]),
-                    Rule = (RuleCode)Enum.Parse(typeof(RuleCode), split[1])
+                    Mode = parsedMode,
+                    Rule = parsedRule
                 };
             }
         }
