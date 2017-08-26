@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.197
+ * Version 6.9.0.198
  * 25-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.197</version_code>
+ * <version_code>6.9.0.198</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.197";
+        private const String PluginVersion = "6.9.0.198";
 
         public enum GameVersion {
             BF3,
@@ -4261,7 +4261,7 @@ namespace PRoConEvents
                             Log.Error("Event poll option " + newOption.getModeRuleDisplay() + " already exists.");
                             return;
                         }
-                        _EventRoundOptions[optionNumber] = newOption;
+                        _EventRoundPollOptions[optionNumber] = newOption;
                     }
                     QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
                 } else if (Regex.Match(strVariable, @"Event Round Poll Codes").Success) {
