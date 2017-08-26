@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.198
- * 25-AUG-2017
+ * Version 6.9.0.199
+ * 26-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.198</version_code>
+ * <version_code>6.9.0.199</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.198";
+        private const String PluginVersion = "6.9.0.199";
 
         public enum GameVersion {
             BF3,
@@ -298,7 +298,6 @@ namespace PRoConEvents
         private Boolean _globalTimingValid;
         private TimeSpan _globalTimingOffset = TimeSpan.Zero;
         private Boolean _timingValidOverride;
-        private Hashtable _lastStatLoggerStatusUpdate;
         private String _statLoggerVersion = "BF3";
 
         //Action fetching
@@ -799,6 +798,13 @@ namespace PRoConEvents
 
         //Polling
         private AdKatsPoll _ActivePoll = null;
+        private TimeSpan _PollMaxDuration = TimeSpan.FromMinutes(5);
+        private TimeSpan _PollPrintInterval = TimeSpan.FromSeconds(60);
+        private Int32 _PollMaxVotes = 30;
+        private Int32 _PollMaxOptions = 6;
+        private String[] _AvailablePolls = new String[] {
+            "event"
+        };
 
         //Experimental
         private Boolean _UseExperimentalTools;
@@ -923,8 +929,8 @@ namespace PRoConEvents
             //Build event round options enum
             _EventRoundOptionsEnum = String.Empty;
             random = new Random(Environment.TickCount);
-            foreach (String mapMode in AdKatsEventOption.MapModeOptions.Values) {
-                foreach (String rule in AdKatsEventOption.RuleOptions.Values) {
+            foreach (String mapMode in AdKatsEventOption.ModeNames.Values) {
+                foreach (String rule in AdKatsEventOption.RuleNames.Values) {
                     if (String.IsNullOrEmpty(_EventRoundOptionsEnum)) {
                         _EventRoundOptionsEnum += "enum.EventRoundOptionsEnum_" + random.Next(100000, 999999) + "(Remove|";
                     } else {
@@ -4162,11 +4168,11 @@ namespace PRoConEvents
                             if (roundNumber < _EventRoundOptions.Count()) {
                                 optionList.Add(_EventRoundOptions[roundNumber]);
                             } else {
-                                AdKatsEventOption.MapModeCode chosenMapMode = AdKatsEventOption.MapModeCode.UNKNOWN;
+                                AdKatsEventOption.ModeCode chosenMapMode = AdKatsEventOption.ModeCode.UNKNOWN;
                                 AdKatsEventOption.RuleCode chosenRule = AdKatsEventOption.RuleCode.UNKNOWN;
                                 Boolean chosen = false;
-                                foreach (AdKatsEventOption.MapModeCode mapMode in AdKatsEventOption.MapModeOptions.Keys) {
-                                    foreach (AdKatsEventOption.RuleCode rule in AdKatsEventOption.RuleOptions.Keys) {
+                                foreach (AdKatsEventOption.ModeCode mapMode in AdKatsEventOption.ModeNames.Keys) {
+                                    foreach (AdKatsEventOption.RuleCode rule in AdKatsEventOption.RuleNames.Keys) {
                                         if (!optionList.Any(option => option.Mode == mapMode && option.Rule == rule)) {
                                             chosenMapMode = mapMode;
                                             chosenRule = rule;
@@ -4222,11 +4228,11 @@ namespace PRoConEvents
                             if (optionNumber < _EventRoundPollOptions.Count()) {
                                 optionList.Add(_EventRoundPollOptions[optionNumber]);
                             } else {
-                                AdKatsEventOption.MapModeCode chosenMapMode = AdKatsEventOption.MapModeCode.UNKNOWN;
+                                AdKatsEventOption.ModeCode chosenMapMode = AdKatsEventOption.ModeCode.UNKNOWN;
                                 AdKatsEventOption.RuleCode chosenRule = AdKatsEventOption.RuleCode.UNKNOWN;
                                 Boolean chosen = false;
-                                foreach (AdKatsEventOption.MapModeCode mapMode in AdKatsEventOption.MapModeOptions.Keys) {
-                                    foreach (AdKatsEventOption.RuleCode rule in AdKatsEventOption.RuleOptions.Keys) {
+                                foreach (AdKatsEventOption.ModeCode mapMode in AdKatsEventOption.ModeNames.Keys) {
+                                    foreach (AdKatsEventOption.RuleCode rule in AdKatsEventOption.RuleNames.Keys) {
                                         if (!optionList.Any(option => option.Mode == mapMode && option.Rule == rule)) {
                                             chosenMapMode = mapMode;
                                             chosenRule = rule;
@@ -6353,7 +6359,7 @@ namespace PRoConEvents
                                 if ((UtcNow() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds && _spamBotYellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotYellQueue.Peek();
                                     var eventDate = GetEventRoundDateTime();
-                                    if ((eventDate < DateTime.Now || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
+                                    if (((_CurrentEventRoundNumber == 999999 && eventDate < DateTime.Now) || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
                                         message = message.Replace("%EventDateDuration%", "TBD")
                                                          .Replace("%EventDateTime%", "TBD")
                                                          .Replace("%EventDate%", "TBD")
@@ -6411,7 +6417,7 @@ namespace PRoConEvents
                                 if ((UtcNow() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds && _spamBotTellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotTellQueue.Peek();
                                     var eventDate = GetEventRoundDateTime();
-                                    if ((eventDate < DateTime.Now || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
+                                    if (((_CurrentEventRoundNumber == 999999 && eventDate < DateTime.Now) || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
                                         message = message.Replace("%EventDateDuration%", "TBD")
                                                          .Replace("%EventDateTime%", "TBD")
                                                          .Replace("%EventDate%", "TBD")
@@ -7887,7 +7893,7 @@ namespace PRoConEvents
                                                 reporters[report.source_player.player_name] = report.source_player;
                                             }
                                             foreach (AdKatsPlayer player in reporters.Values) {
-                                                PlayerSayMessage(player.player_name, "Player " + aPlayer.GetVerboseName() + " you reported has left.");
+                                                player.Say("Player " + aPlayer.GetVerboseName() + " you reported has left.");
                                             }
                                         }
                                     }
@@ -7912,7 +7918,7 @@ namespace PRoConEvents
                                                 record_time = UtcNow()
                                             });
                                         } else {
-                                            PlayerSayMessage(partner.player_name, aPlayer.GetVerboseName() + " has left. Private conversation closed.");
+                                            partner.Say(aPlayer.GetVerboseName() + " has left. Private conversation closed.");
                                             partner.conversationPartner = null;
                                         }
                                         aPlayer.conversationPartner = null;
@@ -8038,9 +8044,9 @@ namespace PRoConEvents
                                                 //Warn players of limit and spikes
                                                 if (ping > currentTriggerMS) {
                                                     if (aPlayer.player_pings_full && aPlayer.player_ping_avg < currentTriggerMS && ping > (aPlayer.player_ping_avg * 1.5)) {
-                                                        PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping) + "ms] Avg: [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")), _pingEnforcerDisplayProconChat, 1);
+                                                        aPlayer.Say("Warning, your ping is spiking. Current: [" + Math.Round(ping) + "ms] Avg: [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")), _pingEnforcerDisplayProconChat, 1);
                                                     } else {
-                                                        PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")), _pingEnforcerDisplayProconChat, 1);
+                                                        aPlayer.Say("Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")), _pingEnforcerDisplayProconChat, 1);
                                                     }
                                                 }
                                                 Boolean acted = false;
@@ -8215,7 +8221,7 @@ namespace PRoConEvents
                                                 if (_InformReputablePlayersOfAdminJoins) {
                                                     List<AdKatsPlayer> reputablePlayers = _PlayerDictionary.Values.Where(iPlayer => iPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(iPlayer)).ToList();
                                                     foreach (AdKatsPlayer reputablePlayer in reputablePlayers) {
-                                                        PlayerSayMessage(reputablePlayer.player_name, message);
+                                                        reputablePlayer.Say(message);
                                                     }
                                                 }
                                                 if (_InformAdminsOfAdminJoins) {
@@ -8377,7 +8383,7 @@ namespace PRoConEvents
                                                     record_time = UtcNow()
                                                 });
                                             } else {
-                                                PlayerSayMessage(partner.player_name, aPlayer.GetVerboseName() + " has left. Private conversation closed.");
+                                                partner.Say(aPlayer.GetVerboseName() + " has left. Private conversation closed.");
                                                 partner.conversationPartner = null;
                                             }
                                             aPlayer.conversationPartner = null;
@@ -9625,17 +9631,17 @@ namespace PRoConEvents
             ProcessEventMapMode(GetEventRoundModeCode(eventRoundNumber));
         }
 
-        private void ProcessEventMapMode(AdKatsEventOption.MapModeCode mapModeCode) {
+        private void ProcessEventMapMode(AdKatsEventOption.ModeCode mapModeCode) {
             var delayMS = 250;
             Log.Debug(() => "Entering ProcessEventMapMode", 7);
             try {
                 switch (mapModeCode) {
-                    case AdKatsEventOption.MapModeCode.UNKNOWN:
+                    case AdKatsEventOption.ModeCode.UNKNOWN:
                         Int32 GoalTickets = 0;
                         Double TicketRatio = 0;
                         Int32 GMC = 0;
                         break;
-                    case AdKatsEventOption.MapModeCode.T100:
+                    case AdKatsEventOption.ModeCode.T100:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
@@ -9644,7 +9650,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "100");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.T300:
+                    case AdKatsEventOption.ModeCode.T300:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
@@ -9653,7 +9659,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.T400:
+                    case AdKatsEventOption.ModeCode.T400:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
@@ -9662,7 +9668,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "400");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.R300:
+                    case AdKatsEventOption.ModeCode.R300:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
@@ -9674,7 +9680,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.R500:
+                    case AdKatsEventOption.ModeCode.R500:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
@@ -9686,7 +9692,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.C500:
+                    case AdKatsEventOption.ModeCode.C500:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
@@ -9698,7 +9704,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.C1000:
+                    case AdKatsEventOption.ModeCode.C1000:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
@@ -9710,7 +9716,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.C2000:
+                    case AdKatsEventOption.ModeCode.C2000:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
@@ -9722,7 +9728,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.F7:
+                    case AdKatsEventOption.ModeCode.F7:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
@@ -9731,7 +9737,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "400");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.F5:
+                    case AdKatsEventOption.ModeCode.F5:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
@@ -9740,7 +9746,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.F3:
+                    case AdKatsEventOption.ModeCode.F3:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
@@ -9749,7 +9755,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.D500:
+                    case AdKatsEventOption.ModeCode.D500:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
@@ -9761,7 +9767,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.HD500:
+                    case AdKatsEventOption.ModeCode.HD500:
                         ProcessPresetHardcore();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
@@ -9773,7 +9779,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.D750:
+                    case AdKatsEventOption.ModeCode.D750:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
@@ -9785,7 +9791,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.D1000:
+                    case AdKatsEventOption.ModeCode.D1000:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
@@ -9797,7 +9803,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.MapModeCode.RESET:
+                    case AdKatsEventOption.ModeCode.RESET:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
@@ -9890,7 +9896,7 @@ namespace PRoConEvents
                                 AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! TESTING! TESTING!");
                                 Thread.Sleep(2000);
                             }
-                            ProcessEventMapMode(AdKatsEventOption.MapModeCode.D500);
+                            ProcessEventMapMode(AdKatsEventOption.ModeCode.D500);
                         } else {
                             //NORMAL ROUND
                             if (nRound >= _CurrentEventRoundNumber + _EventRoundOptions.Count()) {
@@ -9901,7 +9907,7 @@ namespace PRoConEvents
                             _surrenderVoteEnable = true;
                             _surrenderAutoEnable = true;
                             ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
-                            ProcessEventMapMode(AdKatsEventOption.MapModeCode.RESET);
+                            ProcessEventMapMode(AdKatsEventOption.ModeCode.RESET);
                         }
                         UploadAllSettings();
                         UpdateSettingPage();
@@ -10494,19 +10500,19 @@ namespace PRoConEvents
             return 999999;
         }
 
-        private AdKatsEventOption.MapModeCode GetEventRoundModeCode(Int32 eventRoundNumber) {
+        private AdKatsEventOption.ModeCode GetEventRoundModeCode(Int32 eventRoundNumber) {
             Log.Debug(() => "Entering GetEventRoundMapModeCode", 7);
             try {
                 if (!_EventRoundOptions.Any() || eventRoundNumber < 0 || eventRoundNumber >= _EventRoundOptions.Count()) {
                     Log.Error("Event round number " + eventRoundNumber + " was invalid when fetching map mode code.");
-                    return AdKatsEventOption.MapModeCode.UNKNOWN;
+                    return AdKatsEventOption.ModeCode.UNKNOWN;
                 }
                 return _EventRoundOptions[eventRoundNumber].Mode;
             } catch (Exception e) {
                 HandleException(new AdKatsException("Error while getting event round map mode code.", e));
             }
             Log.Debug(() => "Exiting GetEventRoundMapModeCode", 7);
-            return AdKatsEventOption.MapModeCode.UNKNOWN;
+            return AdKatsEventOption.ModeCode.UNKNOWN;
         }
 
         private AdKatsEventOption.RuleCode GetEventRoundRuleCode(Int32 eventRoundNumber) {
@@ -12631,6 +12637,7 @@ namespace PRoConEvents
         //all messaging is redirected to global chat for analysis
         public override void OnGlobalChat(String speaker, String message) {
             try {
+                message = message.Trim();
                 AdKatsChatMessage chatMessage = new AdKatsChatMessage() {
                     Speaker = speaker,
                     Message = message,
@@ -12655,6 +12662,7 @@ namespace PRoConEvents
 
         public override void OnTeamChat(String speaker, String message, Int32 teamId) {
             try {
+                message = message.Trim();
                 AdKatsChatMessage chatMessage = new AdKatsChatMessage() {
                     Speaker = speaker,
                     Message = message,
@@ -12678,6 +12686,7 @@ namespace PRoConEvents
 
         public override void OnSquadChat(String speaker, String message, Int32 teamId, Int32 squadId) {
             try {
+                message = message.Trim();
                 AdKatsChatMessage chatMessage = new AdKatsChatMessage() {
                     Speaker = speaker,
                     Message = message,
@@ -12801,7 +12810,7 @@ namespace PRoConEvents
                                 continue;
                             }
                             nonAdminsTold = true;
-                            PlayerSayMessage(aPlayer.player_name, message, false, 1);
+                            aPlayer.Say(message, false, 1);
                             Thread.Sleep(30);
                         }
                     } catch (Exception) {
@@ -12948,7 +12957,7 @@ namespace PRoConEvents
             Boolean adminsTold = false;
             foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers().Where(aPlayer => aPlayer.player_name != exclude)) {
                 adminsTold = true;
-                PlayerSayMessage(player.player_name, message, true, 1);
+                player.Say(message, true, 1);
             }
             return adminsTold;
         }
@@ -17012,6 +17021,135 @@ namespace PRoConEvents
                             }
                         }
                         break;
+                    case "poll_trigger": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (_roundState != RoundState.Playing) {
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be used between rounds.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            String pollCode;
+                            switch (parameters.Length) {
+                                case 1:
+                                    pollCode = parameters[0].ToLower();
+                                    if(!_AvailablePolls.Contains(pollCode)) {
+                                        SendMessageToSource(record, pollCode + " is not an available poll. Available Polls: " + String.Join(", ", _AvailablePolls));
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = pollCode;
+                                    record.record_message = "";
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                case 2:
+                                    pollCode = parameters[0].ToLower();
+                                    if (!_AvailablePolls.Contains(pollCode)) {
+                                        SendMessageToSource(record, pollCode + " is not an available poll. Available Polls: " + String.Join(", ", _AvailablePolls));
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = pollCode;
+                                    record.record_message = parameters[1].ToLower();
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "No poll code provided. Available Polls: " + String.Join(", ", _AvailablePolls));
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "poll_vote": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (record.record_source != AdKatsRecord.Sources.InGame) {
+                                SendMessageToSource(record, "You can't vote in polls from outside the game.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            if (_ActivePoll == null) {
+                                SendMessageToSource(record, "There is no active poll to vote on.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            if (_roundState != RoundState.Playing) {
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be used between rounds.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            Int32 voteNumber;
+                            switch (parameters.Length) {
+                                case 1:
+                                    var paramString = parameters[0].ToLower();
+                                    if (!Int32.TryParse(paramString, out voteNumber)) {
+                                        SendMessageToSource(record, paramString + " is not a number. Vote options are numbers.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    if (!_ActivePoll.AddVote(record.source_player, voteNumber)) {
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = _ActivePoll.ID;
+                                    record.record_message = voteNumber.ToString();
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "No vote option provided.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "poll_cancel": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (_ActivePoll == null) {
+                                SendMessageToSource(record, "There is no active poll to cancel.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            if (_roundState != RoundState.Playing) {
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be used between rounds.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            _ActivePoll.Canceled = true;
+                        }
+                        break;
+                    case "poll_complete": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (_ActivePoll == null) {
+                                SendMessageToSource(record, "There is no active poll to complete");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            if (_roundState != RoundState.Playing) {
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be used between rounds.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            _ActivePoll.Completed = true;
+                        }
+                        break;
                     case "player_chat": {
                             /*
                                  * This command will get chat history for a player. Comes in 4 variations. 
@@ -17449,7 +17587,7 @@ namespace PRoConEvents
                             CancelSourcePendingAction(record);
 
                             if (_roundState != RoundState.Playing && record.source_name != "ProconAdmin") {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be used between rounds.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be used between rounds.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -20746,6 +20884,9 @@ namespace PRoConEvents
                     case "player_perks":
                         SendTargetPerks(record);
                         break;
+                    case "poll_trigger":
+                        TriggerTargetPoll(record);
+                        break;
                     case "player_chat":
                         SendTargetChat(record);
                         break;
@@ -21004,6 +21145,9 @@ namespace PRoConEvents
                     case "player_repboost":
                     case "server_map_detriment":
                     case "server_map_benefit":
+                    case "poll_vote":
+                    case "poll_cancel":
+                    case "poll_complete":
                         record.record_action_executed = true;
                         //Don't do anything here
                         break;
@@ -21037,7 +21181,7 @@ namespace PRoConEvents
                 }
 
                 QueuePlayerForMove(record.target_player.fbpInfo);
-                PlayerSayMessage(record.target_name, "On your next death you will be moved to the opposing team.");
+                record.target_player.Say("On your next death you will be moved to the opposing team.");
                 SendMessageToSource(record, record.GetTargetNames() + " will be sent to TeamSwap on their next death.");
             } catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for move record.", e);
@@ -21277,7 +21421,7 @@ namespace PRoConEvents
                 record.record_action_executed = true;
                 if (record.target_player != null) {
                     DequeuePlayer(record.target_player);
-                    PlayerSayMessage(record.target_name, "All queued actions canceled.");
+                    record.target_player.Say("All queued actions canceled.");
                     SendMessageToSource(record, "All queued actions for " + record.GetTargetNames() + " canceled.");
                 }
             } catch (Exception e) {
@@ -24476,7 +24620,7 @@ namespace PRoConEvents
                             OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName(), sender.player_name);
                             adminInformedChange = true;
                         } else {
-                            PlayerSayMessage(partner.player_name, "You are now in a private conversation with " + sender.GetVerboseName() + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
+                            partner.Say("You are now in a private conversation with " + sender.GetVerboseName() + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
                         }
                         partner.conversationPartner = sender;
                     } else {
@@ -24485,7 +24629,7 @@ namespace PRoConEvents
 
                         if (oldPartner.player_guid != sender.player_guid) {
                             //Inform partner of change
-                            PlayerSayMessage(partner.player_name, "Private conversation partner changed from " + oldPartner.GetVerboseName() + " to " + sender.GetVerboseName());
+                            partner.Say("Private conversation partner changed from " + oldPartner.GetVerboseName() + " to " + sender.GetVerboseName());
 
                             //Cancel oldPartner conversation
                             if (PlayerIsExternal(oldPartner)) {
@@ -24518,7 +24662,7 @@ namespace PRoConEvents
                 PlayerSayMessage(sender.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
                 //Post the first message to the partner
                 if (!PlayerIsExternal(partner)) {
-                    PlayerSayMessage(partner.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
+                    partner.Say("(MSG)(" + sender.player_name + "): " + record.record_message);
                 }
             } catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for Private Message record.", e);
@@ -24549,7 +24693,7 @@ namespace PRoConEvents
                         record_time = UtcNow()
                     });
                 } else {
-                    PlayerSayMessage(partner.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
+                    partner.Say("(MSG)(" + sender.player_name + "): " + record.record_message);
                 }
                 PlayerSayMessage(sender.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
             } catch (Exception e) {
@@ -24583,7 +24727,7 @@ namespace PRoConEvents
                         OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName(), sender.player_name);
                         adminInformedChange = true;
                     } else {
-                        PlayerSayMessage(partner.player_name, "You are now in a private conversation with " + sender.GetVerboseName() + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
+                        partner.Say("You are now in a private conversation with " + sender.GetVerboseName() + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
                     }
                     partner.conversationPartner = sender;
                 } else {
@@ -24592,7 +24736,7 @@ namespace PRoConEvents
 
                     if (oldPartner.player_guid != sender.player_guid) {
                         //Inform partner of change
-                        PlayerSayMessage(partner.player_name, "Private conversation partner changed from " + oldPartner.GetVerboseName() + " to " + sender.GetVerboseName());
+                        partner.Say("Private conversation partner changed from " + oldPartner.GetVerboseName() + " to " + sender.GetVerboseName());
 
                         //Cancel oldPartner conversation
                         if (PlayerIsExternal(oldPartner)) {
@@ -24620,7 +24764,7 @@ namespace PRoConEvents
                 }
                 partner.conversationPartner = sender;
 
-                PlayerSayMessage(partner.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
+                partner.Say("(MSG)(" + sender.player_name + "): " + record.record_message);
             } catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for Private Message Start record.", e);
                 HandleException(record.record_exception);
@@ -24638,7 +24782,7 @@ namespace PRoConEvents
                 AdKatsPlayer partner = record.target_player;
 
                 if (partner.conversationPartner != null) {
-                    PlayerSayMessage(partner.player_name, record.record_message);
+                    partner.Say(record.record_message);
                     partner.conversationPartner = null;
                 }
             } catch (Exception e) {
@@ -24682,11 +24826,11 @@ namespace PRoConEvents
                             record_time = UtcNow()
                         });
                     } else {
-                        PlayerSayMessage(partner.player_name, partner.GetVerboseName() + " is not in a private conversation with you.");
+                        partner.Say(partner.GetVerboseName() + " is not in a private conversation with you.");
                         sender.conversationPartner = null;
                     }
                 } else {
-                    PlayerSayMessage(partner.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
+                    partner.Say("(MSG)(" + sender.player_name + "): " + record.record_message);
                 }
             } catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for Private Message Transmit record.", e);
@@ -25527,6 +25671,191 @@ namespace PRoConEvents
                 FinalizeRecord(record);
             }
             Log.Debug(() => "Exiting SendTargetPerks", 6);
+        }
+
+        public void TriggerTargetPoll(AdKatsRecord record) {
+            Log.Debug(() => "Entering TriggerTargetPoll", 6);
+            try {
+                record.record_action_executed = true;
+
+                if (_roundState != RoundState.Playing) {
+                    SendMessageToSource(record, record.command_type.command_name + " cannot be used between rounds.");
+                    FinalizeRecord(record);
+                    return;
+                }
+
+                //Take care of the previous poll if one exists
+                if (_ActivePoll != null) {
+                    // Automatically cancel the previous poll
+                    SendMessageToSource(record, "Cancelling current " + _ActivePoll.ID + " poll.");
+                    _ActivePoll.Canceled = true;
+                    var cancelTime = UtcNow();
+                    while (_ActivePoll != null) {
+                        if (!_pluginEnabled || NowDuration(cancelTime).TotalSeconds > 10) {
+                            SendMessageToSource(record, "Unable to cancel previous poll.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        _threadMasterWaitHandle.WaitOne(500);
+                    };
+                    AdminSayMessage("Current poll canceled.");
+                }
+
+                //Determine whether this poll can be executed
+                if (record.target_name == "event") {
+
+                    // Check for options
+                    if (record.record_message.ToLower().Trim() == "reset") {
+                        if (!EventActive()) {
+                            // This option will clear the existing event options from the plugin and start new
+                            SendMessageToSource(record, "Removing all existing event rounds.");
+                            _EventRoundOptions.Clear();
+                        } else {
+                            SendMessageToSource(record, "Cannot remove existing event rounds while an event is active.");
+                        }
+                    }
+
+                    // Run the event poll
+                    Thread pollRunner = new Thread(new ThreadStart(delegate {
+                        Log.Debug(() => "Starting an event poll runner thread.", 5);
+                        try {
+                            Thread.CurrentThread.Name = "EventPollRunner";
+                            _threadMasterWaitHandle.WaitOne(500);
+
+                            //Create the poll object
+                            _ActivePoll = new AdKatsPoll(this) {
+                                ID = "EVENT"
+                            };
+
+                            // This poll has two stages. Choosing the rules and choosing the mode.
+                            AdKatsEventOption.RuleCode chosenRule;
+                            AdKatsEventOption.ModeCode chosenMode;
+                            _ActivePoll.Title = "Choose next event round rules!";
+                            // Get the available rule options
+                            var existingEventRules = _EventRoundOptions
+                                                        .Select(option => option.Rule)
+                                                        .Distinct()
+                                                        .ToList();
+                            var rng = new Random(Environment.TickCount);
+                            var availableRuleOptions = _EventRoundPollOptions
+                                                        .Where(option => !existingEventRules.Contains(option.Rule))
+                                                        .Select(option => option.Rule)
+                                                        .Distinct()
+                                                        .OrderBy(option => rng.Next())
+                                                        .ToList();
+                            if (availableRuleOptions.Count() < 3) {
+                                // Someone used almost all the rules during this event
+                                // Just give them everything
+                                availableRuleOptions = _EventRoundPollOptions
+                                                        .Select(option => option.Rule)
+                                                        .Distinct()
+                                                        .OrderBy(option => rng.Next())
+                                                        .ToList();
+                            }
+                            foreach (var option in availableRuleOptions) {
+                                if (_ActivePoll.Options.Count() >= _PollMaxOptions) {
+                                    break;
+                                }
+                                // Add the name of the option to the chosen list
+                                _ActivePoll.AddOption(AdKatsEventOption.RuleNames[option]);
+                            }
+                            
+                            while (_pluginEnabled &&
+                                   _roundState == RoundState.Playing &&
+                                   NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
+                                   !_ActivePoll.Completed &&
+                                   !_ActivePoll.Canceled) {
+                                if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval) {
+                                    // Print the poll
+                                    _ActivePoll.PrintPoll();
+                                }
+
+                                _threadMasterWaitHandle.WaitOne(500);
+                            }
+
+                            // Only continue if the round is still active
+                            // And the poll has not been canceled
+                            if (_pluginEnabled && 
+                                _roundState == RoundState.Playing &&
+                                !_ActivePoll.Canceled) {
+
+                                // Get the outcome
+                                chosenRule = AdKatsEventOption.RuleFromDisplay(_ActivePoll.GetWinningOption(true));
+                                
+                                // Reset the poll for the next stage
+                                _ActivePoll.Reset();
+
+                                _ActivePoll.Title = "Choose next event round mode!";
+                                // Get the available mode options for the chosen rule
+                                var availableModeOptions = _EventRoundPollOptions
+                                                            .Where(option => option.Rule == chosenRule)
+                                                            .Select(option => option.Mode)
+                                                            .Distinct()
+                                                            .OrderBy(option => rng.Next())
+                                                            .ToList();
+                                foreach (var option in availableModeOptions) {
+                                    if (_ActivePoll.Options.Count() >= _PollMaxOptions) {
+                                        break;
+                                    }
+                                    // Add the name of the option to the chosen list
+                                    _ActivePoll.AddOption(AdKatsEventOption.ModeNames[option]);
+                                }
+
+                                while (_pluginEnabled &&
+                                       _roundState == RoundState.Playing &&
+                                       NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
+                                       !_ActivePoll.Completed &&
+                                       !_ActivePoll.Canceled) {
+                                    if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval) {
+                                        // Print the poll
+                                        _ActivePoll.PrintPoll();
+                                    }
+
+                                    _threadMasterWaitHandle.WaitOne(500);
+                                }
+
+                                // Only continue if the round is still active
+                                // And the poll has not been canceled
+                                if (_pluginEnabled &&
+                                    _roundState == RoundState.Playing &&
+                                    !_ActivePoll.Canceled) {
+
+                                    // Get the outcome
+                                    chosenMode = AdKatsEventOption.ModeFromDisplay(_ActivePoll.GetWinningOption(true));
+
+                                    // Pause for effect
+                                    Thread.Sleep(1000);
+
+                                    var option = new AdKatsEventOption() {
+                                        Mode = chosenMode,
+                                        Rule = chosenRule
+                                    };
+                                    _EventRoundOptions.Add(option);
+                                    AdminSayMessage("Next event round will be " + option.getModeRuleDisplay());
+                                }
+                            }
+
+                            // Remove the active poll
+                            _ActivePoll = null;
+                        } catch (Exception) {
+                            HandleException(new AdKatsException("Error while processing event poll."));
+                        }
+                        Log.Debug(() => "Exiting an event poll runner thread.", 5);
+                        LogThreadExit();
+                    }));
+                    //Start the thread
+                    StartAndLogThread(pollRunner);
+                } else {
+                    SendMessageToSource(record, "Unable to process event code '" + record.target_name + "'.");
+                    FinalizeRecord(record);
+                    return;
+                }
+            } catch (Exception e) {
+                record.record_exception = new AdKatsException("Error while processing general poll.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting TriggerTargetPoll", 6);
         }
 
         public void SendTargetChat(AdKatsRecord record) {
@@ -28317,7 +28646,7 @@ namespace PRoConEvents
                                         }
                                     }
                                     if (informPlayer) {
-                                        PlayerSayMessage(aPlayer.player_name, message);
+                                        aPlayer.Say(message);
                                     }
                                 }
                             }
@@ -32089,6 +32418,14 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command poll_vote", "INSERT INTO `adkats_commands` VALUES(132, 'Active', 'poll_vote', 'Log', 'Vote In Poll', 'vote', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(133)) {
+                                    SendNonQuery("Adding command poll_cancel", "INSERT INTO `adkats_commands` VALUES(133, 'Active', 'poll_cancel', 'Unable', 'Cancel Active Poll', 'pollcancel', FALSE, 'Any')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(134)) {
+                                    SendNonQuery("Adding command poll_complete", "INSERT INTO `adkats_commands` VALUES(134, 'Active', 'poll_complete', 'Unable', 'Complete Active Poll', 'pollcomplete', FALSE, 'Any')", true);
+                                    newCommands = true;
+                                }
                                 if (newCommands) {
                                     FetchCommands();
                                     return;
@@ -32232,6 +32569,10 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_discordlink"] = "Links a player with a currently online discord member.";
             _CommandDescriptionDictionary["player_blacklistallcaps"] = "Adds the target player to all-caps chat blacklist for the server.";
             _CommandDescriptionDictionary["player_blacklistallcaps_remove"] = "Removes a player from the all-caps chat blacklist.";
+            _CommandDescriptionDictionary["poll_trigger"] = "Starts a poll of the given type.";
+            _CommandDescriptionDictionary["poll_vote"] = "Votes in the currently active poll.";
+            _CommandDescriptionDictionary["poll_cancel"] = "Cancels the current active poll without running its completion action.";
+            _CommandDescriptionDictionary["poll_complete"] = "Completes the current active poll and runs its action.";
         }
 
         private void FillReadableMapModeDictionaries() {
@@ -33287,10 +33628,10 @@ namespace PRoConEvents
                 if (aPlayer.player_role.role_key != aRole.role_key) {
                     if (authorized) {
                         Log.Debug(() => "Role for authorized player " + aPlayer.player_name + " has been CHANGED to " + aRole.role_name + ".", 4);
-                        PlayerSayMessage(aPlayer.player_name, "You have been assigned the authorized role " + aRole.role_name + ".");
+                        aPlayer.Say("You have been assigned the authorized role " + aRole.role_name + ".");
                     } else {
                         Log.Debug(() => "Player " + aPlayer.player_name + " has been assigned the guest role.", 4);
-                        PlayerSayMessage(aPlayer.player_name, "You have been assigned the guest role.");
+                        aPlayer.Say("You have been assigned the guest role.");
                     }
                 }
             }
@@ -37355,7 +37696,7 @@ namespace PRoConEvents
 
         public String ProcessEventServerName(String serverName, Boolean testActive, Boolean testConcrete) {
             var eventDate = GetEventRoundDateTime();
-            if ((eventDate < DateTime.Now || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
+            if (((_CurrentEventRoundNumber == 999999 && eventDate < DateTime.Now) || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
                 serverName = serverName.Replace("%EventDateDuration%", "TBD")
                                        .Replace("%EventDateTime%", "TBD")
                                        .Replace("%EventDate%", "TBD")
@@ -37506,7 +37847,7 @@ namespace PRoConEvents
         }
 
         public class AdKatsEventOption {
-            public enum MapModeCode {
+            public enum ModeCode {
                 UNKNOWN,
                 RESET,
                 T100,
@@ -37525,22 +37866,22 @@ namespace PRoConEvents
                 D750,
                 D1000
             };
-            public static readonly Dictionary<MapModeCode, String> MapModeOptions = new Dictionary<MapModeCode, String> {
-                {MapModeCode.T100, "TDM 100 Kills"},
-                {MapModeCode.T300, "TDM 300 Kills"},
-                {MapModeCode.T400, "TDM 400 Kills"},
-                {MapModeCode.R300, "Rush 300 Tickets"},
-                {MapModeCode.R500, "Rush 500 Tickets"},
-                {MapModeCode.C500, "Conquest 500 Tickets"},
-                {MapModeCode.C1000, "Conquest 1000 Tickets"},
-                {MapModeCode.C2000, "Conquest 2000 Tickets"},
-                {MapModeCode.F7, "CTF 7 Flags"},
-                {MapModeCode.F5, "CTF 5 Flags"},
-                {MapModeCode.F3, "CTF 3 Flags"},
-                {MapModeCode.D500, "Domination 500 Tickets"},
-                {MapModeCode.HD500, "Hardcore Domination 500 Tickets"},
-                {MapModeCode.D750, "Domination 750 Tickets"},
-                {MapModeCode.D1000, "Domination 1000 Tickets"},
+            public static readonly Dictionary<ModeCode, String> ModeNames = new Dictionary<ModeCode, String> {
+                {ModeCode.T100, "TDM 100"},
+                {ModeCode.T300, "TDM 300"},
+                {ModeCode.T400, "TDM 400"},
+                {ModeCode.R300, "Rush 300"},
+                {ModeCode.R500, "Rush 500"},
+                {ModeCode.C500, "Conquest 500"},
+                {ModeCode.C1000, "Conquest 1000"},
+                {ModeCode.C2000, "Conquest 2000"},
+                {ModeCode.F7, "CTF 7"},
+                {ModeCode.F5, "CTF 5"},
+                {ModeCode.F3, "CTF 3"},
+                {ModeCode.D500, "Domination 500"},
+                {ModeCode.HD500, "HC Domination 500"},
+                {ModeCode.D750, "Domination 750"},
+                {ModeCode.D1000, "Domination 1000"},
             };
             public enum RuleCode {
                 UNKNOWN,
@@ -37560,7 +37901,7 @@ namespace PRoConEvents
                 HO,
                 NH
             };
-            public static readonly Dictionary<RuleCode, String> RuleOptions = new Dictionary<RuleCode, String> {
+            public static readonly Dictionary<RuleCode, String> RuleNames = new Dictionary<RuleCode, String> {
                 {RuleCode.AW, "All Weapons"},
                 {RuleCode.KO, "Knives Only"},
                 {RuleCode.NE, "No Explosives"},
@@ -37578,22 +37919,36 @@ namespace PRoConEvents
                 {RuleCode.NH, "No Headshots"}
             };
 
-            public MapModeCode Mode;
+            public ModeCode Mode;
             public RuleCode Rule;
 
             public static AdKatsEventOption Default() {
                 return new AdKatsEventOption() {
-                    Mode = MapModeOptions.FirstOrDefault().Key,
-                    Rule = RuleOptions.FirstOrDefault().Key
+                    Mode = ModeNames.FirstOrDefault().Key,
+                    Rule = RuleNames.FirstOrDefault().Key
                 };
             }
 
             public String getModeRuleDisplay() {
-                return MapModeOptions[Mode] + "/" + RuleOptions[Rule];
+                return ModeNames[Mode] + "/" + RuleNames[Rule];
             }
 
             public String getModeRuleCode() {
                 return Mode + "-" + Rule;
+            }
+
+            public static RuleCode RuleFromDisplay(String ruleDisplay) {
+                if (!RuleNames.Any(rule => rule.Value == ruleDisplay)) {
+                    return RuleNames.FirstOrDefault().Key;
+                }
+                return RuleNames.FirstOrDefault(rule => rule.Value == ruleDisplay).Key;
+            }
+
+            public static ModeCode ModeFromDisplay(String modeDisplay) {
+                if (!ModeNames.Any(mode => mode.Value == modeDisplay)) {
+                    return ModeNames.FirstOrDefault().Key;
+                }
+                return ModeNames.FirstOrDefault(mode => mode.Value == modeDisplay).Key;
             }
 
             public static AdKatsEventOption FromDisplay(String display) {
@@ -37602,13 +37957,13 @@ namespace PRoConEvents
                 }
                 var split = display.Split('/');
                 if (split.Length != 2 ||
-                    !MapModeOptions.Any(mode => mode.Value == split[0]) ||
-                    !RuleOptions.Any(rule => rule.Value == split[1])) {
+                    !ModeNames.Any(mode => mode.Value == split[0]) ||
+                    !RuleNames.Any(rule => rule.Value == split[1])) {
                     return Default();
                 }
                 return new AdKatsEventOption() {
-                    Mode = MapModeOptions.FirstOrDefault(mode => mode.Value == split[0]).Key,
-                    Rule = RuleOptions.FirstOrDefault(rule => rule.Value == split[1]).Key
+                    Mode = ModeNames.FirstOrDefault(mode => mode.Value == split[0]).Key,
+                    Rule = RuleNames.FirstOrDefault(rule => rule.Value == split[1]).Key
                 };
             }
 
@@ -37620,10 +37975,10 @@ namespace PRoConEvents
                 if (split.Length != 2) {
                     return Default();
                 }
-                var parsedMode = (MapModeCode)Enum.Parse(typeof(MapModeCode), split[0]);
+                var parsedMode = (ModeCode)Enum.Parse(typeof(ModeCode), split[0]);
                 var parsedRule = (RuleCode)Enum.Parse(typeof(RuleCode), split[1]);
-                if (!MapModeOptions.ContainsKey(parsedMode) ||
-                    !RuleOptions.ContainsKey(parsedRule)) {
+                if (!ModeNames.ContainsKey(parsedMode) ||
+                    !RuleNames.ContainsKey(parsedRule)) {
                     return Default();
                 }
                 return new AdKatsEventOption() {
@@ -37634,12 +37989,101 @@ namespace PRoConEvents
         }
 
         public class AdKatsPoll {
+            private AdKats Plugin;
+
             public String ID;
-            public String Name;
-            public String Description;
+            public String Title;
             public Dictionary<Int32, String> Options;
-            public Dictionary<String, Int32> Votes;
-            public Func<AdKats, Boolean> Action;
+
+            public Boolean Completed;
+            public Boolean Canceled;
+            public DateTime StartTime;
+            public DateTime PrintTime;
+            public Dictionary<AdKatsPlayer, Int32> Votes;
+
+            public AdKatsPoll(AdKats plugin) {
+                Plugin = plugin;
+                StartTime = Plugin.UtcNow();
+                PrintTime = Plugin.UtcNow().AddMinutes(-10);
+            }
+
+            public void AddOption(String option) {
+                Int32 optionNumber = 1;
+                while (Options.ContainsKey(optionNumber)) {
+                    optionNumber++;
+                }
+                Options[optionNumber] = option;
+            }
+
+            public Boolean AddVote(AdKatsPlayer voter, Int32 vote) {
+                if (!Options.ContainsKey(vote)) {
+                    voter.Say("Vote " + vote + " is not valid. Options are " + Options.Keys.Min() + "-" + Options.Keys.Max() + ".");
+                    return false;
+                }
+                Int32 currentVote = -1;
+                if (Votes.ContainsKey(voter)) {
+                    currentVote = Votes[voter];
+                }
+                if (currentVote == vote) {
+                    voter.Say("You already voted for '" + Options[vote] + "'");
+                    return false;
+                }
+                if (currentVote > 0) {
+                    voter.Say("You changed your vote from '" + Options[currentVote] + "' to '" + Options[vote] + "'");
+                }
+                Votes[voter] = vote;
+                return true;
+            }
+
+            public void PrintPoll() {
+                List<String> optionStrings = new List<String>();
+                foreach(var option in Options) {
+                    optionStrings.Add(option.Key + ". " + option.Value + "[" + Votes.Count(vote => vote.Value == option.Key) + "]");
+                }
+                List<String> optionLines = new List<String>();
+                String currentLine = String.Empty;
+                foreach(var option in optionStrings) {
+                    if (currentLine == String.Empty) {
+                        currentLine = option;
+                    } else {
+                        currentLine += " | " + option;
+                        optionLines.Add(currentLine);
+                    }
+                }
+                if (currentLine != String.Empty) {
+                    optionLines.Add(currentLine + " |");
+                }
+                PrintTime = Plugin.UtcNow();
+                Plugin.AdminSayMessage(Title);
+                foreach (var line in optionLines) {
+                    Plugin.AdminSayMessage(line);
+                }
+            }
+
+            public String GetWinningOption(Boolean print) {
+                if (!Votes.Any()) {
+                    // If nobody has voted yet, use the first option
+                    return Options.Values.FirstOrDefault();
+                }
+                var votes = Votes.Values.ToList();
+                var winner = votes.GroupBy(vote => vote)
+                                  .Select(group => new { Option = group.Key, Count = group.Count() })
+                                  .OrderByDescending(group => group.Count)
+                                  .First();
+                if (print) {
+                    Plugin.AdminSayMessage("'" + winner.Option + "' won with " + winner.Count + " votes!");
+                }
+                return Options[winner.Option];
+            }
+
+            public void Reset() {
+                Options.Clear();
+                Votes.Clear();
+                Completed = false;
+                Canceled = false;
+                StartTime = Plugin.UtcNow();
+                PrintTime = Plugin.UtcNow().AddMinutes(-10);
+            }
         }
 
         public class AdKatsKill
@@ -37742,6 +38186,21 @@ namespace PRoConEvents
                 player_pings = new Queue<KeyValuePair<Double, DateTime>>();
                 TargetedRecords = new List<AdKatsRecord>();
                 LastUsage = DateTime.UtcNow;
+            }
+            
+            public void Say(String message) {
+                Plugin.PlayerSayMessage(player_name, message);
+            }
+            public void Say(String message, Boolean displayProconChat, Int32 spamCount) {
+                Plugin.PlayerSayMessage(player_name, message, displayProconChat, spamCount);
+            }
+
+            public void Yell(String message) {
+                Plugin.PlayerYellMessage(player_name, message);
+            }
+
+            public void Tell(String message) {
+                Plugin.PlayerTellMessage(player_name, message);
             }
 
             private Double maxScore = 30000.0;
