@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.199
+ * Version 6.9.0.200
  * 26-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.199</version_code>
+ * <version_code>6.9.0.200</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.199";
+        private const String PluginVersion = "6.9.0.200";
 
         public enum GameVersion {
             BF3,
@@ -25773,6 +25773,9 @@ namespace PRoConEvents
                                 _threadMasterWaitHandle.WaitOne(500);
                             }
 
+                            if (_ActivePoll.Completed) {
+                                AdminSayMessage("Poll completed with current winner.");
+                            }
                             // Only continue if the round is still active
                             // And the poll has not been canceled
                             if (_pluginEnabled && 
@@ -25814,6 +25817,10 @@ namespace PRoConEvents
                                     _threadMasterWaitHandle.WaitOne(500);
                                 }
 
+                                if (_ActivePoll.Completed) {
+                                    AdminSayMessage("Poll completed with current winner.");
+                                }
+
                                 // Only continue if the round is still active
                                 // And the poll has not been canceled
                                 if (_pluginEnabled &&
@@ -25834,11 +25841,15 @@ namespace PRoConEvents
                                     AdminSayMessage("Next event round will be " + option.getModeRuleDisplay());
                                 }
                             }
+                            
+                            if (_ActivePoll.Canceled) {
+                                AdminSayMessage("Poll canceled.");
+                            }
 
                             // Remove the active poll
                             _ActivePoll = null;
-                        } catch (Exception) {
-                            HandleException(new AdKatsException("Error while processing event poll."));
+                        } catch (Exception e) {
+                            HandleException(new AdKatsException("Error while processing event poll.", e));
                         }
                         Log.Debug(() => "Exiting an event poll runner thread.", 5);
                         LogThreadExit();
