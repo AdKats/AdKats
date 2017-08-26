@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.201
+ * Version 6.9.0.202
  * 26-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.201</version_code>
+ * <version_code>6.9.0.202</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.201";
+        private const String PluginVersion = "6.9.0.202";
 
         public enum GameVersion {
             BF3,
@@ -25851,12 +25851,13 @@ namespace PRoConEvents
                             if (_ActivePoll.Canceled) {
                                 AdminSayMessage("Poll canceled.");
                             }
-
-                            // Remove the active poll
-                            _ActivePoll = null;
                         } catch (Exception e) {
                             HandleException(new AdKatsException("Error while processing event poll.", e));
                         }
+
+                        // Remove the active poll
+                        _ActivePoll = null;
+
                         Log.Debug(() => "Exiting an event poll runner thread.", 5);
                         LogThreadExit();
                     }));
@@ -38022,6 +38023,8 @@ namespace PRoConEvents
                 Plugin = plugin;
                 StartTime = Plugin.UtcNow();
                 PrintTime = Plugin.UtcNow().AddMinutes(-10);
+                Options = new Dictionary<Int32, String>();
+                Votes = new Dictionary<AdKatsPlayer, Int32>();
             }
 
             public void AddOption(String option) {
