@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.202
+ * Version 6.9.0.203
  * 26-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.202</version_code>
+ * <version_code>6.9.0.203</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.202";
+        private const String PluginVersion = "6.9.0.203";
 
         public enum GameVersion {
             BF3,
@@ -38050,6 +38050,8 @@ namespace PRoConEvents
                 }
                 if (currentVote > 0) {
                     voter.Say("You changed your vote from '" + Options[currentVote] + "' to '" + Options[vote] + "'");
+                } else {
+                    voter.Say("Vote added for '" + Options[vote] + "'.");
                 }
                 Votes[voter] = vote;
                 return true;
@@ -38058,7 +38060,7 @@ namespace PRoConEvents
             public void PrintPoll() {
                 List<String> optionStrings = new List<String>();
                 foreach(var option in Options) {
-                    optionStrings.Add(option.Key + ". " + option.Value + "[" + Votes.Count(vote => vote.Value == option.Key) + "]");
+                    optionStrings.Add(option.Key + ". " + option.Value + " [" + Votes.Count(vote => vote.Value == option.Key) + "]");
                 }
                 List<String> optionLines = new List<String>();
                 String currentLine = String.Empty;
