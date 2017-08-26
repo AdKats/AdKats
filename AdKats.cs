@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.196
+ * Version 6.9.0.197
  * 25-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.196</version_code>
+ * <version_code>6.9.0.197</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.196";
+        private const String PluginVersion = "6.9.0.197";
 
         public enum GameVersion {
             BF3,
@@ -37593,7 +37593,7 @@ namespace PRoConEvents
             }
 
             public String getModeRuleCode() {
-                return Mode + "/" + Rule;
+                return Mode + "-" + Rule;
             }
 
             public static AdKatsEventOption FromDisplay(String display) {
