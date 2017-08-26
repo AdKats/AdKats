@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.200
+ * Version 6.9.0.201
  * 26-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.200</version_code>
+ * <version_code>6.9.0.201</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.200";
+        private const String PluginVersion = "6.9.0.201";
 
         public enum GameVersion {
             BF3,
@@ -25710,6 +25710,7 @@ namespace PRoConEvents
                             // This option will clear the existing event options from the plugin and start new
                             SendMessageToSource(record, "Removing all existing event rounds.");
                             _EventRoundOptions.Clear();
+                            QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
                         } else {
                             SendMessageToSource(record, "Cannot remove existing event rounds while an event is active.");
                         }
@@ -25736,6 +25737,7 @@ namespace PRoConEvents
                                                         .Select(option => option.Rule)
                                                         .Distinct()
                                                         .ToList();
+                            Log.Info("Existing event rules: " + String.Join(", ", existingEventRules.Select(el => el.ToString()).ToArray()));
                             var rng = new Random(Environment.TickCount);
                             var availableRuleOptions = _EventRoundPollOptions
                                                         .Where(option => !existingEventRules.Contains(option.Rule))
@@ -25743,7 +25745,10 @@ namespace PRoConEvents
                                                         .Distinct()
                                                         .OrderBy(option => rng.Next())
                                                         .ToList();
+                            Log.Info("Poll options count: " + _EventRoundPollOptions.Count());
+                            Log.Info("Available rule options: " + String.Join(", ", availableRuleOptions.Select(el => el.ToString()).ToArray()));
                             if (availableRuleOptions.Count() < 3) {
+                                Log.Info("Loading in all rules.");
                                 // Someone used almost all the rules during this event
                                 // Just give them everything
                                 availableRuleOptions = _EventRoundPollOptions
@@ -25752,6 +25757,7 @@ namespace PRoConEvents
                                                         .OrderBy(option => rng.Next())
                                                         .ToList();
                             }
+                            Log.Info("Available rule options v2: " + String.Join(", ", availableRuleOptions.Select(el => el.ToString()).ToArray()));
                             foreach (var option in availableRuleOptions) {
                                 if (_ActivePoll.Options.Count() >= _PollMaxOptions) {
                                     break;
