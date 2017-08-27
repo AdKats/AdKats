@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.205
- * 26-AUG-2017
+ * Version 6.9.0.206
+ * 27-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.205</version_code>
+ * <version_code>6.9.0.206</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.205";
+        private const String PluginVersion = "6.9.0.206";
 
         public enum GameVersion {
             BF3,
@@ -798,10 +798,10 @@ namespace PRoConEvents
 
         //Polling
         private AdKatsPoll _ActivePoll = null;
-        private TimeSpan _PollMaxDuration = TimeSpan.FromMinutes(5);
-        private TimeSpan _PollPrintInterval = TimeSpan.FromSeconds(60);
-        private Int32 _PollMaxVotes = 30;
-        private Int32 _PollMaxOptions = 6;
+        private TimeSpan _PollMaxDuration = TimeSpan.FromMinutes(4);
+        private TimeSpan _PollPrintInterval = TimeSpan.FromSeconds(30);
+        private Int32 _PollMaxVotes = 20;
+        private Int32 _PollMaxOptions = 4;
         private String[] _AvailablePolls = new String[] {
             "event"
         };
@@ -825,6 +825,9 @@ namespace PRoConEvents
         private Int32 _EventAnnounceDayDifference = 7;
         private Int32 _CurrentEventRoundNumber = 999999;
         private List<AdKatsEventOption> _EventRoundOptions = new List<AdKatsEventOption>();
+        private Boolean _EventRoundPolled = false;
+        private Int32 _EventRoundAutoPollsMax = 7;
+        private TimeSpan _EventRoundAutoVoteDuration = TimeSpan.FromMinutes(3.5);
         private List<AdKatsEventOption> _EventRoundPollOptions = new List<AdKatsEventOption>();
         private String _EventRoundOptionsEnum;
         private String _eventBaseServerName = "Event Base Server Name";
@@ -940,9 +943,6 @@ namespace PRoConEvents
                 }
             }
             _EventRoundOptionsEnum += ")";
-
-            //Add a single option as the initial setting
-            _EventRoundOptions.Add(AdKatsEventOption.Default());
 
             //Init the punishment severity index
             _PunishmentSeverityIndex = new List<String> {
@@ -6634,6 +6634,7 @@ namespace PRoConEvents
                                     }
                                 }
 
+                                // EVENTS
                                 if (_EventWeeklyRepeat) {
                                     _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
                                     if (GetEventRoundDateTime() < DateTime.Now) {
@@ -6651,6 +6652,7 @@ namespace PRoConEvents
                                         // At 3 rounds away, lock in the round number for the event
                                         if (Math.Abs(estimateEventRoundNumber - _roundID) <= 3) {
                                             _CurrentEventRoundNumber = estimateEventRoundNumber;
+                                            UpdateSettingPage();
                                         }
                                     }
                                     var serverName = "";
@@ -6673,6 +6675,29 @@ namespace PRoConEvents
                                         serverName = _eventBaseServerName;
                                     }
                                     this.ExecuteCommand("procon.protected.send", "vars.serverName", ProcessEventServerName(serverName, false, false));
+
+                                    // EVENT AUTOMATIC POLLING
+                                    if (!_EventRoundPolled &&
+                                        _EventRoundOptions.Count() < _EventRoundAutoPollsMax &&
+                                        _roundState == RoundState.Playing &&
+                                        _serverInfo.GetRoundElapsedTime() >= _EventRoundAutoVoteDuration &&
+                                        _ActivePoll == null &&
+                                        (_CurrentEventRoundNumber == _roundID + 1 || EventActive())) {
+                                        var options = String.Empty;
+                                        if (_CurrentEventRoundNumber == _roundID + 1) {
+                                            options = "reset";
+                                        }
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("poll_trigger"),
+                                            command_numeric = 0,
+                                            target_name = "event",
+                                            source_name = "EventAutoPolling",
+                                            record_message = options,
+                                            record_time = UtcNow()
+                                        });
+                                    }
                                 }
 
                                 //Team operations
@@ -9668,28 +9693,31 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "400");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
+                    case AdKatsEventOption.ModeCode.R200:
+                        ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
+                        OnlineAdminSayMessage("Event round setup complete!");
+                        break;
                     case AdKatsEventOption.ModeCode.R300:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
-                        GoalTickets = 300;
-                        TicketRatio = 75 / 100.0;
-                        GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.ModeCode.R500:
+                    case AdKatsEventOption.ModeCode.R400:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
-                        GoalTickets = 500;
-                        TicketRatio = 75 / 100.0;
-                        GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "400");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AdKatsEventOption.ModeCode.C500:
@@ -9728,16 +9756,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.ModeCode.F7:
-                        ProcessPresetNormal();
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "400");
-                        OnlineAdminSayMessage("Event round setup complete!");
-                        break;
-                    case AdKatsEventOption.ModeCode.F5:
+                    case AdKatsEventOption.ModeCode.F9:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
@@ -9746,13 +9765,22 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
-                    case AdKatsEventOption.ModeCode.F3:
+                    case AdKatsEventOption.ModeCode.F6:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
+                        OnlineAdminSayMessage("Event round setup complete!");
+                        break;
+                    case AdKatsEventOption.ModeCode.F3:
+                        ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "100");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AdKatsEventOption.ModeCode.D500:
@@ -10038,6 +10066,7 @@ namespace PRoConEvents
 
                 FetchRoundID(true);
                 _roundState = RoundState.Ended;
+                _EventRoundPolled = false;
                 _pingKicksThisRound = 0;
                 foreach (AdKatsPlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
                     aPlayer.RequiredTeam = null;
@@ -25711,6 +25740,7 @@ namespace PRoConEvents
                             SendMessageToSource(record, "Removing all existing event rounds.");
                             _EventRoundOptions.Clear();
                             QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                            UpdateSettingPage();
                         } else {
                             SendMessageToSource(record, "Cannot remove existing event rounds while an event is active.");
                         }
@@ -25731,13 +25761,12 @@ namespace PRoConEvents
                             // This poll has two stages. Choosing the rules and choosing the mode.
                             AdKatsEventOption.RuleCode chosenRule;
                             AdKatsEventOption.ModeCode chosenMode;
-                            _ActivePoll.Title = "Choose next event round rules!";
+                            _ActivePoll.Title = "Choose event rules with !vote #";
                             // Get the available rule options
                             var existingEventRules = _EventRoundOptions
                                                         .Select(option => option.Rule)
                                                         .Distinct()
                                                         .ToList();
-                            Log.Info("Existing event rules: " + String.Join(", ", existingEventRules.Select(el => el.ToString()).ToArray()));
                             var rng = new Random(Environment.TickCount);
                             var availableRuleOptions = _EventRoundPollOptions
                                                         .Where(option => !existingEventRules.Contains(option.Rule))
@@ -25745,11 +25774,8 @@ namespace PRoConEvents
                                                         .Distinct()
                                                         .OrderBy(option => rng.Next())
                                                         .ToList();
-                            Log.Info("Poll options count: " + _EventRoundPollOptions.Count());
-                            Log.Info("Available rule options: " + String.Join(", ", availableRuleOptions.Select(el => el.ToString()).ToArray()));
                             if (availableRuleOptions.Count() < 3) {
-                                Log.Info("Loading in all rules.");
-                                // Someone used almost all the rules during this event
+                                // They used almost all the rules during this event
                                 // Just give them everything
                                 availableRuleOptions = _EventRoundPollOptions
                                                         .Select(option => option.Rule)
@@ -25757,7 +25783,6 @@ namespace PRoConEvents
                                                         .OrderBy(option => rng.Next())
                                                         .ToList();
                             }
-                            Log.Info("Available rule options v2: " + String.Join(", ", availableRuleOptions.Select(el => el.ToString()).ToArray()));
                             foreach (var option in availableRuleOptions) {
                                 if (_ActivePoll.Options.Count() >= _PollMaxOptions) {
                                     break;
@@ -25765,10 +25790,12 @@ namespace PRoConEvents
                                 // Add the name of the option to the chosen list
                                 _ActivePoll.AddOption(AdKatsEventOption.RuleNames[option]);
                             }
-                            
+
+                            _ActivePoll.PrintTitle();
                             while (_pluginEnabled &&
                                    _roundState == RoundState.Playing &&
                                    NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
+                                   _ActivePoll.Votes.Count() < _PollMaxVotes &&
                                    !_ActivePoll.Completed &&
                                    !_ActivePoll.Canceled) {
                                 if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval) {
@@ -25789,19 +25816,36 @@ namespace PRoConEvents
                                 !_ActivePoll.Canceled) {
 
                                 // Get the outcome
-                                chosenRule = AdKatsEventOption.RuleFromDisplay(_ActivePoll.GetWinningOption(true));
+                                var ruleString = _ActivePoll.GetWinningOption(true);
+                                chosenRule = AdKatsEventOption.RuleFromDisplay(ruleString);
                                 
                                 // Reset the poll for the next stage
                                 _ActivePoll.Reset();
 
-                                _ActivePoll.Title = "Choose next event round mode!";
+                                _ActivePoll.Title = "Choose '" + ruleString + "' mode with !vote #";
+                                // Get the available rule options
+                                var existingEventModes = _EventRoundOptions
+                                                            .Select(option => option.Mode)
+                                                            .Distinct()
+                                                            .ToList();
                                 // Get the available mode options for the chosen rule
                                 var availableModeOptions = _EventRoundPollOptions
+                                                            .Where(option => option.Rule == chosenRule &&
+                                                                             !existingEventModes.Contains(option.Mode))
+                                                            .Select(option => option.Mode)
+                                                            .Distinct()
+                                                            .OrderBy(option => rng.Next())
+                                                            .ToList();
+                                if (availableModeOptions.Count() < 3) {
+                                    // They used almost all the modes during this event
+                                    // Just give them everything
+                                    availableModeOptions = _EventRoundPollOptions
                                                             .Where(option => option.Rule == chosenRule)
                                                             .Select(option => option.Mode)
                                                             .Distinct()
                                                             .OrderBy(option => rng.Next())
                                                             .ToList();
+                                }
                                 foreach (var option in availableModeOptions) {
                                     if (_ActivePoll.Options.Count() >= _PollMaxOptions) {
                                         break;
@@ -25810,9 +25854,11 @@ namespace PRoConEvents
                                     _ActivePoll.AddOption(AdKatsEventOption.ModeNames[option]);
                                 }
 
+                                _ActivePoll.PrintTitle();
                                 while (_pluginEnabled &&
                                        _roundState == RoundState.Playing &&
                                        NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
+                                       _ActivePoll.Votes.Count() < _PollMaxVotes &&
                                        !_ActivePoll.Completed &&
                                        !_ActivePoll.Canceled) {
                                     if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval) {
@@ -25835,16 +25881,15 @@ namespace PRoConEvents
 
                                     // Get the outcome
                                     chosenMode = AdKatsEventOption.ModeFromDisplay(_ActivePoll.GetWinningOption(true));
-
-                                    // Pause for effect
-                                    Thread.Sleep(1000);
-
                                     var option = new AdKatsEventOption() {
                                         Mode = chosenMode,
                                         Rule = chosenRule
                                     };
+                                    _EventRoundPolled = true;
                                     _EventRoundOptions.Add(option);
-                                    AdminSayMessage("Next event round will be " + option.getModeRuleDisplay());
+                                    QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                                    AdminTellMessage("EVENT POLL COMPLETE! Next event round is " + option.getModeRuleDisplay());
+                                    UpdateSettingPage();
                                 }
                             }
                             
@@ -37871,13 +37916,14 @@ namespace PRoConEvents
                 T100,
                 T300,
                 T400,
+                R200,
                 R300,
-                R500,
+                R400,
                 C500,
                 C1000,
                 C2000,
-                F7,
-                F5,
+                F9,
+                F6,
                 F3,
                 D500,
                 HD500,
@@ -37888,13 +37934,14 @@ namespace PRoConEvents
                 {ModeCode.T100, "TDM 100"},
                 {ModeCode.T300, "TDM 300"},
                 {ModeCode.T400, "TDM 400"},
+                {ModeCode.R200, "Rush 200"},
                 {ModeCode.R300, "Rush 300"},
-                {ModeCode.R500, "Rush 500"},
+                {ModeCode.R400, "Rush 400"},
                 {ModeCode.C500, "Conquest 500"},
                 {ModeCode.C1000, "Conquest 1000"},
                 {ModeCode.C2000, "Conquest 2000"},
-                {ModeCode.F7, "CTF 7"},
-                {ModeCode.F5, "CTF 5"},
+                {ModeCode.F9, "CTF 9"},
+                {ModeCode.F6, "CTF 6"},
                 {ModeCode.F3, "CTF 3"},
                 {ModeCode.D500, "Domination 500"},
                 {ModeCode.HD500, "HC Domination 500"},
@@ -38055,6 +38102,10 @@ namespace PRoConEvents
                 }
                 Votes[voter] = vote;
                 return true;
+            }
+
+            public void PrintTitle() {
+                Plugin.AdminTellMessage(Title);
             }
 
             public void PrintPoll() {
