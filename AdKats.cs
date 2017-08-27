@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.206
+ * Version 6.9.0.207
  * 27-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.206</version_code>
+ * <version_code>6.9.0.207</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.206";
+        private const String PluginVersion = "6.9.0.207";
 
         public enum GameVersion {
             BF3,
@@ -7638,19 +7638,19 @@ namespace PRoConEvents
                 if (!_firstPlayerListComplete) {
                     return;
                 }
+                AdKatsTeam newTeam;
+                if (!GetTeamByID(teamId, out newTeam)) {
+                    if (_roundState == RoundState.Playing) {
+                        Log.Error("Error fetching new team on team change.");
+                    }
+                    return;
+                }
                 if (_PlayerDictionary.ContainsKey(soldierName)) {
                     AdKatsPlayer aPlayer = _PlayerDictionary[soldierName];
                     AdKatsTeam oldTeam;
                     if (!GetTeamByID(aPlayer.fbpInfo.TeamID, out oldTeam)) {
                         if (_roundState == RoundState.Playing) {
                             Log.Error("Error fetching old team on team change.");
-                        }
-                        return;
-                    }
-                    AdKatsTeam newTeam;
-                    if (!GetTeamByID(teamId, out newTeam)) {
-                        if (_roundState == RoundState.Playing) {
-                            Log.Error("Error fetching new team on team change.");
                         }
                         return;
                     }
@@ -7688,6 +7688,8 @@ namespace PRoConEvents
                             }
                         }
                     }
+                } else {
+                    Log.Warn(soldierName + " switched to team " + newTeam.TeamName + " without being in player list.");
                 }
                 //When a player changes team, tell teamswap to recheck queues
                 _TeamswapWaitHandle.Set();
@@ -25790,8 +25792,7 @@ namespace PRoConEvents
                                 // Add the name of the option to the chosen list
                                 _ActivePoll.AddOption(AdKatsEventOption.RuleNames[option]);
                             }
-
-                            _ActivePoll.PrintTitle();
+                            
                             while (_pluginEnabled &&
                                    _roundState == RoundState.Playing &&
                                    NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
@@ -25853,8 +25854,7 @@ namespace PRoConEvents
                                     // Add the name of the option to the chosen list
                                     _ActivePoll.AddOption(AdKatsEventOption.ModeNames[option]);
                                 }
-
-                                _ActivePoll.PrintTitle();
+                                
                                 while (_pluginEnabled &&
                                        _roundState == RoundState.Playing &&
                                        NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
@@ -38063,6 +38063,7 @@ namespace PRoConEvents
             public Boolean Completed;
             public Boolean Canceled;
             public DateTime StartTime;
+            private Boolean _FirstPrint;
             public DateTime PrintTime;
             public Dictionary<AdKatsPlayer, Int32> Votes;
 
@@ -38104,10 +38105,6 @@ namespace PRoConEvents
                 return true;
             }
 
-            public void PrintTitle() {
-                Plugin.AdminTellMessage(Title);
-            }
-
             public void PrintPoll() {
                 List<String> optionStrings = new List<String>();
                 foreach(var option in Options) {
@@ -38128,7 +38125,12 @@ namespace PRoConEvents
                     optionLines.Add(currentLine + " |");
                 }
                 PrintTime = Plugin.UtcNow();
-                Plugin.AdminSayMessage(Title);
+                if (!_FirstPrint) {
+                    Plugin.AdminTellMessage(Title);
+                    _FirstPrint = true;
+                } else {
+                    Plugin.AdminSayMessage(Title);
+                }
                 foreach (var line in optionLines) {
                     Plugin.AdminSayMessage(line);
                 }
@@ -38157,6 +38159,7 @@ namespace PRoConEvents
                 Completed = false;
                 Canceled = false;
                 StartTime = Plugin.UtcNow();
+                _FirstPrint = false;
                 PrintTime = Plugin.UtcNow().AddMinutes(-10);
             }
         }
