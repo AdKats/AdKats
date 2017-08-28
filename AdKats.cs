@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.207
+ * Version 6.9.0.208
  * 27-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.207</version_code>
+ * <version_code>6.9.0.208</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
 {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.207";
+        private const String PluginVersion = "6.9.0.208";
 
         public enum GameVersion {
             BF3,
@@ -818,6 +818,7 @@ namespace PRoConEvents
 
         //Events
         private Boolean _EventWeeklyRepeat = false;
+        private Boolean _EventBiWeeklyRepeat = false;
         private DayOfWeek _EventWeeklyDay = DayOfWeek.Saturday;
         private DateTime _EventDate = GetLocalEpochTime();
         private Double _EventHour = 0;
@@ -1668,8 +1669,13 @@ namespace PRoConEvents
                                 lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundOptions[roundNumber].getModeRuleDisplay()));
                             }
 
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
-                            if (_EventWeeklyRepeat) {
+                            if (!_EventBiWeeklyRepeat) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
+                            }
+                            if (!_EventWeeklyRepeat) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Bi-Weekly Events", typeof(Boolean), _EventBiWeeklyRepeat));
+                            }
+                            if (_EventWeeklyRepeat || _EventBiWeeklyRepeat) {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Day", "enum.weekdays(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)", _EventWeeklyDay.ToString()));
                             } else {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Date", typeof(String), _EventDate.ToShortDateString()));
@@ -4057,7 +4063,7 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                     }
-                } else if (Regex.Match(strVariable, @"Weekly Events").Success) {
+                } else if (strVariable == "Weekly Events") {
                     Boolean EventWeeklyRepeat = Boolean.Parse(strValue);
                     if (EventWeeklyRepeat != _EventWeeklyRepeat) {
                         _EventWeeklyRepeat = EventWeeklyRepeat;
@@ -4072,6 +4078,22 @@ namespace PRoConEvents
                             QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                         }
                         QueueSettingForUpload(new CPluginVariable(@"Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
+                    }
+                } else if (strVariable == "Bi-Weekly Events") {
+                    Boolean EventBiWeeklyRepeat = Boolean.Parse(strValue);
+                    if (EventBiWeeklyRepeat != _EventBiWeeklyRepeat) {
+                        _EventBiWeeklyRepeat = EventBiWeeklyRepeat;
+                        _CurrentEventRoundNumber = 999999;
+                        if (_EventBiWeeklyRepeat) {
+                            _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
+                            if (GetEventRoundDateTime() < DateTime.Now) {
+                                // If the given event date is today, but is already in the past
+                                // reset it to the same day two weeks from now
+                                _EventDate = _EventDate.AddDays(14);
+                            }
+                            QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
+                        }
+                        QueueSettingForUpload(new CPluginVariable(@"Bi-Weekly Events", typeof(Boolean), _EventBiWeeklyRepeat));
                     }
                 } else if (Regex.Match(strVariable, @"Event Day").Success) {
                     //Check for valid value
@@ -4111,6 +4133,14 @@ namespace PRoConEvents
                                 // If the given event date is today, but is already in the past
                                 // reset it to the same day next week
                                 _EventDate = _EventDate.AddDays(7);
+                            }
+                            QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
+                        } else if (_EventBiWeeklyRepeat) {
+                            _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
+                            if (GetEventRoundDateTime() < DateTime.Now) {
+                                // If the given event date is today, but is already in the past
+                                // reset it to the same day two weeks from now
+                                _EventDate = _EventDate.AddDays(14);
                             }
                             QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                         }
@@ -6641,6 +6671,14 @@ namespace PRoConEvents
                                         // If the given event date is today, but is already in the past
                                         // reset it to the same day next week
                                         _EventDate = _EventDate.AddDays(7);
+                                    }
+                                    QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
+                                } else if (_EventBiWeeklyRepeat) {
+                                    _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
+                                    if (GetEventRoundDateTime() < DateTime.Now) {
+                                        // If the given event date is today, but is already in the past
+                                        // reset it to the same day two weeks from now
+                                        _EventDate = _EventDate.AddDays(14);
                                     }
                                     QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                                 }
@@ -27627,6 +27665,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                 QueueSettingForUpload(new CPluginVariable(@"Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
+                QueueSettingForUpload(new CPluginVariable(@"Bi-Weekly Events", typeof(Boolean), _EventBiWeeklyRepeat));
                 QueueSettingForUpload(new CPluginVariable(@"Event Day", typeof(String), _EventWeeklyDay.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Hour in 24 format", typeof(Double), _EventHour));
