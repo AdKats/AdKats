@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.208
- * 27-AUG-2017
+ * Version 6.9.0.209
+ * 28-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.208</version_code>
+ * <version_code>6.9.0.209</version_code>
  */
 
 using System;
@@ -62,11 +62,10 @@ using PRoCon.Core.Plugin;
 using PRoCon.Core.Plugin.Commands;
 using PRoCon.Core.Maps;
 
-namespace PRoConEvents
-{
+namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.208";
+        private const String PluginVersion = "6.9.0.209";
 
         public enum GameVersion {
             BF3,
@@ -124,25 +123,6 @@ namespace PRoConEvents
         }
 
         //State
-        public static String[] _SquadNames = new String[] {
-            "None",
-            "Alpha",
-            "Bravo",
-            "Charlie",
-            "Delta",
-            "Echo",
-            "Foxtrot",
-            "Golf",
-            "Hotel",
-            "India",
-            "Juliet",
-            "Kilo",
-            "Lima",
-            "Mike",
-            "November",
-            "Oscar",
-            "Papa"
-        };
         private const Boolean FullDebug = false;
         private const Boolean SlowMoOnException = false;
         private Boolean _slowmo;
@@ -432,7 +412,7 @@ namespace PRoConEvents
 
         //Players
         private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
-        private readonly Dictionary<String, List<AdKatsPlayer>> _RoundOverSquads = new Dictionary<String, List<AdKatsPlayer>>();
+        private readonly List<AdKatsSquad> _RoundOverSquads = new List<AdKatsSquad>();
         private readonly Dictionary<String, AdKatsPlayer> _PlayerLeftDictionary = new Dictionary<String, AdKatsPlayer>();
         private readonly Dictionary<Int64, AdKatsPlayer> _FetchedPlayers = new Dictionary<Int64, AdKatsPlayer>();
         private readonly Dictionary<Int64, HashSet<Int64>> _RoundPlayerIDs = new Dictionary<Int64, HashSet<Int64>>();
@@ -818,7 +798,6 @@ namespace PRoConEvents
 
         //Events
         private Boolean _EventWeeklyRepeat = false;
-        private Boolean _EventBiWeeklyRepeat = false;
         private DayOfWeek _EventWeeklyDay = DayOfWeek.Saturday;
         private DateTime _EventDate = GetLocalEpochTime();
         private Double _EventHour = 0;
@@ -1669,13 +1648,8 @@ namespace PRoConEvents
                                 lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundOptions[roundNumber].getModeRuleDisplay()));
                             }
 
-                            if (!_EventBiWeeklyRepeat) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
-                            }
-                            if (!_EventWeeklyRepeat) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Bi-Weekly Events", typeof(Boolean), _EventBiWeeklyRepeat));
-                            }
-                            if (_EventWeeklyRepeat || _EventBiWeeklyRepeat) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
+                            if (_EventWeeklyRepeat) {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Day", "enum.weekdays(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)", _EventWeeklyDay.ToString()));
                             } else {
                                 lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Date", typeof(String), _EventDate.ToShortDateString()));
@@ -4079,22 +4053,6 @@ namespace PRoConEvents
                         }
                         QueueSettingForUpload(new CPluginVariable(@"Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
                     }
-                } else if (strVariable == "Bi-Weekly Events") {
-                    Boolean EventBiWeeklyRepeat = Boolean.Parse(strValue);
-                    if (EventBiWeeklyRepeat != _EventBiWeeklyRepeat) {
-                        _EventBiWeeklyRepeat = EventBiWeeklyRepeat;
-                        _CurrentEventRoundNumber = 999999;
-                        if (_EventBiWeeklyRepeat) {
-                            _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
-                            if (GetEventRoundDateTime() < DateTime.Now) {
-                                // If the given event date is today, but is already in the past
-                                // reset it to the same day two weeks from now
-                                _EventDate = _EventDate.AddDays(14);
-                            }
-                            QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
-                        }
-                        QueueSettingForUpload(new CPluginVariable(@"Bi-Weekly Events", typeof(Boolean), _EventBiWeeklyRepeat));
-                    }
                 } else if (Regex.Match(strVariable, @"Event Day").Success) {
                     //Check for valid value
                     DayOfWeek update;
@@ -4133,14 +4091,6 @@ namespace PRoConEvents
                                 // If the given event date is today, but is already in the past
                                 // reset it to the same day next week
                                 _EventDate = _EventDate.AddDays(7);
-                            }
-                            QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
-                        } else if (_EventBiWeeklyRepeat) {
-                            _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
-                            if (GetEventRoundDateTime() < DateTime.Now) {
-                                // If the given event date is today, but is already in the past
-                                // reset it to the same day two weeks from now
-                                _EventDate = _EventDate.AddDays(14);
                             }
                             QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                         }
@@ -6323,7 +6273,7 @@ namespace PRoConEvents
                             }
 
                             //SpamBot - Every 500ms
-                            var playerCount = _PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player);
+                            var playerCount = _PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.player_type == PlayerType.Player);
                             if (_pluginEnabled &&
                                 _spamBotEnabled &&
                                 _firstPlayerListComplete &&
@@ -6671,14 +6621,6 @@ namespace PRoConEvents
                                         // If the given event date is today, but is already in the past
                                         // reset it to the same day next week
                                         _EventDate = _EventDate.AddDays(7);
-                                    }
-                                    QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
-                                } else if (_EventBiWeeklyRepeat) {
-                                    _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
-                                    if (GetEventRoundDateTime() < DateTime.Now) {
-                                        // If the given event date is today, but is already in the past
-                                        // reset it to the same day two weeks from now
-                                        _EventDate = _EventDate.AddDays(14);
                                     }
                                     QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                                 }
@@ -7442,6 +7384,7 @@ namespace PRoConEvents
 
                 //Team power monitor assignment code
                 //Disabled for now
+                /*
                 if (_UseTeamPowerMonitorBalance && _aliveThreads.Values.All(thread => thread.Name != "TopPlayerMonitorAssignment")) {
                     StartAndLogThread(new Thread(new ThreadStart(delegate {
                         Thread.CurrentThread.Name = "TopPlayerMonitorAssignment";
@@ -7602,6 +7545,7 @@ namespace PRoConEvents
                         LogThreadExit();
                     })));
                 }
+                */
             } catch (Exception e) {
                 HandleException(new AdKatsException("Error while running faction updates.", e));
             }
@@ -7744,14 +7688,6 @@ namespace PRoConEvents
         public List<AdKatsPlayer> GetSquadPlayers(Int32 squadID) {
             return _PlayerDictionary.Values.ToList().Where(
                 aPlayer => aPlayer.fbpInfo.SquadID == squadID).ToList();
-        }
-
-        public String GetSquadName(Int32 squadID) {
-            if (squadID < 0 || squadID >= _SquadNames.Length) {
-                Log.Error("Invalid squad ID " + squadID + ", unable to get squad name.");
-                return squadID.ToString();
-            }
-            return _SquadNames[squadID];
         }
 
         public override void OnPlayerSquadChange(string soldierName, int teamId, int squadId) {
@@ -8359,6 +8295,7 @@ namespace PRoConEvents
 
                                     try {
                                         //Top player processing - Disabled
+                                        /*
                                         if (_firstPlayerListComplete &&
                                             _UseTeamPowerMonitor &&
                                             _UseTeamPowerMonitorBalance &&
@@ -8410,6 +8347,7 @@ namespace PRoConEvents
                                                 }
                                             }
                                         }
+                                        */
                                     } catch (Exception e) {
                                         HandleException(new AdKatsException("Error running player distribution.", e));
                                     }
@@ -9354,6 +9292,7 @@ namespace PRoConEvents
                                                 }
                                                 //If we are not using the top player monitor, and not auto-nuking, get players 
                                                 //from those who have assisted to the now winning team
+                                                /*
                                                 if (!_UseTeamPowerMonitorBalance && !_UseTeamPowerMonitor && !(_surrenderAutoEnable && _surrenderAutoNukeInstead)) {
                                                     foreach (AdKatsRecord aRecord in _roundAssists.Values.Where(dRecord =>
                                                         dRecord.target_player.player_online &&
@@ -9363,6 +9302,7 @@ namespace PRoConEvents
                                                         }
                                                     }
                                                 }
+                                                */
                                                 foreach (AdKatsPlayer aPlayer in auaPlayers.Values) {
                                                     if (PlayerIsAdmin(aPlayer)) {
                                                         continue;
@@ -9933,12 +9873,17 @@ namespace PRoConEvents
                     _AssistAttemptQueue.Clear();
                 }
 
+                // EVENT AUTOMATION
                 if (_UseExperimentalTools &&
                     _EventRoundOptions.Any() &&
                     _EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
                     var nRound = _roundID + 1;
                     StartAndLogThread(new Thread(new ThreadStart(delegate {
                         Thread.CurrentThread.Name = "EventAnnounce";
+                        if (_ActivePoll != null) {
+                            // If there is an active poll, auto-complete it
+                            _ActivePoll.Completed = true;
+                        }
                         Thread.Sleep(TimeSpan.FromSeconds(6));
                         // The new _roundID is fetched by now
                         if (EventActive(nRound)) {
@@ -10054,20 +9999,22 @@ namespace PRoConEvents
                                     aStats.LiveStats = player;
                                 }
                                 var squadIdentifier = aPlayer.fbpInfo.TeamID.ToString() + aPlayer.fbpInfo.SquadID.ToString();
+                                AdKatsSquad squad = _RoundOverSquads.FirstOrDefault(iSquad => iSquad.TeamID == aPlayer.fbpInfo.TeamID &&
+                                                                                              iSquad.SquadID == aPlayer.fbpInfo.SquadID);
                                 // If the squad isn't loaded yet, load it
-                                if (!_RoundOverSquads.ContainsKey(squadIdentifier)) {
-                                    _RoundOverSquads[squadIdentifier] = new List<AdKatsPlayer>();
+                                if (squad == null) {
+                                    squad = new AdKatsSquad(this) {
+                                        TeamID = aPlayer.fbpInfo.TeamID,
+                                        SquadID = aPlayer.fbpInfo.SquadID
+                                    };
+                                    _RoundOverSquads.Add(squad);
                                 }
-                                // Store which squad the player is in
-                                _RoundOverSquads[squadIdentifier].Add(aPlayer);
-                                if (_UseTeamPowerMonitorBalance && _UseTeamPowerMonitor) {
-                                    // Remove the player's current squad
-                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.fbpInfo.TeamID + "", "0", "true");
-                                }
+                                // Store the player
+                                squad.Players.Add(aPlayer);
                             }
                         }
-                        if (_UseTeamPowerMonitorBalance) {
-                            Log.Success("Updated round over players.");
+                        foreach (var squad in _RoundOverSquads.OrderByDescending(squad => squad.Players.Sum(member => member.GetTopPower(true)))) {
+                            Log.Info("Squad " + squad);
                         }
                         //Unassign round over players, wait for next round
                         _roundOverPlayers = null;
@@ -11208,7 +11155,7 @@ namespace PRoConEvents
                                                 source_name = "AutoAdmin",
                                                 record_time = UtcNow()
                                             };
-                                            if (weapon == "RoadKill") {
+                                            if (weapon.ToLower() == "roadkill") {
                                                 record.record_message = "Rules: Roadkilling with EOD or MAV";
                                             } else if (weapon == "Death") {
                                                 if (_gameVersion == GameVersion.BF3) {
@@ -11285,10 +11232,6 @@ namespace PRoConEvents
 
                         //Take minimum ticket count between teams (accounts for rush), but not less than 0
                         _startingTicketCount = Math.Max(0, Math.Min(team1.TeamTicketCount, team2.TeamTicketCount));
-                        if (_UseTeamPowerMonitorBalance) {
-                            ProconChatWrite("Starting Ticket Count: " + _startingTicketCount);
-                            Log.Info("Starting Ticket Count: " + _startingTicketCount);
-                        }
 
                         if (EventActive()) {
                             StartAndLogThread(new Thread(new ThreadStart(delegate {
@@ -17106,7 +17049,7 @@ namespace PRoConEvents
                             switch (parameters.Length) {
                                 case 1:
                                     pollCode = parameters[0].ToLower();
-                                    if(!_AvailablePolls.Contains(pollCode)) {
+                                    if (!_AvailablePolls.Contains(pollCode)) {
                                         SendMessageToSource(record, pollCode + " is not an available poll. Available Polls: " + String.Join(", ", _AvailablePolls));
                                         FinalizeRecord(record);
                                         return;
@@ -25830,7 +25773,7 @@ namespace PRoConEvents
                                 // Add the name of the option to the chosen list
                                 _ActivePoll.AddOption(AdKatsEventOption.RuleNames[option]);
                             }
-                            
+
                             while (_pluginEnabled &&
                                    _roundState == RoundState.Playing &&
                                    NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
@@ -25850,14 +25793,14 @@ namespace PRoConEvents
                             }
                             // Only continue if the round is still active
                             // And the poll has not been canceled
-                            if (_pluginEnabled && 
+                            if (_pluginEnabled &&
                                 _roundState == RoundState.Playing &&
                                 !_ActivePoll.Canceled) {
 
                                 // Get the outcome
                                 var ruleString = _ActivePoll.GetWinningOption(true);
                                 chosenRule = AdKatsEventOption.RuleFromDisplay(ruleString);
-                                
+
                                 // Reset the poll for the next stage
                                 _ActivePoll.Reset();
 
@@ -25892,7 +25835,7 @@ namespace PRoConEvents
                                     // Add the name of the option to the chosen list
                                     _ActivePoll.AddOption(AdKatsEventOption.ModeNames[option]);
                                 }
-                                
+
                                 while (_pluginEnabled &&
                                        _roundState == RoundState.Playing &&
                                        NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
@@ -25930,7 +25873,7 @@ namespace PRoConEvents
                                     UpdateSettingPage();
                                 }
                             }
-                            
+
                             if (_ActivePoll.Canceled) {
                                 AdminSayMessage("Poll canceled.");
                             }
@@ -27665,7 +27608,6 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                 QueueSettingForUpload(new CPluginVariable(@"Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
-                QueueSettingForUpload(new CPluginVariable(@"Bi-Weekly Events", typeof(Boolean), _EventBiWeeklyRepeat));
                 QueueSettingForUpload(new CPluginVariable(@"Event Day", typeof(String), _EventWeeklyDay.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Hour in 24 format", typeof(Double), _EventHour));
@@ -33502,6 +33444,7 @@ namespace PRoConEvents
                                             }
                                         }
                                     }
+                                    /*
                                     if (_UseTeamPowerMonitor && _UseTeamPowerMonitorBalance) {
                                         foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList().Where(aPlayer =>
                                                aPlayer.GetTopPower(true) > 1 &&
@@ -33520,6 +33463,7 @@ namespace PRoConEvents
                                             });
                                         }
                                     }
+                                    */
                                     break;
                                 case "whitelist_teamkill":
                                     //Pull players from user list
@@ -36422,7 +36366,7 @@ namespace PRoConEvents
         // Credit Jon Skeet
         public static DateTime GetNextWeekday(DateTime start, DayOfWeek day) {
             // The (... + 7) % 7 ensures we end up with a value in the range [0, 6]
-            int daysToAdd = ((int)day - (int)start.DayOfWeek + 7) % 7;
+            int daysToAdd = (((int)day - (int)start.DayOfWeek + 7) % 7);
             return start.AddDays(daysToAdd);
         }
 
@@ -38146,12 +38090,12 @@ namespace PRoConEvents
 
             public void PrintPoll() {
                 List<String> optionStrings = new List<String>();
-                foreach(var option in Options) {
+                foreach (var option in Options) {
                     optionStrings.Add(option.Key + ". " + option.Value + " [" + Votes.Count(vote => vote.Value == option.Key) + "]");
                 }
                 List<String> optionLines = new List<String>();
                 String currentLine = String.Empty;
-                foreach(var option in optionStrings) {
+                foreach (var option in optionStrings) {
                     if (currentLine == String.Empty) {
                         currentLine = option;
                     } else {
@@ -38203,8 +38147,7 @@ namespace PRoConEvents
             }
         }
 
-        public class AdKatsKill
-        {
+        public class AdKatsKill {
             public String weaponCode;
             public DamageTypes weaponCategory;
             public AdKatsPlayer killer;
@@ -38216,6 +38159,51 @@ namespace PRoConEvents
             public Boolean IsTeamkill;
             public DateTime timestamp;
             public Int64 RoundID;
+        }
+
+        public class AdKatsSquad {
+            private static readonly Dictionary<Int32, String> Names = new Dictionary<Int32, String>() {
+                {0, "None"},
+                {1, "Alpha"},
+                {2, "Bravo"},
+                {3, "Charlie"},
+                {4, "Delta"},
+                {5, "Echo"},
+                {6, "Foxtrot"},
+                {7, "Golf"},
+                {8, "Hotel"},
+                {9, "India"},
+                {10, "Juliet"},
+                {11, "Kilo"},
+                {12, "Lima"},
+                {13, "Mike"},
+                {14, "November"},
+                {15, "Oscar"},
+                {16, "Papa"}
+            };
+
+            public AdKats Plugin;
+            
+            public Int32 TeamID;
+            public Int32 SquadID;
+            public List<AdKatsPlayer> Players;
+
+            public AdKatsSquad(AdKats plugin) {
+                Plugin = plugin;
+                Players = new List<AdKatsPlayer>();
+            }
+
+            public String GetName() {
+                if (!Names.ContainsKey(SquadID)) {
+                    Plugin.Log.Error("Invalid squad ID " + SquadID + ", unable to get squad name.");
+                    return SquadID.ToString();
+                }
+                return Names[SquadID];
+            }
+
+            public override String ToString() {
+                return TeamID + ":" + GetName() + " / " + String.Join(" | ", Players.OrderBy(member => member.GetVerboseName()).Select(member => member.GetVerboseName()).ToArray());
+            }
         }
 
         public class AdKatsPlayer
