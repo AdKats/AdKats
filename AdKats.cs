@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.209
+ * Version 6.9.0.210
  * 28-AUG-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.209</version_code>
+ * <version_code>6.9.0.210</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.209";
+        private const String PluginVersion = "6.9.0.210";
 
         public enum GameVersion {
             BF3,
@@ -7385,9 +7385,9 @@ namespace PRoConEvents {
                 //Team power monitor assignment code
                 //Disabled for now
                 /*
-                if (_UseTeamPowerMonitorBalance && _aliveThreads.Values.All(thread => thread.Name != "TopPlayerMonitorAssignment")) {
+                if (_UseTeamPowerMonitorBalance && _aliveThreads.Values.All(thread => thread.Name != "TeamPowerMonitorAssignment")) {
                     StartAndLogThread(new Thread(new ThreadStart(delegate {
-                        Thread.CurrentThread.Name = "TopPlayerMonitorAssignment";
+                        Thread.CurrentThread.Name = "TeamPowerMonitorAssignment";
                         Thread.Sleep(TimeSpan.FromSeconds(0.1));
                         DateTime starting = UtcNow();
                         while (true) {
@@ -7395,7 +7395,7 @@ namespace PRoConEvents {
                                 break;
                             }
                             if ((UtcNow() - starting).TotalSeconds > 30) {
-                                Log.Warn("TopPlayerMonitorAssignment took too long.");
+                                Log.Warn("TeamPowerMonitorAssignment took too long.");
                                 break;
                             }
                             if (_acceptingTeamUpdates) {
@@ -7405,10 +7405,12 @@ namespace PRoConEvents {
                             AdKatsTeam team1, team2;
                             if (!GetTeamByID(1, out team1)) {
                                 Log.Info("Team 1 was not found, waiting.");
+                                Thread.Sleep(TimeSpan.FromSeconds(0.5));
                                 continue;
                             }
                             if (!GetTeamByID(2, out team2)) {
                                 Log.Info("Team 2 was not found, waiting.");
+                                Thread.Sleep(TimeSpan.FromSeconds(0.5));
                                 continue;
                             }
                             if (_UseTeamPowerMonitor && _firstPlayerListComplete) {
@@ -9982,47 +9984,41 @@ namespace PRoConEvents {
                     Log.Error("Round over players waiting timed out!");
                 }
 
-                //Queue players for stats refresh
-                StartAndLogThread(new Thread(new ThreadStart(delegate {
-                    Thread.CurrentThread.Name = "StatRefresh";
-                    Thread.Sleep(TimeSpan.FromSeconds(5));
-                    if (_roundOverPlayers != null) {
-                        //Clear out the round over squad list
-                        _RoundOverSquads.Clear();
-                        //Update all players with their final stats
-                        foreach (var player in _roundOverPlayers) {
-                            AdKatsPlayer aPlayer;
-                            if (_PlayerDictionary.TryGetValue(player.SoldierName, out aPlayer)) {
-                                aPlayer.fbpInfo = player;
-                                AdKatsPlayerStats aStats;
-                                if (aPlayer.RoundStats.TryGetValue(_roundID, out aStats)) {
-                                    aStats.LiveStats = player;
-                                }
-                                var squadIdentifier = aPlayer.fbpInfo.TeamID.ToString() + aPlayer.fbpInfo.SquadID.ToString();
-                                AdKatsSquad squad = _RoundOverSquads.FirstOrDefault(iSquad => iSquad.TeamID == aPlayer.fbpInfo.TeamID &&
-                                                                                              iSquad.SquadID == aPlayer.fbpInfo.SquadID);
-                                // If the squad isn't loaded yet, load it
-                                if (squad == null) {
-                                    squad = new AdKatsSquad(this) {
-                                        TeamID = aPlayer.fbpInfo.TeamID,
-                                        SquadID = aPlayer.fbpInfo.SquadID
-                                    };
-                                    _RoundOverSquads.Add(squad);
-                                }
-                                // Store the player
-                                squad.Players.Add(aPlayer);
+                if (_roundOverPlayers != null) {
+                    //Clear out the round over squad list
+                    _RoundOverSquads.Clear();
+                    //Update all players with their final stats
+                    foreach (var player in _roundOverPlayers) {
+                        AdKatsPlayer aPlayer;
+                        if (_PlayerDictionary.TryGetValue(player.SoldierName, out aPlayer)) {
+                            aPlayer.fbpInfo = player;
+                            AdKatsPlayerStats aStats;
+                            if (aPlayer.RoundStats.TryGetValue(_roundID, out aStats)) {
+                                aStats.LiveStats = player;
                             }
+                            var squadIdentifier = aPlayer.fbpInfo.TeamID.ToString() + aPlayer.fbpInfo.SquadID.ToString();
+                            AdKatsSquad squad = _RoundOverSquads.FirstOrDefault(iSquad => iSquad.TeamID == aPlayer.fbpInfo.TeamID &&
+                                                                                          iSquad.SquadID == aPlayer.fbpInfo.SquadID);
+                            // If the squad isn't loaded yet, load it
+                            if (squad == null) {
+                                squad = new AdKatsSquad(this) {
+                                    TeamID = aPlayer.fbpInfo.TeamID,
+                                    SquadID = aPlayer.fbpInfo.SquadID
+                                };
+                                _RoundOverSquads.Add(squad);
+                            }
+                            // Store the player
+                            squad.Players.Add(aPlayer);
                         }
-                        foreach (var squad in _RoundOverSquads.OrderByDescending(squad => squad.Players.Sum(member => member.GetTopPower(true)))) {
-                            Log.Info("Squad " + squad);
-                        }
-                        //Unassign round over players, wait for next round
-                        _roundOverPlayers = null;
-                    } else {
-                        Log.Error("Round over players not found/ready! Contact ColColonCleaner.");
                     }
-                    LogThreadExit();
-                })));
+                    foreach (var squad in _RoundOverSquads.OrderBy(squad => squad.TeamID).ThenByDescending(squad => squad.Players.Sum(member => member.GetTopPower(true)))) {
+                        Log.Info("Squad " + squad);
+                    }
+                    //Unassign round over players, wait for next round
+                    _roundOverPlayers = null;
+                } else {
+                    Log.Error("Round over players not found/ready! Contact ColColonCleaner.");
+                }
 
                 //Stat refresh
                 List<AdKatsPlayer> roundPlayerObjects;
@@ -17618,20 +17614,21 @@ namespace PRoConEvents {
                                     FinalizeRecord(record);
                                     return;
                                 case 1:
-                                    String targetTeam = parameters[0];
+                                    String targetTeam = parameters[0].Trim().ToLower();
                                     record.record_message = "Nuke Server";
                                     Log.Debug(() => "target: " + targetTeam, 6);
                                     List<AdKatsTeam> validTeams = _teamDictionary.Values.Where(aTeam => aTeam.TeamID == 1 || aTeam.TeamID == 2).ToList();
-                                    AdKatsTeam matchingTeam = validTeams.FirstOrDefault(aTeam => aTeam.TeamKey.ToLower() == targetTeam.ToLower());
+                                    AdKatsTeam matchingTeam = validTeams.FirstOrDefault(aTeam => aTeam.TeamKey.ToLower() == targetTeam || 
+                                                                                                 aTeam.TeamID.ToString() == targetTeam);
                                     if (matchingTeam != null) {
                                         record.target_name = matchingTeam.TeamName;
                                         record.command_numeric = matchingTeam.TeamID;
-                                        record.record_message += " (" + matchingTeam.TeamName + ")";
-                                    } else if (targetTeam.ToLower() == "all") {
+                                        record.record_message += " (" + matchingTeam.TeamID + "/" + matchingTeam.TeamName + ")";
+                                    } else if (targetTeam == "all") {
                                         record.target_name = "Everyone";
                                         record.record_message += " (Everyone)";
                                     } else {
-                                        SendMessageToSource(record, "Team " + targetTeam.ToUpper() + " not found. Available: " + String.Join(", ", validTeams.Select(aTeam => aTeam.TeamKey).ToArray()));
+                                        SendMessageToSource(record, "Team " + targetTeam.ToUpper() + " not found. Available: " + String.Join(", ", validTeams.Select(aTeam => aTeam.TeamID + "/" + aTeam.TeamKey).ToArray()));
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -38202,7 +38199,7 @@ namespace PRoConEvents {
             }
 
             public override String ToString() {
-                return TeamID + ":" + GetName() + " / " + String.Join(" | ", Players.OrderBy(member => member.GetVerboseName()).Select(member => member.GetVerboseName()).ToArray());
+                return TeamID + ":" + GetName() + " / " + String.Join(" | ", Players.OrderBy(member => member.player_name).Select(member => member.player_name).ToArray());
             }
         }
 
