@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.214
+ * Version 6.9.0.215
  * 2-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.214</version_code>
+ * <version_code>6.9.0.215</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.214";
+        private const String PluginVersion = "6.9.0.215";
 
         public enum GameVersion {
             BF3,
@@ -7437,6 +7437,15 @@ namespace PRoConEvents {
                             if (_RoundPrepSquads.Count() < 1) {
                                 Log.Warn("No squads were stored from the previous round!");
                             }
+                            // Remove players from stored squads who have left the server
+                            foreach (var squad in _RoundPrepSquads) {
+                                foreach (var aPlayer in squad.Players.ToList()) {
+                                    if (!_PlayerDictionary.ContainsKey(aPlayer.player_name)) {
+                                        Log.Info("Removing " + aPlayer.player_name + " from stored squads, as they have left the server.");
+                                        squad.Players.Remove(aPlayer);
+                                    }
+                                }
+                            }
                             // Merge anyone currently not in a squad into an existing squad
                             // If more squads are needed, create them
                             Log.Info("Merging remaining players into " + _RoundPrepSquads.Count() + " available squads.");
@@ -7448,6 +7457,7 @@ namespace PRoConEvents {
                                 foreach (var aSquad in _RoundPrepSquads) {
                                     if (aSquad.Players.Contains(aPlayer)) {
                                         found = true;
+                                        break;
                                     }
                                 }
                                 if (!found) {
@@ -7459,6 +7469,7 @@ namespace PRoConEvents {
                                             Log.Info("Adding " + aPlayer.player_name + " to squad " + aSquad);
                                             aSquad.Players.Add(aPlayer);
                                             added = true;
+                                            break;
                                         }
                                     }
                                     if (!added) {
@@ -7474,7 +7485,8 @@ namespace PRoConEvents {
                             }
                             Log.Info(_RoundPrepSquads.Count() + " squads ready for dispersion.");
 
-                            // Print the squad list and remove team IDs from the squads
+                            // Print the squad list
+                            // Remove team IDs from the squads
                             foreach (var squad in _RoundPrepSquads.OrderBy(squad => squad.TeamID).ThenByDescending(squad => squad.Players.Sum(member => member.GetPower(true)))) {
                                 Log.Info("Squad " + squad);
                                 squad.TeamID = 0;
