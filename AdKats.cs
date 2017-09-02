@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.213
+ * Version 6.9.0.214
  * 2-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.213</version_code>
+ * <version_code>6.9.0.214</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.213";
+        private const String PluginVersion = "6.9.0.214";
 
         public enum GameVersion {
             BF3,
@@ -7434,6 +7434,9 @@ namespace PRoConEvents {
                                 continue;
                             }
 
+                            if (_RoundPrepSquads.Count() < 1) {
+                                Log.Warn("No squads were stored from the previous round!");
+                            }
                             // Merge anyone currently not in a squad into an existing squad
                             // If more squads are needed, create them
                             Log.Info("Merging remaining players into " + _RoundPrepSquads.Count() + " available squads.");
@@ -7513,7 +7516,7 @@ namespace PRoConEvents {
                                 if (!team1Available && !team2Available) {
                                     Log.Error("Major failure, both teams would be over capacity when assigning " + aSquad);
                                 } else {
-                                    Log.Info("Power: 1:" + team1Count + ":" + team1Power + " | 2:" + team2Count + ":" + team2Power);
+                                    Log.Info("Power: 1:" + team1Count + ":" + Math.Round(team1Power) + " | 2:" + team2Count + ":" + Math.Round(team2Power));
                                     if (team1Power <= team2Power || !team2Available) {
                                         // Assign this squad to team 1
                                         aSquad.TeamID = team1.TeamID;
@@ -7523,7 +7526,7 @@ namespace PRoConEvents {
                                         var named = false;
                                         foreach (var squadID in ASquad.Names.Keys.ToList().Where(sqaudKey => sqaudKey != 0)) {
                                             Log.Write("Checking if " + squadID + ":" + ASquad.Names[squadID] + " is available on team 1.");
-                                            if (!team1Squads.Any(dSquad => dSquad.TeamID == squadID)) {
+                                            if (!team1Squads.Any(dSquad => dSquad.SquadID == squadID)) {
                                                 aSquad.SquadID = squadID;
                                                 named = true;
                                                 Log.Info("Named " + aSquad + ".");
@@ -7542,7 +7545,7 @@ namespace PRoConEvents {
                                         var named = false;
                                         foreach (var squadID in ASquad.Names.Keys.ToList().Where(sqaudKey => sqaudKey != 0)) {
                                             Log.Write("Checking if " + squadID + ":" + ASquad.Names[squadID] + " is available on team 2.");
-                                            if (!team2Squads.Any(dSquad => dSquad.TeamID == squadID)) {
+                                            if (!team2Squads.Any(dSquad => dSquad.SquadID == squadID)) {
                                                 aSquad.SquadID = squadID;
                                                 named = true;
                                                 Log.Info("Named " + aSquad + ".");
@@ -10101,6 +10104,7 @@ namespace PRoConEvents {
                     foreach (var squad in _RoundPrepSquads.OrderBy(squad => squad.TeamID).ThenByDescending(squad => squad.Players.Sum(member => member.GetPower(true)))) {
                         Log.Info("Squad " + squad);
                     }
+                    Log.Success(_RoundPrepSquads.Count() + " squads logged for next round.");
                     //Unassign round over players, wait for next round
                     _roundOverPlayers = null;
                 } else {
