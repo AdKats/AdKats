@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.215
+ * Version 6.9.0.216
  * 2-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.215</version_code>
+ * <version_code>6.9.0.216</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.215";
+        private const String PluginVersion = "6.9.0.216";
 
         public enum GameVersion {
             BF3,
@@ -7438,12 +7438,17 @@ namespace PRoConEvents {
                                 Log.Warn("No squads were stored from the previous round!");
                             }
                             // Remove players from stored squads who have left the server
-                            foreach (var squad in _RoundPrepSquads) {
+                            foreach (var squad in _RoundPrepSquads.ToList()) {
                                 foreach (var aPlayer in squad.Players.ToList()) {
                                     if (!_PlayerDictionary.ContainsKey(aPlayer.player_name)) {
                                         Log.Info("Removing " + aPlayer.player_name + " from stored squads, as they have left the server.");
                                         squad.Players.Remove(aPlayer);
                                     }
+                                }
+                                // If the squad contains 1 or fewer players, disband the squad so it
+                                // can be rebuilt in the next step
+                                if (squad.Players.Count() <= 1) {
+                                    _RoundPrepSquads.Remove(squad);
                                 }
                             }
                             // Merge anyone currently not in a squad into an existing squad
