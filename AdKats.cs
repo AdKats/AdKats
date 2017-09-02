@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.212
+ * Version 6.9.0.213
  * 2-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.212</version_code>
+ * <version_code>6.9.0.213</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.212";
+        private const String PluginVersion = "6.9.0.213";
 
         public enum GameVersion {
             BF3,
@@ -7490,7 +7490,7 @@ namespace PRoConEvents {
                                 var team1Count = team1Squads.Sum(dSquad => dSquad.Players.Count());
                                 var team1Power = team1Squads.Sum(dSquad => dSquad.Players.Sum(member => member.GetPower(true)));
                                 var team2Squads = _RoundPrepSquads.Where(dSquad => dSquad.TeamID == team2.TeamID).ToList();
-                                var team2Count = team1Squads.Sum(dSquad => dSquad.Players.Count());
+                                var team2Count = team2Squads.Sum(dSquad => dSquad.Players.Count());
                                 var team2Power = team2Squads.Sum(dSquad => dSquad.Players.Sum(member => member.GetPower(true)));
 
                                 // Assume max team size of 32 unless otherwise provided
@@ -7524,7 +7524,7 @@ namespace PRoConEvents {
                                         foreach (var squadID in ASquad.Names.Keys.ToList().Where(sqaudKey => sqaudKey != 0)) {
                                             Log.Write("Checking if " + squadID + ":" + ASquad.Names[squadID] + " is available on team 1.");
                                             if (!team1Squads.Any(dSquad => dSquad.TeamID == squadID)) {
-                                                aSquad.TeamID = squadID;
+                                                aSquad.SquadID = squadID;
                                                 named = true;
                                                 Log.Info("Named " + aSquad + ".");
                                                 break;
@@ -7543,7 +7543,7 @@ namespace PRoConEvents {
                                         foreach (var squadID in ASquad.Names.Keys.ToList().Where(sqaudKey => sqaudKey != 0)) {
                                             Log.Write("Checking if " + squadID + ":" + ASquad.Names[squadID] + " is available on team 2.");
                                             if (!team2Squads.Any(dSquad => dSquad.TeamID == squadID)) {
-                                                aSquad.TeamID = squadID;
+                                                aSquad.SquadID = squadID;
                                                 named = true;
                                                 Log.Info("Named " + aSquad + ".");
                                                 break;
