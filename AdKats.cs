@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.211
+ * Version 6.9.0.212
  * 2-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.211</version_code>
+ * <version_code>6.9.0.212</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.211";
+        private const String PluginVersion = "6.9.0.212";
 
         public enum GameVersion {
             BF3,
@@ -7513,27 +7513,44 @@ namespace PRoConEvents {
                                 if (!team1Available && !team2Available) {
                                     Log.Error("Major failure, both teams would be over capacity when assigning " + aSquad);
                                 } else {
+                                    Log.Info("Power: 1:" + team1Count + ":" + team1Power + " | 2:" + team2Count + ":" + team2Power);
                                     if (team1Power <= team2Power || !team2Available) {
                                         // Assign this squad to team 1
                                         aSquad.TeamID = team1.TeamID;
+                                        Log.Info("Assigned " + aSquad + " to team 1.");
                                         // Find the first available squad in team 1
                                         // Do not include the "None" squad
+                                        var named = false;
                                         foreach (var squadID in ASquad.Names.Keys.ToList().Where(sqaudKey => sqaudKey != 0)) {
+                                            Log.Write("Checking if " + squadID + ":" + ASquad.Names[squadID] + " is available on team 1.");
                                             if (!team1Squads.Any(dSquad => dSquad.TeamID == squadID)) {
                                                 aSquad.TeamID = squadID;
+                                                named = true;
+                                                Log.Info("Named " + aSquad + ".");
                                                 break;
                                             }
+                                        }
+                                        if (!named) {
+                                            Log.Error("Unable to name squad " + aSquad);
                                         }
                                     } else {
                                         // Assign this squad to team 2
                                         aSquad.TeamID = team2.TeamID;
-                                        // Find the first available squad in team 1
+                                        Log.Info("Assigned " + aSquad + " to team 2.");
+                                        // Find the first available squad in team 2
                                         // Do not include the "None" squad
+                                        var named = false;
                                         foreach (var squadID in ASquad.Names.Keys.ToList().Where(sqaudKey => sqaudKey != 0)) {
+                                            Log.Write("Checking if " + squadID + ":" + ASquad.Names[squadID] + " is available on team 2.");
                                             if (!team2Squads.Any(dSquad => dSquad.TeamID == squadID)) {
                                                 aSquad.TeamID = squadID;
+                                                named = true;
+                                                Log.Info("Named " + aSquad + ".");
                                                 break;
                                             }
+                                        }
+                                        if (!named) {
+                                            Log.Error("Unable to name squad " + aSquad);
                                         }
                                     }
                                 }
@@ -7721,7 +7738,7 @@ namespace PRoConEvents {
                         }
                     }
                 } else {
-                    Log.Warn(soldierName + " switched to team " + newTeam.TeamName + " without being in player list.");
+                    Log.Warn(soldierName + " switched to " + newTeam.TeamKey + " without being in player list.");
                 }
                 //When a player changes team, tell teamswap to recheck queues
                 _TeamswapWaitHandle.Set();
