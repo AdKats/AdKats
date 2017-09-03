@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.227
+ * Version 6.9.0.228
  * 3-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.227</version_code>
+ * <version_code>6.9.0.228</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.227";
+        private const String PluginVersion = "6.9.0.228";
 
         public enum GameVersion {
             BF3,
@@ -8319,6 +8319,20 @@ namespace PRoConEvents {
                                                 }
                                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "1", "false");
                                             }
+                                        }
+                                        if (_UseExperimentalTools) {
+                                            // Run an automatic assist on-join
+                                            QueueRecordForProcessing(new ARecord {
+                                                record_source = ARecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("self_assist"),
+                                                command_action = GetCommandByKey("self_assist_unconfirmed"),
+                                                target_name = aPlayer.player_name,
+                                                target_player = aPlayer,
+                                                source_name = "AUAManager",
+                                                record_message = "Join Assist",
+                                                record_time = UtcNow()
+                                            });
                                         }
                                         switch (aPlayer.fbpInfo.Type) {
                                             case 0:
