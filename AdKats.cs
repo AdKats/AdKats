@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.218
+ * Version 6.9.0.219
  * 2-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.218</version_code>
+ * <version_code>6.9.0.219</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.218";
+        private const String PluginVersion = "6.9.0.219";
 
         public enum GameVersion {
             BF3,
@@ -7621,9 +7621,25 @@ namespace PRoConEvents {
                             }
 
                             Log.Success("Built move queue.");
+                            Log.Info("Clearing squads.");
+                            foreach (var aPlayer in _PlayerDictionary.Values.ToList().Where(dPlayer => dPlayer.player_type == PlayerType.Player)) {
+                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.fbpInfo.TeamID + "", "0", "true");
+                                Thread.Sleep(200);
+                            }
+                            Log.Success("Squads cleared.");
+                            Log.Info("Moving teams.");
+                            foreach (var aMove in moveList.ToList()) {
+                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aMove.Player.player_name, aMove.Squad.TeamID + "", "0", "true");
+                                Thread.Sleep(200);
+                            }
+                            Log.Success("Teams moved.");
+                            Log.Info("Assigning squads.");
                             foreach (var aMove in moveList.ToList()) {
                                 Log.Write("Moving " + aMove.Player.player_name + " to " + aMove.Squad.TeamID + "-" + aMove.Squad.SquadID);
+                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aMove.Player.player_name, aMove.Squad.TeamID + "", aMove.Squad.SquadID + "", "true");
+                                Thread.Sleep(200);
                             }
+                            Log.Success("Squads assigned.");
 
                             //_RoundPrepSquads.Clear();
 
@@ -7656,7 +7672,7 @@ namespace PRoConEvents {
 
                             break;
                         }
-                        Log.Info("Team dispersion complete!");
+                        Log.Success("Team dispersion complete!");
                         LogThreadExit();
                     })));
                 }
@@ -10209,7 +10225,6 @@ namespace PRoConEvents {
                 _pingKicksThisRound = 0;
                 foreach (APlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
                     aPlayer.RequiredTeam = null;
-                    aPlayer.AssignedSquad = 0;
                 }
             } catch (Exception e) {
                 HandleException(new AException("Error running round over teamscores.", e));
@@ -38415,7 +38430,6 @@ namespace PRoConEvents {
             public ARecord LastPunishment = null;
             public ARecord LastForgive = null;
             public ATeam RequiredTeam = null;
-            public Int32 AssignedSquad = 0;
             public readonly Queue<KeyValuePair<Double, DateTime>> player_pings;
             public Boolean player_pings_full { get; private set; }
             public Double player_ping_avg { get; private set; }
