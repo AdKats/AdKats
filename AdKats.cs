@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.225
+ * Version 6.9.0.226
  * 3-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.225</version_code>
+ * <version_code>6.9.0.226</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.225";
+        private const String PluginVersion = "6.9.0.226";
 
         public enum GameVersion {
             BF3,
@@ -38513,7 +38513,6 @@ namespace PRoConEvents {
                 var blPower = (BL_KDR * BL_SPM * BL_KPM) / 3000.0 * 20;
                 if (basePower < 15 && blPower > 0) {
                     // Don't allow the calculation to be less than their base power, or greater than 20
-                    Plugin.Log.Info("Recalculating " + player_name + " power with battlelog power " + Math.Round(blPower, 2));
                     basePower = Math.Min(Math.Max(blPower, basePower), 20);
                 }
                 Double savedPower = TopStats.TempTopPower;
