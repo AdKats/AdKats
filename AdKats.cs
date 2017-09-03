@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.226
+ * Version 6.9.0.227
  * 3-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.226</version_code>
+ * <version_code>6.9.0.227</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.226";
+        private const String PluginVersion = "6.9.0.227";
 
         public enum GameVersion {
             BF3,
@@ -7542,7 +7542,7 @@ namespace PRoConEvents {
                                             AssignTeam(aSquad, team2, team2Squads);
                                         }
                                     } else {
-                                        if (team1Power <= team2Power || !team2Available) {
+                                        if (team1Power + aSquad.GetPower() <= team2Power || !team2Available) {
                                             AssignTeam(aSquad, team1, team1Squads);
                                         } else {
                                             AssignTeam(aSquad, team2, team2Squads);
@@ -30898,7 +30898,8 @@ namespace PRoConEvents {
             } else if (_UseTeamPowerMonitor) {
                 var enemyMorePowerful = newEnemyPower > newFriendlyPower;
                 var powerDifferenceIncreased = newPowerDiff > oldPowerDiff;
-                var powerDifferencePercOverThreshold = newPercDiff > powerPercentageThreshold;
+                // If the map is metro, and the target team is the lower team, don't give the 18% power difference allowance
+                var powerDifferencePercOverThreshold = (_serverInfo.GetMap().MapFileName == "XP0_Metro" && enemyTeam.TeamID == 1) ? (powerDifferenceIncreased) : (newPercDiff > powerPercentageThreshold);
                 if (enemyMorePowerful &&
                     powerDifferenceIncreased &&
                     (powerDifferencePercOverThreshold || enemyMapPower) &&
@@ -38510,7 +38511,7 @@ namespace PRoConEvents {
                     basePower = Math.Min(basePower, 25.0);
                 }
                 // If their base power is calculated low, use their battlelog stats instead
-                var blPower = (BL_KDR * BL_SPM * BL_KPM) / 3000.0 * 20;
+                var blPower = (BL_KDR * BL_SPM * BL_KPM) / 2500.0 * 20;
                 if (basePower < 15 && blPower > 0) {
                     // Don't allow the calculation to be less than their base power, or greater than 20
                     basePower = Math.Min(Math.Max(blPower, basePower), 20);
