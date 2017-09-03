@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.220
- * 2-SEP-2017
+ * Version 6.9.0.221
+ * 3-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.220</version_code>
+ * <version_code>6.9.0.221</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.220";
+        private const String PluginVersion = "6.9.0.221";
 
         public enum GameVersion {
             BF3,
@@ -7801,7 +7801,7 @@ namespace PRoConEvents {
                         !PlayerIsAdmin(aPlayer)) {
                         if (RunAssist(aPlayer, null, null, true) &&
                             _roundState == RoundState.Playing &&
-                            _serverInfo.GetRoundElapsedTime().TotalSeconds > 30) {
+                            _serverInfo.GetRoundElapsedTime().TotalMinutes > _minimumAssistMinutes) {
                             OnlineAdminSayMessage(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + ".");
                             aPlayer.RequiredTeam = newTeam;
                         } else {
@@ -7856,20 +7856,6 @@ namespace PRoConEvents {
                 }
                 if (_PlayerDictionary.ContainsKey(soldierName)) {
                     APlayer aPlayer = _PlayerDictionary[soldierName];
-                    ATeam oldTeam;
-                    if (!GetTeamByID(aPlayer.fbpInfo.TeamID, out oldTeam)) {
-                        if (_roundState == RoundState.Playing) {
-                            Log.Error("Error fetching old team on team change.");
-                        }
-                        return;
-                    }
-                    ATeam newTeam;
-                    if (!GetTeamByID(teamId, out newTeam)) {
-                        if (_roundState == RoundState.Playing) {
-                            Log.Error("Error fetching new team on team change.");
-                        }
-                        return;
-                    }
                     Int32 oldSquad = aPlayer.fbpInfo.SquadID;
                     aPlayer.fbpInfo.SquadID = squadId;
                 }
@@ -8323,7 +8309,7 @@ namespace PRoConEvents {
                                             if (playerTeam.TeamKey != "Neutral" &&
                                                 RunAssist(aPlayer, null, null, true) &&
                                                 _roundState == RoundState.Playing &&
-                                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 30) {
+                                                _serverInfo.GetRoundElapsedTime().TotalMinutes > _minimumAssistMinutes) {
                                                 OnlineAdminSayMessage(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + playerTeam.TeamKey + ".");
                                                 aPlayer.RequiredTeam = playerTeam;
                                             } else {
@@ -35227,6 +35213,29 @@ namespace PRoConEvents {
                                     Log.Debug(() => "Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
                                 }
                             }
+                            Hashtable overview = null;
+                            if (!data.ContainsKey("overviewStats") || (overview = (Hashtable)data["overviewStats"]) == null) {
+                                Log.Error("Could not find overview statistics for " + aPlayer.player_name);
+                            } else {
+                                if (!overview.ContainsKey("scorePerMinute")) {
+                                    Log.Error("Could not find BF4 SPM for " + aPlayer.player_name);
+                                } else {
+                                    aPlayer.BL_SPM = (Int32)overview["scorePerMinute"];
+                                    Log.Info("SPM of " + aPlayer.BL_SPM + " found for " + aPlayer.player_name);
+                                }
+                                if (!overview.ContainsKey("kdRatio")) {
+                                    Log.Error("Could not find BF4 KDR for " + aPlayer.player_name);
+                                } else {
+                                    aPlayer.BL_KDR = (Int32)overview["kdRatio"];
+                                    Log.Info("KDR of " + aPlayer.BL_SPM + " found for " + aPlayer.player_name);
+                                }
+                                if (!overview.ContainsKey("killsPerMinute")) {
+                                    Log.Error("Could not find BF4 KPM for " + aPlayer.player_name);
+                                } else {
+                                    aPlayer.BL_KPM = (Int32)overview["killsPerMinute"];
+                                    Log.Info("KPM of " + aPlayer.BL_SPM + " found for " + aPlayer.player_name);
+                                }
+                            }
                         } catch (Exception e) {
                             if (e is WebException) {
                                 Log.Warn("Issue connecting to battlelog.");
@@ -38448,6 +38457,9 @@ namespace PRoConEvents {
             public Int32 AllCapsMessages = 0;
 
             public Dictionary<Int64, APlayerStats> RoundStats;
+            public Int32 BL_SPM;
+            public Double BL_KDR;
+            public Double BL_KPM;
             public ATopStats TopStats;
             public IPAPILocation location = null;
             public Boolean update_playerUpdated = true;
@@ -38500,6 +38512,11 @@ namespace PRoConEvents {
                 if (TopStats.RoundCount < 20) {
                     basePower = Math.Min(basePower, 25.0);
                 }
+                // If their base power is calculated low, use their battlelog stats instead
+                if (basePower < 15) {
+                    // Don't allow the calculation to be less than their 
+                    basePower = Math.Min(Math.Max((BL_KDR * BL_SPM * BL_KPM) / 3000.0, basePower), 20);
+                }
                 Double savedPower = TopStats.TempTopPower;
                 if (fbpInfo == null) {
                     if (!includeSaved) {
@@ -38507,7 +38524,7 @@ namespace PRoConEvents {
                     }
                     return Math.Max(basePower, savedPower / 3.0);
                 }
-                // Active power is 1-ActiveInfluence
+                // Active power is 5-ActiveInfluence
                 Double killPower = min5(Math.Min(fbpInfo.Kills, maxKills) / maxKills * Plugin._TeamPowerActiveInfluence);
                 Double kdPower = min5(Math.Min(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * Plugin._TeamPowerActiveInfluence);
                 Double scorePower = min5(Math.Min(fbpInfo.Score, maxScore) / maxScore * Plugin._TeamPowerActiveInfluence);
