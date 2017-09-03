@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.223
+ * Version 6.9.0.224
  * 3-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.223</version_code>
+ * <version_code>6.9.0.224</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.223";
+        private const String PluginVersion = "6.9.0.224";
 
         public enum GameVersion {
             BF3,
@@ -38515,7 +38515,7 @@ namespace PRoConEvents {
                 // If their base power is calculated low, use their battlelog stats instead
                 if (basePower < 15) {
                     // Don't allow the calculation to be less than their 
-                    basePower = Math.Min(Math.Max((BL_KDR * BL_SPM * BL_KPM) / 3000.0, basePower), 20);
+                    basePower = Math.Min(Math.Max((BL_KDR * BL_SPM * BL_KPM) / 3000.0 * 20, basePower), 20);
                 }
                 Double savedPower = TopStats.TempTopPower;
                 if (fbpInfo == null) {
