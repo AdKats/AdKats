@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.224
+ * Version 6.9.0.225
  * 3-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.224</version_code>
+ * <version_code>6.9.0.225</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.224";
+        private const String PluginVersion = "6.9.0.225";
 
         public enum GameVersion {
             BF3,
@@ -35221,19 +35221,16 @@ namespace PRoConEvents {
                                     Log.Error("Could not find BF4 SPM for " + aPlayer.player_name);
                                 } else {
                                     aPlayer.BL_SPM = Int32.Parse(overview["scorePerMinute"].ToString());
-                                    Log.Info("SPM of " + aPlayer.BL_SPM + " found for " + aPlayer.player_name);
                                 }
                                 if (!overview.ContainsKey("kdRatio")) {
                                     Log.Error("Could not find BF4 KDR for " + aPlayer.player_name);
                                 } else {
                                     aPlayer.BL_KDR = Double.Parse(overview["kdRatio"].ToString());
-                                    Log.Info("KDR of " + aPlayer.BL_KDR + " found for " + aPlayer.player_name);
                                 }
                                 if (!overview.ContainsKey("killsPerMinute")) {
                                     Log.Error("Could not find BF4 KPM for " + aPlayer.player_name);
                                 } else {
                                     aPlayer.BL_KPM = Double.Parse(overview["killsPerMinute"].ToString());
-                                    Log.Info("KPM of " + aPlayer.BL_KPM + " found for " + aPlayer.player_name);
                                 }
                             }
                         } catch (Exception e) {
@@ -38513,9 +38510,11 @@ namespace PRoConEvents {
                     basePower = Math.Min(basePower, 25.0);
                 }
                 // If their base power is calculated low, use their battlelog stats instead
-                if (basePower < 15) {
-                    // Don't allow the calculation to be less than their 
-                    basePower = Math.Min(Math.Max((BL_KDR * BL_SPM * BL_KPM) / 3000.0 * 20, basePower), 20);
+                var blPower = (BL_KDR * BL_SPM * BL_KPM) / 3000.0 * 20;
+                if (basePower < 15 && blPower > 0) {
+                    // Don't allow the calculation to be less than their base power, or greater than 20
+                    Plugin.Log.Info("Recalculating " + player_name + " power with battlelog power " + Math.Round(blPower, 2));
+                    basePower = Math.Min(Math.Max(blPower, basePower), 20);
                 }
                 Double savedPower = TopStats.TempTopPower;
                 if (fbpInfo == null) {
