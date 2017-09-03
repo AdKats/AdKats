@@ -8320,7 +8320,7 @@ namespace PRoConEvents {
                                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "1", "false");
                                             }
                                         }
-                                        if (_UseExperimentalTools) {
+                                        if (_UseExperimentalTools && aPlayer.RequiredTeam == null) {
                                             // Run an automatic assist on-join
                                             QueueRecordForProcessing(new ARecord {
                                                 record_source = ARecord.Sources.InternalAutomated,
