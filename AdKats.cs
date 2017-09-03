@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.228
+ * Version 6.9.0.229
  * 3-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.228</version_code>
+ * <version_code>6.9.0.229</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.228";
+        private const String PluginVersion = "6.9.0.229";
 
         public enum GameVersion {
             BF3,
@@ -8320,7 +8320,7 @@ namespace PRoConEvents {
                                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "1", "false");
                                             }
                                         }
-                                        if (_UseExperimentalTools && aPlayer.RequiredTeam == null) {
+                                        if (_UseExperimentalTools && aPlayer.RequiredTeam == null && _firstPlayerListComplete) {
                                             // Run an automatic assist on-join
                                             QueueRecordForProcessing(new ARecord {
                                                 record_source = ARecord.Sources.InternalAutomated,
