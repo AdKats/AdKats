@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.219
+ * Version 6.9.0.220
  * 2-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.219</version_code>
+ * <version_code>6.9.0.220</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.219";
+        private const String PluginVersion = "6.9.0.220";
 
         public enum GameVersion {
             BF3,
@@ -7624,20 +7624,27 @@ namespace PRoConEvents {
                             Log.Info("Clearing squads.");
                             foreach (var aPlayer in _PlayerDictionary.Values.ToList().Where(dPlayer => dPlayer.player_type == PlayerType.Player)) {
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.fbpInfo.TeamID + "", "0", "true");
-                                Thread.Sleep(200);
+                                Thread.Sleep(100);
                             }
                             Log.Success("Squads cleared.");
                             Log.Info("Moving teams.");
                             foreach (var aMove in moveList.ToList()) {
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aMove.Player.player_name, aMove.Squad.TeamID + "", "0", "true");
-                                Thread.Sleep(200);
+                                if (aMove.Squad.TeamID == team1.TeamID) {
+                                    aMove.Player.RequiredTeam = team1;
+                                } else if (aMove.Squad.TeamID == team2.TeamID) {
+                                    aMove.Player.RequiredTeam = team2;
+                                } else {
+                                    Log.Error("Unable to assign required team for " + aMove.Player.player_name + ".");
+                                }
+                                Thread.Sleep(100);
                             }
                             Log.Success("Teams moved.");
                             Log.Info("Assigning squads.");
                             foreach (var aMove in moveList.ToList()) {
                                 Log.Write("Moving " + aMove.Player.player_name + " to " + aMove.Squad.TeamID + "-" + aMove.Squad.SquadID);
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aMove.Player.player_name, aMove.Squad.TeamID + "", aMove.Squad.SquadID + "", "true");
-                                Thread.Sleep(200);
+                                Thread.Sleep(100);
                             }
                             Log.Success("Squads assigned.");
 
