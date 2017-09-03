@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.216
+ * Version 6.9.0.217
  * 2-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.216</version_code>
+ * <version_code>6.9.0.217</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.216";
+        private const String PluginVersion = "6.9.0.217";
 
         public enum GameVersion {
             BF3,
@@ -7500,8 +7500,7 @@ namespace PRoConEvents {
 
                             // Alternate between team 1 and 2 for dispersion every round
                             // This decides where the first (most powerful) squad is sent during dispersion
-                            Boolean team1Set = currentStartingTeam1;
-                            currentStartingTeam1 = !currentStartingTeam1;
+                            var requiredTeam = true;
 
                             //Decide which teams the squads should be on
                             foreach (var aSquad in _RoundPrepSquads.OrderByDescending(squad => squad.Players.Sum(member => member.GetPower(true)))) {
@@ -7534,48 +7533,27 @@ namespace PRoConEvents {
                                     Log.Error("Major failure, both teams would be over capacity when assigning " + aSquad);
                                 } else {
                                     Log.Info("Power: 1:" + team1Count + ":" + Math.Round(team1Power) + " | 2:" + team2Count + ":" + Math.Round(team2Power));
-                                    if (team1Power <= team2Power || !team2Available) {
-                                        // Assign this squad to team 1
-                                        aSquad.TeamID = team1.TeamID;
-                                        Log.Info("Assigned " + aSquad + " to team 1.");
-                                        // Find the first available squad in team 1
-                                        // Do not include the "None" squad
-                                        var named = false;
-                                        foreach (var squadID in ASquad.Names.Keys.ToList().Where(sqaudKey => sqaudKey != 0)) {
-                                            Log.Write("Checking if " + squadID + ":" + ASquad.Names[squadID] + " is available on team 1.");
-                                            if (!team1Squads.Any(dSquad => dSquad.SquadID == squadID)) {
-                                                aSquad.SquadID = squadID;
-                                                named = true;
-                                                Log.Info("Named " + aSquad + ".");
-                                                break;
-                                            }
-                                        }
-                                        if (!named) {
-                                            Log.Error("Unable to name squad " + aSquad);
+                                    if (requiredTeam) {
+                                        if (currentStartingTeam1) {
+                                            Log.Success("First squad required to be team 1.");
+                                            AssignTeam(aSquad, team1, team1Squads);
+                                        } else {
+                                            Log.Success("First squad required to be team 2.");
+                                            AssignTeam(aSquad, team2, team2Squads);
                                         }
                                     } else {
-                                        // Assign this squad to team 2
-                                        aSquad.TeamID = team2.TeamID;
-                                        Log.Info("Assigned " + aSquad + " to team 2.");
-                                        // Find the first available squad in team 2
-                                        // Do not include the "None" squad
-                                        var named = false;
-                                        foreach (var squadID in ASquad.Names.Keys.ToList().Where(sqaudKey => sqaudKey != 0)) {
-                                            Log.Write("Checking if " + squadID + ":" + ASquad.Names[squadID] + " is available on team 2.");
-                                            if (!team2Squads.Any(dSquad => dSquad.SquadID == squadID)) {
-                                                aSquad.SquadID = squadID;
-                                                named = true;
-                                                Log.Info("Named " + aSquad + ".");
-                                                break;
-                                            }
-                                        }
-                                        if (!named) {
-                                            Log.Error("Unable to name squad " + aSquad);
+                                        if (team1Power <= team2Power || !team2Available) {
+                                            AssignTeam(aSquad, team1, team1Squads);
+                                        } else {
+                                            AssignTeam(aSquad, team2, team2Squads);
                                         }
                                     }
                                 }
+                                requiredTeam = false;
                             }
-                            
+                            // Toggle the starting team value
+                            currentStartingTeam1 = !currentStartingTeam1;
+
                             var t1Squads = _RoundPrepSquads.Where(dSquad => dSquad.TeamID == team1.TeamID).ToList();
                             var t1Count = t1Squads.Sum(dSquad => dSquad.Players.Count());
                             var t1Power = t1Squads.Sum(dSquad => dSquad.Players.Sum(member => member.GetPower(true)));
@@ -7597,7 +7575,56 @@ namespace PRoConEvents {
                             foreach (var squad in _RoundPrepSquads.OrderBy(squad => squad.TeamID).ThenByDescending(squad => squad.Players.Sum(member => member.GetPower(true)))) {
                                 Log.Info("Squad " + squad);
                             }
-                            
+
+                            var movesToTeam1 = new Queue<AMove>();
+                            var movesToTeam2 = new Queue<AMove>();
+                            // Build the list of player moves to satisfy the decisions
+                            foreach (var squad in _RoundPrepSquads.ToList()) {
+                                foreach (var aPlayer in squad.Players.ToList()) {
+                                    var move = new AMove() {
+                                        Player = aPlayer,
+                                        Squad = squad
+                                    };
+                                    if (squad.TeamID == team1.TeamID) {
+                                        movesToTeam1.Enqueue(move);
+                                    } else if (squad.TeamID == team2.TeamID) {
+                                        movesToTeam2.Enqueue(move);
+                                    } else {
+                                        Log.Error("Invalid team ID when building move list.");
+                                    }
+                                }
+                            }
+
+                            // Build the move queue such that we don't try to move to a full team
+                            var currentTeam1Count = _PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.fbpInfo.TeamID == team1.TeamID);
+                            var currentTeam2Count = _PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.fbpInfo.TeamID == team2.TeamID);
+                            var moveList = new Queue<AMove>();
+                            while (movesToTeam1.Any() || movesToTeam2.Any()) {
+                                if (movesToTeam1.Any() && movesToTeam2.Any()) {
+                                    // Both teams have available moves
+                                    if (currentTeam1Count <= currentTeam2Count) {
+                                        moveList.Enqueue(movesToTeam1.Dequeue());
+                                        currentTeam1Count++;
+                                    } else {
+                                        moveList.Enqueue(movesToTeam2.Dequeue());
+                                        currentTeam2Count++;
+                                    }
+                                } else if (movesToTeam1.Any()) {
+                                    // Only moves to team 1 are left
+                                    moveList.Enqueue(movesToTeam1.Dequeue());
+                                    currentTeam1Count++;
+                                } else {
+                                    // Only moves to team 2 are left
+                                    moveList.Enqueue(movesToTeam2.Dequeue());
+                                    currentTeam2Count++;
+                                }
+                            }
+
+                            Log.Success("Built move queue.");
+                            foreach (var aMove in moveList.ToList()) {
+                                Log.Write("Moving " + aMove.Player.player_name + " to " + aMove.Squad.TeamID + "-" + aMove.Squad.SquadID);
+                            }
+
                             //_RoundPrepSquads.Clear();
 
                             /*
@@ -7635,6 +7662,27 @@ namespace PRoConEvents {
                 }
             } catch (Exception e) {
                 HandleException(new AException("Error while running faction updates.", e));
+            }
+        }
+
+        private void AssignTeam(ASquad aSquad, ATeam aTeam, List<ASquad> squadList) {
+            // Assign this squad to team
+            aSquad.TeamID = aTeam.TeamID;
+            Log.Info("Assigned " + aSquad + " to team " + aTeam.TeamID + ".");
+            // Find the first available squad in team 2
+            // Do not include the "None" squad
+            var named = false;
+            foreach (var squadID in ASquad.Names.Keys.ToList().Where(sqaudKey => sqaudKey != 0)) {
+                Log.Write("Checking if " + squadID + ":" + ASquad.Names[squadID] + " is available on team " + aTeam.TeamID + ".");
+                if (!squadList.Any(dSquad => dSquad.SquadID == squadID)) {
+                    aSquad.SquadID = squadID;
+                    named = true;
+                    Log.Info("Named " + aSquad + ".");
+                    break;
+                }
+            }
+            if (!named) {
+                Log.Error("Unable to name squad " + aSquad);
             }
         }
 
@@ -38260,6 +38308,11 @@ namespace PRoConEvents {
             public Boolean IsTeamkill;
             public DateTime timestamp;
             public Int64 RoundID;
+        }
+
+        public class AMove {
+            public APlayer Player;
+            public ASquad Squad;
         }
 
         public class ASquad {
