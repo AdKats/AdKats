@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.221
+ * Version 6.9.0.222
  * 3-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.221</version_code>
+ * <version_code>6.9.0.222</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.221";
+        private const String PluginVersion = "6.9.0.222";
 
         public enum GameVersion {
             BF3,
@@ -35220,19 +35220,19 @@ namespace PRoConEvents {
                                 if (!overview.ContainsKey("scorePerMinute")) {
                                     Log.Error("Could not find BF4 SPM for " + aPlayer.player_name);
                                 } else {
-                                    aPlayer.BL_SPM = (Int32)overview["scorePerMinute"];
+                                    aPlayer.BL_SPM = Int32.Parse(overview["scorePerMinute"].ToString());
                                     Log.Info("SPM of " + aPlayer.BL_SPM + " found for " + aPlayer.player_name);
                                 }
                                 if (!overview.ContainsKey("kdRatio")) {
                                     Log.Error("Could not find BF4 KDR for " + aPlayer.player_name);
                                 } else {
-                                    aPlayer.BL_KDR = (Int32)overview["kdRatio"];
+                                    aPlayer.BL_KDR = Double.Parse(overview["kdRatio"].ToString());
                                     Log.Info("KDR of " + aPlayer.BL_SPM + " found for " + aPlayer.player_name);
                                 }
                                 if (!overview.ContainsKey("killsPerMinute")) {
                                     Log.Error("Could not find BF4 KPM for " + aPlayer.player_name);
                                 } else {
-                                    aPlayer.BL_KPM = (Int32)overview["killsPerMinute"];
+                                    aPlayer.BL_KPM = Double.Parse(overview["killsPerMinute"].ToString());
                                     Log.Info("KPM of " + aPlayer.BL_SPM + " found for " + aPlayer.player_name);
                                 }
                             }
