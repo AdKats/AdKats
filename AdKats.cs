@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.231
+ * Version 6.9.0.232
  * 3-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.231</version_code>
+ * <version_code>6.9.0.232</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.231";
+        private const String PluginVersion = "6.9.0.232";
 
         public enum GameVersion {
             BF3,
@@ -8334,24 +8334,28 @@ namespace PRoConEvents {
                                             _firstPlayerListComplete && 
                                             _roundState == RoundState.Playing &&
                                             playerCount > 10) {
-                                            // Run an automatic assist on-join
-                                            var message = aPlayer.GetVerboseName() + " join assisted.";
-                                            if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
-                                                PlayerSayMessage("ColColonCleaner", message);
+                                            if (aPlayer.fbpInfo.TeamID == 0) {
+                                                Log.Info("Was going to join assist, but " + aPlayer.player_name + " was still on the neutral team.");
                                             } else {
-                                                ProconChatWrite(Log.FBold(message));
+                                                // Run an automatic assist on-join
+                                                var message = aPlayer.GetVerboseName() + " join assisted.";
+                                                if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
+                                                    PlayerSayMessage("ColColonCleaner", message);
+                                                } else {
+                                                    ProconChatWrite(Log.FBold(message));
+                                                }
+                                                QueueRecordForProcessing(new ARecord {
+                                                    record_source = ARecord.Sources.InternalAutomated,
+                                                    server_id = _serverInfo.ServerID,
+                                                    command_type = GetCommandByKey("self_assist"),
+                                                    command_action = GetCommandByKey("self_assist_unconfirmed"),
+                                                    target_name = aPlayer.player_name,
+                                                    target_player = aPlayer,
+                                                    source_name = "AUAManager",
+                                                    record_message = "Join Assist",
+                                                    record_time = UtcNow()
+                                                });
                                             }
-                                            QueueRecordForProcessing(new ARecord {
-                                                record_source = ARecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
-                                                command_type = GetCommandByKey("self_assist"),
-                                                command_action = GetCommandByKey("self_assist_unconfirmed"),
-                                                target_name = aPlayer.player_name,
-                                                target_player = aPlayer,
-                                                source_name = "AUAManager",
-                                                record_message = "Join Assist",
-                                                record_time = UtcNow()
-                                            });
                                         }
                                         switch (aPlayer.fbpInfo.Type) {
                                             case 0:
