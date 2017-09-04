@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.229
+ * Version 6.9.0.230
  * 3-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.229</version_code>
+ * <version_code>6.9.0.230</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.229";
+        private const String PluginVersion = "6.9.0.230";
 
         public enum GameVersion {
             BF3,
@@ -8320,8 +8320,19 @@ namespace PRoConEvents {
                                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "1", "false");
                                             }
                                         }
-                                        if (_UseExperimentalTools && aPlayer.RequiredTeam == null && _firstPlayerListComplete) {
+                                        var playerCount = _PlayerDictionary.Values.ToList().Count(dPlayer => dPlayer.player_type == PlayerType.Player);
+                                        if (_UseExperimentalTools && 
+                                            aPlayer.RequiredTeam == null && 
+                                            _firstPlayerListComplete && 
+                                            _roundState == RoundState.Playing &&
+                                            playerCount > 10) {
                                             // Run an automatic assist on-join
+                                            var message = aPlayer.GetVerboseName() + " join assisted.";
+                                            if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
+                                                PlayerSayMessage("ColColonCleaner", message);
+                                            } else {
+                                                ProconChatWrite(Log.FBold(message));
+                                            }
                                             QueueRecordForProcessing(new ARecord {
                                                 record_source = ARecord.Sources.InternalAutomated,
                                                 server_id = _serverInfo.ServerID,
@@ -30913,7 +30924,8 @@ namespace PRoConEvents {
                 var enemyMorePowerful = newEnemyPower > newFriendlyPower;
                 var powerDifferenceIncreased = newPowerDiff > oldPowerDiff;
                 // If the map is metro, and the target team is the lower team, don't give the 18% power difference allowance
-                var powerDifferencePercOverThreshold = (_serverInfo.GetMap().MapFileName == "XP0_Metro" && enemyTeam.TeamID == 1) ? (powerDifferenceIncreased) : (newPercDiff > powerPercentageThreshold);
+                var map = _serverInfo.GetMap();
+                var powerDifferencePercOverThreshold = (_roundState == RoundState.Playing && map != null && map.MapFileName == "XP0_Metro" && enemyTeam.TeamID == 1) ? (powerDifferenceIncreased) : (newPercDiff > powerPercentageThreshold);
                 if (enemyMorePowerful &&
                     powerDifferenceIncreased &&
                     (powerDifferencePercOverThreshold || enemyMapPower) &&
