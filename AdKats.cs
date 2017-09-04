@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.230
+ * Version 6.9.0.231
  * 3-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.230</version_code>
+ * <version_code>6.9.0.231</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.230";
+        private const String PluginVersion = "6.9.0.231";
 
         public enum GameVersion {
             BF3,
@@ -1592,7 +1592,7 @@ namespace PRoConEvents {
                             var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                                 .Where(aPlayer => aPlayer.GetPower(true) > 1);
                             var onlineTopPlayerListing = onlineTopPlayers
-                                .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(" + _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + ") ")) +
+                                .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(" + _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + (aPlayer.RequiredTeam != null ? "+" : "") + ") ")) +
                                                    "(" + aPlayer.GetPower(true, true).ToString("00") +
                                                    "|" + aPlayer.GetPower(true, false).ToString("00") +
                                                    "|" + aPlayer.GetPower(false, true).ToString("00") +
@@ -7802,11 +7802,15 @@ namespace PRoConEvents {
                         if (RunAssist(aPlayer, null, null, true) &&
                             _roundState == RoundState.Playing &&
                             _serverInfo.GetRoundElapsedTime().TotalMinutes > _minimumAssistMinutes) {
-                            OnlineAdminSayMessage(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + ".");
+                            if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 3) {
+                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + ".");
+                            }
                             aPlayer.RequiredTeam = newTeam;
                         } else {
                             if (_roundState == RoundState.Playing) {
-                                OnlineAdminSayMessage(soldierName + " attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamName + ".");
+                                if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 3) {
+                                    OnlineAdminSayMessage(soldierName + " attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamName + ".");
+                                }
                                 PlayerTellMessage(soldierName, "You were assigned to " + aPlayer.RequiredTeam.TeamName + ", please remain on that team.");
                             }
                             updateTeamInfo = false;
@@ -8310,11 +8314,15 @@ namespace PRoConEvents {
                                                 RunAssist(aPlayer, null, null, true) &&
                                                 _roundState == RoundState.Playing &&
                                                 _serverInfo.GetRoundElapsedTime().TotalMinutes > _minimumAssistMinutes) {
-                                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + playerTeam.TeamKey + ".");
+                                                if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 3) {
+                                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + playerTeam.TeamKey + ".");
+                                                }
                                                 aPlayer.RequiredTeam = playerTeam;
                                             } else {
                                                 if (_roundState == RoundState.Playing) {
-                                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamName + ".");
+                                                    if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 3) {
+                                                        OnlineAdminSayMessage(aPlayer.GetVerboseName() + " attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamName + ".");
+                                                    }
                                                     PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamName + ", please remain on that team.");
                                                 }
                                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "1", "false");
