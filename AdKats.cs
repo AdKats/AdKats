@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.236
+ * Version 6.9.0.237
  * 3-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.236</version_code>
+ * <version_code>6.9.0.237</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.236";
+        private const String PluginVersion = "6.9.0.237";
 
         public enum GameVersion {
             BF3,
@@ -7837,38 +7837,46 @@ namespace PRoConEvents {
                         oldTeam.TeamKey == "Neutral" &&
                         _roundState == RoundState.Playing &&
                         playerCount > 10) {
-                        if (aPlayer.RequiredTeam == null) {
-                            if (aPlayer.fbpInfo.TeamID == 0) {
-                                Log.Info("Was going to join assist, but " + aPlayer.player_name + " was still on the neutral team.");
+                        if (!_AssistAttemptQueue.Any() && !_Team1MoveQueue.Any() && !_Team2MoveQueue.Any()) {
+                            if (aPlayer.RequiredTeam == null) {
+                                if (aPlayer.fbpInfo.TeamID == 0) {
+                                    Log.Info("Was going to join assist, but " + aPlayer.player_name + " was still on the neutral team.");
+                                } else {
+                                    // Run an automatic assist on-join
+                                    var message = aPlayer.GetVerboseName() + " join assisted.";
+                                    if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
+                                        PlayerSayMessage("ColColonCleaner", message);
+                                    } else {
+                                        ProconChatWrite(Log.FBold(message));
+                                    }
+                                    QueueRecordForProcessing(new ARecord {
+                                        record_source = ARecord.Sources.InternalAutomated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("self_assist"),
+                                        command_action = GetCommandByKey("self_assist_unconfirmed"),
+                                        target_name = aPlayer.player_name,
+                                        target_player = aPlayer,
+                                        source_name = "AUAManager",
+                                        record_message = "Join Assist",
+                                        record_time = UtcNow()
+                                    });
+                                }
                             } else {
-                                // Run an automatic assist on-join
-                                var message = aPlayer.GetVerboseName() + " join assisted.";
+                                var message = aPlayer.GetVerboseName() + " joined, already assigned " + aPlayer.RequiredTeam.TeamKey + ".";
                                 if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
                                     PlayerSayMessage("ColColonCleaner", message);
                                 } else {
                                     ProconChatWrite(Log.FBold(message));
                                 }
-                                QueueRecordForProcessing(new ARecord {
-                                    record_source = ARecord.Sources.InternalAutomated,
-                                    server_id = _serverInfo.ServerID,
-                                    command_type = GetCommandByKey("self_assist"),
-                                    command_action = GetCommandByKey("self_assist_unconfirmed"),
-                                    target_name = aPlayer.player_name,
-                                    target_player = aPlayer,
-                                    source_name = "AUAManager",
-                                    record_message = "Join Assist",
-                                    record_time = UtcNow()
-                                });
                             }
                         } else {
-                            var message = aPlayer.GetVerboseName() + " joined, already assigned " + aPlayer.RequiredTeam.TeamKey + ".";
+                            var message = aPlayer.GetVerboseName() + " joined, assist/move queue already occupied.";
                             if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
                                 PlayerSayMessage("ColColonCleaner", message);
                             } else {
                                 ProconChatWrite(Log.FBold(message));
                             }
                         }
-                        
                     }
                 } else {
                     Log.Warn(soldierName + " switched to " + newTeam.TeamKey + " without being in player list.");
@@ -21681,6 +21689,12 @@ namespace PRoConEvents {
                     CPlayerInfo info = _TeamswapOnDeathCheckingQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
                     if (info != null) {
                         _TeamswapOnDeathCheckingQueue = new Queue<CPlayerInfo>(_TeamswapOnDeathCheckingQueue.Where(p => p != info));
+                    }
+                }
+                lock (_AssistAttemptQueue) {
+                    var record = _AssistAttemptQueue.FirstOrDefault(dRecord => dRecord.target_name == aPlayer.player_name);
+                    if (record != null) {
+                        _AssistAttemptQueue = new Queue<ARecord>(_AssistAttemptQueue.Where(p => p != record));
                     }
                 }
                 if (_TeamswapOnDeathMoveDic.ContainsKey(aPlayer.player_name)) {
