@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.238
- * 3-SEP-2017
+ * Version 6.9.0.239
+ * 4-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.238</version_code>
+ * <version_code>6.9.0.239</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.238";
+        private const String PluginVersion = "6.9.0.239";
 
         public enum GameVersion {
             BF3,
@@ -7624,7 +7624,7 @@ namespace PRoConEvents {
                             Log.Info("Clearing squads.");
                             foreach (var aPlayer in _PlayerDictionary.Values.ToList().Where(dPlayer => dPlayer.player_type == PlayerType.Player)) {
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.fbpInfo.TeamID + "", "0", "true");
-                                Thread.Sleep(100);
+                                Thread.Sleep(50);
                             }
                             Log.Success("Squads cleared.");
                             Log.Info("Moving teams.");
@@ -7637,14 +7637,13 @@ namespace PRoConEvents {
                                 } else {
                                     Log.Error("Unable to assign required team for " + aMove.Player.player_name + ".");
                                 }
-                                Thread.Sleep(100);
+                                Thread.Sleep(50);
                             }
                             Log.Success("Teams moved.");
                             Log.Info("Assigning squads.");
                             foreach (var aMove in moveList.ToList()) {
-                                Log.Write("Moving " + aMove.Player.player_name + " to " + aMove.Squad.TeamID + "-" + aMove.Squad.SquadID);
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aMove.Player.player_name, aMove.Squad.TeamID + "", aMove.Squad.SquadID + "", "true");
-                                Thread.Sleep(100);
+                                Thread.Sleep(75);
                             }
                             Log.Success("Squads assigned.");
 
@@ -7856,7 +7855,7 @@ namespace PRoConEvents {
                                         command_action = GetCommandByKey("self_assist_unconfirmed"),
                                         target_name = aPlayer.player_name,
                                         target_player = aPlayer,
-                                        source_name = "AUAManager",
+                                        source_name = "JoinManager",
                                         record_message = "Join Assist",
                                         record_time = UtcNow()
                                     });
@@ -13769,7 +13768,7 @@ namespace PRoConEvents {
                                     case 1:
                                         if (!ContainsCPlayerInfo(_Team1MoveQueue, player.SoldierName)) {
                                             _Team1MoveQueue.Enqueue(player);
-                                            PlayerSayMessage(player.SoldierName, "Added to (" + team1.TeamKey + " -> " + team2.TeamKey + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1) + ".");
+                                            PlayerSayMessage(player.SoldierName, "Added to (" + team1.TeamKey + " -> " + team2.TeamKey + ") queue in position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1) + ".");
                                         } else {
                                             PlayerSayMessage(player.SoldierName, team2.TeamKey + " Team Full (" + team2.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1));
                                         }
@@ -13777,7 +13776,7 @@ namespace PRoConEvents {
                                     case 2:
                                         if (!ContainsCPlayerInfo(_Team2MoveQueue, player.SoldierName)) {
                                             _Team2MoveQueue.Enqueue(player);
-                                            PlayerSayMessage(player.SoldierName, "Added to (" + team2.TeamKey + " -> " + team1.TeamKey + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1) + ".");
+                                            PlayerSayMessage(player.SoldierName, "Added to (" + team2.TeamKey + " -> " + team1.TeamKey + ") queue in position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1) + ".");
                                         } else {
                                             PlayerSayMessage(player.SoldierName, team1.TeamKey + " Team Full (" + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1));
                                         }
