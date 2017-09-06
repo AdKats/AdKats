@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.240
+ * Version 6.9.0.241
  * 5-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.240</version_code>
+ * <version_code>6.9.0.241</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.240";
+        private const String PluginVersion = "6.9.0.241";
 
         public enum GameVersion {
             BF3,
@@ -7643,6 +7643,7 @@ namespace PRoConEvents {
                             Log.Info("Assigning squads.");
                             foreach (var aMove in moveList.ToList()) {
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aMove.Player.player_name, aMove.Squad.TeamID + "", aMove.Squad.SquadID + "", "true");
+                                aMove.Player.RequiredSquad = aMove.Squad.SquadID;
                                 Thread.Sleep(75);
                             }
                             Log.Success("Squads assigned.");
@@ -7777,12 +7778,9 @@ namespace PRoConEvents {
                 if (!_firstPlayerListComplete) {
                     return;
                 }
-                if (_UseExperimentalTools) {
-                    Log.Write(soldierName + " moved to " + teamId + "-" + squadId);
-                }
                 ATeam newTeam;
                 if (!GetTeamByID(teamId, out newTeam)) {
-                    if (_roundState == RoundState.Playing) {
+                    if (_roundState == RoundState.Playing || _UseExperimentalTools) {
                         Log.Error("Error fetching new team on team change.");
                     }
                     return;
@@ -7791,10 +7789,13 @@ namespace PRoConEvents {
                     APlayer aPlayer = _PlayerDictionary[soldierName];
                     ATeam oldTeam;
                     if (!GetTeamByID(aPlayer.fbpInfo.TeamID, out oldTeam)) {
-                        if (_roundState == RoundState.Playing) {
+                        if (_roundState == RoundState.Playing || _UseExperimentalTools) {
                             Log.Error("Error fetching old team on team change.");
                         }
                         return;
+                    }
+                    if (_UseExperimentalTools && oldTeam.TeamID != 0) {
+                        Log.Write(soldierName + " moved to " + teamId + "-" + squadId);
                     }
                     Boolean updateTeamInfo = true;
                     if (aPlayer.RequiredTeam != null &&
@@ -7815,7 +7816,12 @@ namespace PRoConEvents {
                                 PlayerTellMessage(soldierName, "You were assigned to " + aPlayer.RequiredTeam.TeamName + ", please remain on that team.");
                             }
                             updateTeamInfo = false;
-                            ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", "1", "false");
+                            var team = aPlayer.RequiredTeam.TeamID + "";
+                            var squad = aPlayer.RequiredSquad > 0 ? aPlayer.RequiredSquad + "" : "1";
+                            if (_UseExperimentalTools) {
+                                Log.Info("Sending " + soldierName + " back to " + team + "-" + squad);
+                            }
+                            ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, team, squad, "true");
                         }
                     }
                     if (updateTeamInfo) {
@@ -10274,6 +10280,7 @@ namespace PRoConEvents {
                 _pingKicksThisRound = 0;
                 foreach (APlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
                     aPlayer.RequiredTeam = null;
+                    aPlayer.RequiredSquad = -1;
                 }
             } catch (Exception e) {
                 HandleException(new AException("Error running round over teamscores.", e));
@@ -38507,6 +38514,7 @@ namespace PRoConEvents {
             public ARecord LastPunishment = null;
             public ARecord LastForgive = null;
             public ATeam RequiredTeam = null;
+            public Int32 RequiredSquad = -1;
             public readonly Queue<KeyValuePair<Double, DateTime>> player_pings;
             public Boolean player_pings_full { get; private set; }
             public Double player_ping_avg { get; private set; }
