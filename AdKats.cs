@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.243
+ * Version 6.9.0.245
  * 5-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.243</version_code>
+ * <version_code>6.9.0.245</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.243";
+        private const String PluginVersion = "6.9.0.245";
 
         public enum GameVersion {
             BF3,
@@ -7773,7 +7773,7 @@ namespace PRoConEvents {
                     Boolean updateTeamInfo = true;
                     if (aPlayer.RequiredTeam != null &&
                         aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey &&
-                        !PlayerIsAdmin(aPlayer)) {
+                        (!PlayerIsAdmin(aPlayer) || _roundState != RoundState.Playing)) {
                         if (RunAssist(aPlayer, null, null, true) &&
                             _roundState == RoundState.Playing &&
                             _serverInfo.GetRoundElapsedTime().TotalMinutes > _minimumAssistMinutes) {
@@ -7904,6 +7904,13 @@ namespace PRoConEvents {
                     aPlayer.fbpInfo.SquadID = squadId;
                     if (_UseExperimentalTools && oldTeam.TeamID != 0 && oldSquad != squadId) {
                         Log.Write(soldierName + " SQUAD moved to " + newTeam.TeamKey + "-" + ASquad.Names[squadId]);
+                    }
+                    if (aPlayer.RequiredTeam != null &&
+                        aPlayer.RequiredSquad > 0 &&
+                        aPlayer.RequiredSquad != squadId &&
+                        _roundState != RoundState.Playing) {
+                        Log.Info("Sending " + soldierName + " back to SQUAD " + ASquad.Names[aPlayer.RequiredSquad]);
+                        ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "true");
                     }
                 }
             } catch (Exception e) {
