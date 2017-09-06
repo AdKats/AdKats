@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.241
+ * Version 6.9.0.242
  * 5-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.241</version_code>
+ * <version_code>6.9.0.242</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.241";
+        private const String PluginVersion = "6.9.0.242";
 
         public enum GameVersion {
             BF3,
@@ -7624,7 +7624,7 @@ namespace PRoConEvents {
                             Log.Info("Clearing squads.");
                             foreach (var aPlayer in _PlayerDictionary.Values.ToList().Where(dPlayer => dPlayer.player_type == PlayerType.Player)) {
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.fbpInfo.TeamID + "", "0", "true");
-                                Thread.Sleep(50);
+                                Thread.Sleep(30);
                             }
                             Log.Success("Squads cleared.");
                             Log.Info("Moving teams.");
@@ -7637,14 +7637,14 @@ namespace PRoConEvents {
                                 } else {
                                     Log.Error("Unable to assign required team for " + aMove.Player.player_name + ".");
                                 }
-                                Thread.Sleep(50);
+                                Thread.Sleep(30);
                             }
                             Log.Success("Teams moved.");
                             Log.Info("Assigning squads.");
                             foreach (var aMove in moveList.ToList()) {
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aMove.Player.player_name, aMove.Squad.TeamID + "", aMove.Squad.SquadID + "", "true");
                                 aMove.Player.RequiredSquad = aMove.Squad.SquadID;
-                                Thread.Sleep(75);
+                                Thread.Sleep(30);
                             }
                             Log.Success("Squads assigned.");
 
@@ -7794,8 +7794,8 @@ namespace PRoConEvents {
                         }
                         return;
                     }
-                    if (_UseExperimentalTools && oldTeam.TeamID != 0) {
-                        Log.Write(soldierName + " moved to " + teamId + "-" + squadId);
+                    if (_UseExperimentalTools && oldTeam.TeamID != 0 && newTeam.TeamID != oldTeam.TeamID) {
+                        Log.Write(soldierName + " moved to " + newTeam.TeamKey + "-" + ASquad.Names[squadId]);
                     }
                     Boolean updateTeamInfo = true;
                     if (aPlayer.RequiredTeam != null &&
@@ -7816,12 +7816,11 @@ namespace PRoConEvents {
                                 PlayerTellMessage(soldierName, "You were assigned to " + aPlayer.RequiredTeam.TeamName + ", please remain on that team.");
                             }
                             updateTeamInfo = false;
-                            var team = aPlayer.RequiredTeam.TeamID + "";
-                            var squad = aPlayer.RequiredSquad > 0 ? aPlayer.RequiredSquad + "" : "1";
+                            var squadName = aPlayer.RequiredSquad > 0 ? ASquad.Names[aPlayer.RequiredSquad] : ASquad.Names[1];
                             if (_UseExperimentalTools) {
-                                Log.Info("Sending " + soldierName + " back to " + team + "-" + squad);
+                                Log.Info("Sending " + soldierName + " back to " + aPlayer.RequiredTeam.TeamKey + "-" + squadName);
                             }
-                            ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, team, squad, "true");
+                            ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad > 0 ? aPlayer.RequiredSquad + "" : "1", "true");
                         }
                     }
                     if (updateTeamInfo) {
