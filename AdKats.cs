@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.247
+ * Version 6.9.0.248
  * 6-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.247</version_code>
+ * <version_code>6.9.0.248</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.247";
+        private const String PluginVersion = "6.9.0.248";
 
         public enum GameVersion {
             BF3,
@@ -1394,7 +1394,7 @@ namespace PRoConEvents {
                         //Ping enforcer settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Enforcer Enable", typeof(Boolean), _pingEnforcerEnable));
                         if (_pingEnforcerEnable) {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Current Pint Limit (Display)", typeof(String), GetPingLimitStatus()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Current Ping Limit (Display)", typeof(String), GetPingLimitStatus()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Low Population Trigger ms", typeof(Double), _pingEnforcerLowTriggerMS));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Low Population Time Modifier", typeof(String[]), _pingEnforcerLowTimeModifier.Select(x => x.ToString()).ToArray()));
@@ -7782,11 +7782,13 @@ namespace PRoConEvents {
                             }
                             aPlayer.RequiredTeam = newTeam;
                         } else {
-                            if (_roundState == RoundState.Playing) {
-                                if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 3) {
-                                    OnlineAdminSayMessage(soldierName + " attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamName + ".");
+                            if (_roundState == RoundState.Playing &&
+                                NowDuration(aPlayer.lastSwitchMessage).TotalSeconds > 5) {
+                                if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 2) {
+                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
                                 }
-                                PlayerTellMessage(soldierName, "You were assigned to " + aPlayer.RequiredTeam.TeamName + ", please remain on that team.");
+                                PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ", please remain on that team.");
+                                aPlayer.lastSwitchMessage = UtcNow();
                             }
                             updateTeamInfo = false;
                             var squadName = aPlayer.RequiredSquad > 0 ? ASquad.Names[aPlayer.RequiredSquad] : ASquad.Names[1];
@@ -8371,11 +8373,13 @@ namespace PRoConEvents {
                                                 }
                                                 aPlayer.RequiredTeam = playerTeam;
                                             } else {
-                                                if (_roundState == RoundState.Playing) {
-                                                    if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 3) {
-                                                        OnlineAdminSayMessage(aPlayer.GetVerboseName() + " attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamName + ".");
+                                                if (_roundState == RoundState.Playing &&
+                                                    NowDuration(aPlayer.lastSwitchMessage).TotalSeconds > 5) {
+                                                    if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 2) {
+                                                        OnlineAdminSayMessage(aPlayer.GetVerboseName() + " attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
                                                     }
-                                                    PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamName + ", please remain on that team.");
+                                                    PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ", please remain on that team.");
+                                                    aPlayer.lastSwitchMessage = UtcNow();
                                                 }
                                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "1", "false");
                                             }
@@ -13477,14 +13481,6 @@ namespace PRoConEvents {
                             //Dequeue the first/next message
                             AChatMessage messageObject = inboundMessages.Dequeue();
 
-                            APlayer aPlayer;
-                            if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer)) {
-                                if (!_AFKIgnoreChat) {
-                                    //Update player last action
-                                    aPlayer.lastAction = UtcNow();
-                                }
-                            }
-
                             Boolean isCommand = false;
                             //Check if the message is a command
                             if (messageObject.Message.StartsWith("@") || messageObject.Message.StartsWith("!") || messageObject.Message.StartsWith(".")) {
@@ -13542,6 +13538,15 @@ namespace PRoConEvents {
                             //check for player mute case
                             //ignore if it's a server call
                             if (messageObject.Speaker != "Server") {
+
+                                APlayer aPlayer;
+                                if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer)) {
+                                    if (!_AFKIgnoreChat) {
+                                        //Update player last action
+                                        aPlayer.lastAction = UtcNow();
+                                    }
+                                }
+
                                 lock (_RoundMutedPlayers) {
                                     //Check if the player is muted
                                     Log.Debug(() => "Checking for mute case.", 7);
@@ -13577,6 +13582,7 @@ namespace PRoConEvents {
                                         }
                                     }
                                 }
+                                
                                 //Check if the all caps system should act on this player
                                 if (_UseAllCapsLimiter &&
                                     GetStringUpperPercentage(messageObject.Message) >= _AllCapsLimterPercentage &&
@@ -13631,6 +13637,12 @@ namespace PRoConEvents {
                                             });
                                         }
                                     }
+                                }
+                                
+                                //TODO: Maybe add this
+                                if (_pingEnforcerEnable && 
+                                    (" " + messageObject.Message.ToLower() + " ").Contains(" ping")) {
+                                    // Send the current ping limit
                                 }
                             }
                             if (isCommand) {
@@ -38476,6 +38488,8 @@ namespace PRoConEvents {
             public DateTime lastKill = DateTime.UtcNow;
             public DateTime lastDeath = DateTime.UtcNow;
             public DateTime lastSpawn = DateTime.UtcNow;
+            public DateTime lastSwitchMessage = DateTime.UtcNow;
+            public DateTime LastUsage = DateTime.UtcNow;
             public Boolean player_aa = false;
             public Boolean player_aa_fetched = false;
             public Boolean player_aa_told = false;
@@ -38495,7 +38509,6 @@ namespace PRoConEvents {
             public String player_slot = null;
             public Double player_reputation = 0;
             public DateTime player_firstseen = DateTime.UtcNow;
-            public DateTime LastUsage = DateTime.UtcNow;
             public DateTime JoinTime = DateTime.UtcNow;
             public AServer player_server = null;
             public TimeSpan player_serverplaytime = TimeSpan.FromSeconds(0);
