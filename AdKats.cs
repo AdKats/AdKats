@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.246
+ * Version 6.9.0.247
  * 6-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.246</version_code>
+ * <version_code>6.9.0.247</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.246";
+        private const String PluginVersion = "6.9.0.247";
 
         public enum GameVersion {
             BF3,
@@ -1592,7 +1592,7 @@ namespace PRoConEvents {
                             var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                                 .Where(aPlayer => aPlayer.GetPower(true) > 1);
                             var onlineTopPlayerListing = onlineTopPlayers
-                                .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(" + _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + (aPlayer.RequiredTeam != null ? "+" : "") + ") ")) +
+                                .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + "+) ") : ("(" + _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + ") ")) +
                                                    "(" + aPlayer.GetPower(true, true).ToString("00") +
                                                    "|" + aPlayer.GetPower(true, false).ToString("00") +
                                                    "|" + aPlayer.GetPower(false, true).ToString("00") +
@@ -7908,6 +7908,8 @@ namespace PRoConEvents {
                     if (aPlayer.RequiredTeam != null &&
                         aPlayer.RequiredSquad > 0 &&
                         aPlayer.RequiredSquad != squadId &&
+                        // If they are being moved to the 'None' squad, don't try to move them back just yet
+                        squadId != 0 &&
                         _roundState != RoundState.Playing) {
                         Log.Info("Sending " + soldierName + " back to SQUAD " + ASquad.Names[aPlayer.RequiredSquad]);
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
