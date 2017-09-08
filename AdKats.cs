@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.249
- * 6-SEP-2017
+ * Version 6.9.0.250
+ * 7-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.249</version_code>
+ * <version_code>6.9.0.250</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.249";
+        private const String PluginVersion = "6.9.0.250";
 
         public enum GameVersion {
             BF3,
@@ -6800,7 +6800,7 @@ namespace PRoConEvents {
                                     }
                                 }
 
-                                if (_DiscordPlayerMonitorEnable) {
+                                if (_DiscordPlayerMonitorEnable && _DiscordPlayerMonitorView) {
                                     List<APlayer> onlineDiscordPlayers = new List<APlayer>();
                                     //Check for online discord players
                                     var members = _DiscordManager.GetMembers(false, true, true);
@@ -8829,7 +8829,7 @@ namespace PRoConEvents {
                                 _TeamspeakManager.Enable();
                             }
 
-                            if (_DiscordPlayerMonitorEnable) {
+                            if (_DiscordPlayerMonitorEnable && _DiscordPlayerMonitorView) {
                                 _DiscordManager.Enable();
                             }
                         }
@@ -14814,6 +14814,7 @@ namespace PRoConEvents {
                         return;
                     }
                     if (_DiscordPlayerMonitorEnable &&
+                        _DiscordPlayerMonitorView &&
                         _DiscordPlayerRequireVoiceForAdmin &&
                         NowDuration(_DiscordManager.LastUpdate).TotalMinutes < 2.5 &&
                         record.command_type.command_playerInteraction &&
@@ -33577,7 +33578,7 @@ namespace PRoConEvents {
                                             }
                                         }
                                     }
-                                    if (_DiscordPlayerMonitorEnable && _DiscordPlayerPerksEnable && _DiscordPlayerPerksVIPKickWhitelist) {
+                                    if (_DiscordPlayerMonitorView && _DiscordPlayerMonitorEnable && _DiscordPlayerPerksEnable && _DiscordPlayerPerksVIPKickWhitelist) {
                                         lock (_DiscordPlayers) {
                                             foreach (APlayer aPlayer in _DiscordPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
                                                 tempASPlayers.Add(new ASpecialPlayer() {
@@ -33672,7 +33673,7 @@ namespace PRoConEvents {
                                             }
                                         }
                                     }
-                                    if (_DiscordPlayerMonitorEnable && _DiscordPlayerPerksEnable && _DiscordPlayerPerksBalanceWhitelist) {
+                                    if (_DiscordPlayerMonitorView && _DiscordPlayerMonitorEnable && _DiscordPlayerPerksEnable && _DiscordPlayerPerksBalanceWhitelist) {
                                         lock (_DiscordPlayers) {
                                             foreach (APlayer aPlayer in _DiscordPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
                                                 tempASPlayers.Add(new ASpecialPlayer() {
@@ -33754,7 +33755,7 @@ namespace PRoConEvents {
                                             }
                                         }
                                     }
-                                    if (_DiscordPlayerMonitorEnable && _DiscordPlayerPerksEnable && _DiscordPlayerPerksTeamKillTrackerWhitelist) {
+                                    if (_DiscordPlayerMonitorView && _DiscordPlayerMonitorEnable && _DiscordPlayerPerksEnable && _DiscordPlayerPerksTeamKillTrackerWhitelist) {
                                         lock (_DiscordPlayers) {
                                             foreach (APlayer aPlayer in _DiscordPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
                                                 tempASPlayers.Add(new ASpecialPlayer() {
@@ -33802,7 +33803,7 @@ namespace PRoConEvents {
                                             }
                                         }
                                     }
-                                    if (_DiscordPlayerMonitorEnable && _DiscordPlayerPerksEnable && _DiscordPlayerPerksPingWhitelist) {
+                                    if (_DiscordPlayerMonitorView && _DiscordPlayerMonitorEnable && _DiscordPlayerPerksEnable && _DiscordPlayerPerksPingWhitelist) {
                                         lock (_DiscordPlayers) {
                                             foreach (APlayer aPlayer in _DiscordPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))) {
                                                 tempASPlayers.Add(new ASpecialPlayer() {
@@ -38015,7 +38016,7 @@ namespace PRoConEvents {
                                        .Replace("%S%", "S");
             } else {
                 if (serverName.Contains("%EventDateDuration%")) {
-                    serverName = serverName.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+                    serverName = serverName.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 2));
                 }
                 if (serverName.Contains("%EventDateTime%")) {
                     serverName = serverName.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
