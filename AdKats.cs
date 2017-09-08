@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.250
- * 7-SEP-2017
+ * Version 6.9.0.251
+ * 8-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.250</version_code>
+ * <version_code>6.9.0.251</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.250";
+        private const String PluginVersion = "6.9.0.251";
 
         public enum GameVersion {
             BF3,
@@ -802,7 +802,7 @@ namespace PRoConEvents {
         private DateTime _EventDate = GetLocalEpochTime();
         private Double _EventHour = 0;
         private Int32 _EventTestRoundNumber = 999999;
-        private Int32 _EventAnnounceDayDifference = 7;
+        private Double _EventAnnounceDayDifference = 7;
         private Int32 _CurrentEventRoundNumber = 999999;
         private List<AEventOption> _EventRoundOptions = new List<AEventOption>();
         private Boolean _EventRoundPolled = false;
@@ -1657,7 +1657,7 @@ namespace PRoConEvents {
                             }
                             lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Hour in 24 format", typeof(Double), _EventHour));
                             lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Is it daylight savings?", typeof(String), DateTime.Now.IsDaylightSavingTime() ? "Yes, currently daylight savings." : "No, not daylight savings."));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Announce Day Difference", typeof(Int32), _EventAnnounceDayDifference));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Announce Day Difference", typeof(Double), _EventAnnounceDayDifference));
 
                             if (_EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
                                 var eventDate = _EventDate.AddHours(_EventHour);
@@ -4148,11 +4148,11 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Boolean), _EventTestRoundNumber));
                     }
                 } else if (Regex.Match(strVariable, @"Event Announce Day Difference").Success) {
-                    Int32 dayDifference = Int32.Parse(strValue);
+                    Double dayDifference = Double.Parse(strValue);
                     if (dayDifference != _EventAnnounceDayDifference) {
                         _EventAnnounceDayDifference = dayDifference;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Int32), _EventAnnounceDayDifference));
+                        QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Double), _EventAnnounceDayDifference));
                     }
                 } else if (Regex.Match(strVariable, @"Event Duration Rounds").Success) {
                     Int32 roundCount = Int32.Parse(strValue);
@@ -27854,7 +27854,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Hour in 24 format", typeof(Double), _EventHour));
                 QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Boolean), _EventTestRoundNumber));
-                QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Int32), _EventAnnounceDayDifference));
+                QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Double), _EventAnnounceDayDifference));
                 QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Base Server Name", typeof(String), _eventBaseServerName));
