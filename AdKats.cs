@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.251
+ * Version 6.9.0.252
  * 8-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.251</version_code>
+ * <version_code>6.9.0.252</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.251";
+        private const String PluginVersion = "6.9.0.252";
 
         public enum GameVersion {
             BF3,
@@ -7620,9 +7620,10 @@ namespace PRoConEvents {
                                 }
                             }
 
+                            var playerList = _PlayerDictionary.Values.ToList();
                             Log.Success("Built move queue.");
                             Log.Info("Clearing squads.");
-                            foreach (var aPlayer in _PlayerDictionary.Values.ToList().Where(dPlayer => dPlayer.player_type == PlayerType.Player)) {
+                            foreach (var aPlayer in playerList.Where(dPlayer => dPlayer.player_type == PlayerType.Player)) {
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.fbpInfo.TeamID + "", "0", "true");
                                 Thread.Sleep(30);
                             }
@@ -7647,6 +7648,20 @@ namespace PRoConEvents {
                                 Thread.Sleep(30);
                             }
                             Log.Success("Squads assigned.");
+
+                            // Update the cached player list just in case
+                            playerList = _PlayerDictionary.Values.ToList();
+                            // Attempt to make sure every player stays on their assigned team/squad, despite the DICE balancer
+                            while (playerList.Count() > 15 && 
+                                   _serverInfo.GetRoundElapsedTime().TotalSeconds < 6) {
+                                foreach(var aPlayer in playerList) {
+                                    if (_serverInfo.GetRoundElapsedTime().TotalSeconds >= 6) {
+                                        break;
+                                    }
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam + "", aPlayer.RequiredSquad + "", "false");
+                                    Thread.Sleep(30);
+                                }
+                            }
 
                             _RoundPrepSquads.Clear();
 
