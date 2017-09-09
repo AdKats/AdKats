@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.256
+ * Version 6.9.0.257
  * 8-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.256</version_code>
+ * <version_code>6.9.0.257</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.256";
+        private const String PluginVersion = "6.9.0.257";
 
         public enum GameVersion {
             BF3,
@@ -7786,9 +7786,6 @@ namespace PRoConEvents {
                         }
                         return;
                     }
-                    if (_UseExperimentalTools && oldTeam.TeamID != 0 && newTeam.TeamID != oldTeam.TeamID) {
-                        Log.Write(soldierName + " TEAM moved to " + newTeam.TeamKey + "-" + ASquad.Names[squadId]);
-                    }
                     Boolean updateTeamInfo = true;
                     if (aPlayer.RequiredTeam != null &&
                         aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey &&
@@ -7923,16 +7920,15 @@ namespace PRoConEvents {
                     }
                     Int32 oldSquad = aPlayer.fbpInfo.SquadID;
                     aPlayer.fbpInfo.SquadID = squadId;
-                    if (_UseExperimentalTools && oldTeam.TeamID != 0 && oldSquad != squadId) {
-                        Log.Write(soldierName + " SQUAD moved to " + newTeam.TeamKey + "-" + ASquad.Names[squadId]);
-                    }
                     if (aPlayer.RequiredTeam != null &&
                         aPlayer.RequiredSquad > 0 &&
                         aPlayer.RequiredSquad != squadId &&
                         // If they are being moved to the 'None' squad, don't try to move them back just yet
                         squadId != 0 &&
                         _roundState != RoundState.Playing) {
-                        Log.Info("Sending " + soldierName + " back to SQUAD " + ASquad.Names[aPlayer.RequiredSquad]);
+                        if (_UseExperimentalTools) {
+                            Log.Info("Sending " + soldierName + " back to SQUAD " + ASquad.Names[aPlayer.RequiredSquad]);
+                        }
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
                     }
                 }
