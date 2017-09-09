@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.254
+ * Version 6.9.0.255
  * 8-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.254</version_code>
+ * <version_code>6.9.0.255</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.254";
+        private const String PluginVersion = "6.9.0.255";
 
         public enum GameVersion {
             BF3,
@@ -7654,12 +7654,12 @@ namespace PRoConEvents {
                             playerList = _PlayerDictionary.Values.ToList();
                             // Attempt to make sure every player stays on their assigned team/squad, despite the DICE balancer
                             while (playerList.Count() > 15 && 
-                                   (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 10)) {
-                                foreach(var aPlayer in playerList.Where(dPlayer => dPlayer.RequiredTeam != null)) {
-                                    if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 10) {
+                                   (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 8)) {
+                                foreach(var aPlayer in playerList.Where(dPlayer => dPlayer.RequiredTeam != null && !dPlayer.player_spawnedRound)) {
+                                    if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 8) {
                                         break;
                                     }
-                                    if (aPlayer.fbpInfo.TeamID != aPlayer.RequiredTeam.TeamID) {
+                                    if (!aPlayer.player_spawnedRound && aPlayer.fbpInfo.TeamID != aPlayer.RequiredTeam.TeamID) {
                                         Log.Info("FIXING " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamID + "-" + aPlayer.RequiredSquad);
                                         ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
                                         Thread.Sleep(30);
@@ -10302,6 +10302,7 @@ namespace PRoConEvents {
                 foreach (APlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
                     aPlayer.RequiredTeam = null;
                     aPlayer.RequiredSquad = -1;
+                    aPlayer.player_spawnedRound = false;
                 }
             } catch (Exception e) {
                 HandleException(new AException("Error running round over teamscores.", e));
@@ -11442,6 +11443,7 @@ namespace PRoConEvents {
                         Log.Error("Could not find " + soldierName + " in player dictionary on spawn.");
                         return;
                     }
+                    aPlayer.player_spawnedRound = true;
 
                     //Ensure frostbite player info
                     if (aPlayer.fbpInfo == null) {
@@ -38534,6 +38536,7 @@ namespace PRoConEvents {
             public AServer player_server = null;
             public TimeSpan player_serverplaytime = TimeSpan.FromSeconds(0);
             public Boolean player_spawnedOnce = false;
+            public Boolean player_spawnedRound = false;
             public PlayerType player_type = PlayerType.Player;
             public Boolean BLInfoStored = false;
             public String player_battlelog_personaID = null;
