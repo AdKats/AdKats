@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.252
+ * Version 6.9.0.253
  * 8-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.252</version_code>
+ * <version_code>6.9.0.253</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.252";
+        private const String PluginVersion = "6.9.0.253";
 
         public enum GameVersion {
             BF3,
@@ -149,6 +149,7 @@ namespace PRoConEvents {
         private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
         private Int32 _startingTicketCount = -1;
         private RoundState _roundState = RoundState.Loaded;
+        private DateTime _playingStartTime = DateTime.UtcNow;
         private Int32 _highestTicketCount;
         private Int32 _lowestTicketCount = 500000;
         private volatile Boolean _fetchedPluginInformation;
@@ -7653,13 +7654,16 @@ namespace PRoConEvents {
                             playerList = _PlayerDictionary.Values.ToList();
                             // Attempt to make sure every player stays on their assigned team/squad, despite the DICE balancer
                             while (playerList.Count() > 15 && 
-                                   _serverInfo.GetRoundElapsedTime().TotalSeconds < 6) {
-                                foreach(var aPlayer in playerList) {
-                                    if (_serverInfo.GetRoundElapsedTime().TotalSeconds >= 6) {
+                                   (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 10)) {
+                                foreach(var aPlayer in playerList.Where(dPlayer => dPlayer.RequiredTeam != null)) {
+                                    if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 10) {
                                         break;
                                     }
-                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam + "", aPlayer.RequiredSquad + "", "false");
-                                    Thread.Sleep(30);
+                                    if (aPlayer.fbpInfo.TeamID != aPlayer.RequiredTeam.TeamID || aPlayer.fbpInfo.SquadID != aPlayer.RequiredSquad) {
+                                        Log.Info("FIXING " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamID + "-" + aPlayer.RequiredSquad);
+                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
+                                        Thread.Sleep(30);
+                                    }
                                 }
                             }
 
@@ -11468,6 +11472,7 @@ namespace PRoConEvents {
                     }
 
                     if (_roundState == RoundState.Loaded) {
+                        _playingStartTime = UtcNow();
                         _roundState = RoundState.Playing;
 
                         //Take minimum ticket count between teams (accounts for rush), but not less than 0
