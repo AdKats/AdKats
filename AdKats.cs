@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.255
+ * Version 6.9.0.256
  * 8-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.255</version_code>
+ * <version_code>6.9.0.256</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.255";
+        private const String PluginVersion = "6.9.0.256";
 
         public enum GameVersion {
             BF3,
@@ -38610,8 +38610,8 @@ namespace PRoConEvents {
                 return GetPower(includeMods, includeMods);
             }
             public Double GetPower(Boolean includeActive, Boolean includeSaved) {
-                // Base power is 10-32
-                Double basePower = min10(TopStats.RoundCount >= 3 && TopStats.TopCount > 0 ? Math.Pow(TopStats.TopRoundRatio + 1, 5) : 1.0);
+                // Base power is 7-32
+                Double basePower = min7(TopStats.RoundCount >= 3 && TopStats.TopCount > 0 ? Math.Pow(TopStats.TopRoundRatio + 1, 5) : 1.0);
                 // Cap top power at 25 if the player is new
                 if (TopStats.RoundCount < 20) {
                     basePower = Math.Min(basePower, 25.0);
@@ -38629,10 +38629,10 @@ namespace PRoConEvents {
                     }
                     return Math.Max(basePower, savedPower / 3.0);
                 }
-                // Active power is 10-ActiveInfluence
-                Double killPower = min10(Math.Min(fbpInfo.Kills, maxKills) / maxKills * Plugin._TeamPowerActiveInfluence);
-                Double kdPower = min10(Math.Min(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * Plugin._TeamPowerActiveInfluence);
-                Double scorePower = min10(Math.Min(fbpInfo.Score, maxScore) / maxScore * Plugin._TeamPowerActiveInfluence);
+                // Active power is 7-ActiveInfluence
+                Double killPower = min7(Math.Min(fbpInfo.Kills, maxKills) / maxKills * Plugin._TeamPowerActiveInfluence);
+                Double kdPower = min7(Math.Min(fbpInfo.Kills / Math.Max(fbpInfo.Deaths, 1.0), maxKd) / maxKd * Plugin._TeamPowerActiveInfluence);
+                Double scorePower = min7(Math.Min(fbpInfo.Score, maxScore) / maxScore * Plugin._TeamPowerActiveInfluence);
                 Double activePower = (killPower + kdPower + scorePower) / 3.0;
                 // Take whichever power level is greatest
                 TopStats.TempTopPower = Math.Max(Math.Max(basePower, savedPower), activePower);
@@ -38646,8 +38646,8 @@ namespace PRoConEvents {
                 return returnPower;
             }
 
-            private Double min10(Double val) {
-                return Math.Max(val, 10.0);
+            private Double min7(Double val) {
+                return Math.Max(val, 7.0);
             }
 
             public void SetIP(String ip)
