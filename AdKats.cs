@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.258
- * 9-SEP-2017
+ * Version 6.9.0.259
+ * 10-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.258</version_code>
+ * <version_code>6.9.0.259</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.258";
+        private const String PluginVersion = "6.9.0.259";
 
         public enum GameVersion {
             BF3,
@@ -7661,11 +7661,15 @@ namespace PRoConEvents {
                                         break;
                                     }
                                     if (!aPlayer.player_spawnedRound && (aPlayer.fbpInfo.TeamID != aPlayer.RequiredTeam.TeamID || aPlayer.fbpInfo.SquadID != aPlayer.RequiredSquad)) {
-                                        Log.Info("FIXING " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamID + "-" + aPlayer.RequiredSquad);
                                         ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
                                         Thread.Sleep(50);
                                     }
                                 }
+                            }
+
+                            // Print the team squad lists
+                            foreach (var squad in _RoundPrepSquads.OrderBy(squad => squad.TeamID).ThenByDescending(squad => squad.Players.Sum(member => member.GetPower(true)))) {
+                                Log.Info("Squad " + squad);
                             }
 
                             _RoundPrepSquads.Clear();
@@ -7688,8 +7692,7 @@ namespace PRoConEvents {
             // Find the first available squad in team 2
             // Do not include the "None" squad
             var named = false;
-            foreach (var squadID in ASquad.Names.Keys.ToList().Where(sqaudKey => sqaudKey != 0)) {
-                Log.Write("Checking if " + squadID + ":" + ASquad.Names[squadID] + " is available on team " + aTeam.TeamID + ".");
+            foreach (var squadID in ASquad.Names.Keys.ToList().Where(sqaudKey => sqaudKey != 0).Reverse()) {
                 if (!squadList.Any(dSquad => dSquad.SquadID == squadID)) {
                     aSquad.SquadID = squadID;
                     named = true;
@@ -7809,9 +7812,6 @@ namespace PRoConEvents {
                             }
                             updateTeamInfo = false;
                             var squadName = aPlayer.RequiredSquad > 0 ? ASquad.Names[aPlayer.RequiredSquad] : ASquad.Names[1];
-                            if (_UseExperimentalTools) {
-                                Log.Info("Sending " + soldierName + " back to " + aPlayer.RequiredTeam.TeamKey + "-" + squadName);
-                            }
                             ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad > 0 ? aPlayer.RequiredSquad + "" : "1", "true");
                         }
                     }
@@ -7927,9 +7927,6 @@ namespace PRoConEvents {
                         // If they are being moved to the 'None' squad, don't try to move them back just yet
                         squadId != 0 &&
                         _roundState != RoundState.Playing) {
-                        if (_UseExperimentalTools) {
-                            Log.Info("Sending " + soldierName + " back to SQUAD " + ASquad.Names[aPlayer.RequiredSquad]);
-                        }
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
                     }
                 }
