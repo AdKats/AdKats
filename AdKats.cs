@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.257
- * 8-SEP-2017
+ * Version 6.9.0.258
+ * 9-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.257</version_code>
+ * <version_code>6.9.0.258</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.257";
+        private const String PluginVersion = "6.9.0.258";
 
         public enum GameVersion {
             BF3,
@@ -7406,6 +7406,7 @@ namespace PRoConEvents {
                 if (_UseTeamPowerMonitor &&
                     _UseTeamPowerMonitorBalance &&
                     _firstPlayerListComplete &&
+                    _populationStatus != PopulationState.Low &&
                     _aliveThreads.Values.All(thread => thread.Name != "TeamPowerMonitorAssignment")) {
                     StartAndLogThread(new Thread(new ThreadStart(delegate {
                         Thread.CurrentThread.Name = "TeamPowerMonitorAssignment";
@@ -7654,15 +7655,15 @@ namespace PRoConEvents {
                             playerList = _PlayerDictionary.Values.ToList();
                             // Attempt to make sure every player stays on their assigned team/squad, despite the DICE balancer
                             while (playerList.Count() > 15 && 
-                                   (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 8)) {
+                                   (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 10)) {
                                 foreach(var aPlayer in playerList.Where(dPlayer => dPlayer.RequiredTeam != null && !dPlayer.player_spawnedRound)) {
-                                    if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 8) {
+                                    if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 10) {
                                         break;
                                     }
-                                    if (!aPlayer.player_spawnedRound && aPlayer.fbpInfo.TeamID != aPlayer.RequiredTeam.TeamID) {
+                                    if (!aPlayer.player_spawnedRound && (aPlayer.fbpInfo.TeamID != aPlayer.RequiredTeam.TeamID || aPlayer.fbpInfo.SquadID != aPlayer.RequiredSquad)) {
                                         Log.Info("FIXING " + aPlayer.player_name + " to " + aPlayer.RequiredTeam.TeamID + "-" + aPlayer.RequiredSquad);
                                         ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
-                                        Thread.Sleep(30);
+                                        Thread.Sleep(50);
                                     }
                                 }
                             }
@@ -7789,7 +7790,7 @@ namespace PRoConEvents {
                     Boolean updateTeamInfo = true;
                     if (aPlayer.RequiredTeam != null &&
                         aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey &&
-                        (!PlayerIsAdmin(aPlayer) || _roundState != RoundState.Playing)) {
+                        (!PlayerIsAdmin(aPlayer) || !aPlayer.player_spawnedRound)) {
                         if (RunAssist(aPlayer, null, null, true) &&
                             _roundState == RoundState.Playing &&
                             _serverInfo.GetRoundElapsedTime().TotalMinutes > _minimumAssistMinutes) {
@@ -8376,7 +8377,7 @@ namespace PRoConEvents {
                                         if (aPlayer.RequiredTeam != null &&
                                             playerTeam != null &&
                                             aPlayer.RequiredTeam.TeamKey != playerTeam.TeamKey &&
-                                            !PlayerIsAdmin(aPlayer)) {
+                                            (!PlayerIsAdmin(aPlayer) || !aPlayer.player_spawnedRound)) {
                                             // Don't allow a player to be reassigned to the "neutral" team
                                             // Otherwise, run a mock assist command on them to see if they can reassign themselves
                                             if (playerTeam.TeamKey != "Neutral" &&
@@ -34163,9 +34164,6 @@ namespace PRoConEvents {
                 }
                 _globalTimingChecked = true;
                 return true;
-            }
-            if (verbose) {
-                Log.Error("Unable to confirm global timing. Global UTC Timestamp could not be fetched.");
             }
             _globalTimingChecked = true;
             return !failOnFetchError;
