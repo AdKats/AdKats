@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.260
+ * Version 6.9.0.261
  * 10-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.260</version_code>
+ * <version_code>6.9.0.261</version_code>
  */
 
 using System;
@@ -7412,6 +7412,7 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "TeamPowerMonitorAssignment";
                         Thread.Sleep(TimeSpan.FromSeconds(0.1));
                         DateTime starting = UtcNow();
+                        List<APlayer> playerList;
                         while (true) {
                             if (!_pluginEnabled) {
                                 break;
@@ -7471,7 +7472,7 @@ namespace PRoConEvents {
                                     Boolean added = false;
                                     // Only add players to squads on their own team
                                     // This avoids dumping all players into one squad during low population
-                                    foreach (var aSquad in _RoundPrepSquads.Where(aSquad => aSquad.TeamID == aPlayer.fbpInfo.TeamID)) {
+                                    foreach (var aSquad in _RoundPrepSquads.Where(aSquad => aSquad.TeamID == aPlayer.fbpInfo.TeamID).OrderBy(dSquad => dSquad.Players.Sum(member => member.GetPower(true)))) {
                                         if (aSquad.Players.Count() < (_gameVersion == GameVersion.BF3 ? 4 : 5)) {
                                             Log.Info("Adding " + aPlayer.player_name + " to squad " + aSquad);
                                             aSquad.Players.Add(aPlayer);
@@ -7562,6 +7563,21 @@ namespace PRoConEvents {
                             var t2Squads = _RoundPrepSquads.Where(dSquad => dSquad.TeamID == team2.TeamID).ToList();
                             var t2Count = t2Squads.Sum(dSquad => dSquad.Players.Count());
                             var t2Power = t2Squads.Sum(dSquad => dSquad.Players.Sum(member => member.GetPower(true)));
+
+                            // Fix the team distribution counts if needed
+                            if (Math.Abs(t1Count - t2Count) > 2) {
+                                if (t1Count > t2Count) {
+                                    // Team 1 needs a bad squad moved to team 2
+                                    var worstSquad = t1Squads.OrderBy(dSquad => dSquad.Players.Sum(member => member.GetPower(true))).FirstOrDefault();
+                                    worstSquad.TeamID = team2.TeamID;
+                                    Log.Info("REASSIGNED SQUAD TO TEAM 2: " + worstSquad);
+                                } else {
+                                    // Team 2 needs a bad squad moved to team 1
+                                    var worstSquad = t2Squads.OrderBy(dSquad => dSquad.Players.Sum(member => member.GetPower(true))).FirstOrDefault();
+                                    worstSquad.TeamID = team1.TeamID;
+                                    Log.Info("REASSIGNED SQUAD TO TEAM 1: " + worstSquad);
+                                }
+                            }
                             
                             Double percDiff = Math.Abs(t1Power - t2Power) / ((t1Power + t2Power) / 2.0) * 100.0;
                             String message = "";
@@ -7570,7 +7586,7 @@ namespace PRoConEvents {
                             } else {
                                 message += "Team 2 up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
                             }
-                            message += "(1:" + Math.Round(t1Power, 2) + " / 2:" + Math.Round(t2Power, 2) + ")";
+                            message += "(1:" + t1Count + ":" + Math.Round(t1Power, 2) + " / 2:" + t2Count + ":" + Math.Round(t2Power, 2) + ")";
                             Log.Info("Team Power Dispersion: " + message);
 
                             // Print the final team squad lists
@@ -7622,7 +7638,7 @@ namespace PRoConEvents {
                                 }
                             }
 
-                            var playerList = _PlayerDictionary.Values.ToList();
+                            playerList = _PlayerDictionary.Values.ToList();
                             Log.Success("Built move queue.");
                             Log.Info("Clearing squads.");
                             foreach (var aPlayer in playerList.Where(dPlayer => dPlayer.player_type == PlayerType.Player)) {
@@ -7656,15 +7672,23 @@ namespace PRoConEvents {
                             // Attempt to make sure every player stays on their assigned team/squad, despite the DICE balancer
                             while (playerList.Count() > 15 && 
                                    (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 5)) {
-                                foreach(var aPlayer in playerList.Where(dPlayer => dPlayer.RequiredTeam != null && !dPlayer.player_spawnedRound)) {
+                                foreach(var aPlayer in playerList.Where(dPlayer => !dPlayer.player_spawnedRound)) {
                                     if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 5) {
                                         break;
                                     }
-                                    if (!aPlayer.player_spawnedRound && (aPlayer.fbpInfo.TeamID != aPlayer.RequiredTeam.TeamID || aPlayer.fbpInfo.SquadID != aPlayer.RequiredSquad)) {
-                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
-                                        Thread.Sleep(50);
+                                    if (!aPlayer.player_spawnedRound) {
+                                        if (aPlayer.RequiredTeam != null) {
+                                            if (aPlayer.fbpInfo.TeamID != aPlayer.RequiredTeam.TeamID || aPlayer.fbpInfo.SquadID != aPlayer.RequiredSquad) {
+                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
+                                                Thread.Sleep(50);
+                                            }
+                                        } else {
+                                            // Choose a squad for the player
+
+                                        }
                                     }
                                 }
+                                playerList = _PlayerDictionary.Values.ToList();
                             }
 
                             // Print the team squad lists
@@ -7677,6 +7701,7 @@ namespace PRoConEvents {
                             break;
                         }
                         Log.Success("Team dispersion complete!");
+
                         LogThreadExit();
                     })));
                 }
@@ -10950,6 +10975,13 @@ namespace PRoConEvents {
 
         private void ProcessPlayerKill(AKill aKill) {
             try {
+                // Move the player to their required team if needed
+                if (aKill.victim.RequiredTeam != null &&
+                    aKill.victim.RequiredTeam.TeamID != aKill.victim.fbpInfo.TeamID &&
+                    !PlayerIsAdmin(aKill.victim)) {
+                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aKill.victim.player_name, aKill.victim.RequiredTeam.TeamID + "", aKill.victim.fbpInfo.SquadID + "", "true");
+                }
+
                 aKill.victim.lastAction = UtcNow();
                 aKill.killer.lastAction = UtcNow();
 
@@ -38603,9 +38635,9 @@ namespace PRoConEvents {
             public Double GetPower(Boolean includeActive, Boolean includeSaved) {
                 // Base power is 7-32
                 Double basePower = min7(TopStats.RoundCount >= 3 && TopStats.TopCount > 0 ? Math.Pow(TopStats.TopRoundRatio + 1, 5) : 1.0);
-                // Cap top power at 25 if the player is new
+                // Cap top power at 30 if the player is new
                 if (TopStats.RoundCount < 20) {
-                    basePower = Math.Min(basePower, 25.0);
+                    basePower = Math.Min(basePower, 30.0);
                 }
                 // If their base power is calculated low, use their battlelog stats instead
                 var blPower = (BL_KDR * BL_SPM * BL_KPM) / 2500.0 * 20;
