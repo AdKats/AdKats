@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.262
- * 10-SEP-2017
+ * Version 6.9.0.263
+ * 13-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.262</version_code>
+ * <version_code>6.9.0.263</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.262";
+        private const String PluginVersion = "6.9.0.263";
 
         public enum GameVersion {
             BF3,
@@ -8218,7 +8218,7 @@ namespace PRoConEvents {
                                         if ((UtcNow() - _lastInvalidPlayerNameNotification).TotalMinutes > 5) {
                                             OnlineAdminSayMessage(playerInfo.SoldierName + " had an invalid player name, unable to process.");
                                             Log.Warn(playerInfo.SoldierName + " has an invalid player name, unable to process.");
-                                            ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerInfo.SoldierName, "Your soldier name " + playerInfo.SoldierName + " is invalid.");
+                                            KickPlayerMessage(playerInfo.SoldierName, "Your soldier name " + playerInfo.SoldierName + " is invalid.", 15);
                                             _lastInvalidPlayerNameNotification = UtcNow();
                                         }
                                         continue;
@@ -21784,7 +21784,7 @@ namespace PRoConEvents {
                 if (String.IsNullOrEmpty(record.target_player.player_name) || String.IsNullOrEmpty(kickReason)) {
                     Log.Error("Item null in 5464");
                 } else {
-                    ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_player.player_name, kickReason);
+                    KickPlayerMessage(record.target_player, kickReason);
                     if (record.target_name != record.source_name && record.source_name != "AFKManager" && record.source_name != "PingEnforcer" && record.source_name != "SpectatorManager") {
                         AdminSayMessage(record.GetTargetNames() + " was KICKED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                     }
@@ -22010,7 +22010,7 @@ namespace PRoConEvents {
                 Log.Debug(() => "Ban Enforce '" + generatedBanReason + "'", 3);
 
                 //Perform Actions
-                ExecuteCommand("procon.protected.send", "admin.kickPlayer", aBan.ban_record.target_player.player_name, generatedBanReason);
+                BanKickPlayerMessage(aBan.ban_record.target_player, generatedBanReason);
                 if (_PlayerDictionary.ContainsKey(aBan.ban_record.target_player.player_name) && aBan.ban_startTime < UtcNow()) {
                     //Inform the server of the enforced ban
                     if (verbose) {
@@ -35301,7 +35301,7 @@ namespace PRoConEvents {
                                 if (!pid.Success) {
                                     HandleException(new AException("Could not find persona ID for " + aPlayer.player_name));
                                     if (!String.IsNullOrEmpty(personaResponse)) {
-                                        ExecuteCommand("procon.protected.send", "admin.kickPlayer", aPlayer.player_name, "Battlelog info fetch issue. Please re-join.");
+                                        KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
                                     }
                                     return false;
                                 } else {
@@ -35401,7 +35401,7 @@ namespace PRoConEvents {
                                     if (!pid.Success) {
                                         HandleException(new AException("Could not find persona ID for " + aPlayer.player_name));
                                         if (!String.IsNullOrEmpty(response)) {
-                                            ExecuteCommand("procon.protected.send", "admin.kickPlayer", aPlayer.player_name, "Battlelog info fetch issue. Please re-join.");
+                                            KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
                                         }
                                         return false;
                                     } else {
@@ -36670,6 +36670,64 @@ namespace PRoConEvents {
 
         public DateTime UtcNow() {
             return DateTime.UtcNow + _dbTimingOffset;
+        }
+
+        public void KickPlayerMessage(APlayer player, String message) {
+            var kickDuration = 0;
+            if (_gameVersion == GameVersion.BF4) {
+                kickDuration = 15;
+                if (player.player_spawnedOnce) {
+                    kickDuration = 5;
+                }
+            }
+            KickPlayerMessage(player.player_name, message, kickDuration);
+        }
+
+        public void KickPlayerMessage(String playerName, String message, Int32 kickDuration) {
+            if (kickDuration > 0) {
+                // Cannot just kick the player, they don't see the kick message
+                StartAndLogThread(new Thread(new ThreadStart(delegate {
+                    Thread.CurrentThread.Name = "KickPlayerMessage";
+                    var startTime = UtcNow();
+                    while (NowDuration(startTime).TotalSeconds < kickDuration) {
+                        PlayerTellMessage(playerName, "You were kicked for " + message);
+                        Thread.Sleep(200);
+                    }
+                    ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
+                    LogThreadExit();
+                })));
+            } else {
+                ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
+            }
+        }
+
+        public void BanKickPlayerMessage(APlayer player, String message) {
+            var kickDuration = 0;
+            if (_gameVersion == GameVersion.BF4) {
+                kickDuration = 15;
+                if (player.player_spawnedOnce) {
+                    kickDuration = 5;
+                }
+            }
+            BanKickPlayerMessage(player.player_name, message, kickDuration);
+        }
+
+        public void BanKickPlayerMessage(String playerName, String message, Int32 kickDuration) {
+            if (kickDuration > 0) {
+                // Cannot just ban the player, they don't see the ban message
+                StartAndLogThread(new Thread(new ThreadStart(delegate {
+                    Thread.CurrentThread.Name = "BanKickPlayerMessage";
+                    var startTime = UtcNow();
+                    while (NowDuration(startTime).TotalSeconds < kickDuration) {
+                        PlayerTellMessage(playerName, message);
+                        Thread.Sleep(200);
+                    }
+                    ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
+                    LogThreadExit();
+                })));
+            } else {
+                ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
+            }
         }
 
         // Credit Jon Skeet
@@ -38621,9 +38679,15 @@ namespace PRoConEvents {
             public void Yell(String message) {
                 Plugin.PlayerYellMessage(player_name, message);
             }
+            public void Yell(String message, Boolean displayProconChat, Int32 spamCount) {
+                Plugin.PlayerYellMessage(player_name, message, displayProconChat, spamCount);
+            }
 
             public void Tell(String message) {
                 Plugin.PlayerTellMessage(player_name, message);
+            }
+            public void Tell(String message, Boolean displayProconChat, Int32 spamCount) {
+                Plugin.PlayerTellMessage(player_name, message, displayProconChat, spamCount);
             }
 
             private Double maxScore = 30000.0;
