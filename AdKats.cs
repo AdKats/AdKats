@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.264
+ * Version 6.9.0.265
  * 13-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.264</version_code>
+ * <version_code>6.9.0.265</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.264";
+        private const String PluginVersion = "6.9.0.265";
 
         public enum GameVersion {
             BF3,
@@ -36690,7 +36690,7 @@ namespace PRoConEvents {
                     Thread.CurrentThread.Name = "KickPlayerMessage";
                     var startTime = UtcNow();
                     while (NowDuration(startTime).TotalSeconds < kickDuration) {
-                        PlayerTellMessage(playerName, "Kicked from server for " + message, false, 0);
+                        PlayerTellMessage(playerName, "KICKED from server: " + message, false, 0);
                         Thread.Sleep(200);
                     }
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
@@ -36719,7 +36719,7 @@ namespace PRoConEvents {
                     Thread.CurrentThread.Name = "BanKickPlayerMessage";
                     var startTime = UtcNow();
                     while (NowDuration(startTime).TotalSeconds < kickDuration) {
-                        PlayerTellMessage(playerName, message, false, 0);
+                        PlayerTellMessage(playerName, "BANNED from server: " + message, false, 0);
                         Thread.Sleep(200);
                     }
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
