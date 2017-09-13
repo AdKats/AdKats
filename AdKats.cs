@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.265
+ * Version 6.9.0.266
  * 13-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.265</version_code>
+ * <version_code>6.9.0.266</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.265";
+        private const String PluginVersion = "6.9.0.266";
 
         public enum GameVersion {
             BF3,
@@ -6677,8 +6677,9 @@ namespace PRoConEvents {
                                     this.ExecuteCommand("procon.protected.send", "vars.serverName", ProcessEventServerName(serverName, false, false));
 
                                     // EVENT AUTOMATIC POLLING
-                                    if (!_EventRoundPolled &&
-                                        _EventRoundOptions.Count() < _EventRoundAutoPollsMax &&
+                                    if (!_EventRoundPolled && 
+                                        // Don't auto-poll after 20 event rounds, just in case nobody votes to end it
+                                        _EventRoundOptions.Count() < 20 &&
                                         _roundState == RoundState.Playing &&
                                         _serverInfo.GetRoundElapsedTime() >= _EventRoundAutoVoteDuration &&
                                         _ActivePoll == null &&
@@ -26046,14 +26047,18 @@ namespace PRoConEvents {
                                                         .Distinct()
                                                         .OrderBy(option => rng.Next())
                                                         .ToList();
-                            if (availableRuleOptions.Count() < 3) {
+                            if (availableRuleOptions.Count() < 4) {
                                 // They used almost all the rules during this event
                                 // Just give them everything
-                                availableRuleOptions = _EventRoundPollOptions
+                                foreach(var option in _EventRoundPollOptions
                                                         .Select(option => option.Rule)
                                                         .Distinct()
                                                         .OrderBy(option => rng.Next())
-                                                        .ToList();
+                                                        .ToList()) {
+                                    if (!availableRuleOptions.Contains(option)) {
+                                        availableRuleOptions.Add(option);
+                                    }
+                                }
                             }
                             foreach (var option in availableRuleOptions) {
                                 if (_ActivePoll.Options.Count() >= _PollMaxOptions) {
@@ -26061,6 +26066,9 @@ namespace PRoConEvents {
                                 }
                                 // Add the name of the option to the chosen list
                                 _ActivePoll.AddOption(AEventOption.RuleNames[option]);
+                            }
+                            if (_EventRoundOptions.Count() >= _EventRoundAutoPollsMax) {
+                                availableRuleOptions.Add(AEventOption.RuleCode.ENDEVENT);
                             }
 
                             while (_pluginEnabled &&
@@ -26090,76 +26098,83 @@ namespace PRoConEvents {
                                 var ruleString = _ActivePoll.GetWinningOption(true);
                                 chosenRule = AEventOption.RuleFromDisplay(ruleString);
 
-                                // Reset the poll for the next stage
-                                _ActivePoll.Reset();
+                                if (chosenRule == AEventOption.RuleCode.ENDEVENT) {
+                                    AdminTellMessage("Server voted to end the event. Normal rules next round.");
+                                } else {
+                                    // Reset the poll for the next stage
+                                    _ActivePoll.Reset();
 
-                                _ActivePoll.Title = "Choose '" + ruleString + "' mode with !vote #";
-                                // Get the available rule options
-                                var existingEventModes = _EventRoundOptions
-                                                            .Select(option => option.Mode)
-                                                            .Distinct()
-                                                            .ToList();
-                                // Get the available mode options for the chosen rule
-                                var availableModeOptions = _EventRoundPollOptions
-                                                            .Where(option => option.Rule == chosenRule &&
-                                                                             !existingEventModes.Contains(option.Mode))
-                                                            .Select(option => option.Mode)
-                                                            .Distinct()
-                                                            .OrderBy(option => rng.Next())
-                                                            .ToList();
-                                if (availableModeOptions.Count() < 3) {
-                                    // They used almost all the modes during this event
-                                    // Just give them everything
-                                    availableModeOptions = _EventRoundPollOptions
-                                                            .Where(option => option.Rule == chosenRule)
-                                                            .Select(option => option.Mode)
-                                                            .Distinct()
-                                                            .OrderBy(option => rng.Next())
-                                                            .ToList();
-                                }
-                                foreach (var option in availableModeOptions) {
-                                    if (_ActivePoll.Options.Count() >= _PollMaxOptions) {
-                                        break;
+                                    _ActivePoll.Title = "Choose '" + ruleString + "' mode with !vote #";
+                                    // Get the available rule options
+                                    var existingEventModes = _EventRoundOptions
+                                                                .Select(option => option.Mode)
+                                                                .Distinct()
+                                                                .ToList();
+                                    // Get the available mode options for the chosen rule
+                                    var availableModeOptions = _EventRoundPollOptions
+                                                                .Where(option => option.Rule == chosenRule &&
+                                                                                 !existingEventModes.Contains(option.Mode))
+                                                                .Select(option => option.Mode)
+                                                                .Distinct()
+                                                                .OrderBy(option => rng.Next())
+                                                                .ToList();
+                                    if (availableModeOptions.Count() < 4) {
+                                        // They used almost all the modes during this event
+                                        // Just give them everything
+                                        foreach (var option in _EventRoundPollOptions
+                                                                .Select(option => option.Mode)
+                                                                .Distinct()
+                                                                .OrderBy(option => rng.Next())
+                                                                .ToList()) {
+                                            if (!availableModeOptions.Contains(option)) {
+                                                availableModeOptions.Add(option);
+                                            }
+                                        }
                                     }
-                                    // Add the name of the option to the chosen list
-                                    _ActivePoll.AddOption(AEventOption.ModeNames[option]);
-                                }
-
-                                while (_pluginEnabled &&
-                                       _roundState == RoundState.Playing &&
-                                       NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
-                                       _ActivePoll.Votes.Count() < _PollMaxVotes &&
-                                       !_ActivePoll.Completed &&
-                                       !_ActivePoll.Canceled) {
-                                    if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval) {
-                                        // Print the poll
-                                        _ActivePoll.PrintPoll();
+                                    foreach (var option in availableModeOptions) {
+                                        if (_ActivePoll.Options.Count() >= _PollMaxOptions) {
+                                            break;
+                                        }
+                                        // Add the name of the option to the chosen list
+                                        _ActivePoll.AddOption(AEventOption.ModeNames[option]);
                                     }
 
-                                    _threadMasterWaitHandle.WaitOne(500);
-                                }
+                                    while (_pluginEnabled &&
+                                           _roundState == RoundState.Playing &&
+                                           NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
+                                           _ActivePoll.Votes.Count() < _PollMaxVotes &&
+                                           !_ActivePoll.Completed &&
+                                           !_ActivePoll.Canceled) {
+                                        if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval) {
+                                            // Print the poll
+                                            _ActivePoll.PrintPoll();
+                                        }
 
-                                if (_ActivePoll.Completed) {
-                                    AdminSayMessage("Poll completed with current winner.");
-                                }
+                                        _threadMasterWaitHandle.WaitOne(500);
+                                    }
 
-                                // Only continue if the round is still active
-                                // And the poll has not been canceled
-                                if (_pluginEnabled &&
-                                    _roundState == RoundState.Playing &&
-                                    !_ActivePoll.Canceled) {
+                                    if (_ActivePoll.Completed) {
+                                        AdminSayMessage("Poll completed with current winner.");
+                                    }
 
-                                    // Get the outcome
-                                    chosenMode = AEventOption.ModeFromDisplay(_ActivePoll.GetWinningOption(true));
-                                    var option = new AEventOption() {
-                                        Mode = chosenMode,
-                                        Rule = chosenRule
-                                    };
-                                    _EventRoundPolled = true;
-                                    _EventRoundOptions.Add(option);
-                                    QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
-                                    AdminTellMessage("EVENT POLL COMPLETE! Next event round is " + option.getModeRuleDisplay());
-                                    UpdateSettingPage();
+                                    // Only continue if the round is still active
+                                    // And the poll has not been canceled
+                                    if (_pluginEnabled &&
+                                        _roundState == RoundState.Playing &&
+                                        !_ActivePoll.Canceled) {
+
+                                        // Get the outcome
+                                        chosenMode = AEventOption.ModeFromDisplay(_ActivePoll.GetWinningOption(true));
+                                        var option = new AEventOption() {
+                                            Mode = chosenMode,
+                                            Rule = chosenRule
+                                        };
+                                        _EventRoundPolled = true;
+                                        _EventRoundOptions.Add(option);
+                                        QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                                        AdminTellMessage("EVENT POLL COMPLETE! Next event round is " + option.getModeRuleDisplay());
+                                        UpdateSettingPage();
+                                    }
                                 }
                             }
 
@@ -38295,6 +38310,7 @@ namespace PRoConEvents {
             };
             public enum RuleCode {
                 UNKNOWN,
+                ENDEVENT,
                 AW,
                 KO,
                 NE,
@@ -38312,6 +38328,7 @@ namespace PRoConEvents {
                 NH
             };
             public static readonly Dictionary<RuleCode, String> RuleNames = new Dictionary<RuleCode, String> {
+                {RuleCode.ENDEVENT, "End The Event"},
                 {RuleCode.AW, "All Weapons"},
                 {RuleCode.KO, "Knives Only"},
                 {RuleCode.NE, "No Explosives"},
