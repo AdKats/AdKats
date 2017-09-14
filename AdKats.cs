@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.270
+ * Version 6.9.0.271
  * 13-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.270</version_code>
+ * <version_code>6.9.0.271</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.270";
+        private const String PluginVersion = "6.9.0.271";
 
         public enum GameVersion {
             BF3,
@@ -36705,7 +36705,9 @@ namespace PRoConEvents {
                 StartAndLogThread(new Thread(new ThreadStart(delegate {
                     Thread.CurrentThread.Name = "KickPlayerMessage";
                     var startTime = UtcNow();
-                    while (NowDuration(startTime).TotalSeconds < kickDuration) {
+                    APlayer aPlayer;
+                    _PlayerDictionary.TryGetValue(playerName, out aPlayer);
+                    while (NowDuration(startTime).TotalSeconds < kickDuration && (aPlayer == null || !aPlayer.player_spawnedOnce)) {
                         PlayerTellMessage(playerName, "KICKED from server: " + message, false, 1);
                         Thread.Sleep(500);
                     }
@@ -36735,7 +36737,9 @@ namespace PRoConEvents {
                 StartAndLogThread(new Thread(new ThreadStart(delegate {
                     Thread.CurrentThread.Name = "BanKickPlayerMessage";
                     var startTime = UtcNow();
-                    while (NowDuration(startTime).TotalSeconds < kickDuration) {
+                    APlayer aPlayer;
+                    _PlayerDictionary.TryGetValue(playerName, out aPlayer);
+                    while (NowDuration(startTime).TotalSeconds < kickDuration && (aPlayer == null || !aPlayer.player_spawnedOnce)) {
                         PlayerTellMessage(playerName, "BANNED from server: " + message, false, 1);
                         Thread.Sleep(500);
                     }
