@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.271
+ * Version 6.9.0.272
  * 13-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.271</version_code>
+ * <version_code>6.9.0.272</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.271";
+        private const String PluginVersion = "6.9.0.272";
 
         public enum GameVersion {
             BF3,
@@ -22011,6 +22011,7 @@ namespace PRoConEvents {
                 Log.Debug(() => "Ban Enforce '" + generatedBanReason + "'", 3);
 
                 //Perform Actions
+                aBan.ban_record.target_player.BanEnforceCount++;
                 BanKickPlayerMessage(aBan.ban_record.target_player, generatedBanReason);
                 if (_PlayerDictionary.ContainsKey(aBan.ban_record.target_player.player_name) && aBan.ban_startTime < UtcNow()) {
                     //Inform the server of the enforced ban
@@ -36699,14 +36700,14 @@ namespace PRoConEvents {
         }
 
         public void KickPlayerMessage(String playerName, String message, Int32 kickDuration) {
+            APlayer aPlayer;
+            _PlayerDictionary.TryGetValue(playerName, out aPlayer);
             ExecuteCommand("procon.protected.send", "admin.killPlayer", playerName);
             if (kickDuration > 0) {
                 // Cannot just kick the player, they don't see the kick message
                 StartAndLogThread(new Thread(new ThreadStart(delegate {
                     Thread.CurrentThread.Name = "KickPlayerMessage";
                     var startTime = UtcNow();
-                    APlayer aPlayer;
-                    _PlayerDictionary.TryGetValue(playerName, out aPlayer);
                     while (NowDuration(startTime).TotalSeconds < kickDuration && (aPlayer == null || !aPlayer.player_spawnedOnce)) {
                         PlayerTellMessage(playerName, "KICKED from server: " + message, false, 1);
                         Thread.Sleep(500);
@@ -36731,14 +36732,17 @@ namespace PRoConEvents {
         }
 
         public void BanKickPlayerMessage(String playerName, String message, Int32 kickDuration) {
+            APlayer aPlayer;
+            _PlayerDictionary.TryGetValue(playerName, out aPlayer);
+            if (aPlayer != null && aPlayer.BanEnforceCount >= 3) {
+                kickDuration = 0;
+            }
             ExecuteCommand("procon.protected.send", "admin.killPlayer", playerName);
             if (kickDuration > 0) {
                 // Cannot just ban the player, they don't see the ban message
                 StartAndLogThread(new Thread(new ThreadStart(delegate {
                     Thread.CurrentThread.Name = "BanKickPlayerMessage";
                     var startTime = UtcNow();
-                    APlayer aPlayer;
-                    _PlayerDictionary.TryGetValue(playerName, out aPlayer);
                     while (NowDuration(startTime).TotalSeconds < kickDuration && (aPlayer == null || !aPlayer.player_spawnedOnce)) {
                         PlayerTellMessage(playerName, "BANNED from server: " + message, false, 1);
                         Thread.Sleep(500);
@@ -38607,6 +38611,7 @@ namespace PRoConEvents {
             public List<ARecord> TargetedRecords = null;
             public String player_clanTag = null;
             public CPlayerInfo fbpInfo = null;
+            public Int32 BanEnforceCount = 0;
             public Int32 backup_kills = 0;
             public Int32 backup_deaths = 0;
             public Int32 backup_score = 0;
