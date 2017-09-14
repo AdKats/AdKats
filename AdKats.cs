@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.268
+ * Version 6.9.0.269
  * 13-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.268</version_code>
+ * <version_code>6.9.0.269</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.268";
+        private const String PluginVersion = "6.9.0.269";
 
         public enum GameVersion {
             BF3,
@@ -8219,7 +8219,7 @@ namespace PRoConEvents {
                                         if ((UtcNow() - _lastInvalidPlayerNameNotification).TotalMinutes > 5) {
                                             OnlineAdminSayMessage(playerInfo.SoldierName + " had an invalid player name, unable to process.");
                                             Log.Warn(playerInfo.SoldierName + " has an invalid player name, unable to process.");
-                                            KickPlayerMessage(playerInfo.SoldierName, "Your soldier name " + playerInfo.SoldierName + " is invalid.", 30);
+                                            KickPlayerMessage(playerInfo.SoldierName, "Your soldier name " + playerInfo.SoldierName + " is invalid.", 20);
                                             _lastInvalidPlayerNameNotification = UtcNow();
                                         }
                                         continue;
@@ -36690,7 +36690,7 @@ namespace PRoConEvents {
         public void KickPlayerMessage(APlayer player, String message) {
             var kickDuration = 0;
             if (_gameVersion == GameVersion.BF4) {
-                kickDuration = 30;
+                kickDuration = 20;
                 if (player.player_spawnedOnce) {
                     kickDuration = 6;
                 }
@@ -36706,8 +36706,8 @@ namespace PRoConEvents {
                     Thread.CurrentThread.Name = "KickPlayerMessage";
                     var startTime = UtcNow();
                     while (NowDuration(startTime).TotalSeconds < kickDuration) {
-                        PlayerTellMessage(playerName, "KICKED from server: " + message, false, 0);
-                        Thread.Sleep(200);
+                        PlayerTellMessage(playerName, "KICKED from server: " + message, false, 1);
+                        Thread.Sleep(500);
                     }
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
                     LogThreadExit();
@@ -36720,7 +36720,7 @@ namespace PRoConEvents {
         public void BanKickPlayerMessage(APlayer player, String message) {
             var kickDuration = 0;
             if (_gameVersion == GameVersion.BF4) {
-                kickDuration = 30;
+                kickDuration = 20;
                 if (player.player_spawnedOnce) {
                     kickDuration = 6;
                 }
@@ -36736,8 +36736,8 @@ namespace PRoConEvents {
                     Thread.CurrentThread.Name = "BanKickPlayerMessage";
                     var startTime = UtcNow();
                     while (NowDuration(startTime).TotalSeconds < kickDuration) {
-                        PlayerTellMessage(playerName, "BANNED from server: " + message, false, 0);
-                        Thread.Sleep(200);
+                        PlayerTellMessage(playerName, "BANNED from server: " + message, false, 1);
+                        Thread.Sleep(500);
                     }
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
                     LogThreadExit();
