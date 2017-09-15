@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.272
- * 13-SEP-2017
+ * Version 6.9.0.273
+ * 14-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.272</version_code>
+ * <version_code>6.9.0.273</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.272";
+        private const String PluginVersion = "6.9.0.273";
 
         public enum GameVersion {
             BF3,
@@ -10740,15 +10740,15 @@ namespace PRoConEvents {
                     case AEventOption.RuleCode.RTO:
                         return "REPAIR TOOL ONLY! Only kills with the engineer's repair tool are allowed.";
                     case AEventOption.RuleCode.PO:
-                        return "PISTOLS ONLY! Only kills with pistols are allowed, automatic pistols included. The shorty is not a pistol. Melee is NOT allowed.";
+                        return "PISTOLS ONLY! Only kills with pistols are allowed. The G18/93R are NOT allowed. The shorty is NOT a pistol. Melee is NOT allowed.";
                     case AEventOption.RuleCode.SO:
                         return "SHOTGUNS ONLY! Only kills with shotguns are allowed. Any ammo type in the shotguns are allowed. Melee is NOT allowed.";
                     case AEventOption.RuleCode.NE:
-                        return "NO EXPLOSIVES! Kills with explosive weapons are not allowed. All other weapons are allowed.";
+                        return "NO EXPLOSIVES! Kills with explosive weapons are NOT allowed. All other weapons are allowed.";
                     case AEventOption.RuleCode.EO:
-                        return "EXPLOSIVES ONLY! Only kills with explosive weapons are allowed. 12G frag rounds are shotgun kills, not explosive kills. Melee is NOT allowed.";
+                        return "EXPLOSIVES ONLY! Only kills with explosive weapons are allowed. 12G frag rounds are shotguns NOT explosives. Melee is NOT allowed.";
                     case AEventOption.RuleCode.AO:
-                        return "AUTO-PRIMARIES ONLY! Only automatic primary weapons are allowed. Assault rifles, carbines, LMGs, etc. Burst primaries are allowed. Melee is NOT allowed.";
+                        return "AUTO-PRIMARIES ONLY! Only automatic primary weapons are allowed. Assault rifles, LMGs, etc. Burst is allowed. Melee is NOT allowed.";
                     case AEventOption.RuleCode.GO:
                         return "GRENADES ONLY! Only kills with grenades are allowed. M67, V40, etc. Melee is NOT allowed.";
                     case AEventOption.RuleCode.HO:
@@ -10864,7 +10864,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.RuleCode.PO:
                         // PISTOLS ONLY!
-                        if (aKill.weaponCategory != DamageTypes.Handgun &&
+                        if ((aKill.weaponCategory != DamageTypes.Handgun || aKill.weaponCode == "U_M93R" || aKill.weaponCode == "U_Glock18") &&
                             aKill.weaponCode != "DamageArea") {
                             return true;
                         }
@@ -12366,10 +12366,10 @@ namespace PRoConEvents {
                             //Calcs
                             Int32 weaponKillDiff = currentWeaponKillCount - previousWeaponKillCount;
                             Int32 weaponHitDiff = currentWeaponHitCount - previousWeaponHitCount;
-                            Int32 overallKillDiff = currentStats.Kills - previousStats.Kills;
-                            Int32 overallHitDiff = currentStats.Hits - previousStats.Hits;
-                            Int32 killDiscrepancy = overallKillDiff - weaponKillDiff;
-                            Int32 hitDiscrepancy = overallHitDiff - weaponHitDiff;
+                            Int64 overallKillDiff = currentStats.Kills - previousStats.Kills;
+                            Int64 overallHitDiff = currentStats.Hits - previousStats.Hits;
+                            Int64 killDiscrepancy = overallKillDiff - weaponKillDiff;
+                            Int64 hitDiscrepancy = overallHitDiff - weaponHitDiff;
                             Int32 rconKillDiff = aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1);
                             Int32 serverKillDiff = previousStats.LiveStats.Kills;
                             Int32 nonBLWeaponKills = aPlayer.LiveKills.Count(aKill => aKill.RoundID == _roundID - 1 && aKill.weaponCode == "DamageArea");
@@ -26066,10 +26066,10 @@ namespace PRoConEvents {
                                     break;
                                 }
                                 // Add the name of the option to the chosen list
-                                _ActivePoll.AddOption(AEventOption.RuleNames[option]);
+                                _ActivePoll.AddOption(AEventOption.RuleNames[option], false);
                             }
                             if (_EventRoundOptions.Count() >= _EventRoundAutoPollsMax) {
-                                availableRuleOptions.Add(AEventOption.RuleCode.ENDEVENT);
+                                _ActivePoll.AddOption(AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT], true);
                             }
 
                             while (_pluginEnabled &&
@@ -26137,7 +26137,7 @@ namespace PRoConEvents {
                                             break;
                                         }
                                         // Add the name of the option to the chosen list
-                                        _ActivePoll.AddOption(AEventOption.ModeNames[option]);
+                                        _ActivePoll.AddOption(AEventOption.ModeNames[option], false);
                                     }
 
                                     while (_pluginEnabled &&
@@ -35653,18 +35653,18 @@ namespace PRoConEvents {
                             Hashtable data = (Hashtable)json["data"];
                             Hashtable overviewStatsTable = null;
                             if (data.ContainsKey("generalStats") && (overviewStatsTable = (Hashtable)data["generalStats"]) != null) {
-                                stats.Skill = Int32.Parse(overviewStatsTable["skill"].ToString());
-                                stats.Revives = Int32.Parse(overviewStatsTable["revives"].ToString());
-                                stats.Rank = Int32.Parse(overviewStatsTable["rank"].ToString());
-                                stats.Kills = Int32.Parse(overviewStatsTable["kills"].ToString());
+                                stats.Skill = Int64.Parse(overviewStatsTable["skill"].ToString());
+                                stats.Revives = Int64.Parse(overviewStatsTable["revives"].ToString());
+                                stats.Rank = Int64.Parse(overviewStatsTable["rank"].ToString());
+                                stats.Kills = Int64.Parse(overviewStatsTable["kills"].ToString());
                                 stats.Accuracy = (Double)overviewStatsTable["accuracy"];
-                                stats.Shots = Int32.Parse(overviewStatsTable["shotsFired"].ToString());
-                                stats.Score = Int32.Parse(overviewStatsTable["score"].ToString());
-                                stats.Hits = Int32.Parse(overviewStatsTable["shotsHit"].ToString());
-                                stats.Rank = Int32.Parse(overviewStatsTable["rank"].ToString());
-                                stats.Heals = Int32.Parse(overviewStatsTable["heals"].ToString());
-                                stats.Deaths = Int32.Parse(overviewStatsTable["deaths"].ToString());
-                                stats.Headshots = Int32.Parse(overviewStatsTable["headshots"].ToString());
+                                stats.Shots = Int64.Parse(overviewStatsTable["shotsFired"].ToString());
+                                stats.Score = Int64.Parse(overviewStatsTable["score"].ToString());
+                                stats.Hits = Int64.Parse(overviewStatsTable["shotsHit"].ToString());
+                                stats.Rank = Int64.Parse(overviewStatsTable["rank"].ToString());
+                                stats.Heals = Int64.Parse(overviewStatsTable["heals"].ToString());
+                                stats.Deaths = Int64.Parse(overviewStatsTable["deaths"].ToString());
+                                stats.Headshots = Int64.Parse(overviewStatsTable["headshots"].ToString());
                             }
                         }
 
@@ -38430,7 +38430,7 @@ namespace PRoConEvents {
 
             public String ID;
             public String Title;
-            public Dictionary<Int32, String> Options;
+            public Dictionary<Int32, KeyValuePair<String, Boolean>> Options;
 
             public Boolean Completed;
             public Boolean Canceled;
@@ -38443,16 +38443,16 @@ namespace PRoConEvents {
                 Plugin = plugin;
                 StartTime = Plugin.UtcNow();
                 PrintTime = Plugin.UtcNow().AddMinutes(-10);
-                Options = new Dictionary<Int32, String>();
+                Options = new Dictionary<Int32, KeyValuePair<String, Boolean>>();
                 Votes = new Dictionary<APlayer, Int32>();
             }
 
-            public void AddOption(String option) {
+            public void AddOption(String option, Boolean singular) {
                 Int32 optionNumber = 1;
                 while (Options.ContainsKey(optionNumber)) {
                     optionNumber++;
                 }
-                Options[optionNumber] = option;
+                Options[optionNumber] = new KeyValuePair<String, Boolean>(option, singular);
             }
 
             public Boolean AddVote(APlayer voter, Int32 vote) {
@@ -38511,17 +38511,31 @@ namespace PRoConEvents {
             public String GetWinningOption(Boolean print) {
                 if (!Votes.Any()) {
                     // If nobody has voted yet, use the first option
-                    return Options.Values.FirstOrDefault();
+                    return Options.Values.FirstOrDefault().Key;
                 }
-                var votes = Votes.Values.ToList();
-                var winner = votes.GroupBy(vote => vote)
-                                  .Select(group => new { Option = group.Key, Count = group.Count() })
-                                  .OrderByDescending(group => group.Count)
-                                  .First();
-                var winnerString = Options[winner.Option];
-                if (print) {
-                    Plugin.AdminSayMessage("'" + winnerString + "' won with " + winner.Count + " votes!");
-                }
+                String winnerString = null;
+                List<Int32> exclude = new List<Int32>();
+                do {
+                    var votes = Votes.Values.ToList();
+                    var results = votes.Where(vote => !exclude.Contains(vote))
+                                       .GroupBy(vote => vote)
+                                       .Select(group => new { Option = group.Key, Count = group.Count() })
+                                       .OrderByDescending(group => group.Count);
+                    var winner = results.First();
+                    var winnerOption = Options[winner.Option];
+                    winnerString = winnerOption.Key;
+                    if (winnerOption.Value) {
+                        // This result can only win if it's greater than all other options combined
+                        var sumOtherVotes = results.Where(result => result.Option != winner.Option).Sum(result => result.Count);
+                        if (winner.Count < sumOtherVotes) {
+                            winnerString = null;
+                        }
+                    }
+                    if (print && winnerString != null) {
+                        Plugin.AdminSayMessage("'" + winnerString + "' won with " + winner.Count + " votes!");
+                    }
+                } while (winnerString == null);
+
                 return winnerString;
             }
 
@@ -39026,17 +39040,17 @@ namespace PRoConEvents {
 
         public class APlayerStats {
             public Int64 RoundID;
-            public Int32 Rank;
-            public Int32 Skill;
-            public Int32 Kills;
-            public Int32 Headshots;
-            public Int32 Deaths;
-            public Int32 Shots;
-            public Int32 Hits;
-            public Int32 Score;
+            public Int64 Rank;
+            public Int64 Skill;
+            public Int64 Kills;
+            public Int64 Headshots;
+            public Int64 Deaths;
+            public Int64 Shots;
+            public Int64 Hits;
+            public Int64 Score;
             public Double Accuracy;
-            public Int32 Revives;
-            public Int32 Heals;
+            public Int64 Revives;
+            public Int64 Heals;
             public Dictionary<String, AWeaponStat> WeaponStats = null;
             public Dictionary<String, AVehicleStat> VehicleStats = null;
             public CPlayerInfo LiveStats = null;
