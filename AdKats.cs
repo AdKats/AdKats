@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.273
- * 14-SEP-2017
+ * Version 6.9.0.274
+ * 16-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.273</version_code>
+ * <version_code>6.9.0.274</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.273";
+        private const String PluginVersion = "6.9.0.274";
 
         public enum GameVersion {
             BF3,
@@ -208,7 +208,6 @@ namespace PRoConEvents {
         private DateTime _LastPlayerMoveIssued = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastPluginDescFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastWeaponCodePost = DateTime.UtcNow - TimeSpan.FromHours(1);
-        private Boolean _PostedWeaponCodes;
         private DateTime _LastTicketRateDisplay = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
@@ -6522,7 +6521,7 @@ namespace PRoConEvents {
                                     if (uptime.TotalHours < _automaticServerRestartMinHours) {
                                         restart = false;
                                     }
-                                    Int32 count = _PlayerDictionary.Values.Count(aPlayer =>
+                                    Int32 count = _PlayerDictionary.Values.ToList().Count(aPlayer =>
                                                     aPlayer.player_type == PlayerType.Player &&
                                                     NowDuration(aPlayer.lastAction).TotalMinutes < 30);
                                     if (restart && count > 1) {
@@ -6702,7 +6701,7 @@ namespace PRoConEvents {
                                 }
 
                                 //Team operations
-                                ATeam team1, team2, winningTeam, losingTeam;
+                                ATeam team1, team2, winningTeam, losingTeam, mapUpTeam, mapDownTeam;
                                 if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
                                     if (team1.TeamTicketCount > team2.TeamTicketCount) {
                                         winningTeam = team1;
@@ -6711,15 +6710,24 @@ namespace PRoConEvents {
                                         winningTeam = team2;
                                         losingTeam = team1;
                                     }
+                                    if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate()) {
+                                        //Team1 has more map than Team2
+                                        mapUpTeam = team1;
+                                        mapDownTeam = team2;
+                                    } else {
+                                        //Team2 has more map than Team1
+                                        mapUpTeam = team2;
+                                        mapDownTeam = team1;
+                                    }
 
-                                    //Auto-assist
                                     if (_roundState == RoundState.Playing &&
                                         _serverInfo.GetRoundElapsedTime().TotalMinutes > 5 &&
                                         Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
                                         !_Team1MoveQueue.Any() &&
                                         !_Team2MoveQueue.Any()) {
+                                        //Auto-assist
                                         foreach (var aPlayer in GetOnlinePlayerDictionaryOfGroup("blacklist_autoassist").Values
-                                            .Where(dPlayer => dPlayer.fbpInfo.TeamID == winningTeam.TeamID)) {
+                                                                    .Where(dPlayer => dPlayer.fbpInfo.TeamID == winningTeam.TeamID)) {
                                             var assistRecord = new ARecord {
                                                 record_source = ARecord.Sources.InternalAutomated,
                                                 server_id = _serverInfo.ServerID,
@@ -6736,6 +6744,14 @@ namespace PRoConEvents {
                                                 _PlayersAutoAssistedThisRound = true;
                                                 Thread.Sleep(2000);
                                             }
+                                        }
+                                        //Server seeder balance
+                                        foreach (var aPlayer in _PlayerDictionary.Values.ToList().Where(dPlayer =>
+                                                                    dPlayer.player_type == PlayerType.Player &&
+                                                                    NowDuration(dPlayer.lastAction).TotalMinutes > 20)) {
+                                            // Player is a server seeder. Put them on the winning team.
+                                            aPlayer.RequiredTeam = mapUpTeam;
+                                            ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
                                         }
                                     }
                                 }
