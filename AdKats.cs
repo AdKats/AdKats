@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.274
+ * Version 6.9.0.275
  * 16-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.274</version_code>
+ * <version_code>6.9.0.275</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.274";
+        private const String PluginVersion = "6.9.0.275";
 
         public enum GameVersion {
             BF3,
@@ -38481,13 +38481,13 @@ namespace PRoConEvents {
                     currentVote = Votes[voter];
                 }
                 if (currentVote == vote) {
-                    voter.Say("You already voted for '" + Options[vote] + "'");
+                    voter.Say("You already voted for '" + Options[vote].Key + "'");
                     return false;
                 }
                 if (currentVote > 0) {
-                    voter.Say("You changed your vote from '" + Options[currentVote] + "' to '" + Options[vote] + "'");
+                    voter.Say("You changed your vote from '" + Options[currentVote].Key + "' to '" + Options[vote].Key + "'");
                 } else {
-                    voter.Say("Vote added for '" + Options[vote] + "'.");
+                    voter.Say("Vote added for '" + Options[vote].Key + "'.");
                 }
                 Votes[voter] = vote;
                 return true;
@@ -38496,7 +38496,7 @@ namespace PRoConEvents {
             public void PrintPoll() {
                 List<String> optionStrings = new List<String>();
                 foreach (var option in Options) {
-                    optionStrings.Add(option.Key + ". " + option.Value + " [" + Votes.Count(vote => vote.Value == option.Key) + "]");
+                    optionStrings.Add(option.Key + ". " + option.Value.Key + " [" + Votes.Count(vote => vote.Value == option.Key) + "]");
                 }
                 List<String> optionLines = new List<String>();
                 String currentLine = String.Empty;
