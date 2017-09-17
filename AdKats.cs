@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.281
+ * Version 6.9.0.282
  * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.281</version_code>
+ * <version_code>6.9.0.282</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.281";
+        private const String PluginVersion = "6.9.0.282";
 
         public enum GameVersion {
             BF3,
@@ -7713,7 +7713,7 @@ namespace PRoConEvents {
                                     if (!aPlayer.player_spawnedRound) {
                                         if (aPlayer.RequiredTeam != null) {
                                             if (aPlayer.fbpInfo.TeamID != aPlayer.RequiredTeam.TeamID || aPlayer.fbpInfo.SquadID != aPlayer.RequiredSquad) {
-                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "true");
+                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
                                                 Thread.Sleep(40);
                                             }
                                         } else {
@@ -7897,8 +7897,15 @@ namespace PRoConEvents {
                         _roundState == RoundState.Playing &&
                         aPlayer.RequiredTeam == null &&
                         playerCount > 15) {
-                        ATeam team1, team2, powerTeam, weakTeam, mapUpTeam, mapDownTeam;
+                        ATeam team1, team2, winningTeam, losingTeam, powerTeam, weakTeam, mapUpTeam, mapDownTeam;
                         if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
+                            if (team1.TeamTicketCount > team2.TeamTicketCount) {
+                                winningTeam = team1;
+                                losingTeam = team2;
+                            } else {
+                                winningTeam = team2;
+                                losingTeam = team1;
+                            }
                             if (team1.GetTeamPower(null, aPlayer) > team2.GetTeamPower(null, aPlayer)) {
                                 powerTeam = team1;
                                 weakTeam = team2;
@@ -7913,9 +7920,15 @@ namespace PRoConEvents {
                                 mapUpTeam = team2;
                                 mapDownTeam = team1;
                             }
-                            if (weakTeam.TeamPlayerCount <= powerTeam.TeamPlayerCount + 5 && 
-                                (_serverInfo.GetRoundElapsedTime().TotalMinutes < 8.0 || weakTeam == mapDownTeam)) {
+                            var players = _PlayerDictionary.Values.ToList();
+                            var weakCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
+                                                                     dPlayer.fbpInfo.TeamID == weakTeam.TeamID);
+                            var powerCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
+                                                                      dPlayer.fbpInfo.TeamID == powerTeam.TeamID);
+                            if (weakCount <= powerCount + 5 && weakTeam == mapDownTeam) {
                                 aPlayer.RequiredTeam = weakTeam;
+                            }
+                            if (aPlayer.RequiredTeam != null) {
                                 OnlineAdminSayMessage(aPlayer.GetVerboseName() + " join-assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
                             }
