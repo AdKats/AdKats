@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.279
+ * Version 6.9.0.280
  * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.279</version_code>
+ * <version_code>6.9.0.280</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.279";
+        private const String PluginVersion = "6.9.0.280";
 
         public enum GameVersion {
             BF3,
@@ -7705,16 +7705,16 @@ namespace PRoConEvents {
                             playerList = _PlayerDictionary.Values.ToList();
                             // Attempt to make sure every player stays on their assigned team/squad, despite the DICE balancer
                             while (playerList.Count() > 15 && 
-                                   (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 5)) {
+                                   (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 8)) {
                                 foreach(var aPlayer in playerList.Where(dPlayer => !dPlayer.player_spawnedRound)) {
-                                    if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 5) {
+                                    if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 8) {
                                         break;
                                     }
                                     if (!aPlayer.player_spawnedRound) {
                                         if (aPlayer.RequiredTeam != null) {
                                             if (aPlayer.fbpInfo.TeamID != aPlayer.RequiredTeam.TeamID || aPlayer.fbpInfo.SquadID != aPlayer.RequiredSquad) {
-                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
-                                                Thread.Sleep(50);
+                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "true");
+                                                Thread.Sleep(40);
                                             }
                                         } else {
                                             // Choose a squad for the player
