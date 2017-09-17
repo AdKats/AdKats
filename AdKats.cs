@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.284
+ * Version 6.9.0.285
  * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.284</version_code>
+ * <version_code>6.9.0.285</version_code>
  */
 
 using System;
@@ -32,7 +32,6 @@ using System.CodeDom.Compiler;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
@@ -65,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.284";
+        private const String PluginVersion = "6.9.0.285";
 
         public enum GameVersion {
             BF3,
@@ -7933,12 +7932,18 @@ namespace PRoConEvents {
                                                                      dPlayer.fbpInfo.TeamID == weakTeam.TeamID);
                             var powerCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
                                                                       dPlayer.fbpInfo.TeamID == powerTeam.TeamID);
+                            var teamCountLeniency = 1;
+                            if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 7.5) {
+                                teamCountLeniency = 5;
+                            }
                             // Assume max team size of 32 unless otherwise provided
                             var maxTeamPlayerCount = 32;
                             if (_serverInfo.InfoObject != null && _serverInfo.InfoObject.MaxPlayerCount != maxTeamPlayerCount) {
                                 maxTeamPlayerCount = _serverInfo.InfoObject.MaxPlayerCount / 2;
                             }
-                            if (weakCount <= powerCount + 5 && weakTeam == mapDownTeam && weakCount < maxTeamPlayerCount) {
+                            if (weakCount <= powerCount + teamCountLeniency &&
+                                weakCount < maxTeamPlayerCount && 
+                                weakTeam == mapDownTeam) {
                                 aPlayer.RequiredTeam = weakTeam;
                             }
                             if (aPlayer.RequiredTeam != null) {
