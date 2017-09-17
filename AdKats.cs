@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.280
+ * Version 6.9.0.281
  * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.280</version_code>
+ * <version_code>6.9.0.281</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.280";
+        private const String PluginVersion = "6.9.0.281";
 
         public enum GameVersion {
             BF3,
@@ -7890,49 +7890,34 @@ namespace PRoConEvents {
                         }
                     }
                     var playerCount = _PlayerDictionary.Values.ToList().Count(dPlayer => dPlayer.player_type == PlayerType.Player);
-                    if (false && _UseExperimentalTools &&
+                    if (_UseTeamPowerMonitor &&
+                        _UseTeamPowerMonitorBalance &&
                         _firstPlayerListComplete &&
                         oldTeam.TeamKey == "Neutral" &&
                         _roundState == RoundState.Playing &&
-                        playerCount > 10) {
-                        if (!_AssistAttemptQueue.Any() && !_Team1MoveQueue.Any() && !_Team2MoveQueue.Any()) {
-                            if (aPlayer.RequiredTeam == null) {
-                                if (aPlayer.fbpInfo.TeamID == 0) {
-                                    Log.Info("Was going to join assist, but " + aPlayer.player_name + " was still on the neutral team.");
-                                } else {
-                                    // Run an automatic assist on-join
-                                    var message = aPlayer.GetVerboseName() + " join assisted.";
-                                    if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
-                                        PlayerSayMessage("ColColonCleaner", message);
-                                    } else {
-                                        ProconChatWrite(Log.FBold(message));
-                                    }
-                                    QueueRecordForProcessing(new ARecord {
-                                        record_source = ARecord.Sources.InternalAutomated,
-                                        server_id = _serverInfo.ServerID,
-                                        command_type = GetCommandByKey("self_assist"),
-                                        command_action = GetCommandByKey("self_assist_unconfirmed"),
-                                        target_name = aPlayer.player_name,
-                                        target_player = aPlayer,
-                                        source_name = "JoinManager",
-                                        record_message = "Join Assist",
-                                        record_time = UtcNow()
-                                    });
-                                }
+                        aPlayer.RequiredTeam == null &&
+                        playerCount > 15) {
+                        ATeam team1, team2, powerTeam, weakTeam, mapUpTeam, mapDownTeam;
+                        if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
+                            if (team1.GetTeamPower(null, aPlayer) > team2.GetTeamPower(null, aPlayer)) {
+                                powerTeam = team1;
+                                weakTeam = team2;
                             } else {
-                                var message = aPlayer.GetVerboseName() + " joined, already assigned " + aPlayer.RequiredTeam.TeamKey + ".";
-                                if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
-                                    PlayerSayMessage("ColColonCleaner", message);
-                                } else {
-                                    ProconChatWrite(Log.FBold(message));
-                                }
+                                powerTeam = team2;
+                                weakTeam = team1;
                             }
-                        } else {
-                            var message = aPlayer.GetVerboseName() + " joined, assist/move queue already occupied.";
-                            if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
-                                PlayerSayMessage("ColColonCleaner", message);
+                            if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate()) {
+                                mapUpTeam = team1;
+                                mapDownTeam = team2;
                             } else {
-                                ProconChatWrite(Log.FBold(message));
+                                mapUpTeam = team2;
+                                mapDownTeam = team1;
+                            }
+                            if (weakTeam.TeamPlayerCount <= powerTeam.TeamPlayerCount + 5 && 
+                                (_serverInfo.GetRoundElapsedTime().TotalMinutes < 8.0 || weakTeam == mapDownTeam)) {
+                                aPlayer.RequiredTeam = weakTeam;
+                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " join-assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
+                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
                             }
                         }
                     }
