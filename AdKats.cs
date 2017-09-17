@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.278
+ * Version 6.9.0.279
  * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.278</version_code>
+ * <version_code>6.9.0.279</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.278";
+        private const String PluginVersion = "6.9.0.279";
 
         public enum GameVersion {
             BF3,
@@ -10177,16 +10177,17 @@ namespace PRoConEvents {
                 }
 
                 // EVENT AUTOMATION
+                if (_ActivePoll != null) {
+                    // If there is an active poll, auto-complete it
+                    _ActivePoll.Completed = true;
+                    _threadMasterWaitHandle.WaitOne(1000);
+                }
                 if (_UseExperimentalTools &&
                     _EventRoundOptions.Any() &&
                     _EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
                     var nRound = _roundID + 1;
                     StartAndLogThread(new Thread(new ThreadStart(delegate {
                         Thread.CurrentThread.Name = "EventAnnounce";
-                        if (_ActivePoll != null) {
-                            // If there is an active poll, auto-complete it
-                            _ActivePoll.Completed = true;
-                        }
                         Thread.Sleep(TimeSpan.FromSeconds(6));
                         // The new _roundID is fetched by now
                         if (EventActive(nRound)) {
@@ -26118,7 +26119,7 @@ namespace PRoConEvents {
                                     _ActivePoll.PrintPoll();
                                 }
 
-                                _threadMasterWaitHandle.WaitOne(500);
+                                _threadMasterWaitHandle.WaitOne(250);
                             }
 
                             if (_ActivePoll.Completed) {
@@ -26186,7 +26187,7 @@ namespace PRoConEvents {
                                             _ActivePoll.PrintPoll();
                                         }
 
-                                        _threadMasterWaitHandle.WaitOne(500);
+                                        _threadMasterWaitHandle.WaitOne(250);
                                     }
 
                                     if (_ActivePoll.Completed) {
@@ -26196,7 +26197,6 @@ namespace PRoConEvents {
                                     // Only continue if the round is still active
                                     // And the poll has not been canceled
                                     if (_pluginEnabled &&
-                                        _roundState == RoundState.Playing &&
                                         !_ActivePoll.Canceled) {
 
                                         // Get the outcome
@@ -26221,6 +26221,7 @@ namespace PRoConEvents {
                             HandleException(new AException("Error while processing event poll.", e));
                         }
 
+                        _threadMasterWaitHandle.WaitOne(500);
                         // Remove the active poll
                         _ActivePoll = null;
 
@@ -31317,6 +31318,9 @@ namespace PRoConEvents {
 
                         //Assign the query
                         command.CommandText = query;
+                        if (_debugDisplayPlayerFetches) {
+                            PrintPreparedCommand(command);
+                        }
                         using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             while (reader.Read()) {
                                 //Create the ban element
@@ -34158,6 +34162,9 @@ namespace PRoConEvents {
                         WHERE 
                             `ServerID` = @ServerID";
                         command.Parameters.AddWithValue("@ServerID", serverID);
+                        if (_debugDisplayPlayerFetches) {
+                            PrintPreparedCommand(command);
+                        }
                         using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 return reader.GetInt64("server_group");
