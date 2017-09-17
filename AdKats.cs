@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.285
+ * Version 6.9.0.286
  * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.285</version_code>
+ * <version_code>6.9.0.286</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.285";
+        private const String PluginVersion = "6.9.0.286";
 
         public enum GameVersion {
             BF3,
@@ -7856,14 +7856,14 @@ namespace PRoConEvents {
                             _roundState == RoundState.Playing &&
                             _serverInfo.GetRoundElapsedTime().TotalMinutes > _minimumAssistMinutes) {
                             if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 3) {
-                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + ".");
+                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + ".");
                             }
                             aPlayer.RequiredTeam = newTeam;
                         } else {
                             if (_roundState == RoundState.Playing &&
                                 NowDuration(aPlayer.lastSwitchMessage).TotalSeconds > 5) {
                                 if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 2) {
-                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
+                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
                                 }
                                 PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ", please remain on that team.");
                                 aPlayer.lastSwitchMessage = UtcNow();
@@ -7947,7 +7947,7 @@ namespace PRoConEvents {
                                 aPlayer.RequiredTeam = weakTeam;
                             }
                             if (aPlayer.RequiredTeam != null) {
-                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " join-assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
+                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
                             }
                         }
@@ -8457,14 +8457,14 @@ namespace PRoConEvents {
                                                 _roundState == RoundState.Playing &&
                                                 _serverInfo.GetRoundElapsedTime().TotalMinutes > _minimumAssistMinutes) {
                                                 if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 3) {
-                                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + playerTeam.TeamKey + ".");
+                                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + playerTeam.TeamKey + ".");
                                                 }
                                                 aPlayer.RequiredTeam = playerTeam;
                                             } else {
                                                 if (_roundState == RoundState.Playing &&
                                                     NowDuration(aPlayer.lastSwitchMessage).TotalSeconds > 5) {
                                                     if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 2) {
-                                                        OnlineAdminSayMessage(aPlayer.GetVerboseName() + " attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
+                                                        OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
                                                     }
                                                     PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ", please remain on that team.");
                                                     aPlayer.lastSwitchMessage = UtcNow();
@@ -31120,7 +31120,7 @@ namespace PRoConEvents {
             }
             if (!canAssist) {
                 if (realRecord != null) {
-                    rejectionMessage = realRecord.GetSourceName() + " assist to " + enemyTeam.TeamKey + " rejected (" + rejectionMessage + ").";
+                    rejectionMessage = realRecord.GetSourceName() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.TeamKey + " rejected (" + rejectionMessage + ").";
                     if (!auto) {
                         if (_UseExperimentalTools) {
                             rejectionMessage += " Queued (#" + (_AssistAttemptQueue.Count() + 1) + ") for 5 minute auto-assist.";
@@ -31134,7 +31134,7 @@ namespace PRoConEvents {
                         }
                     }
                 } else if (debugRecord != null) {
-                    rejectionMessage = debugRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " rejected, " + rejectionMessage;
+                    rejectionMessage = debugRecord.GetTargetNames() + " (" + Math.Round(debugRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.TeamKey + " rejected, " + rejectionMessage;
                     if (!auto) {
                         InfoOrRespond(debugRecord, rejectionMessage);
                     }
@@ -31142,7 +31142,7 @@ namespace PRoConEvents {
             } else {
                 if (realRecord != null) {
                     SendMessageToSource(realRecord, "Queuing you to assist the weak team. Thank you.");
-                    AdminSayMessage(realRecord.GetTargetNames() + " assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + (newPowerDiff > oldPowerDiff ? "Bypass" : Math.Round(newPercDiff) + "<" + Math.Round(oldPercDiff)) + ")" : "") + ", queueing.");
+                    AdminSayMessage(realRecord.GetTargetNames() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + (newPowerDiff > oldPowerDiff ? "Bypass" : Math.Round(newPercDiff) + "<" + Math.Round(oldPercDiff)) + ")" : "") + ", queueing.");
                     realRecord.command_action = GetCommandByKey("self_assist_unconfirmed");
                 } else if (debugRecord != null) {
                     SendMessageToSource(debugRecord, "Assist accepted.");
