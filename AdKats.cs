@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.277
+ * Version 6.9.0.278
  * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.277</version_code>
+ * <version_code>6.9.0.278</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.277";
+        private const String PluginVersion = "6.9.0.278";
 
         public enum GameVersion {
             BF3,
@@ -769,6 +769,9 @@ namespace PRoConEvents {
         private Boolean _factionRandomizerAllowRepeatSelection = true;
         private Int32 _factionRandomizerCurrentTeam1 = 0;
         private Int32 _factionRandomizerCurrentTeam2 = 1;
+
+        //MapModes
+        public  List<CMap> _AvailableMapModes = null;
 
         //Weapon stats
         private readonly Dictionary<String, AWeaponName> _weaponNames = new Dictionary<String, AWeaponName>();
@@ -5778,6 +5781,9 @@ namespace PRoConEvents {
                         //Make sure the default in-game admin is disabled
                         ExecuteCommand("procon.protected.plugins.enable", "CInGameAdmin", "False");
 
+                        // Populate the list of available maps
+                        _AvailableMapModes = this.GetMapDefines();
+
                         //Initialize the stat library
                         _StatLibrary = new StatLibrary(this);
                         if (_StatLibrary.PopulateWeaponStats()) {
@@ -6747,19 +6753,21 @@ namespace PRoConEvents {
                                             }
                                         }
                                         //Server seeder balance
-                                        if (_UseTeamPowerMonitor && _UseTeamPowerMonitorBalance) {
+                                        if (_UseTeamPowerMonitor && _UseTeamPowerMonitorBalance && _PlayerDictionary.Any()) {
                                             var seeders = _PlayerDictionary.Values.ToList().Where(dPlayer =>
                                                                         dPlayer.player_type == PlayerType.Player &&
                                                                         NowDuration(dPlayer.lastAction).TotalMinutes > 20);
-                                            var mapUpSeeders = seeders.Where(aPlayer => aPlayer.fbpInfo.TeamID == mapUpTeam.TeamID);
-                                            var mapDownSeeders = seeders.Where(aPlayer => aPlayer.fbpInfo.TeamID == mapDownTeam.TeamID);
-                                            // This code is fired every 30 seconds
-                                            // At that interval move players so either both teams have the same number of seeders,
-                                            // or the map up team has 1 more seeder.
-                                            if (mapDownSeeders.Count() > mapUpSeeders.Count()) {
-                                                var aPlayer = mapDownSeeders.First();
-                                                aPlayer.RequiredTeam = mapUpTeam;
-                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
+                                            if (seeders.Any()) {
+                                                var mapUpSeeders = seeders.Where(aPlayer => aPlayer.fbpInfo.TeamID == mapUpTeam.TeamID);
+                                                var mapDownSeeders = seeders.Where(aPlayer => aPlayer.fbpInfo.TeamID == mapDownTeam.TeamID);
+                                                // This code is fired every 30 seconds
+                                                // At that interval move players so either both teams have the same number of seeders,
+                                                // or the map up team has 1 more seeder.
+                                                if (mapDownSeeders.Count() > mapUpSeeders.Count()) {
+                                                    var aPlayer = mapDownSeeders.First();
+                                                    aPlayer.RequiredTeam = mapUpTeam;
+                                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
+                                                }
                                             }
                                         }
                                     }
