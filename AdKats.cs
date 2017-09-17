@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.275
- * 16-SEP-2017
+ * Version 6.9.0.276
+ * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.275</version_code>
+ * <version_code>6.9.0.276</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.275";
+        private const String PluginVersion = "6.9.0.276";
 
         public enum GameVersion {
             BF3,
@@ -6746,12 +6746,19 @@ namespace PRoConEvents {
                                             }
                                         }
                                         //Server seeder balance
-                                        foreach (var aPlayer in _PlayerDictionary.Values.ToList().Where(dPlayer =>
-                                                                    dPlayer.player_type == PlayerType.Player &&
-                                                                    NowDuration(dPlayer.lastAction).TotalMinutes > 20)) {
-                                            // Player is a server seeder. Put them on the winning team.
-                                            aPlayer.RequiredTeam = mapUpTeam;
-                                            ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
+                                        if (_UseTeamPowerMonitor && _UseTeamPowerMonitorBalance) {
+                                            var t1Power = team1.GetTeamPower();
+                                            var t2Power = team2.GetTeamPower();
+                                            var seeders = _PlayerDictionary.Values.ToList().Where(dPlayer =>
+                                                                        dPlayer.player_type == PlayerType.Player &&
+                                                                        NowDuration(dPlayer.lastAction).TotalMinutes > 20);
+                                            // Put
+
+                                            foreach (var aPlayer in seeders) {
+                                                // Player is a server seeder. Put them on the winning team.
+                                                aPlayer.RequiredTeam = mapUpTeam;
+                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
+                                            }
                                         }
                                     }
                                 }
@@ -26085,7 +26092,7 @@ namespace PRoConEvents {
                                 _ActivePoll.AddOption(AEventOption.RuleNames[option], false);
                             }
                             if (_EventRoundOptions.Count() >= _EventRoundAutoPollsMax) {
-                                _ActivePoll.AddOption(AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT], true);
+                                _ActivePoll.AddOption(AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT], false);
                             }
 
                             while (_pluginEnabled &&
@@ -39607,6 +39614,9 @@ namespace PRoConEvents {
                         .Where(aPlayer =>
                             // Player is a live soldier in game, not a spectator/commander/etc.
                             aPlayer.player_type == PlayerType.Player
+                            &&
+                            // Player is not a server seeder
+                            Plugin.NowDuration(aPlayer.lastAction).TotalMinutes < 20
                             &&
                             // Player is not the one we decided to ignore, if any
                             (ignorePlayer == null || aPlayer.player_id != ignorePlayer.player_id)
