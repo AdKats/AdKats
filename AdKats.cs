@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.282
+ * Version 6.9.0.283
  * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.282</version_code>
+ * <version_code>6.9.0.283</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.282";
+        private const String PluginVersion = "6.9.0.283";
 
         public enum GameVersion {
             BF3,
@@ -7906,7 +7906,15 @@ namespace PRoConEvents {
                                 winningTeam = team2;
                                 losingTeam = team1;
                             }
-                            if (team1.GetTeamPower(null, aPlayer) > team2.GetTeamPower(null, aPlayer)) {
+                            var t1Power = team1.GetTeamPower(null, aPlayer);
+                            var t2Power = team2.GetTeamPower(null, aPlayer);
+                            var map = _serverInfo.GetMap();
+                            if (map != null && map.MapFileName == "XP0_Metro") {
+                                // If this is metro, overstate the power of the lower team slightly
+                                // The upper team needs a slight stat boost over normal
+                                t1Power *= 1.1;
+                            }
+                            if (t1Power > t2Power) {
                                 powerTeam = team1;
                                 weakTeam = team2;
                             } else {
