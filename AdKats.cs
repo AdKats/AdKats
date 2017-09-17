@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.276
+ * Version 6.9.0.277
  * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.276</version_code>
+ * <version_code>6.9.0.277</version_code>
  */
 
 using System;
@@ -65,7 +65,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.276";
+        private const String PluginVersion = "6.9.0.277";
 
         public enum GameVersion {
             BF3,
@@ -6710,7 +6710,8 @@ namespace PRoConEvents {
                                         winningTeam = team2;
                                         losingTeam = team1;
                                     }
-                                    if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate()) {
+                                    // If the mode is rush, the attackers are team 1, use that team for the extra seeder
+                                    if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate() || (_serverInfo.InfoObject.GameMode.ToLower().Contains("rush"))) {
                                         //Team1 has more map than Team2
                                         mapUpTeam = team1;
                                         mapDownTeam = team2;
@@ -6747,15 +6748,16 @@ namespace PRoConEvents {
                                         }
                                         //Server seeder balance
                                         if (_UseTeamPowerMonitor && _UseTeamPowerMonitorBalance) {
-                                            var t1Power = team1.GetTeamPower();
-                                            var t2Power = team2.GetTeamPower();
                                             var seeders = _PlayerDictionary.Values.ToList().Where(dPlayer =>
                                                                         dPlayer.player_type == PlayerType.Player &&
                                                                         NowDuration(dPlayer.lastAction).TotalMinutes > 20);
-                                            // Put
-
-                                            foreach (var aPlayer in seeders) {
-                                                // Player is a server seeder. Put them on the winning team.
+                                            var mapUpSeeders = seeders.Where(aPlayer => aPlayer.fbpInfo.TeamID == mapUpTeam.TeamID);
+                                            var mapDownSeeders = seeders.Where(aPlayer => aPlayer.fbpInfo.TeamID == mapDownTeam.TeamID);
+                                            // This code is fired every 30 seconds
+                                            // At that interval move players so either both teams have the same number of seeders,
+                                            // or the map up team has 1 more seeder.
+                                            if (mapDownSeeders.Count() > mapUpSeeders.Count()) {
+                                                var aPlayer = mapDownSeeders.First();
                                                 aPlayer.RequiredTeam = mapUpTeam;
                                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
                                             }
@@ -9235,7 +9237,9 @@ namespace PRoConEvents {
                             }
                             if (_DisplayTicketRatesInProconChat &&
                                 _roundState == RoundState.Playing &&
-                                _PlayerDictionary.Any()) {
+                                _PlayerDictionary.Any() &&
+                                team1.TeamTicketCount != _startingTicketCount &&
+                                team2.TeamTicketCount != _startingTicketCount) {
                                 String flagMessage = "";
                                 if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" ||
                                     _serverInfo.InfoObject.GameMode == "Chainlink0" ||
