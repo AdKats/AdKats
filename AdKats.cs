@@ -7927,7 +7927,7 @@ namespace PRoConEvents {
                                 // The upper team needs a slight stat boost over normal
                                 if (team1 == mapUpTeam) {
                                     // If the lower team has the map, overstate its power even more
-                                    t1Power *= 1.5;
+                                    t1Power *= 1.25;
                                 } else {
                                     t1Power *= 1.1;
                                 }
