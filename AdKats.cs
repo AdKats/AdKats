@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.291
- * 17-SEP-2017
+ * Version 6.9.0.292
+ * 18-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.291</version_code>
+ * <version_code>6.9.0.292</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.291";
+        private const String PluginVersion = "6.9.0.292";
 
         public enum GameVersion {
             BF3,
@@ -7862,7 +7862,7 @@ namespace PRoConEvents {
                         } else {
                             if (_roundState == RoundState.Playing &&
                                 NowDuration(aPlayer.lastSwitchMessage).TotalSeconds > 5) {
-                                if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 2) {
+                                if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 2 && _UseExperimentalTools) {
                                     OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
                                 }
                                 PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ", please remain on that team.");
@@ -7959,7 +7959,9 @@ namespace PRoConEvents {
                                 aPlayer.RequiredTeam = weakTeam;
                             }
                             if (aPlayer.RequiredTeam != null) {
-                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
+                                if (_UseExperimentalTools) {
+                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
+                                }
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
                             }
                         }
@@ -8475,7 +8477,7 @@ namespace PRoConEvents {
                                             } else {
                                                 if (_roundState == RoundState.Playing &&
                                                     NowDuration(aPlayer.lastSwitchMessage).TotalSeconds > 5) {
-                                                    if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 2) {
+                                                    if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 2 && _UseExperimentalTools) {
                                                         OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
                                                     }
                                                     PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ", please remain on that team.");
