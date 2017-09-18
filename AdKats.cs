@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.289
+ * Version 6.9.0.290
  * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.289</version_code>
+ * <version_code>6.9.0.290</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.289";
+        private const String PluginVersion = "6.9.0.290";
 
         public enum GameVersion {
             BF3,
@@ -7704,9 +7704,9 @@ namespace PRoConEvents {
                             playerList = _PlayerDictionary.Values.ToList();
                             // Attempt to make sure every player stays on their assigned team/squad, despite the DICE balancer
                             while (playerList.Count() > 15 && 
-                                   (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 5)) {
+                                   (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 3)) {
                                 foreach(var aPlayer in playerList.Where(dPlayer => !dPlayer.player_spawnedRound)) {
-                                    if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 5) {
+                                    if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 3) {
                                         break;
                                     }
                                     if (!aPlayer.player_spawnedRound) {
