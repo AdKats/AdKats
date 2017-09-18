@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.286
+ * Version 6.9.0.287
  * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.286</version_code>
+ * <version_code>6.9.0.287</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.286";
+        private const String PluginVersion = "6.9.0.287";
 
         public enum GameVersion {
             BF3,
@@ -31085,7 +31085,7 @@ namespace PRoConEvents {
             Boolean enemyWinning = (aPlayer.fbpInfo.TeamID == losingTeam.TeamID);
             Boolean enemyMapPower = enemyTeam.GetTicketDifferenceRate() > friendlyTeam.GetTicketDifferenceRate();
             Double ticketBypassAmount = (_startingTicketCount > 0 ? (_startingTicketCount / 3.5) : 250);
-            Boolean canTicketBypass = _previousRoundDuration.TotalSeconds > 0;
+            Boolean canTicketBypass = _previousRoundDuration.TotalSeconds > 0 && _serverInfo.GetRoundElapsedTime().TotalMinutes >= 10;
             Boolean ticketBypass = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > ticketBypassAmount && canTicketBypass;
             String ticketBypassMessage = (canTicketBypass ? " Wait for " + Math.Round(ticketBypassAmount) + " ticket difference." : "");
             if (enemyWinning && enemyMapPower) {
@@ -31097,9 +31097,13 @@ namespace PRoConEvents {
                 // If the map is metro, and the target team is the lower team, don't give the 18% power difference allowance
                 var map = _serverInfo.GetMap();
                 var powerDifferencePercOverThreshold = (_roundState == RoundState.Playing && map != null && map.MapFileName == "XP0_Metro" && enemyTeam.TeamID == 1) ? (powerDifferenceIncreased) : (newPercDiff > powerPercentageThreshold);
-                if (enemyMorePowerful &&
+                if (// The new team would be absolutely more powerful than the current team
+                    enemyMorePowerful &&
+                    // The differenct in power between the teams would go up
                     powerDifferenceIncreased &&
+                    // The difference in power would be over the threshold, or the enemy has more map
                     (powerDifferencePercOverThreshold || enemyMapPower) &&
+                    // And it's not possible to ticket bypass
                     !ticketBypass) {
                     canAssist = false;
                     rejectionMessage += "would be too strong";
