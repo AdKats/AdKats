@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.288
+ * Version 6.9.0.289
  * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.288</version_code>
+ * <version_code>6.9.0.289</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.288";
+        private const String PluginVersion = "6.9.0.289";
 
         public enum GameVersion {
             BF3,
@@ -7704,9 +7704,9 @@ namespace PRoConEvents {
                             playerList = _PlayerDictionary.Values.ToList();
                             // Attempt to make sure every player stays on their assigned team/squad, despite the DICE balancer
                             while (playerList.Count() > 15 && 
-                                   (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 8)) {
+                                   (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 5)) {
                                 foreach(var aPlayer in playerList.Where(dPlayer => !dPlayer.player_spawnedRound)) {
-                                    if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 8) {
+                                    if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 5) {
                                         break;
                                     }
                                     if (!aPlayer.player_spawnedRound) {
@@ -7912,13 +7912,25 @@ namespace PRoConEvents {
                                 winningTeam = team2;
                                 losingTeam = team1;
                             }
+                            if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate()) {
+                                mapUpTeam = team1;
+                                mapDownTeam = team2;
+                            } else {
+                                mapUpTeam = team2;
+                                mapDownTeam = team1;
+                            }
                             var t1Power = team1.GetTeamPower(null, aPlayer);
                             var t2Power = team2.GetTeamPower(null, aPlayer);
                             var map = _serverInfo.GetMap();
                             if (map != null && map.MapFileName == "XP0_Metro") {
                                 // If this is metro, overstate the power of the lower team slightly
                                 // The upper team needs a slight stat boost over normal
-                                t1Power *= 1.1;
+                                if (team1 == mapUpTeam) {
+                                    // If the lower team has the map, overstate its power even more
+                                    t1Power *= 1.5;
+                                } else {
+                                    t1Power *= 1.1;
+                                }
                             }
                             if (t1Power > t2Power) {
                                 powerTeam = team1;
@@ -7926,13 +7938,6 @@ namespace PRoConEvents {
                             } else {
                                 powerTeam = team2;
                                 weakTeam = team1;
-                            }
-                            if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate()) {
-                                mapUpTeam = team1;
-                                mapDownTeam = team2;
-                            } else {
-                                mapUpTeam = team2;
-                                mapDownTeam = team1;
                             }
                             var players = _PlayerDictionary.Values.ToList();
                             var weakCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
