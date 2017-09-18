@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.287
+ * Version 6.9.0.288
  * 17-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.287</version_code>
+ * <version_code>6.9.0.288</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.287";
+        private const String PluginVersion = "6.9.0.288";
 
         public enum GameVersion {
             BF3,
@@ -7896,6 +7896,13 @@ namespace PRoConEvents {
                         _roundState == RoundState.Playing &&
                         aPlayer.RequiredTeam == null &&
                         playerCount > 15) {
+                        var startTime = UtcNow();
+                        while (_pluginEnabled && !aPlayer.TopStats.Fetched && NowDuration(startTime).TotalSeconds < 10) {
+                            _threadMasterWaitHandle.WaitOne(200);
+                        }
+                        if (!aPlayer.TopStats.Fetched) {
+                            Log.Error(aPlayer.player_name + " assigned without top stats fetched.");
+                        }
                         ATeam team1, team2, winningTeam, losingTeam, powerTeam, weakTeam, mapUpTeam, mapDownTeam;
                         if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
                             if (team1.TeamTicketCount > team2.TeamTicketCount) {
@@ -31999,6 +32006,7 @@ namespace PRoConEvents {
                                 aPlayer.TopStats.RoundCount = reader.GetInt32("round_count");
                                 aPlayer.TopStats.TopCount = reader.GetInt32("top_count");
                                 aPlayer.TopStats.TopRoundRatio = reader.GetDouble("top_round_ratio");
+                                aPlayer.TopStats.Fetched = true;
                             } else {
                                 Log.Error("Unable to fetch " + aPlayer.GetVerboseName() + "'s top player information.");
                             }
@@ -39094,6 +39102,7 @@ namespace PRoConEvents {
         }
 
         public class ATopStats {
+            public Boolean Fetched;
             public Int32 RoundCount;
             public Int32 TopCount;
             public Double TopRoundRatio;
