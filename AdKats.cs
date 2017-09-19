@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.293
+ * Version 6.9.0.294
  * 18-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.293</version_code>
+ * <version_code>6.9.0.294</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.293";
+        private const String PluginVersion = "6.9.0.294";
 
         public enum GameVersion {
             BF3,
@@ -7713,7 +7713,7 @@ namespace PRoConEvents {
                                         if (aPlayer.RequiredTeam != null) {
                                             if (aPlayer.fbpInfo.TeamID != aPlayer.RequiredTeam.TeamID || aPlayer.fbpInfo.SquadID != aPlayer.RequiredSquad) {
                                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
-                                                Thread.Sleep(40);
+                                                Thread.Sleep(20);
                                             }
                                         } else {
                                             // Choose a squad for the player
@@ -7832,20 +7832,24 @@ namespace PRoConEvents {
                 if (!_firstPlayerListComplete) {
                     return;
                 }
-                ATeam newTeam;
-                if (!GetTeamByID(teamId, out newTeam)) {
-                    if (_roundState == RoundState.Playing || _UseExperimentalTools) {
-                        Log.Error("Error fetching new team on team change.");
-                    }
-                    return;
-                }
                 if (_PlayerDictionary.ContainsKey(soldierName)) {
                     APlayer aPlayer = _PlayerDictionary[soldierName];
+                    ATeam newTeam;
+                    if (!GetTeamByID(teamId, out newTeam)) {
+                        if (_roundState == RoundState.Playing) {
+                            Log.Error("Error fetching new team on team change.");
+                        }
+                        aPlayer.fbpInfo.TeamID = teamId;
+                        aPlayer.fbpInfo.SquadID = squadId;
+                        return;
+                    }
                     ATeam oldTeam;
                     if (!GetTeamByID(aPlayer.fbpInfo.TeamID, out oldTeam)) {
-                        if (_roundState == RoundState.Playing || _UseExperimentalTools) {
+                        if (_roundState == RoundState.Playing) {
                             Log.Error("Error fetching old team on team change.");
                         }
+                        aPlayer.fbpInfo.TeamID = teamId;
+                        aPlayer.fbpInfo.SquadID = squadId;
                         return;
                     }
                     Boolean updateTeamInfo = true;
@@ -7968,7 +7972,7 @@ namespace PRoConEvents {
                         }
                     }
                 } else {
-                    Log.Warn(soldierName + " switched to " + newTeam.TeamKey + " without being in player list.");
+                    Log.Warn(soldierName + " switched to " + teamId + " without being in player list.");
                 }
                 //When a player changes team, tell teamswap to recheck queues
                 _TeamswapWaitHandle.Set();
@@ -7993,20 +7997,24 @@ namespace PRoConEvents {
                 if (!_firstPlayerListComplete) {
                     return;
                 }
-                ATeam newTeam;
-                if (!GetTeamByID(teamId, out newTeam)) {
-                    if (_roundState == RoundState.Playing || _UseExperimentalTools) {
-                        Log.Error("Error fetching new team on squad change.");
-                    }
-                    return;
-                }
                 if (_PlayerDictionary.ContainsKey(soldierName)) {
                     APlayer aPlayer = _PlayerDictionary[soldierName];
+                    ATeam newTeam;
+                    if (!GetTeamByID(teamId, out newTeam)) {
+                        if (_roundState == RoundState.Playing) {
+                            Log.Error("Error fetching new team on squad change.");
+                        }
+                        aPlayer.fbpInfo.TeamID = teamId;
+                        aPlayer.fbpInfo.SquadID = squadId;
+                        return;
+                    }
                     ATeam oldTeam;
                     if (!GetTeamByID(aPlayer.fbpInfo.TeamID, out oldTeam)) {
-                        if (_roundState == RoundState.Playing || _UseExperimentalTools) {
+                        if (_roundState == RoundState.Playing) {
                             Log.Error("Error fetching old team on squad change.");
                         }
+                        aPlayer.fbpInfo.TeamID = teamId;
+                        aPlayer.fbpInfo.SquadID = squadId;
                         return;
                     }
                     Int32 oldSquad = aPlayer.fbpInfo.SquadID;
