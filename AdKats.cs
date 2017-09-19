@@ -8500,7 +8500,7 @@ namespace PRoConEvents {
                                                 if (_roundState == RoundState.Playing &&
                                                     NowDuration(aPlayer.lastSwitchMessage).TotalSeconds > 5) {
                                                     if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 2 && _UseExperimentalTools) {
-                                                        OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
+                                                        OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") re-joined, sending them back to " + aPlayer.RequiredTeam.TeamKey + ".");
                                                     }
                                                     PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_help").command_text + " to switch.");
                                                     aPlayer.lastSwitchMessage = UtcNow();
