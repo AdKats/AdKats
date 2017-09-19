@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.294
+ * Version 6.9.0.295
  * 18-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.294</version_code>
+ * <version_code>6.9.0.295</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.294";
+        private const String PluginVersion = "6.9.0.295";
 
         public enum GameVersion {
             BF3,
@@ -7676,7 +7676,7 @@ namespace PRoConEvents {
                             Log.Info("Clearing squads.");
                             foreach (var aPlayer in playerList.Where(dPlayer => dPlayer.player_type == PlayerType.Player)) {
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.fbpInfo.TeamID + "", "0", "true");
-                                Thread.Sleep(30);
+                                Thread.Sleep(20);
                             }
                             Log.Success("Squads cleared.");
                             Log.Info("Moving teams.");
@@ -7689,30 +7689,30 @@ namespace PRoConEvents {
                                 } else {
                                     Log.Error("Unable to assign required team for " + aMove.Player.player_name + ".");
                                 }
-                                Thread.Sleep(30);
+                                Thread.Sleep(20);
                             }
                             Log.Success("Teams moved.");
                             Log.Info("Assigning squads.");
                             foreach (var aMove in moveList.ToList()) {
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aMove.Player.player_name, aMove.Squad.TeamID + "", aMove.Squad.SquadID + "", "true");
                                 aMove.Player.RequiredSquad = aMove.Squad.SquadID;
-                                Thread.Sleep(30);
+                                Thread.Sleep(20);
                             }
                             Log.Success("Squads assigned.");
 
                             // Update the cached player list just in case
                             playerList = _PlayerDictionary.Values.ToList();
                             // Attempt to make sure every player stays on their assigned team/squad, despite the DICE balancer
-                            while (playerList.Count() > 15 && 
-                                   (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 3)) {
+                            while (playerList.Count() > 10 && 
+                                   (_roundState != RoundState.Playing || NowDuration(_playingStartTime).TotalSeconds < 1)) {
                                 foreach(var aPlayer in playerList.Where(dPlayer => !dPlayer.player_spawnedRound)) {
-                                    if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 3) {
+                                    if (_roundState == RoundState.Playing && NowDuration(_playingStartTime).TotalSeconds > 1) {
                                         break;
                                     }
                                     if (!aPlayer.player_spawnedRound) {
                                         if (aPlayer.RequiredTeam != null) {
                                             if (aPlayer.fbpInfo.TeamID != aPlayer.RequiredTeam.TeamID || aPlayer.fbpInfo.SquadID != aPlayer.RequiredSquad) {
-                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
+                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "true");
                                                 Thread.Sleep(20);
                                             }
                                         } else {
@@ -7734,6 +7734,19 @@ namespace PRoConEvents {
                             break;
                         }
                         Log.Success("Team dispersion complete!");
+                        _threadMasterWaitHandle.WaitOne(2000);
+                        Log.Info("Checking players.");
+                        playerList = _PlayerDictionary.Values.ToList();
+                        foreach (var aPlayer in playerList) {
+                            if (aPlayer.RequiredTeam != null) {
+                                if (aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID) {
+                                    Log.Warn("Dispersion: " + aPlayer.player_name + " assigned to " + aPlayer.RequiredTeam.TeamID + " but on " + aPlayer.fbpInfo.TeamID);
+                                }
+                            } else {
+                                Log.Warn("Dispersion: " + aPlayer.player_name + " not assigned to a team.");
+                            }
+                        }
+                        Log.Success("Team checks complete!");
 
                         LogThreadExit();
                     })));
@@ -7869,7 +7882,7 @@ namespace PRoConEvents {
                                 if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 2 && _UseExperimentalTools) {
                                     OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
                                 }
-                                PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ", please remain on that team.");
+                                PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_help").command_text + " to switch.");
                                 aPlayer.lastSwitchMessage = UtcNow();
                             }
                             updateTeamInfo = false;
@@ -8489,7 +8502,7 @@ namespace PRoConEvents {
                                                     if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 2 && _UseExperimentalTools) {
                                                         OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
                                                     }
-                                                    PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ", please remain on that team.");
+                                                    PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_help").command_text + " to switch.");
                                                     aPlayer.lastSwitchMessage = UtcNow();
                                                 }
                                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "1", "false");
