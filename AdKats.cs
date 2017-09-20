@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.298
+ * Version 6.9.0.299
  * 19-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.298</version_code>
+ * <version_code>6.9.0.299</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.298";
+        private const String PluginVersion = "6.9.0.299";
 
         public enum GameVersion {
             BF3,
@@ -7901,8 +7901,13 @@ namespace PRoConEvents {
                         } else {
                             if (_roundState == RoundState.Playing &&
                                 NowDuration(aPlayer.lastSwitchMessage).TotalSeconds > 5) {
-                                if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 2 && _UseExperimentalTools) {
-                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
+                                if (_UseExperimentalTools) {
+                                    var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".";
+                                    if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
+                                        PlayerSayMessage("ColColonCleaner", message);
+                                    } else {
+                                        ProconChatWrite(Log.FBold(message));
+                                    }
                                 }
                                 PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_help").command_text + " to switch.");
                                 aPlayer.lastSwitchMessage = UtcNow();
@@ -7980,12 +7985,12 @@ namespace PRoConEvents {
                             }
                             var players = _PlayerDictionary.Values.ToList();
                             var weakCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
-                                                                     dPlayer.fbpInfo.TeamID == weakTeam.TeamID);
+                                                                     (dPlayer.fbpInfo.TeamID == weakTeam.TeamID || dPlayer.RequiredTeam.TeamID == weakTeam.TeamID));
                             var powerCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
-                                                                      dPlayer.fbpInfo.TeamID == powerTeam.TeamID);
+                                                                      dPlayer.fbpInfo.TeamID == powerTeam.TeamID || dPlayer.RequiredTeam.TeamID == powerTeam.TeamID);
                             var teamCountLeniency = 1;
                             // If it's not the early game, and the weak team is also losing, increase leniency to 5 players
-                            if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 7.5 && weakTeam == losingTeam) {
+                            if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 && weakTeam == losingTeam) {
                                 teamCountLeniency = 5;
                             }
                             // Assume max team size of 32 unless otherwise provided
@@ -7999,8 +8004,11 @@ namespace PRoConEvents {
                                 aPlayer.RequiredTeam = weakTeam;
                             }
                             if (aPlayer.RequiredTeam != null) {
-                                if (_UseExperimentalTools) {
-                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + aPlayer.RequiredTeam.TeamKey + ".");
+                                var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + aPlayer.RequiredTeam.TeamKey + ".";
+                                if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
+                                    PlayerSayMessage("ColColonCleaner", message);
+                                } else {
+                                    ProconChatWrite(Log.FBold(message));
                                 }
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
                             }
@@ -8521,8 +8529,13 @@ namespace PRoConEvents {
                                             } else {
                                                 if (_roundState == RoundState.Playing &&
                                                     NowDuration(aPlayer.lastSwitchMessage).TotalSeconds > 5) {
-                                                    if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 2 && _UseExperimentalTools) {
-                                                        OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") re-joined, sending them back to " + aPlayer.RequiredTeam.TeamKey + ".");
+                                                    if (_UseExperimentalTools) {
+                                                        var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") re-joined, sending them back to " + aPlayer.RequiredTeam.TeamKey + ".";
+                                                        if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
+                                                            PlayerSayMessage("ColColonCleaner", message);
+                                                        } else {
+                                                            ProconChatWrite(Log.FBold(message));
+                                                        }
                                                     }
                                                     PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_help").command_text + " to switch.");
                                                     aPlayer.lastSwitchMessage = UtcNow();
