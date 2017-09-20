@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.304
+ * Version 6.9.0.305
  * 20-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.304</version_code>
+ * <version_code>6.9.0.305</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.304";
+        private const String PluginVersion = "6.9.0.305";
 
         public enum GameVersion {
             BF3,
@@ -7865,16 +7865,16 @@ namespace PRoConEvents {
                     APlayer aPlayer = _PlayerDictionary[soldierName];
                     // Add to the move list
                     aPlayer.TeamMoves.Add(UtcNow());
-                    // Check if there were more than 10 moves in the last 5 seconds
+                    // Check if there were 8 or more moves in the last 5 seconds
                     var movesLast5 = aPlayer.TeamMoves.Count(time => time > UtcNow().AddSeconds(-5));
                     if (_UseExperimentalTools) {
                         Log.Info(aPlayer.player_name + " has " + movesLast5 + " moves in last 5 seconds.");
                     }
-                    if (aPlayer.RequiredTeam != null && movesLast5 > 10) {
+                    if (aPlayer.RequiredTeam != null && movesLast5 >= 8) {
                         // The player is stuck in a move loop, remove their required squad and bow to whatever script/plugin is causing this
                         aPlayer.RequiredTeam = null;
-                        Log.Warn(aPlayer.GetVerboseName() + " was stuck in a move loop. Removed their required team.");
-                        OnlineAdminSayMessage(aPlayer.GetVerboseName() + " was stuck in a move loop. Removed their required team.");
+                        Log.Warn(aPlayer.GetVerboseName() + " was stuck in a move loop. Removing their required team.");
+                        OnlineAdminSayMessage(aPlayer.GetVerboseName() + " was stuck in a move loop. Removing their required team.");
                     }
                     ATeam newTeam;
                     if (!GetTeamByID(teamId, out newTeam)) {
