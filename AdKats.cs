@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.299
+ * Version 6.9.0.300
  * 19-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.299</version_code>
+ * <version_code>6.9.0.300</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.299";
+        private const String PluginVersion = "6.9.0.300";
 
         public enum GameVersion {
             BF3,
@@ -7985,9 +7985,9 @@ namespace PRoConEvents {
                             }
                             var players = _PlayerDictionary.Values.ToList();
                             var weakCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
-                                                                     (dPlayer.fbpInfo.TeamID == weakTeam.TeamID || dPlayer.RequiredTeam.TeamID == weakTeam.TeamID));
+                                                                     (dPlayer.fbpInfo.TeamID == weakTeam.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == weakTeam.TeamID)));
                             var powerCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
-                                                                      dPlayer.fbpInfo.TeamID == powerTeam.TeamID || dPlayer.RequiredTeam.TeamID == powerTeam.TeamID);
+                                                                      dPlayer.fbpInfo.TeamID == powerTeam.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == powerTeam.TeamID));
                             var teamCountLeniency = 1;
                             // If it's not the early game, and the weak team is also losing, increase leniency to 5 players
                             if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 && weakTeam == losingTeam) {
