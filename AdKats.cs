@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.300
+ * Version 6.9.0.301
  * 19-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.300</version_code>
+ * <version_code>6.9.0.301</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.300";
+        private const String PluginVersion = "6.9.0.301";
 
         public enum GameVersion {
             BF3,
@@ -6625,9 +6625,9 @@ namespace PRoConEvents {
                                         Double percDiff = Math.Abs(t1Power - t2Power) / ((t1Power + t2Power) / 2.0) * 100.0;
                                         String message = "";
                                         if (t1Power > t2Power) {
-                                            message += t1.TeamKey + " up " + Math.Round(((t1Power - t2Power) / t2Power) * 100) + "% ";
+                                            message += t1.TeamID + "/" + t1.TeamKey + " up " + Math.Round(((t1Power - t2Power) / t2Power) * 100) + "% ";
                                         } else {
-                                            message += t2.TeamKey + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
+                                            message += t2.TeamID + "/" + t2.TeamKey + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
                                         }
                                         message += "(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
                                         if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
@@ -7909,7 +7909,7 @@ namespace PRoConEvents {
                                         ProconChatWrite(Log.FBold(message));
                                     }
                                 }
-                                PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_help").command_text + " to switch.");
+                                PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch.");
                                 aPlayer.lastSwitchMessage = UtcNow();
                             }
                             updateTeamInfo = false;
@@ -8537,7 +8537,7 @@ namespace PRoConEvents {
                                                             ProconChatWrite(Log.FBold(message));
                                                         }
                                                     }
-                                                    PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_help").command_text + " to switch.");
+                                                    PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch.");
                                                     aPlayer.lastSwitchMessage = UtcNow();
                                                 }
                                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "1", "false");
