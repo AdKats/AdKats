@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.301
+ * Version 6.9.0.302
  * 19-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.301</version_code>
+ * <version_code>6.9.0.302</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.301";
+        private const String PluginVersion = "6.9.0.302";
 
         public enum GameVersion {
             BF3,
@@ -9336,6 +9336,7 @@ namespace PRoConEvents {
                                 team1.TeamTicketCount != _startingTicketCount &&
                                 team2.TeamTicketCount != _startingTicketCount) {
                                 String flagMessage = "";
+                                String winMessage = "";
                                 if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" ||
                                     _serverInfo.InfoObject.GameMode == "Chainlink0" ||
                                     _serverInfo.InfoObject.GameMode == "Domination0") {
@@ -9390,11 +9391,22 @@ namespace PRoConEvents {
                                     } else {
                                         flagMessage = " | " + _serverInfo.InfoObject.GameMode;
                                     }
+                                    var t1RawRate = team1.GetRawTicketDifferenceRate();
+                                    var t2RawRate = team2.GetRawTicketDifferenceRate();
+                                    if (t1RawRate < 0 && t2RawRate < 0) {
+                                        var t1Duration = TimeSpan.FromMinutes(team1.TeamTicketCount / Math.Abs(t1RawRate));
+                                        var t2Duration = TimeSpan.FromMinutes(team2.TeamTicketCount / Math.Abs(t2RawRate));
+                                        if (t1Duration < t2Duration) {
+                                            winMessage = " | " + team2.TeamKey + " wins in " + FormatTimeString(t1Duration, 2) + ".";
+                                        } else {
+                                            winMessage = " | " + team1.TeamKey + " wins in " + FormatTimeString(t2Duration, 2) + ".";
+                                        }
+                                    }
                                 }
                                 if ((UtcNow() - _LastTicketRateDisplay).TotalSeconds > 55 || _currentFlagMessage != flagMessage) {
                                     _LastTicketRateDisplay = UtcNow();
                                     _currentFlagMessage = flagMessage;
-                                    ProconChatWrite(Log.FBold(team1.TeamKey + " Rate: " + Math.Round(team1.GetTicketDifferenceRate(), 1) + " t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.GetTicketDifferenceRate(), 1) + " t/m" + flagMessage));
+                                    ProconChatWrite(Log.FBold(team1.TeamKey + " Rate: " + Math.Round(team1.GetTicketDifferenceRate(), 1) + " t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.GetTicketDifferenceRate(), 1) + " t/m" + flagMessage + winMessage));
                                 }
                             }
 
@@ -39460,6 +39472,10 @@ namespace PRoConEvents {
             public Double GetTicketDifferenceRate()
             {
                 return TeamTicketDifferenceRate >= 0 ? TeamTicketDifferenceRate : TeamAdjustedTicketDifferenceRate;
+            }
+
+            public Double GetRawTicketDifferenceRate() {
+                return TeamTicketDifferenceRate;
             }
 
             public void UpdatePlayerCount(Int32 playerCount)
