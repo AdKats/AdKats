@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.302
- * 19-SEP-2017
+ * Version 6.9.0.303
+ * 20-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.302</version_code>
+ * <version_code>6.9.0.303</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.302";
+        private const String PluginVersion = "6.9.0.303";
 
         public enum GameVersion {
             BF3,
@@ -6834,7 +6834,10 @@ namespace PRoConEvents {
                                     }
                                 }
 
-                                if (_DiscordPlayerMonitorEnable && _DiscordPlayerMonitorView) {
+                                if (_pluginEnabled && 
+                                    _firstPlayerListComplete && 
+                                    _DiscordPlayerMonitorEnable && 
+                                    _DiscordPlayerMonitorView) {
                                     List<APlayer> onlineDiscordPlayers = new List<APlayer>();
                                     //Check for online discord players
                                     var members = _DiscordManager.GetMembers(false, true, true);
@@ -41110,20 +41113,24 @@ namespace PRoConEvents {
             }
 
             public List<DiscordMember> GetMembers(Boolean onlyActive, Boolean onlyVoice, Boolean onlyChannels) {
-                if (!Members.Any()) {
+                try {
+                    if (!Members.Any()) {
+                        return new List<DiscordMember>();
+                    }
+                    var resultMembers = Members.Values.Where(aMember => !aMember.Bot);
+                    if (onlyActive) {
+                        resultMembers = resultMembers.Where(aMember => aMember.Status == "online");
+                    }
+                    if (onlyVoice) {
+                        resultMembers = resultMembers.Where(aMember => aMember.Channel != null);
+                    }
+                    if (onlyChannels) {
+                        resultMembers = resultMembers.Where(aMember => aMember.Channel != null && (!ChannelNames.Any() || String.IsNullOrEmpty(ChannelNames.FirstOrDefault()) || ChannelNames.Contains(aMember.Channel.Name)));
+                    }
+                    return resultMembers.ToList();
+                } catch (Exception e) {
                     return new List<DiscordMember>();
                 }
-                var resultMembers = Members.Values.Where(aMember => !aMember.Bot);
-                if (onlyActive) {
-                    resultMembers = resultMembers.Where(aMember => aMember.Status == "online");
-                }
-                if (onlyVoice) {
-                    resultMembers = resultMembers.Where(aMember => aMember.Channel != null);
-                }
-                if (onlyChannels) {
-                    resultMembers = resultMembers.Where(aMember => aMember.Channel != null && (!ChannelNames.Any() || String.IsNullOrEmpty(ChannelNames.FirstOrDefault()) || ChannelNames.Contains(aMember.Channel.Name)));
-                }
-                return resultMembers.ToList();
             }
 
             private void RunDiscordManagerMainThread() {
