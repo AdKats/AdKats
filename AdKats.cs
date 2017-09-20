@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.303
+ * Version 6.9.0.304
  * 20-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.303</version_code>
+ * <version_code>6.9.0.304</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.303";
+        private const String PluginVersion = "6.9.0.304";
 
         public enum GameVersion {
             BF3,
@@ -7866,7 +7866,11 @@ namespace PRoConEvents {
                     // Add to the move list
                     aPlayer.TeamMoves.Add(UtcNow());
                     // Check if there were more than 10 moves in the last 5 seconds
-                    if (aPlayer.RequiredTeam != null && aPlayer.TeamMoves.Count(time => time > UtcNow().AddSeconds(-5)) > 10) {
+                    var movesLast5 = aPlayer.TeamMoves.Count(time => time > UtcNow().AddSeconds(-5));
+                    if (_UseExperimentalTools) {
+                        Log.Info(aPlayer.player_name + " has " + movesLast5 + " moves in last 5 seconds.");
+                    }
+                    if (aPlayer.RequiredTeam != null && movesLast5 > 10) {
                         // The player is stuck in a move loop, remove their required squad and bow to whatever script/plugin is causing this
                         aPlayer.RequiredTeam = null;
                         Log.Warn(aPlayer.GetVerboseName() + " was stuck in a move loop. Removed their required team.");
