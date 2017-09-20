@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.297
- * 18-SEP-2017
+ * Version 6.9.0.298
+ * 19-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.297</version_code>
+ * <version_code>6.9.0.298</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.297";
+        private const String PluginVersion = "6.9.0.298";
 
         public enum GameVersion {
             BF3,
@@ -7735,7 +7735,7 @@ namespace PRoConEvents {
                         }
                         Log.Success("Team dispersion complete!");
                         _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(15));
-                        Log.Info("Checking players.");
+                        Log.Info("Checking players 1.");
                         playerList = _PlayerDictionary.Values.ToList();
                         foreach (var aPlayer in playerList) {
                             if (aPlayer.RequiredTeam != null) {
@@ -7746,7 +7746,20 @@ namespace PRoConEvents {
                                 Log.Warn("Dispersion: " + aPlayer.player_name + " not assigned to a team.");
                             }
                         }
-                        Log.Success("Team checks complete!");
+                        Log.Success("Team check 1 complete!");
+                        _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(30));
+                        Log.Info("Checking players 2.");
+                        playerList = _PlayerDictionary.Values.ToList();
+                        foreach (var aPlayer in playerList) {
+                            if (aPlayer.RequiredTeam != null) {
+                                if (aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID) {
+                                    Log.Warn("Dispersion: " + aPlayer.player_name + " assigned to " + aPlayer.RequiredTeam.TeamID + " but on " + aPlayer.fbpInfo.TeamID);
+                                }
+                            } else {
+                                Log.Warn("Dispersion: " + aPlayer.player_name + " not assigned to a team.");
+                            }
+                        }
+                        Log.Success("Team check 2 complete!");
 
                         LogThreadExit();
                     })));
@@ -7847,6 +7860,15 @@ namespace PRoConEvents {
                 }
                 if (_PlayerDictionary.ContainsKey(soldierName)) {
                     APlayer aPlayer = _PlayerDictionary[soldierName];
+                    // Add to the move list
+                    aPlayer.TeamMoves.Add(UtcNow());
+                    // Check if there were more than 10 moves in the last 5 seconds
+                    if (aPlayer.RequiredTeam != null && aPlayer.TeamMoves.Count(time => time > UtcNow().AddSeconds(-5)) > 10) {
+                        // The player is stuck in a move loop, remove their required squad and bow to whatever script/plugin is causing this
+                        aPlayer.RequiredTeam = null;
+                        Log.Warn(aPlayer.GetVerboseName() + " was stuck in a move loop. Removed their required team.");
+                        OnlineAdminSayMessage(aPlayer.GetVerboseName() + " was stuck in a move loop. Removed their required team.");
+                    }
                     ATeam newTeam;
                     if (!GetTeamByID(teamId, out newTeam)) {
                         if (_roundState == RoundState.Playing) {
@@ -38781,6 +38803,7 @@ namespace PRoConEvents {
             public Boolean player_ping_manual = false;
             public APlayer conversationPartner = null;
             public Int32 AllCapsMessages = 0;
+            public List<DateTime> TeamMoves;
 
             public Dictionary<Int64, APlayerStats> RoundStats;
             public Int32 BL_SPM;
@@ -38808,6 +38831,7 @@ namespace PRoConEvents {
                 player_pings = new Queue<KeyValuePair<Double, DateTime>>();
                 TargetedRecords = new List<ARecord>();
                 LastUsage = DateTime.UtcNow;
+                TeamMoves = new List<DateTime>();
             }
             
             public void Say(String message) {
