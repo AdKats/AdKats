@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.306
+ * Version 6.9.0.307
  * 20-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.306</version_code>
+ * <version_code>6.9.0.307</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.306";
+        private const String PluginVersion = "6.9.0.307";
 
         public enum GameVersion {
             BF3,
@@ -7972,19 +7972,20 @@ namespace PRoConEvents {
                 if (_PlayerDictionary.ContainsKey(soldierName)) {
                     APlayer aPlayer = _PlayerDictionary[soldierName];
                     // Add to the move list
-                    aPlayer.TeamMoves.Add(UtcNow());
-                    // Check if there were 8 or more moves in the last 5 seconds
-                    var movesLast5 = aPlayer.TeamMoves.Count(time => time > UtcNow().AddSeconds(-5));
-                    if (_UseExperimentalTools) {
-                        Log.Info(aPlayer.player_name + " has " + movesLast5 + " moves in last 5 seconds.");
-                    }
-                    if (aPlayer.RequiredTeam != null && 
-                        _roundState == RoundState.Playing &&
-                        movesLast5 >= 8) {
-                        // The player is stuck in a move loop, remove their required squad and bow to whatever script/plugin is causing this
-                        aPlayer.RequiredTeam = null;
-                        Log.Warn(aPlayer.GetVerboseName() + " was stuck in a move loop. Removing their required team.");
-                        OnlineAdminSayMessage(aPlayer.GetVerboseName() + " was stuck in a move loop. Removing their required team.");
+                    if (_roundState == RoundState.Playing) {
+                        aPlayer.TeamMoves.Add(UtcNow());
+                        // Check if there were 8 or more moves in the last 5 seconds
+                        var movesLast5 = aPlayer.TeamMoves.Count(time => time > UtcNow().AddSeconds(-5));
+                        if (_UseExperimentalTools) {
+                            Log.Info(aPlayer.player_name + " has " + movesLast5 + " moves in last 5 seconds.");
+                        }
+                        if (aPlayer.RequiredTeam != null &&
+                            movesLast5 >= 8) {
+                            // The player is stuck in a move loop, remove their required squad and bow to whatever script/plugin is causing this
+                            aPlayer.RequiredTeam = null;
+                            Log.Warn(aPlayer.GetVerboseName() + " was stuck in a move loop. Removing their required team.");
+                            OnlineAdminSayMessage(aPlayer.GetVerboseName() + " was stuck in a move loop. Removing their required team.");
+                        }
                     }
                     ATeam newTeam;
                     if (!GetTeamByID(teamId, out newTeam)) {
@@ -8631,6 +8632,7 @@ namespace PRoConEvents {
                                         //Check for moving to teams aside from the one they are required to be on
                                         if (aPlayer.RequiredTeam != null &&
                                             playerTeam != null &&
+                                            aPlayer.player_type == PlayerType.Player &&
                                             aPlayer.RequiredTeam.TeamKey != playerTeam.TeamKey &&
                                             (!PlayerIsAdmin(aPlayer) || !aPlayer.player_spawnedRound)) {
                                             // Don't allow a player to be reassigned to the "neutral" team
@@ -9059,7 +9061,6 @@ namespace PRoConEvents {
                                 record_time = UtcNow()
                             };
                             QueueRecordForProcessing(record);
-                            AdminSayMessage(record.GetTargetNames() + " KICKED for exceeding ping limit. " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]")));
                         }
 
                         //Update last successful player list time
@@ -14309,7 +14310,9 @@ namespace PRoConEvents {
                         return;
                     }
                     //Command timeouts
-                    if (record.command_action != null && _commandTimeoutDictionary.ContainsKey(record.command_action.command_key) && !record.record_action_executed) {
+                    if (record.command_action != null && 
+                        _commandTimeoutDictionary.ContainsKey(record.command_action.command_key) && 
+                        !record.record_action_executed) {
                         if (record.target_player != null && !record.TargetPlayersLocal.Any()) {
                             //Cancel call if record is on timeout for single player
                             if (record.target_player.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > UtcNow())) {
@@ -22074,8 +22077,12 @@ namespace PRoConEvents {
                     Log.Error("Item null in 5464");
                 } else {
                     KickPlayerMessage(record.target_player, kickReason);
-                    if (record.target_name != record.source_name && record.source_name != "AFKManager" && record.source_name != "PingEnforcer" && record.source_name != "SpectatorManager") {
-                        AdminSayMessage(record.GetTargetNames() + " was KICKED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
+                    if (record.target_name != record.source_name) {
+                        if (record.source_name == "PingEnforcer") {
+                            AdminSayMessage(record.GetTargetNames() + " KICKED for exceeding ping limit. " + ((record.target_player.player_ping_avg > 0) ? ("Cur:[" + Math.Round(record.target_player.player_ping) + "ms] Avg:[" + Math.Round(record.target_player.player_ping_avg) + "ms]") : ("[Missing]")));
+                        } else if (record.source_name != "AFKManager" && record.source_name != "SpectatorManager") {
+                            AdminSayMessage(record.GetTargetNames() + " was KICKED by " + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
+                        }
                     }
                     if (record.target_player.fbpInfo != null) {
                         SendMessageToSource(record, "You KICKED " + record.GetTargetNames() + " from " + GetPlayerTeamName(record.target_player) + " for " + record.record_message);
