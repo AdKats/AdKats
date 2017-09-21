@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.307
+ * Version 6.9.0.308
  * 20-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.307</version_code>
+ * <version_code>6.9.0.308</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.307";
+        private const String PluginVersion = "6.9.0.308";
 
         public enum GameVersion {
             BF3,
@@ -7588,47 +7588,9 @@ namespace PRoConEvents {
                                         squad.Players.Remove(aPlayer);
                                     }
                                 }
-                                // If the squad contains 1 or fewer players, disband the squad so it
-                                // can be rebuilt in the next step
+                                // If the squad contains 1 or fewer players, disband the squad so the player is available for other squads
                                 if (squad.Players.Count() <= 1) {
                                     _RoundPrepSquads.Remove(squad);
-                                }
-                            }
-                            // Merge anyone currently not in a squad into an existing squad
-                            // If more squads are needed, create them
-                            Log.Info("Merging remaining players into " + _RoundPrepSquads.Count() + " available squads.");
-                            // Only grab players who have a valid team and are of the player type
-                            foreach (var aPlayer in _PlayerDictionary.Values.ToList().Where(dPlayer => (dPlayer.fbpInfo.TeamID == team1.TeamID || dPlayer.fbpInfo.TeamID == team2.TeamID) &&
-                                                                                                       dPlayer.player_type == PlayerType.Player)) {
-                                // See if this player is in an existing squad
-                                Boolean found = false;
-                                foreach (var aSquad in _RoundPrepSquads) {
-                                    if (aSquad.Players.Contains(aPlayer)) {
-                                        found = true;
-                                        break;
-                                    }
-                                }
-                                if (!found) {
-                                    Boolean added = false;
-                                    // Only add players to squads on their own team
-                                    // This avoids dumping all players into one squad during low population
-                                    foreach (var aSquad in _RoundPrepSquads.Where(aSquad => aSquad.TeamID == aPlayer.fbpInfo.TeamID).OrderBy(dSquad => dSquad.Players.Sum(member => member.GetPower(true)))) {
-                                        if (aSquad.Players.Count() < (_gameVersion == GameVersion.BF3 ? 4 : 5)) {
-                                            Log.Info("Adding " + aPlayer.player_name + " to squad " + aSquad);
-                                            aSquad.Players.Add(aPlayer);
-                                            added = true;
-                                            break;
-                                        }
-                                    }
-                                    if (!added) {
-                                        Log.Info("No squads available for " + aPlayer.player_name + ", creating new squad.");
-                                        var newSquad = new ASquad(this) {
-                                            TeamID = aPlayer.fbpInfo.TeamID
-                                            // Squad ID defaults to 0
-                                        };
-                                        newSquad.Players.Add(aPlayer);
-                                        _RoundPrepSquads.Add(newSquad);
-                                    }
                                 }
                             }
                             Log.Info(_RoundPrepSquads.Count() + " squads ready for dispersion.");
@@ -7696,7 +7658,83 @@ namespace PRoConEvents {
                             }
                             // Toggle the starting team value
                             currentStartingTeam1 = !currentStartingTeam1;
+                            
+                            // Merge anyone currently not in a squad into an existing squad
+                            // If more squads are needed, create them
+                            Log.Info("Merging remaining players into " + _RoundPrepSquads.Count() + " available squads.");
+                            // Only grab players who have a valid team and are of the player type
+                            foreach (var aPlayer in _PlayerDictionary.Values.ToList().Where(dPlayer => (dPlayer.fbpInfo.TeamID == team1.TeamID || dPlayer.fbpInfo.TeamID == team2.TeamID) &&
+                                                                                                       dPlayer.player_type == PlayerType.Player)) {
+                                // See if this player is in an existing squad
+                                Boolean found = false;
+                                foreach (var aSquad in _RoundPrepSquads) {
+                                    if (aSquad.Players.Contains(aPlayer)) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    Boolean added = false;
+                                    // Only add players to squads on the weak team
+                                    var team1Squads = _RoundPrepSquads.Where(dSquad => dSquad.TeamID == team1.TeamID).ToList();
+                                    var team1Count = team1Squads.Sum(dSquad => dSquad.Players.Count());
+                                    var team1Power = team1Squads.Sum(dSquad => dSquad.Players.Sum(member => member.GetPower(true)));
+                                    var team2Squads = _RoundPrepSquads.Where(dSquad => dSquad.TeamID == team2.TeamID).ToList();
+                                    var team2Count = team2Squads.Sum(dSquad => dSquad.Players.Count());
+                                    var team2Power = team2Squads.Sum(dSquad => dSquad.Players.Sum(member => member.GetPower(true)));
 
+                                    // Assume max team size of 32 unless otherwise provided
+                                    var maxTeamPlayerCount = 32;
+                                    if (_serverInfo.InfoObject != null && _serverInfo.InfoObject.MaxPlayerCount != maxTeamPlayerCount) {
+                                        maxTeamPlayerCount = _serverInfo.InfoObject.MaxPlayerCount / 2;
+                                    }
+
+                                    var team1Available = true;
+                                    if (team1Count + 1 > maxTeamPlayerCount) {
+                                        Log.Info("Cannot assign " + aPlayer.player_name + " to team 1, max player count would be exceeded.");
+                                        team1Available = false;
+                                    }
+                                    var team2Available = true;
+                                    if (team2Count + 1 > maxTeamPlayerCount) {
+                                        Log.Info("Cannot assign " + aPlayer.player_name + " to team 2, max player count would be exceeded.");
+                                        team2Available = false;
+                                    }
+
+                                    var chosenTeam = 0;
+                                    if (!team1Available && !team2Available) {
+                                        Log.Error("Major failure, both teams would be over capacity when assigning " + aPlayer.player_name);
+                                    } else {
+                                        Log.Info("Power: 1:" + team1Count + ":" + Math.Round(team1Power) + " | 2:" + team2Count + ":" + Math.Round(team2Power));
+                                        if (team1Power + aPlayer.GetPower(true) <= team2Power || !team2Available) {
+                                            chosenTeam = team1.TeamID;
+                                        } else {
+                                            chosenTeam = team2.TeamID;
+                                        }
+
+                                        // Add to the weakest squads first
+                                        foreach (var aSquad in _RoundPrepSquads
+                                                                .Where(aSquad => aSquad.TeamID == chosenTeam)
+                                                                .OrderBy(dSquad => dSquad.Players.Sum(member => member.GetPower(true)))) {
+                                            if (aSquad.Players.Count() < (_gameVersion == GameVersion.BF3 ? 4 : 5)) {
+                                                Log.Info("Adding " + aPlayer.player_name + " to squad " + aSquad);
+                                                aSquad.Players.Add(aPlayer);
+                                                added = true;
+                                                break;
+                                            }
+                                        }
+                                        if (!added) {
+                                            Log.Info("No squads available for " + aPlayer.player_name + ", creating new squad.");
+                                            var newSquad = new ASquad(this) {
+                                                TeamID = chosenTeam
+                                                // Squad ID defaults to 0
+                                            };
+                                            newSquad.Players.Add(aPlayer);
+                                            _RoundPrepSquads.Add(newSquad);
+                                        }
+                                    }
+                                }
+                            }
+                            
                             var t1Squads = _RoundPrepSquads.Where(dSquad => dSquad.TeamID == team1.TeamID).ToList();
                             var t1Count = t1Squads.Sum(dSquad => dSquad.Players.Count());
                             var t1Power = t1Squads.Sum(dSquad => dSquad.Players.Sum(member => member.GetPower(true)));
@@ -7718,7 +7756,14 @@ namespace PRoConEvents {
                                     Log.Info("REASSIGNED SQUAD TO TEAM 1: " + worstSquad);
                                 }
                             }
-                            
+
+                            t1Squads = _RoundPrepSquads.Where(dSquad => dSquad.TeamID == team1.TeamID).ToList();
+                            t1Count = t1Squads.Sum(dSquad => dSquad.Players.Count());
+                            t1Power = t1Squads.Sum(dSquad => dSquad.Players.Sum(member => member.GetPower(true)));
+                            t2Squads = _RoundPrepSquads.Where(dSquad => dSquad.TeamID == team2.TeamID).ToList();
+                            t2Count = t2Squads.Sum(dSquad => dSquad.Players.Count());
+                            t2Power = t2Squads.Sum(dSquad => dSquad.Players.Sum(member => member.GetPower(true)));
+
                             Double percDiff = Math.Abs(t1Power - t2Power) / ((t1Power + t2Power) / 2.0) * 100.0;
                             String message = "";
                             if (t1Power > t2Power) {
@@ -8109,7 +8154,7 @@ namespace PRoConEvents {
                             var teamCountLeniency = 1;
                             // If it's not the early game, and the weak team is also losing, increase leniency to 5 players
                             if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 && weakTeam == losingTeam) {
-                                teamCountLeniency = 5;
+                                teamCountLeniency = 4;
                             }
                             // Assume max team size of 32 unless otherwise provided
                             var maxTeamPlayerCount = 32;
