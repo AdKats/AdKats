@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.305
+ * Version 6.9.0.306
  * 20-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.305</version_code>
+ * <version_code>6.9.0.306</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.305";
+        private const String PluginVersion = "6.9.0.306";
 
         public enum GameVersion {
             BF3,
@@ -236,6 +236,10 @@ namespace PRoConEvents {
         private Boolean _DebugPlayerListing = false;
         private DateTime _LastDebugPlayerListingMessage = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private Queue<TimeSpan> _startupDurations = new Queue<TimeSpan>();
+        private DateTime _LastShortKeepAliveCheck = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+        private DateTime _LastLongKeepAliveCheck = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+        private DateTime _LastVeryLongKeepAliveCheck = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+        private DateTime _LastMemoryWarning = DateTime.UtcNow - TimeSpan.FromSeconds(30);
 
         //Server
         private PopulationState _populationStatus = PopulationState.Unknown;
@@ -6185,736 +6189,913 @@ namespace PRoConEvents {
             StartAndLogThread(descFetcher);
         }
 
+        private void RunMemoryMonitor() {
+            try {
+                //Memory Monitor - Every 30 seconds
+                Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
+                if (NowDuration(_LastMemoryWarning).TotalSeconds > 30) {
+                    if (MBUsed > 750 && (UtcNow() - _AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete) {
+                        Log.Warn(MBUsed + "MB estimated memory used.");
+                        QueueRecordForProcessing(new ARecord {
+                            record_source = ARecord.Sources.InternalAutomated,
+                            server_id = _serverInfo.ServerID,
+                            command_type = GetCommandByKey("plugin_restart"),
+                            command_numeric = 0,
+                            target_name = "AdKats",
+                            source_name = "MemoryMonitor",
+                            record_message = MBUsed + "MB estimated memory used",
+                            record_time = UtcNow()
+                        });
+                        _LastMemoryWarning = UtcNow();
+                    } else if (MBUsed > 250) {
+                        String mm = " MAP: ";
+                        mm += "1:" + _aliveThreads.Count() + ", ";
+                        mm += "2:" + _populationPopulatingPlayers.Count() + ", ";
+                        mm += "3:" + _ActOnIsAliveDictionary.Count() + ", ";
+                        mm += "4:" + _ActOnSpawnDictionary.Count() + ", ";
+                        mm += "5:" + _LoadoutConfirmDictionary.Count() + ", ";
+                        mm += "6:" + _ActionConfirmDic.Count() + ", ";
+                        mm += "7:" + _RoundReports.Count() + ", ";
+                        mm += "8:" + _userCache.Count() + ", ";
+                        mm += "9:" + _specialPlayerGroupIDDictionary.Count() + ", ";
+                        mm += "10:" + _specialPlayerGroupKeyDictionary.Count() + ", ";
+                        mm += "11:" + _baseSpecialPlayerCache.Count() + ", ";
+                        mm += "12:" + _verboseSpecialPlayerCache.Count() + ", ";
+                        mm += "13:" + _roundAssists.Count() + ", ";
+                        mm += "14:" + _PlayerDictionary.Count() + ", ";
+                        mm += "15:" + _RoundPrepSquads.Count() + ", ";
+                        mm += "16:" + _PlayerLeftDictionary.Count() + ", ";
+                        mm += "17:" + _FetchedPlayers.Count() + ", ";
+                        mm += "19:" + _populatorPlayers.Count() + ", ";
+                        mm += "20:" + _TeamspeakPlayers.Count() + ", ";
+                        mm += "21:" + _RoundCookers.Count() + ", ";
+                        mm += "22:" + _BanEnforcerCheckingQueue.Count() + ", ";
+                        mm += "23:" + _AntiCheatQueue.Count() + ", ";
+                        mm += "24:" + _KillProcessingQueue.Count() + ", ";
+                        mm += "25:" + _PlayerListProcessingQueue.Count() + ", ";
+                        mm += "26:" + _PlayerRemovalProcessingQueue.Count() + ", ";
+                        mm += "27:" + _SettingUploadQueue.Count() + ", ";
+                        mm += "28:" + _UnparsedCommandQueue.Count() + ", ";
+                        mm += "29:" + _UnparsedMessageQueue.Count() + ", ";
+                        mm += "30:" + _UnprocessedActionQueue.Count() + ", ";
+                        mm += "31:" + _UnprocessedRecordQueue.Count() + ", ";
+                        mm += "32:" + _UnprocessedStatisticQueue.Count() + ", ";
+                        mm += "33:" + _UserRemovalQueue.Count() + ", ";
+                        mm += "34:" + _UserUploadQueue.Count() + ", ";
+                        mm += "35:" + _BattlelogFetchQueue.Count() + ", ";
+                        mm += "36:" + _IPInfoFetchQueue.Count() + ", ";
+                        Log.Warn(MBUsed + "MB estimated memory used." + mm);
+                        _LastMemoryWarning = UtcNow();
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running memory monitor.", e));
+            }
+        }
+
+        private void RunPlayerListingStatMonitor() {
+            try {
+                if (_DebugPlayerListing && NowDuration(_LastDebugPlayerListingMessage).TotalSeconds > 30.0) {
+                    Log.Info("PlayerListing: " + Math.Round(getPlayerListTriggerRate(), 1) + " Triggered/min, " + Math.Round(getPlayerListReceiveRate(), 1) + " Received/min, " + Math.Round(getPlayerListAcceptRate(), 1) + " Accepted/min, " + Math.Round(getPlayerListProcessedRate(), 1) + " Processed/min");
+                    _LastDebugPlayerListingMessage = UtcNow();
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running playerliststat monitor.", e));
+            }
+        }
+
+        private void RunUnswitcherMonitor() {
+            try {
+                //Check for unswitcher disable - every 5 seconds
+                if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (UtcNow() - _LastPlayerMoveIssued).TotalSeconds > 5) {
+                    Log.Debug(() => "MULTIBalancer Unswitcher Re-Enabled", 3);
+                    ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
+                    _MULTIBalancerUnswitcherDisabled = false;
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running unswitcher monitor.", e));
+            }
+        }
+
+        private void RunDocumentationMonitor() {
+            try {
+                //Check for plugin updates at interval
+                if ((UtcNow() - _LastPluginDescFetch).TotalHours > 1) {
+                    FetchPluginDocumentation();
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running documentation monitor.", e));
+            }
+        }
+
+        private void RunSpambotMonitor() {
+            try {
+                //SpamBot - Every 500ms
+                var playerCount = _PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.player_type == PlayerType.Player);
+                if (_pluginEnabled &&
+                    _spamBotEnabled &&
+                    _firstPlayerListComplete &&
+                    playerCount > 0) {
+                    if ((UtcNow() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
+                        String message = "[SpamBotMessage]" + _spamBotSayQueue.Peek();
+                        var eventDate = GetEventRoundDateTime();
+                        if (((_CurrentEventRoundNumber == 999999 && eventDate < DateTime.Now) || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
+                            message = message.Replace("%EventDateDuration%", "TBD")
+                                             .Replace("%EventDateTime%", "TBD")
+                                             .Replace("%EventDate%", "TBD")
+                                             .Replace("%EventRound%", "TBD")
+                                             .Replace("%RemainingRounds%", "TBD")
+                                             .Replace("%s%", "s")
+                                             .Replace("%S%", "S");
+                        } else {
+                            if (message.Contains("%EventDateDuration%")) {
+                                message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+                            }
+                            if (message.Contains("%EventDateTime%")) {
+                                message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
+                            }
+                            if (message.Contains("%EventDate%")) {
+                                message = message.Replace("%EventDate%", eventDate.ToShortDateString());
+                            }
+                            if (message.Contains("%CurrentRound%")) {
+                                message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
+                            }
+                            if (message.Contains("%EventRound%")) {
+                                if (_CurrentEventRoundNumber != 999999) {
+                                    message = message.Replace("%EventRound%", String.Format("{0:n0}", _CurrentEventRoundNumber));
+                                } else {
+                                    message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
+                                }
+                            }
+                            if (message.Contains("%RemainingRounds%")) {
+                                var remainingRounds = 0;
+                                if (_CurrentEventRoundNumber != 999999) {
+                                    remainingRounds = _CurrentEventRoundNumber - _roundID;
+                                    message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                                    message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                                    message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
+                                } else {
+                                    remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
+                                    message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                                    message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                                    message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
+                                }
+                            }
+                        }
+                        if (_spamBotExcludeAdminsAndWhitelist) {
+                            if (!String.IsNullOrEmpty(message)) {
+                                OnlineNonWhitelistSayMessage(message, playerCount > 5);
+                            }
+                        } else {
+                            if (!String.IsNullOrEmpty(message)) {
+                                AdminSayMessage(message, playerCount > 5);
+                            }
+                        }
+                        _spamBotSayQueue.Enqueue(_spamBotSayQueue.Dequeue());
+                        _spamBotSayLastPost = UtcNow();
+                    }
+                    if ((UtcNow() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds && _spamBotYellQueue.Any()) {
+                        String message = "[SpamBotMessage]" + _spamBotYellQueue.Peek();
+                        var eventDate = GetEventRoundDateTime();
+                        if (((_CurrentEventRoundNumber == 999999 && eventDate < DateTime.Now) || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
+                            message = message.Replace("%EventDateDuration%", "TBD")
+                                             .Replace("%EventDateTime%", "TBD")
+                                             .Replace("%EventDate%", "TBD")
+                                             .Replace("%EventRound%", "TBD")
+                                             .Replace("%RemainingRounds%", "TBD")
+                                             .Replace("%s%", "s")
+                                             .Replace("%S%", "S");
+                        } else {
+                            if (message.Contains("%EventDateDuration%")) {
+                                message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+                            }
+                            if (message.Contains("%EventDateTime%")) {
+                                message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
+                            }
+                            if (message.Contains("%EventDate%")) {
+                                message = message.Replace("%EventDate%", eventDate.ToShortDateString());
+                            }
+                            if (message.Contains("%CurrentRound%")) {
+                                message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
+                            }
+                            if (message.Contains("%EventRound%")) {
+                                if (_CurrentEventRoundNumber != 999999) {
+                                    message = message.Replace("%EventRound%", String.Format("{0:n0}", _CurrentEventRoundNumber));
+                                } else {
+                                    message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
+                                }
+                            }
+                            if (message.Contains("%RemainingRounds%")) {
+                                var remainingRounds = 0;
+                                if (_CurrentEventRoundNumber != 999999) {
+                                    remainingRounds = _CurrentEventRoundNumber - _roundID;
+                                    message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                                    message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                                    message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
+                                } else {
+                                    remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
+                                    message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                                    message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                                    message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
+                                }
+                            }
+                        }
+                        if (_spamBotExcludeAdminsAndWhitelist) {
+                            if (!String.IsNullOrEmpty(message)) {
+                                OnlineNonWhitelistYellMessage(message, playerCount > 5);
+                            }
+                        } else {
+                            if (!String.IsNullOrEmpty(message)) {
+                                AdminYellMessage(message, playerCount > 5);
+                            }
+                        }
+                        _spamBotYellQueue.Enqueue(_spamBotYellQueue.Dequeue());
+                        _spamBotYellLastPost = UtcNow();
+                    }
+                    if ((UtcNow() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds && _spamBotTellQueue.Any()) {
+                        String message = "[SpamBotMessage]" + _spamBotTellQueue.Peek();
+                        var eventDate = GetEventRoundDateTime();
+                        if (((_CurrentEventRoundNumber == 999999 && eventDate < DateTime.Now) || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
+                            message = message.Replace("%EventDateDuration%", "TBD")
+                                             .Replace("%EventDateTime%", "TBD")
+                                             .Replace("%EventDate%", "TBD")
+                                             .Replace("%EventRound%", "TBD")
+                                             .Replace("%RemainingRounds%", "TBD")
+                                             .Replace("%s%", "s")
+                                             .Replace("%S%", "S");
+                        } else {
+                            if (message.Contains("%EventDateDuration%")) {
+                                message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+                            }
+                            if (message.Contains("%EventDateTime%")) {
+                                message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
+                            }
+                            if (message.Contains("%EventDate%")) {
+                                message = message.Replace("%EventDate%", eventDate.ToShortDateString());
+                            }
+                            if (message.Contains("%CurrentRound%")) {
+                                message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
+                            }
+                            if (message.Contains("%EventRound%")) {
+                                if (_CurrentEventRoundNumber != 999999) {
+                                    message = message.Replace("%EventRound%", String.Format("{0:n0}", _CurrentEventRoundNumber));
+                                } else {
+                                    message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
+                                }
+                            }
+                            if (message.Contains("%RemainingRounds%")) {
+                                var remainingRounds = 0;
+                                if (_CurrentEventRoundNumber != 999999) {
+                                    remainingRounds = _CurrentEventRoundNumber - _roundID;
+                                    message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                                    message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                                    message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
+                                } else {
+                                    remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
+                                    message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                                    message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                                    message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
+                                }
+                            }
+                        }
+                        if (_spamBotExcludeAdminsAndWhitelist) {
+                            if (!String.IsNullOrEmpty(message)) {
+                                OnlineNonWhitelistTellMessage(message, playerCount > 5);
+                            }
+                        } else {
+                            if (!String.IsNullOrEmpty(message)) {
+                                AdminTellMessage(message, playerCount > 5);
+                            }
+                        }
+                        _spamBotTellQueue.Enqueue(_spamBotTellQueue.Dequeue());
+                        _spamBotTellLastPost = UtcNow();
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running spambot monitor.", e));
+            }
+        }
+
+        private void RunAutoAssistMonitor() {
+            try {
+                //Automatic Assisting Check - Every 500ms
+                // Are there any records to process
+                if (_roundState == RoundState.Playing &&
+                    _AssistAttemptQueue.Any() &&
+                    !_Team1MoveQueue.Any() &&
+                    !_Team2MoveQueue.Any() &&
+                    NowDuration(_LastAutoAssist).TotalSeconds > 10.0) {
+                    lock (_AssistAttemptQueue) {
+                        // There are, look at the first one without pulling it
+                        var assistRecord = _AssistAttemptQueue.Peek();
+                        if (assistRecord != null) {
+                            if (NowDuration(assistRecord.record_creationTime).TotalMinutes > 5.0) {
+                                // If the record is more than 5 minutes old, get rid of it
+                                SendMessageToSource(assistRecord, "Automatic Assist has timed out. Please use assist again to re-queue yourself.");
+                                OnlineAdminSayMessage("Automatic Assist timed out for " + assistRecord.GetSourceName());
+                                _AssistAttemptQueue.Dequeue();
+                            } else {
+                                // The record is active, see if the player can be automatically assisted
+                                if (RunAssist(assistRecord.target_player, assistRecord, null, true)) {
+                                    QueueRecordForProcessing(assistRecord);
+                                    _AssistAttemptQueue.Dequeue();
+                                    _LastAutoAssist = UtcNow();
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running autoassist monitor.", e));
+            }
+        }
+
+        private void RunStatPurgeMonitor() {
+            try {
+                //Keep the extended round stats table clean
+                if (_pluginEnabled &&
+                    _firstPlayerListComplete) {
+                    PurgeExtendedRoundStats();
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running stat purge monitor.", e));
+            }
+        }
+
+        private void RunAutomaticRestartMonitor() {
+            try {
+                //Check for automatic restart window
+                if (_automaticServerRestart &&
+                    _pluginEnabled &&
+                    _threadsReady &&
+                    _firstPlayerListComplete) {
+                    Boolean restart = true;
+                    var uptime = TimeSpan.FromSeconds(_serverInfo.InfoObject.ServerUptime);
+                    var uptimeString = FormatTimeString(uptime, 3);
+                    if (uptime.TotalHours < _automaticServerRestartMinHours) {
+                        restart = false;
+                    }
+                    Int32 count = _PlayerDictionary.Values.ToList().Count(aPlayer =>
+                                    aPlayer.player_type == PlayerType.Player &&
+                                    NowDuration(aPlayer.lastAction).TotalMinutes < 30);
+                    if (restart && count > 1) {
+                        restart = false;
+                    }
+                    if (restart) {
+                        QueueRecordForProcessing(new ARecord {
+                            record_source = ARecord.Sources.InternalAutomated,
+                            server_id = _serverInfo.ServerID,
+                            command_type = GetCommandByKey("server_shutdown"),
+                            target_name = "Server",
+                            source_name = "AutoAdmin",
+                            record_message = "Automatic Server Restart [" + FormatTimeString(uptime, 3) + "]",
+                            record_time = UtcNow()
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running restart monitor.", e));
+            }
+        }
+
+        private void RunPingStatisticsMonitor() {
+            try {
+                if (_UseExperimentalTools && _roundState == RoundState.Playing) {
+                    var players = _PlayerDictionary.Values.ToList();
+                    double total = players.Count();
+                    if (total > 0) {
+                        double over50 = players.Count(aPlayer => aPlayer.player_ping_avg > 50);
+                        double over100 = players.Count(aPlayer => aPlayer.player_ping_avg > 100);
+                        double over150 = players.Count(aPlayer => aPlayer.player_ping_avg > 150);
+                        double over50p = Math.Round(over50 / total * 100, 1);
+                        double over100p = Math.Round(over100 / total * 100, 1);
+                        double over150p = Math.Round(over150 / total * 100, 1);
+                        string over100t = "Over 50ms: (" + Math.Round(over50) + "/" + total + ") " + over50p + "%";
+                        string over150t = "Over 100ms: (" + Math.Round(over100) + "/" + total + ") " + over100p + "%";
+                        string over200t = "Over 150ms: (" + Math.Round(over150) + "/" + total + ") " + over150p + "%";
+                        QueueStatisticForProcessing(new AStatistic() {
+                            stat_type = AStatistic.StatisticType.ping_over50,
+                            server_id = _serverInfo.ServerID,
+                            round_id = _roundID,
+                            target_name = _serverInfo.InfoObject.Map,
+                            stat_value = over50p,
+                            stat_comment = over100t,
+                            stat_time = UtcNow()
+                        });
+                        QueueStatisticForProcessing(new AStatistic() {
+                            stat_type = AStatistic.StatisticType.ping_over100,
+                            server_id = _serverInfo.ServerID,
+                            round_id = _roundID,
+                            target_name = _serverInfo.InfoObject.Map,
+                            stat_value = over100p,
+                            stat_comment = over150t,
+                            stat_time = UtcNow()
+                        });
+                        QueueStatisticForProcessing(new AStatistic() {
+                            stat_type = AStatistic.StatisticType.ping_over150,
+                            server_id = _serverInfo.ServerID,
+                            round_id = _roundID,
+                            target_name = _serverInfo.InfoObject.Map,
+                            stat_value = over150p,
+                            stat_comment = over200t,
+                            stat_time = UtcNow()
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running pingstats monitor.", e));
+            }
+        }
+
+        private void RunPlayerListingMonitor() {
+            try {
+                //Player listing check
+                if (_pluginEnabled &&
+                    _firstPlayerListComplete &&
+                    NowDuration(_LastPlayerListProcessed).TotalMinutes > 7.5) {
+                    //Create report record
+                    QueueRecordForProcessing(new ARecord {
+                        record_source = ARecord.Sources.InternalAutomated,
+                        server_id = _serverInfo.ServerID,
+                        command_type = GetCommandByKey("player_report"),
+                        command_numeric = 0,
+                        target_name = "AdKats",
+                        source_name = "AdKats",
+                        record_message = "Player listing offline. Inform ColColonCleaner.",
+                        record_time = UtcNow()
+                    });
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running playerlist monitor.", e));
+            }
+        }
+
+        private void RunTeamPowerStatMonitor() {
+            try {
+                if (_UseTeamPowerMonitor && _UseExperimentalTools && _firstPlayerListComplete) {
+                    ATeam t1, t2;
+                    if (_roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
+                        Double t1Power = t1.GetTeamPower();
+                        Double t2Power = t2.GetTeamPower();
+                        Double percDiff = Math.Abs(t1Power - t2Power) / ((t1Power + t2Power) / 2.0) * 100.0;
+                        String message = "";
+                        if (t1Power > t2Power) {
+                            message += t1.TeamID + "/" + t1.TeamKey + " up " + Math.Round(((t1Power - t2Power) / t2Power) * 100) + "% ";
+                        } else {
+                            message += t2.TeamID + "/" + t2.TeamKey + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
+                        }
+                        message += "(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
+                        if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
+                            PlayerSayMessage("ColColonCleaner", message);
+                        } else if (_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) > 5) {
+                            ProconChatWrite(Log.FBold(message));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running teampowerstat monitor.", e));
+            }
+        }
+
+        private void RunEventMonitor() {
+            try {
+                // EVENTS
+                if (_EventWeeklyRepeat) {
+                    _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
+                    if (GetEventRoundDateTime() < DateTime.Now) {
+                        // If the given event date is today, but is already in the past
+                        // reset it to the same day next week
+                        _EventDate = _EventDate.AddDays(7);
+                    }
+                    QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
+                }
+                if (_UseExperimentalTools && _EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
+                    var eventDate = GetEventRoundDateTime();
+                    if (DateTime.Now < eventDate && _CurrentEventRoundNumber == 999999) {
+                        // The event date is set, and in the future
+                        var estimateEventRoundNumber = FetchEstimatedEventRoundNumber();
+                        // At 3 rounds away, lock in the round number for the event
+                        if (Math.Abs(estimateEventRoundNumber - _roundID) <= 3) {
+                            _CurrentEventRoundNumber = estimateEventRoundNumber;
+                            UpdateSettingPage();
+                        }
+                    }
+                    var serverName = "";
+                    // During the event
+                    if (EventActive()) {
+                        serverName = _eventActiveServerName + " " + GetEventMessage(false);
+                    }
+                    // Immediately before the event
+                    else if (_CurrentEventRoundNumber != 999999 &&
+                             _CurrentEventRoundNumber > _roundID) {
+                        serverName = _eventConcreteCountdownServerName;
+                    }
+                    // Before the event
+                    else if (DateTime.Now < eventDate &&
+                             Math.Abs((eventDate - DateTime.Now).TotalDays) < _EventAnnounceDayDifference) {
+                        serverName = _eventCountdownServerName;
+                    }
+                    //After the event, and otherwise
+                    else {
+                        serverName = _eventBaseServerName;
+                    }
+                    this.ExecuteCommand("procon.protected.send", "vars.serverName", ProcessEventServerName(serverName, false, false));
+
+                    // EVENT AUTOMATIC POLLING
+                    if (!_EventRoundPolled &&
+                        // Don't auto-poll after 20 event rounds, just in case nobody votes to end it
+                        _EventRoundOptions.Count() < 20 &&
+                        _roundState == RoundState.Playing &&
+                        _serverInfo.GetRoundElapsedTime() >= _EventRoundAutoVoteDuration &&
+                        _ActivePoll == null &&
+                        (_CurrentEventRoundNumber == _roundID + 1 || EventActive())) {
+                        var options = String.Empty;
+                        if (_CurrentEventRoundNumber == _roundID + 1) {
+                            options = "reset";
+                        }
+                        QueueRecordForProcessing(new ARecord {
+                            record_source = ARecord.Sources.InternalAutomated,
+                            server_id = _serverInfo.ServerID,
+                            command_type = GetCommandByKey("poll_trigger"),
+                            command_numeric = 0,
+                            target_name = "event",
+                            source_name = "EventAutoPolling",
+                            record_message = options,
+                            record_time = UtcNow()
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running event monitor.", e));
+            }
+        }
+
+        private void RunTeamOperationMonitor() {
+            try {
+                //Team operations
+                ATeam team1, team2, winningTeam, losingTeam, mapUpTeam, mapDownTeam;
+                if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
+                    if (team1.TeamTicketCount > team2.TeamTicketCount) {
+                        winningTeam = team1;
+                        losingTeam = team2;
+                    } else {
+                        winningTeam = team2;
+                        losingTeam = team1;
+                    }
+                    // If the mode is rush, the attackers are team 1, use that team for the extra seeder
+                    if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate() || (_serverInfo.InfoObject.GameMode.ToLower().Contains("rush"))) {
+                        //Team1 has more map than Team2
+                        mapUpTeam = team1;
+                        mapDownTeam = team2;
+                    } else {
+                        //Team2 has more map than Team1
+                        mapUpTeam = team2;
+                        mapDownTeam = team1;
+                    }
+
+                    if (_roundState == RoundState.Playing &&
+                        _serverInfo.GetRoundElapsedTime().TotalMinutes > 5 &&
+                        Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
+                        !_Team1MoveQueue.Any() &&
+                        !_Team2MoveQueue.Any()) {
+                        //Auto-assist
+                        foreach (var aPlayer in GetOnlinePlayerDictionaryOfGroup("blacklist_autoassist").Values
+                                                    .Where(dPlayer => dPlayer.fbpInfo.TeamID == winningTeam.TeamID)) {
+                            var assistRecord = new ARecord {
+                                record_source = ARecord.Sources.InternalAutomated,
+                                server_id = _serverInfo.ServerID,
+                                command_type = GetCommandByKey("self_assist"),
+                                command_action = GetCommandByKey("self_assist_unconfirmed"),
+                                target_name = aPlayer.player_name,
+                                target_player = aPlayer,
+                                source_name = "AUAManager",
+                                record_message = "Auto-assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
+                                record_time = UtcNow()
+                            };
+                            if (RunAssist(assistRecord.target_player, assistRecord, null, true)) {
+                                QueueRecordForProcessing(assistRecord);
+                                _PlayersAutoAssistedThisRound = true;
+                                Thread.Sleep(2000);
+                            }
+                        }
+                        //Server seeder balance
+                        if (_UseTeamPowerMonitor && _UseTeamPowerMonitorBalance && _PlayerDictionary.Any()) {
+                            var seeders = _PlayerDictionary.Values.ToList().Where(dPlayer =>
+                                                        dPlayer.player_type == PlayerType.Player &&
+                                                        NowDuration(dPlayer.lastAction).TotalMinutes > 20);
+                            if (seeders.Any()) {
+                                var mapUpSeeders = seeders.Where(aPlayer => aPlayer.fbpInfo.TeamID == mapUpTeam.TeamID);
+                                var mapDownSeeders = seeders.Where(aPlayer => aPlayer.fbpInfo.TeamID == mapDownTeam.TeamID);
+                                // This code is fired every 30 seconds
+                                // At that interval move players so either both teams have the same number of seeders,
+                                // or the map up team has 1 more seeder.
+                                if (mapDownSeeders.Count() > mapUpSeeders.Count()) {
+                                    var aPlayer = mapDownSeeders.First();
+                                    aPlayer.RequiredTeam = mapUpTeam;
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running teamoperation monitor.", e));
+            }
+        }
+
+        private void RunVOIPMonitor() {
+            try {
+                Boolean accessUpdateRequired = false;
+                if (_TeamspeakPlayerMonitorEnable) {
+                    List<APlayer> onlineTeamspeakPlayers = new List<APlayer>();
+                    //Check for online teamspeak players
+                    foreach (TeamSpeakClientViewer.TeamspeakClient client in _TeamspeakManager.GetPlayersOnTs()) {
+                        IEnumerable<APlayer> matching = _PlayerDictionary.Values.ToList().Where(dPlayer =>
+                            // Match by IP or by name (only if no IP is available), percent matching over 80%
+                            ((!String.IsNullOrEmpty(client.AdvIpAddress) && !String.IsNullOrEmpty(dPlayer.player_ip) && client.AdvIpAddress == dPlayer.player_ip) ||
+                             ((String.IsNullOrEmpty(client.AdvIpAddress) || String.IsNullOrEmpty(dPlayer.player_ip)) && PercentMatch(client.TsName, dPlayer.player_name) > 80)));
+                        if (_TeamspeakManager.DebugClients) {
+                            Log.Info("TSClient: " + client.TsName + " | " + client.AdvIpAddress + " | " + ((matching.Any()) ? (matching.Count() + " online players match client.") : ("No matching online players.")));
+                        }
+                        foreach (var match in matching) {
+                            match.TSClientObject = client;
+                        }
+                        onlineTeamspeakPlayers.AddRange(matching);
+                    }
+                    List<String> validTsPlayers = new List<String>();
+                    foreach (APlayer aPlayer in onlineTeamspeakPlayers) {
+                        validTsPlayers.Add(aPlayer.player_name);
+                        if (!_TeamspeakPlayers.ContainsKey(aPlayer.player_name)) {
+                            if (_TeamspeakManager.DebugClients) {
+                                Log.Success("Teamspeak soldier " + aPlayer.player_name + " connected.");
+                            }
+
+                            var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
+                            var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
+                            if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator && NowDuration(aPlayer.VoipJoinTime).TotalMinutes > 15.0) {
+                                var playerName = aPlayer.GetVerboseName();
+                                var username = aPlayer.TSClientObject.TsName;
+                                var playerUsername = playerName + (
+                                        aPlayer.player_name.ToLower() != username.ToLower() &&
+                                        !aPlayer.player_name.ToLower().Contains(username.ToLower()) &&
+                                        !username.ToLower().Contains(aPlayer.player_name.ToLower()) ? " (" + username + ")" : "");
+                                var joinMessage = _TeamspeakManager.JoinDisplayMessage.Replace("%player%", playerName).Replace("%username%", username).Replace("%playerusername%", playerUsername);
+                                switch (_TeamspeakManager.JoinDisplay) {
+                                    case VoipJoinDisplayType.Say:
+                                        AdminSayMessage(joinMessage);
+                                        break;
+                                    case VoipJoinDisplayType.Yell:
+                                        AdminYellMessage(joinMessage);
+                                        break;
+                                    case VoipJoinDisplayType.Tell:
+                                        AdminTellMessage(joinMessage);
+                                        break;
+                                }
+                                aPlayer.VoipJoinTime = UtcNow();
+                            }
+                            accessUpdateRequired = true;
+                        }
+                        _TeamspeakPlayers[aPlayer.player_name] = aPlayer;
+                    }
+                    foreach (string removePlayer in _TeamspeakPlayers.Keys.ToList().Where(key => !validTsPlayers.Contains(key)).ToList()) {
+                        if (_TeamspeakManager.DebugClients) {
+                            Log.Success("Teamspeak soldier " + removePlayer + " disconnected.");
+                        }
+                        accessUpdateRequired = true;
+                        _TeamspeakPlayers[removePlayer].TSClientObject = null;
+                        _TeamspeakPlayers.Remove(removePlayer);
+                    }
+                }
+
+                if (_pluginEnabled &&
+                    _firstPlayerListComplete &&
+                    _DiscordPlayerMonitorEnable &&
+                    _DiscordPlayerMonitorView) {
+                    List<APlayer> onlineDiscordPlayers = new List<APlayer>();
+                    //Check for online discord players
+                    var members = _DiscordManager.GetMembers(false, true, true);
+                    foreach (var member in members) {
+                        var matching = _PlayerDictionary.Values.ToList().Where(dPlayer =>
+                            // Match by ID
+                            member.ID == dPlayer.player_discord_id);
+                        if (!matching.Any()) {
+                            // If there are no results by ID, do a name search
+                            matching = _PlayerDictionary.Values.ToList().Where(dPlayer =>
+                                          // Ignore any online players who already have a discord ID
+                                          String.IsNullOrEmpty(dPlayer.player_discord_id) &&
+                                          // Make sure there are no players already given this ID
+                                          member.PlayerObject == null && member.PlayerTested &&
+                                          // Match name, percent matching over 80%
+                                          PercentMatch(member.Name, dPlayer.player_name) > 80);
+                        }
+                        if (_DiscordManager.DebugMembers) {
+                            Log.Info("DiscordMember: " + member.Name + " | " + member.ID + " | " + ((matching.Any()) ? (matching.Count() + " online players match member.") : ("No matching online players.")));
+                        }
+                        foreach (var match in matching) {
+                            match.DiscordObject = member;
+                            // If their name is an exact match, assign the ID association
+                            if (match.player_name == member.Name && String.IsNullOrEmpty(match.player_discord_id)) {
+                                match.player_discord_id = member.ID;
+                                UpdatePlayer(match);
+                            }
+                        }
+                        onlineDiscordPlayers.AddRange(matching);
+                    }
+                    List<String> validDiscordPlayers = new List<String>();
+                    foreach (APlayer aPlayer in onlineDiscordPlayers) {
+                        validDiscordPlayers.Add(aPlayer.player_name);
+                        if (!_DiscordPlayers.ContainsKey(aPlayer.player_name)) {
+                            if (_DiscordManager.DebugMembers) {
+                                Log.Success("Discord soldier " + aPlayer.player_name + " connected.");
+                            }
+
+                            var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
+                            var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
+                            if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator && NowDuration(aPlayer.VoipJoinTime).TotalMinutes > 15.0) {
+                                var playerName = aPlayer.GetVerboseName();
+                                var username = aPlayer.DiscordObject.Name;
+                                var playerUsername = playerName + (
+                                        aPlayer.player_name.ToLower() != username.ToLower() &&
+                                        !aPlayer.player_name.ToLower().Contains(username.ToLower()) &&
+                                        !username.ToLower().Contains(aPlayer.player_name.ToLower()) ? " (" + username + ")" : "");
+                                var joinMessage = _DiscordManager.JoinMessage.Replace("%player%", playerName).Replace("%username%", username).Replace("%playerusername%", playerUsername);
+                                switch (_DiscordManager.JoinDisplay) {
+                                    case VoipJoinDisplayType.Say:
+                                        AdminSayMessage(joinMessage);
+                                        break;
+                                    case VoipJoinDisplayType.Yell:
+                                        AdminYellMessage(joinMessage);
+                                        break;
+                                    case VoipJoinDisplayType.Tell:
+                                        AdminTellMessage(joinMessage);
+                                        break;
+                                }
+                                aPlayer.VoipJoinTime = UtcNow();
+                            }
+                            accessUpdateRequired = true;
+                        }
+                        _DiscordPlayers[aPlayer.player_name] = aPlayer;
+                    }
+                    foreach (string removePlayer in _DiscordPlayers.Keys.ToList().Where(key => !validDiscordPlayers.Contains(key)).ToList()) {
+                        if (_DiscordManager.DebugMembers) {
+                            Log.Success("Discord soldier " + removePlayer + " disconnected.");
+                        }
+                        accessUpdateRequired = true;
+                        _DiscordPlayers[removePlayer].DiscordObject = null;
+                        _DiscordPlayers.Remove(removePlayer);
+                    }
+                }
+                if (accessUpdateRequired) {
+                    FetchAllAccess(true);
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running voip monitor.", e));
+            }
+        }
+
+        private void RunAFKMonitor() {
+            try {
+                //Perform AFK processing
+                if (_AFKManagerEnable && _AFKAutoKickEnable && (_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) > _AFKTriggerMinimumPlayers)) {
+                    //Double list conversion
+                    List<APlayer> afkPlayers = _PlayerDictionary.Values.ToList().Where(aPlayer => (UtcNow() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes && aPlayer.player_type != PlayerType.Spectator && !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) - _AFKTriggerMinimumPlayers).ToList();
+                    if (_AFKIgnoreUserList) {
+                        IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
+                        afkPlayers = afkPlayers.Where(aPlayer => !userSoldierGuids.Contains(aPlayer.player_guid)).ToList();
+                    } else {
+                        afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key)).ToList();
+                    }
+                    foreach (APlayer aPlayer in afkPlayers) {
+                        String afkTime = FormatTimeString(UtcNow() - aPlayer.lastAction, 2);
+                        Log.Debug(() => "Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
+                        ARecord record = new ARecord {
+                            record_source = ARecord.Sources.InternalAutomated,
+                            server_id = _serverInfo.ServerID,
+                            command_type = GetCommandByKey("player_kick"),
+                            command_numeric = 0,
+                            target_name = aPlayer.player_name,
+                            target_player = aPlayer,
+                            source_name = "AFKManager",
+                            record_message = "AFK time exceeded [" + afkTime + "/" + GetPlayerTeamKey(aPlayer) + "]. Please rejoin once you return.",
+                            record_time = UtcNow()
+                        };
+                        QueueRecordForProcessing(record);
+                        //Only take one
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running AFK monitor.", e));
+            }
+        }
+
+        private void RunNukeAnnounceMonitor() {
+            try {
+                //Nuke Countdowns - Every 50ms
+                if (_lastNukeTeam != null) {
+                    //Auto-Nuke Slay Duration
+                    var duration = NowDuration(_lastNukeTime);
+                    var nukeInfoMessage = "";
+                    var durationIncrease = 0;
+                    ATeam team1, team2;
+                    if (!_nukeAutoSlayActive && GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
+                        if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > _surrenderAutoNukeDurationIncreaseTicketDiff) {
+                            durationIncrease = _surrenderAutoNukeDurationIncrease * Math.Max(getNukeCount(_lastNukeTeam.TeamID) - 1, 0);
+                        }
+                        switch (_populationStatus) {
+                            case PopulationState.High:
+                                _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationHigh + durationIncrease;
+                                nukeInfoMessage = "High population nuke: " + _surrenderAutoNukeDurationHigh + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
+                                break;
+                            case PopulationState.Medium:
+                                _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationMed + durationIncrease;
+                                nukeInfoMessage = "Medium population nuke: " + _surrenderAutoNukeDurationMed + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
+                                break;
+                            case PopulationState.Low:
+                                _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationLow + durationIncrease;
+                                nukeInfoMessage = "Low population nuke: " + _surrenderAutoNukeDurationLow + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
+                                break;
+                        }
+                    }
+                    if (_nukeAutoSlayActiveDuration > 0) {
+                        if (duration.TotalSeconds < _nukeAutoSlayActiveDuration) {
+                            if (!_nukeAutoSlayActive) {
+                                AdminSayMessage(nukeInfoMessage);
+                            }
+                            _nukeAutoSlayActive = true;
+                            Double endDuration = NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration)).TotalSeconds;
+                            Int32 endDurationSeconds = (Int32)Math.Round(endDuration);
+                            String endDurationString = endDurationSeconds.ToString();
+                            var durationMessage = _lastNukeTeam.TeamKey + " nuke active for " + endDurationString + " seconds!";
+                            if (_lastNukeSlayDurationMessage != durationMessage && endDurationSeconds > 0 && (endDurationSeconds % 2 == 0 || endDuration <= 5)) {
+                                AdminTellMessage(durationMessage);
+                                _lastNukeSlayDurationMessage = durationMessage;
+                            }
+                        } else if (_nukeAutoSlayActive) {
+                            _nukeAutoSlayActive = false;
+                            _nukeAutoSlayActiveDuration = 0;
+                            AdminTellMessage(_lastNukeTeam.TeamKey + " nuke has ended!");
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running nukeannounce monitor.", e));
+            }
+        }
+
         private void SetupStatusMonitor() {
             //Create a new thread to handle keep-alive
             //This thread will remain running for the duration the layer is online
             Thread statusMonitorThread = new Thread(new ThreadStart(delegate {
                 try {
                     Thread.CurrentThread.Name = "StatusMonitor";
-                    DateTime lastShortKeepAliveCheck = UtcNow();
-                    DateTime lastLongKeepAliveCheck = UtcNow();
-                    DateTime lastVeryLongKeepAliveCheck = UtcNow();
                     DoServerInfoTrigger();
-                    DateTime lastMemoryWarning = UtcNow();
                     while (true) {
                         try {
-                            //Memory Monitor - Every 30 seconds
-                            Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
-                            if (NowDuration(lastMemoryWarning).TotalSeconds > 30) {
-                                if (MBUsed > 750 && (UtcNow() - _AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete) {
-                                    Log.Warn(MBUsed + "MB estimated memory used.");
-                                    QueueRecordForProcessing(new ARecord {
-                                        record_source = ARecord.Sources.InternalAutomated,
-                                        server_id = _serverInfo.ServerID,
-                                        command_type = GetCommandByKey("plugin_restart"),
-                                        command_numeric = 0,
-                                        target_name = "AdKats",
-                                        source_name = "MemoryMonitor",
-                                        record_message = MBUsed + "MB estimated memory used",
-                                        record_time = UtcNow()
-                                    });
-                                    lastMemoryWarning = UtcNow();
-                                } else if (MBUsed > 250) {
-                                    String mm = " MAP: ";
-                                    mm += "1:" + _aliveThreads.Count() + ", ";
-                                    mm += "2:" + _populationPopulatingPlayers.Count() + ", ";
-                                    mm += "3:" + _ActOnIsAliveDictionary.Count() + ", ";
-                                    mm += "4:" + _ActOnSpawnDictionary.Count() + ", ";
-                                    mm += "5:" + _LoadoutConfirmDictionary.Count() + ", ";
-                                    mm += "6:" + _ActionConfirmDic.Count() + ", ";
-                                    mm += "7:" + _RoundReports.Count() + ", ";
-                                    mm += "8:" + _userCache.Count() + ", ";
-                                    mm += "9:" + _specialPlayerGroupIDDictionary.Count() + ", ";
-                                    mm += "10:" + _specialPlayerGroupKeyDictionary.Count() + ", ";
-                                    mm += "11:" + _baseSpecialPlayerCache.Count() + ", ";
-                                    mm += "12:" + _verboseSpecialPlayerCache.Count() + ", ";
-                                    mm += "13:" + _roundAssists.Count() + ", ";
-                                    mm += "14:" + _PlayerDictionary.Count() + ", ";
-                                    mm += "15:" + _RoundPrepSquads.Count() + ", ";
-                                    mm += "16:" + _PlayerLeftDictionary.Count() + ", ";
-                                    mm += "17:" + _FetchedPlayers.Count() + ", ";
-                                    mm += "19:" + _populatorPlayers.Count() + ", ";
-                                    mm += "20:" + _TeamspeakPlayers.Count() + ", ";
-                                    mm += "21:" + _RoundCookers.Count() + ", ";
-                                    mm += "22:" + _BanEnforcerCheckingQueue.Count() + ", ";
-                                    mm += "23:" + _AntiCheatQueue.Count() + ", ";
-                                    mm += "24:" + _KillProcessingQueue.Count() + ", ";
-                                    mm += "25:" + _PlayerListProcessingQueue.Count() + ", ";
-                                    mm += "26:" + _PlayerRemovalProcessingQueue.Count() + ", ";
-                                    mm += "27:" + _SettingUploadQueue.Count() + ", ";
-                                    mm += "28:" + _UnparsedCommandQueue.Count() + ", ";
-                                    mm += "29:" + _UnparsedMessageQueue.Count() + ", ";
-                                    mm += "30:" + _UnprocessedActionQueue.Count() + ", ";
-                                    mm += "31:" + _UnprocessedRecordQueue.Count() + ", ";
-                                    mm += "32:" + _UnprocessedStatisticQueue.Count() + ", ";
-                                    mm += "33:" + _UserRemovalQueue.Count() + ", ";
-                                    mm += "34:" + _UserUploadQueue.Count() + ", ";
-                                    mm += "35:" + _BattlelogFetchQueue.Count() + ", ";
-                                    mm += "36:" + _IPInfoFetchQueue.Count() + ", ";
-                                    Log.Warn(MBUsed + "MB estimated memory used." + mm);
-                                    lastMemoryWarning = UtcNow();
-                                }
-                            }
+                            RunMemoryMonitor();
 
-                            if (false) {
-                                //Post battlelog action times - Disabled
-                                lock (_BattlelogActionTimes) {
-                                    if (_BattlelogActionTimes.Any() && NowDuration(_lastBattlelogFrequencyMessage).TotalSeconds > 30) {
-                                        while (_BattlelogActionTimes.Any() && NowDuration(_BattlelogActionTimes.Peek()).TotalMinutes > 4) {
-                                            _BattlelogActionTimes.Dequeue();
-                                        }
-                                        var frequency = Math.Round(_BattlelogActionTimes.Count() / 4.0, 2);
-                                        Log.Info("Average battlelog request frequency: " + frequency + " r/m, HC: " + _AntiCheatQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count());
-                                        QueueStatisticForProcessing(new AStatistic() {
-                                            stat_type = AStatistic.StatisticType.battlelog_requestfreq,
-                                            server_id = _serverInfo.ServerID,
-                                            round_id = _roundID,
-                                            target_name = _serverInfo.InfoObject.Map,
-                                            stat_value = frequency,
-                                            stat_comment = frequency + " r/m, HC: " + _AntiCheatQueue.Count() + ", BF: " + _BattlelogFetchQueue.Count(),
-                                            stat_time = UtcNow()
-                                        });
-                                        _lastBattlelogFrequencyMessage = UtcNow();
-                                    }
-                                }
-                            }
+                            RunPlayerListingStatMonitor();
 
-                            if (_DebugPlayerListing && NowDuration(_LastDebugPlayerListingMessage).TotalSeconds > 30.0) {
-                                Log.Info("PlayerListing: " + Math.Round(getPlayerListTriggerRate(), 1) + " Triggered/min, " + Math.Round(getPlayerListReceiveRate(), 1) + " Received/min, " + Math.Round(getPlayerListAcceptRate(), 1) + " Accepted/min, " + Math.Round(getPlayerListProcessedRate(), 1) + " Processed/min");
-                                _LastDebugPlayerListingMessage = UtcNow();
-                            }
+                            RunUnswitcherMonitor();
 
-                            //Check for unswitcher disable - every 5 seconds
-                            if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (UtcNow() - _LastPlayerMoveIssued).TotalSeconds > 5) {
-                                Log.Debug(() => "MULTIBalancer Unswitcher Re-Enabled", 3);
-                                ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
-                                _MULTIBalancerUnswitcherDisabled = false;
-                            }
+                            RunDocumentationMonitor();
 
-                            //Check for plugin updates at interval
-                            if ((UtcNow() - _LastPluginDescFetch).TotalHours > 1) {
-                                FetchPluginDocumentation();
-                            }
+                            RunSpambotMonitor();
 
-                            //SpamBot - Every 500ms
-                            var playerCount = _PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.player_type == PlayerType.Player);
-                            if (_pluginEnabled &&
-                                _spamBotEnabled &&
-                                _firstPlayerListComplete &&
-                                playerCount > 0) {
-                                if ((UtcNow() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
-                                    String message = "[SpamBotMessage]" + _spamBotSayQueue.Peek();
-                                    var eventDate = GetEventRoundDateTime();
-                                    if (((_CurrentEventRoundNumber == 999999 && eventDate < DateTime.Now) || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
-                                        message = message.Replace("%EventDateDuration%", "TBD")
-                                                         .Replace("%EventDateTime%", "TBD")
-                                                         .Replace("%EventDate%", "TBD")
-                                                         .Replace("%EventRound%", "TBD")
-                                                         .Replace("%RemainingRounds%", "TBD")
-                                                         .Replace("%s%", "s")
-                                                         .Replace("%S%", "S");
-                                    } else {
-                                        if (message.Contains("%EventDateDuration%")) {
-                                            message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
-                                        }
-                                        if (message.Contains("%EventDateTime%")) {
-                                            message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
-                                        }
-                                        if (message.Contains("%EventDate%")) {
-                                            message = message.Replace("%EventDate%", eventDate.ToShortDateString());
-                                        }
-                                        if (message.Contains("%CurrentRound%")) {
-                                            message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
-                                        }
-                                        if (message.Contains("%EventRound%")) {
-                                            if (_CurrentEventRoundNumber != 999999) {
-                                                message = message.Replace("%EventRound%", String.Format("{0:n0}", _CurrentEventRoundNumber));
-                                            } else {
-                                                message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
-                                            }
-                                        }
-                                        if (message.Contains("%RemainingRounds%")) {
-                                            var remainingRounds = 0;
-                                            if (_CurrentEventRoundNumber != 999999) {
-                                                remainingRounds = _CurrentEventRoundNumber - _roundID;
-                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
-                                                message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
-                                                message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
-                                            } else {
-                                                remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
-                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
-                                                message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
-                                                message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
-                                            }
-                                        }
-                                    }
-                                    if (_spamBotExcludeAdminsAndWhitelist) {
-                                        if (!String.IsNullOrEmpty(message)) {
-                                            OnlineNonWhitelistSayMessage(message, playerCount > 5);
-                                        }
-                                    } else {
-                                        if (!String.IsNullOrEmpty(message)) {
-                                            AdminSayMessage(message, playerCount > 5);
-                                        }
-                                    }
-                                    _spamBotSayQueue.Enqueue(_spamBotSayQueue.Dequeue());
-                                    _spamBotSayLastPost = UtcNow();
-                                }
-                                if ((UtcNow() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds && _spamBotYellQueue.Any()) {
-                                    String message = "[SpamBotMessage]" + _spamBotYellQueue.Peek();
-                                    var eventDate = GetEventRoundDateTime();
-                                    if (((_CurrentEventRoundNumber == 999999 && eventDate < DateTime.Now) || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
-                                        message = message.Replace("%EventDateDuration%", "TBD")
-                                                         .Replace("%EventDateTime%", "TBD")
-                                                         .Replace("%EventDate%", "TBD")
-                                                         .Replace("%EventRound%", "TBD")
-                                                         .Replace("%RemainingRounds%", "TBD")
-                                                         .Replace("%s%", "s")
-                                                         .Replace("%S%", "S");
-                                    } else {
-                                        if (message.Contains("%EventDateDuration%")) {
-                                            message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
-                                        }
-                                        if (message.Contains("%EventDateTime%")) {
-                                            message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
-                                        }
-                                        if (message.Contains("%EventDate%")) {
-                                            message = message.Replace("%EventDate%", eventDate.ToShortDateString());
-                                        }
-                                        if (message.Contains("%CurrentRound%")) {
-                                            message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
-                                        }
-                                        if (message.Contains("%EventRound%")) {
-                                            if (_CurrentEventRoundNumber != 999999) {
-                                                message = message.Replace("%EventRound%", String.Format("{0:n0}", _CurrentEventRoundNumber));
-                                            } else {
-                                                message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
-                                            }
-                                        }
-                                        if (message.Contains("%RemainingRounds%")) {
-                                            var remainingRounds = 0;
-                                            if (_CurrentEventRoundNumber != 999999) {
-                                                remainingRounds = _CurrentEventRoundNumber - _roundID;
-                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
-                                                message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
-                                                message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
-                                            } else {
-                                                remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
-                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
-                                                message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
-                                                message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
-                                            }
-                                        }
-                                    }
-                                    if (_spamBotExcludeAdminsAndWhitelist) {
-                                        if (!String.IsNullOrEmpty(message)) {
-                                            OnlineNonWhitelistYellMessage(message, playerCount > 5);
-                                        }
-                                    } else {
-                                        if (!String.IsNullOrEmpty(message)) {
-                                            AdminYellMessage(message, playerCount > 5);
-                                        }
-                                    }
-                                    _spamBotYellQueue.Enqueue(_spamBotYellQueue.Dequeue());
-                                    _spamBotYellLastPost = UtcNow();
-                                }
-                                if ((UtcNow() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds && _spamBotTellQueue.Any()) {
-                                    String message = "[SpamBotMessage]" + _spamBotTellQueue.Peek();
-                                    var eventDate = GetEventRoundDateTime();
-                                    if (((_CurrentEventRoundNumber == 999999 && eventDate < DateTime.Now) || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
-                                        message = message.Replace("%EventDateDuration%", "TBD")
-                                                         .Replace("%EventDateTime%", "TBD")
-                                                         .Replace("%EventDate%", "TBD")
-                                                         .Replace("%EventRound%", "TBD")
-                                                         .Replace("%RemainingRounds%", "TBD")
-                                                         .Replace("%s%", "s")
-                                                         .Replace("%S%", "S");
-                                    } else {
-                                        if (message.Contains("%EventDateDuration%")) {
-                                            message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
-                                        }
-                                        if (message.Contains("%EventDateTime%")) {
-                                            message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
-                                        }
-                                        if (message.Contains("%EventDate%")) {
-                                            message = message.Replace("%EventDate%", eventDate.ToShortDateString());
-                                        }
-                                        if (message.Contains("%CurrentRound%")) {
-                                            message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
-                                        }
-                                        if (message.Contains("%EventRound%")) {
-                                            if (_CurrentEventRoundNumber != 999999) {
-                                                message = message.Replace("%EventRound%", String.Format("{0:n0}", _CurrentEventRoundNumber));
-                                            } else {
-                                                message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
-                                            }
-                                        }
-                                        if (message.Contains("%RemainingRounds%")) {
-                                            var remainingRounds = 0;
-                                            if (_CurrentEventRoundNumber != 999999) {
-                                                remainingRounds = _CurrentEventRoundNumber - _roundID;
-                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
-                                                message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
-                                                message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
-                                            } else {
-                                                remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
-                                                message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
-                                                message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
-                                                message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
-                                            }
-                                        }
-                                    }
-                                    if (_spamBotExcludeAdminsAndWhitelist) {
-                                        if (!String.IsNullOrEmpty(message)) {
-                                            OnlineNonWhitelistTellMessage(message, playerCount > 5);
-                                        }
-                                    } else {
-                                        if (!String.IsNullOrEmpty(message)) {
-                                            AdminTellMessage(message, playerCount > 5);
-                                        }
-                                    }
-                                    _spamBotTellQueue.Enqueue(_spamBotTellQueue.Dequeue());
-                                    _spamBotTellLastPost = UtcNow();
-                                }
-                            }
-
-                            //Automatic Assisting Check - Every 500ms
-                            // Are there any records to process
-                            if (_roundState == RoundState.Playing &&
-                                _AssistAttemptQueue.Any() &&
-                                !_Team1MoveQueue.Any() &&
-                                !_Team2MoveQueue.Any() &&
-                                NowDuration(_LastAutoAssist).TotalSeconds > 10.0) {
-                                lock (_AssistAttemptQueue) {
-                                    // There are, look at the first one without pulling it
-                                    var assistRecord = _AssistAttemptQueue.Peek();
-                                    if (assistRecord != null) {
-                                        if (NowDuration(assistRecord.record_creationTime).TotalMinutes > 5.0) {
-                                            // If the record is more than 5 minutes old, get rid of it
-                                            SendMessageToSource(assistRecord, "Automatic Assist has timed out. Please use assist again to re-queue yourself.");
-                                            OnlineAdminSayMessage("Automatic Assist timed out for " + assistRecord.GetSourceName());
-                                            _AssistAttemptQueue.Dequeue();
-                                        } else {
-                                            // The record is active, see if the player can be automatically assisted
-                                            if (RunAssist(assistRecord.target_player, assistRecord, null, true)) {
-                                                QueueRecordForProcessing(assistRecord);
-                                                _AssistAttemptQueue.Dequeue();
-                                                _LastAutoAssist = UtcNow();
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            RunAutoAssistMonitor();
 
                             //Batch very long keep alive - every 10 minutes
-                            if (NowDuration(lastVeryLongKeepAliveCheck).TotalMinutes > 10.0) {
+                            if (NowDuration(_LastVeryLongKeepAliveCheck).TotalMinutes > 10.0) {
 
-                                //Keep the extended round stats table clean
-                                if (_pluginEnabled &&
-                                    _firstPlayerListComplete) {
-                                    PurgeExtendedRoundStats();
-                                }
+                                RunStatPurgeMonitor();
 
-                                //Check for automatic restart window
-                                if (_automaticServerRestart &&
-                                    _pluginEnabled &&
-                                    _threadsReady &&
-                                    _firstPlayerListComplete) {
-                                    Boolean restart = true;
-                                    var uptime = TimeSpan.FromSeconds(_serverInfo.InfoObject.ServerUptime);
-                                    var uptimeString = FormatTimeString(uptime, 3);
-                                    if (uptime.TotalHours < _automaticServerRestartMinHours) {
-                                        restart = false;
-                                    }
-                                    Int32 count = _PlayerDictionary.Values.ToList().Count(aPlayer =>
-                                                    aPlayer.player_type == PlayerType.Player &&
-                                                    NowDuration(aPlayer.lastAction).TotalMinutes < 30);
-                                    if (restart && count > 1) {
-                                        restart = false;
-                                    }
-                                    if (restart) {
-                                        QueueRecordForProcessing(new ARecord {
-                                            record_source = ARecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("server_shutdown"),
-                                            target_name = "Server",
-                                            source_name = "AutoAdmin",
-                                            record_message = "Automatic Server Restart [" + FormatTimeString(uptime, 3) + "]",
-                                            record_time = UtcNow()
-                                        });
-                                    }
-                                }
+                                RunAutomaticRestartMonitor();
 
-                                lastVeryLongKeepAliveCheck = UtcNow();
+                                _LastVeryLongKeepAliveCheck = UtcNow();
                             }
 
                             //Batch long keep alive - every 5 minutes
-                            if ((UtcNow() - lastLongKeepAliveCheck).TotalMinutes > 5) {
+                            if ((UtcNow() - _LastLongKeepAliveCheck).TotalMinutes > 5) {
 
-                                if (_UseExperimentalTools && _roundState == RoundState.Playing) {
-                                    var players = _PlayerDictionary.Values.ToList();
-                                    double total = players.Count();
-                                    if (total > 0) {
-                                        double over50 = players.Count(aPlayer => aPlayer.player_ping_avg > 50);
-                                        double over100 = players.Count(aPlayer => aPlayer.player_ping_avg > 100);
-                                        double over150 = players.Count(aPlayer => aPlayer.player_ping_avg > 150);
-                                        double over50p = Math.Round(over50 / total * 100, 1);
-                                        double over100p = Math.Round(over100 / total * 100, 1);
-                                        double over150p = Math.Round(over150 / total * 100, 1);
-                                        string over100t = "Over 50ms: (" + Math.Round(over50) + "/" + total + ") " + over50p + "%";
-                                        string over150t = "Over 100ms: (" + Math.Round(over100) + "/" + total + ") " + over100p + "%";
-                                        string over200t = "Over 150ms: (" + Math.Round(over150) + "/" + total + ") " + over150p + "%";
-                                        QueueStatisticForProcessing(new AStatistic() {
-                                            stat_type = AStatistic.StatisticType.ping_over50,
-                                            server_id = _serverInfo.ServerID,
-                                            round_id = _roundID,
-                                            target_name = _serverInfo.InfoObject.Map,
-                                            stat_value = over50p,
-                                            stat_comment = over100t,
-                                            stat_time = UtcNow()
-                                        });
-                                        QueueStatisticForProcessing(new AStatistic() {
-                                            stat_type = AStatistic.StatisticType.ping_over100,
-                                            server_id = _serverInfo.ServerID,
-                                            round_id = _roundID,
-                                            target_name = _serverInfo.InfoObject.Map,
-                                            stat_value = over100p,
-                                            stat_comment = over150t,
-                                            stat_time = UtcNow()
-                                        });
-                                        QueueStatisticForProcessing(new AStatistic() {
-                                            stat_type = AStatistic.StatisticType.ping_over150,
-                                            server_id = _serverInfo.ServerID,
-                                            round_id = _roundID,
-                                            target_name = _serverInfo.InfoObject.Map,
-                                            stat_value = over150p,
-                                            stat_comment = over200t,
-                                            stat_time = UtcNow()
-                                        });
-                                    }
-                                }
+                                RunPingStatisticsMonitor();
 
-                                lastLongKeepAliveCheck = UtcNow();
+                                _LastLongKeepAliveCheck = UtcNow();
                             }
 
                             //Batch short keep alive - every 30 seconds
-                            if ((UtcNow() - lastShortKeepAliveCheck).TotalSeconds > 30) {
+                            if ((UtcNow() - _LastShortKeepAliveCheck).TotalSeconds > 30) {
 
-                                //Player listing check
-                                if (_pluginEnabled &&
-                                    _firstPlayerListComplete &&
-                                    NowDuration(_LastPlayerListProcessed).TotalMinutes > 10.0) {
-                                    //Create report record
-                                    QueueRecordForProcessing(new ARecord {
-                                        record_source = ARecord.Sources.InternalAutomated,
-                                        server_id = _serverInfo.ServerID,
-                                        command_type = GetCommandByKey("player_report"),
-                                        command_numeric = 0,
-                                        target_name = "AdKats",
-                                        source_name = "AdKats",
-                                        record_message = "Player listing offline. Inform ColColonCleaner.",
-                                        record_time = UtcNow()
-                                    });
-                                }
+                                RunPlayerListingMonitor();
 
-                                if (_UseTeamPowerMonitor && _UseExperimentalTools && _firstPlayerListComplete) {
-                                    ATeam t1, t2;
-                                    if (_roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
-                                        Double t1Power = t1.GetTeamPower();
-                                        Double t2Power = t2.GetTeamPower();
-                                        Double percDiff = Math.Abs(t1Power - t2Power) / ((t1Power + t2Power) / 2.0) * 100.0;
-                                        String message = "";
-                                        if (t1Power > t2Power) {
-                                            message += t1.TeamID + "/" + t1.TeamKey + " up " + Math.Round(((t1Power - t2Power) / t2Power) * 100) + "% ";
-                                        } else {
-                                            message += t2.TeamID + "/" + t2.TeamKey + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
-                                        }
-                                        message += "(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
-                                        if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
-                                            PlayerSayMessage("ColColonCleaner", message);
-                                        } else if (_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) > 5) {
-                                            ProconChatWrite(Log.FBold(message));
-                                        }
-                                    }
-                                }
+                                RunTeamPowerStatMonitor();
 
-                                // EVENTS
-                                if (_EventWeeklyRepeat) {
-                                    _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
-                                    if (GetEventRoundDateTime() < DateTime.Now) {
-                                        // If the given event date is today, but is already in the past
-                                        // reset it to the same day next week
-                                        _EventDate = _EventDate.AddDays(7);
-                                    }
-                                    QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
-                                }
-                                if (_UseExperimentalTools && _EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
-                                    var eventDate = GetEventRoundDateTime();
-                                    if (DateTime.Now < eventDate && _CurrentEventRoundNumber == 999999) {
-                                        // The event date is set, and in the future
-                                        var estimateEventRoundNumber = FetchEstimatedEventRoundNumber();
-                                        // At 3 rounds away, lock in the round number for the event
-                                        if (Math.Abs(estimateEventRoundNumber - _roundID) <= 3) {
-                                            _CurrentEventRoundNumber = estimateEventRoundNumber;
-                                            UpdateSettingPage();
-                                        }
-                                    }
-                                    var serverName = "";
-                                    // During the event
-                                    if (EventActive()) {
-                                        serverName = _eventActiveServerName + " " + GetEventMessage(false);
-                                    }
-                                    // Immediately before the event
-                                    else if (_CurrentEventRoundNumber != 999999 &&
-                                             _CurrentEventRoundNumber > _roundID) {
-                                        serverName = _eventConcreteCountdownServerName;
-                                    }
-                                    // Before the event
-                                    else if (DateTime.Now < eventDate &&
-                                             Math.Abs((eventDate - DateTime.Now).TotalDays) < _EventAnnounceDayDifference) {
-                                        serverName = _eventCountdownServerName;
-                                    }
-                                    //After the event, and otherwise
-                                    else {
-                                        serverName = _eventBaseServerName;
-                                    }
-                                    this.ExecuteCommand("procon.protected.send", "vars.serverName", ProcessEventServerName(serverName, false, false));
+                                RunEventMonitor();
 
-                                    // EVENT AUTOMATIC POLLING
-                                    if (!_EventRoundPolled && 
-                                        // Don't auto-poll after 20 event rounds, just in case nobody votes to end it
-                                        _EventRoundOptions.Count() < 20 &&
-                                        _roundState == RoundState.Playing &&
-                                        _serverInfo.GetRoundElapsedTime() >= _EventRoundAutoVoteDuration &&
-                                        _ActivePoll == null &&
-                                        (_CurrentEventRoundNumber == _roundID + 1 || EventActive())) {
-                                        var options = String.Empty;
-                                        if (_CurrentEventRoundNumber == _roundID + 1) {
-                                            options = "reset";
-                                        }
-                                        QueueRecordForProcessing(new ARecord {
-                                            record_source = ARecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("poll_trigger"),
-                                            command_numeric = 0,
-                                            target_name = "event",
-                                            source_name = "EventAutoPolling",
-                                            record_message = options,
-                                            record_time = UtcNow()
-                                        });
-                                    }
-                                }
+                                RunTeamOperationMonitor();
 
-                                //Team operations
-                                ATeam team1, team2, winningTeam, losingTeam, mapUpTeam, mapDownTeam;
-                                if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
-                                    if (team1.TeamTicketCount > team2.TeamTicketCount) {
-                                        winningTeam = team1;
-                                        losingTeam = team2;
-                                    } else {
-                                        winningTeam = team2;
-                                        losingTeam = team1;
-                                    }
-                                    // If the mode is rush, the attackers are team 1, use that team for the extra seeder
-                                    if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate() || (_serverInfo.InfoObject.GameMode.ToLower().Contains("rush"))) {
-                                        //Team1 has more map than Team2
-                                        mapUpTeam = team1;
-                                        mapDownTeam = team2;
-                                    } else {
-                                        //Team2 has more map than Team1
-                                        mapUpTeam = team2;
-                                        mapDownTeam = team1;
-                                    }
+                                RunVOIPMonitor();
 
-                                    if (_roundState == RoundState.Playing &&
-                                        _serverInfo.GetRoundElapsedTime().TotalMinutes > 5 &&
-                                        Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
-                                        !_Team1MoveQueue.Any() &&
-                                        !_Team2MoveQueue.Any()) {
-                                        //Auto-assist
-                                        foreach (var aPlayer in GetOnlinePlayerDictionaryOfGroup("blacklist_autoassist").Values
-                                                                    .Where(dPlayer => dPlayer.fbpInfo.TeamID == winningTeam.TeamID)) {
-                                            var assistRecord = new ARecord {
-                                                record_source = ARecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
-                                                command_type = GetCommandByKey("self_assist"),
-                                                command_action = GetCommandByKey("self_assist_unconfirmed"),
-                                                target_name = aPlayer.player_name,
-                                                target_player = aPlayer,
-                                                source_name = "AUAManager",
-                                                record_message = "Auto-assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
-                                                record_time = UtcNow()
-                                            };
-                                            if (RunAssist(assistRecord.target_player, assistRecord, null, true)) {
-                                                QueueRecordForProcessing(assistRecord);
-                                                _PlayersAutoAssistedThisRound = true;
-                                                Thread.Sleep(2000);
-                                            }
-                                        }
-                                        //Server seeder balance
-                                        if (_UseTeamPowerMonitor && _UseTeamPowerMonitorBalance && _PlayerDictionary.Any()) {
-                                            var seeders = _PlayerDictionary.Values.ToList().Where(dPlayer =>
-                                                                        dPlayer.player_type == PlayerType.Player &&
-                                                                        NowDuration(dPlayer.lastAction).TotalMinutes > 20);
-                                            if (seeders.Any()) {
-                                                var mapUpSeeders = seeders.Where(aPlayer => aPlayer.fbpInfo.TeamID == mapUpTeam.TeamID);
-                                                var mapDownSeeders = seeders.Where(aPlayer => aPlayer.fbpInfo.TeamID == mapDownTeam.TeamID);
-                                                // This code is fired every 30 seconds
-                                                // At that interval move players so either both teams have the same number of seeders,
-                                                // or the map up team has 1 more seeder.
-                                                if (mapDownSeeders.Count() > mapUpSeeders.Count()) {
-                                                    var aPlayer = mapDownSeeders.First();
-                                                    aPlayer.RequiredTeam = mapUpTeam;
-                                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                Boolean accessUpdateRequired = false;
-                                if (_TeamspeakPlayerMonitorEnable) {
-                                    List<APlayer> onlineTeamspeakPlayers = new List<APlayer>();
-                                    //Check for online teamspeak players
-                                    foreach (TeamSpeakClientViewer.TeamspeakClient client in _TeamspeakManager.GetPlayersOnTs()) {
-                                        IEnumerable<APlayer> matching = _PlayerDictionary.Values.ToList().Where(dPlayer =>
-                                            // Match by IP or by name (only if no IP is available), percent matching over 80%
-                                            ((!String.IsNullOrEmpty(client.AdvIpAddress) && !String.IsNullOrEmpty(dPlayer.player_ip) && client.AdvIpAddress == dPlayer.player_ip) ||
-                                             ((String.IsNullOrEmpty(client.AdvIpAddress) || String.IsNullOrEmpty(dPlayer.player_ip)) && PercentMatch(client.TsName, dPlayer.player_name) > 80)));
-                                        if (_TeamspeakManager.DebugClients) {
-                                            Log.Info("TSClient: " + client.TsName + " | " + client.AdvIpAddress + " | " + ((matching.Any()) ? (matching.Count() + " online players match client.") : ("No matching online players.")));
-                                        }
-                                        foreach (var match in matching) {
-                                            match.TSClientObject = client;
-                                        }
-                                        onlineTeamspeakPlayers.AddRange(matching);
-                                    }
-                                    List<String> validTsPlayers = new List<String>();
-                                    foreach (APlayer aPlayer in onlineTeamspeakPlayers) {
-                                        validTsPlayers.Add(aPlayer.player_name);
-                                        if (!_TeamspeakPlayers.ContainsKey(aPlayer.player_name)) {
-                                            if (_TeamspeakManager.DebugClients) {
-                                                Log.Success("Teamspeak soldier " + aPlayer.player_name + " connected.");
-                                            }
-
-                                            var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
-                                            var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
-                                            if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator && NowDuration(aPlayer.VoipJoinTime).TotalMinutes > 15.0) {
-                                                var playerName = aPlayer.GetVerboseName();
-                                                var username = aPlayer.TSClientObject.TsName;
-                                                var playerUsername = playerName + (
-                                                        aPlayer.player_name.ToLower() != username.ToLower() &&
-                                                        !aPlayer.player_name.ToLower().Contains(username.ToLower()) &&
-                                                        !username.ToLower().Contains(aPlayer.player_name.ToLower()) ? " (" + username + ")" : "");
-                                                var joinMessage = _TeamspeakManager.JoinDisplayMessage.Replace("%player%", playerName).Replace("%username%", username).Replace("%playerusername%", playerUsername);
-                                                switch (_TeamspeakManager.JoinDisplay) {
-                                                    case VoipJoinDisplayType.Say:
-                                                        AdminSayMessage(joinMessage);
-                                                        break;
-                                                    case VoipJoinDisplayType.Yell:
-                                                        AdminYellMessage(joinMessage);
-                                                        break;
-                                                    case VoipJoinDisplayType.Tell:
-                                                        AdminTellMessage(joinMessage);
-                                                        break;
-                                                }
-                                                aPlayer.VoipJoinTime = UtcNow();
-                                            }
-                                            accessUpdateRequired = true;
-                                        }
-                                        _TeamspeakPlayers[aPlayer.player_name] = aPlayer;
-                                    }
-                                    foreach (string removePlayer in _TeamspeakPlayers.Keys.ToList().Where(key => !validTsPlayers.Contains(key)).ToList()) {
-                                        if (_TeamspeakManager.DebugClients) {
-                                            Log.Success("Teamspeak soldier " + removePlayer + " disconnected.");
-                                        }
-                                        accessUpdateRequired = true;
-                                        _TeamspeakPlayers[removePlayer].TSClientObject = null;
-                                        _TeamspeakPlayers.Remove(removePlayer);
-                                    }
-                                }
-
-                                if (_pluginEnabled && 
-                                    _firstPlayerListComplete && 
-                                    _DiscordPlayerMonitorEnable && 
-                                    _DiscordPlayerMonitorView) {
-                                    List<APlayer> onlineDiscordPlayers = new List<APlayer>();
-                                    //Check for online discord players
-                                    var members = _DiscordManager.GetMembers(false, true, true);
-                                    foreach (var member in members) {
-                                        var matching = _PlayerDictionary.Values.ToList().Where(dPlayer =>
-                                            // Match by ID
-                                            member.ID == dPlayer.player_discord_id);
-                                        if (!matching.Any()) {
-                                            // If there are no results by ID, do a name search
-                                            matching = _PlayerDictionary.Values.ToList().Where(dPlayer =>
-                                                          // Ignore any online players who already have a discord ID
-                                                          String.IsNullOrEmpty(dPlayer.player_discord_id) &&
-                                                          // Make sure there are no players already given this ID
-                                                          member.PlayerObject == null && member.PlayerTested &&
-                                                          // Match name, percent matching over 80%
-                                                          PercentMatch(member.Name, dPlayer.player_name) > 80);
-                                        }
-                                        if (_DiscordManager.DebugMembers) {
-                                            Log.Info("DiscordMember: " + member.Name + " | " + member.ID + " | " + ((matching.Any()) ? (matching.Count() + " online players match member.") : ("No matching online players.")));
-                                        }
-                                        foreach (var match in matching) {
-                                            match.DiscordObject = member;
-                                            // If their name is an exact match, assign the ID association
-                                            if (match.player_name == member.Name && String.IsNullOrEmpty(match.player_discord_id)) {
-                                                match.player_discord_id = member.ID;
-                                                UpdatePlayer(match);
-                                            }
-                                        }
-                                        onlineDiscordPlayers.AddRange(matching);
-                                    }
-                                    List<String> validDiscordPlayers = new List<String>();
-                                    foreach (APlayer aPlayer in onlineDiscordPlayers) {
-                                        validDiscordPlayers.Add(aPlayer.player_name);
-                                        if (!_DiscordPlayers.ContainsKey(aPlayer.player_name)) {
-                                            if (_DiscordManager.DebugMembers) {
-                                                Log.Success("Discord soldier " + aPlayer.player_name + " connected.");
-                                            }
-
-                                            var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
-                                            var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
-                                            if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator && NowDuration(aPlayer.VoipJoinTime).TotalMinutes > 15.0) {
-                                                var playerName = aPlayer.GetVerboseName();
-                                                var username = aPlayer.DiscordObject.Name;
-                                                var playerUsername = playerName + (
-                                                        aPlayer.player_name.ToLower() != username.ToLower() &&
-                                                        !aPlayer.player_name.ToLower().Contains(username.ToLower()) &&
-                                                        !username.ToLower().Contains(aPlayer.player_name.ToLower()) ? " (" + username + ")" : "");
-                                                var joinMessage = _DiscordManager.JoinMessage.Replace("%player%", playerName).Replace("%username%", username).Replace("%playerusername%", playerUsername);
-                                                switch (_DiscordManager.JoinDisplay) {
-                                                    case VoipJoinDisplayType.Say:
-                                                        AdminSayMessage(joinMessage);
-                                                        break;
-                                                    case VoipJoinDisplayType.Yell:
-                                                        AdminYellMessage(joinMessage);
-                                                        break;
-                                                    case VoipJoinDisplayType.Tell:
-                                                        AdminTellMessage(joinMessage);
-                                                        break;
-                                                }
-                                                aPlayer.VoipJoinTime = UtcNow();
-                                            }
-                                            accessUpdateRequired = true;
-                                        }
-                                        _DiscordPlayers[aPlayer.player_name] = aPlayer;
-                                    }
-                                    foreach (string removePlayer in _DiscordPlayers.Keys.ToList().Where(key => !validDiscordPlayers.Contains(key)).ToList()) {
-                                        if (_DiscordManager.DebugMembers) {
-                                            Log.Success("Discord soldier " + removePlayer + " disconnected.");
-                                        }
-                                        accessUpdateRequired = true;
-                                        _DiscordPlayers[removePlayer].DiscordObject = null;
-                                        _DiscordPlayers.Remove(removePlayer);
-                                    }
-                                }
-                                if (accessUpdateRequired) {
-                                    FetchAllAccess(true);
-                                }
+                                RunAFKMonitor();
 
                                 if (_pluginEnabled && _threadsReady && _firstPlayerListComplete && _enforceSingleInstance) {
                                     AdminSayMessage("/AdKatsInstanceCheck " + _instanceKey + " " + Math.Round((UtcNow() - _AdKatsRunningTime).TotalSeconds), false);
@@ -6929,6 +7110,7 @@ namespace PRoConEvents {
                                 foreach (Int32 deadThreadID in _aliveThreads.Values.ToList().Where(thread => !thread.IsAlive).Select(thread => thread.ManagedThreadId)) {
                                     _aliveThreads.Remove(deadThreadID);
                                 }
+
                                 //Check for thread warning
                                 if (_aliveThreads.Count() >= 20) {
                                     String aliveThreads = "";
@@ -6940,39 +7122,7 @@ namespace PRoConEvents {
                                     Log.Warn("Thread warning: " + aliveThreads);
                                 }
 
-                                //Perform AFK processing
-                                if (_AFKManagerEnable && _AFKAutoKickEnable && (_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) > _AFKTriggerMinimumPlayers)) {
-                                    //Double list conversion
-                                    List<APlayer> afkPlayers = _PlayerDictionary.Values.ToList().Where(aPlayer => (UtcNow() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes && aPlayer.player_type != PlayerType.Spectator && !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) - _AFKTriggerMinimumPlayers).ToList();
-                                    if (_AFKIgnoreUserList) {
-                                        IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
-                                        afkPlayers = afkPlayers.Where(aPlayer => !userSoldierGuids.Contains(aPlayer.player_guid)).ToList();
-                                    } else {
-                                        afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key)).ToList();
-                                    }
-                                    foreach (APlayer aPlayer in afkPlayers) {
-                                        String afkTime = FormatTimeString(UtcNow() - aPlayer.lastAction, 2);
-                                        Log.Debug(() => "Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
-                                        ARecord record = new ARecord {
-                                            record_source = ARecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("player_kick"),
-                                            command_numeric = 0,
-                                            target_name = aPlayer.player_name,
-                                            target_player = aPlayer,
-                                            source_name = "AFKManager",
-                                            record_message = "AFK time exceeded [" + afkTime + "/" + GetPlayerTeamKey(aPlayer) + "]. Please rejoin once you return.",
-                                            record_time = UtcNow()
-                                        };
-                                        QueueRecordForProcessing(record);
-                                        //Only take one
-                                        break;
-                                    }
-
-                                    //TODO: Once MULTIBalancer adds registered commands, check for availability
-                                }
-
-                                lastShortKeepAliveCheck = UtcNow();
+                                _LastShortKeepAliveCheck = UtcNow();
                             }
 
                             //Server info fetch - every 5 seconds
@@ -6994,7 +7144,7 @@ namespace PRoConEvents {
                                 Thread.Sleep(TimeSpan.FromMilliseconds(500));
                             } else {
                                 //Sleep 1000ms between loops
-                                Thread.Sleep(TimeSpan.FromMilliseconds(1000));
+                                Thread.Sleep(TimeSpan.FromMilliseconds(2000));
                             }
                         } catch (Exception e) {
                             HandleException(new AException("Error in status monitor. Skipping current loop.", e));
@@ -7015,53 +7165,7 @@ namespace PRoConEvents {
                     Thread.CurrentThread.Name = "FastStatusMonitor";
                     while (true) {
                         try {
-                            //Nuke Countdowns - Every 50ms
-                            if (_lastNukeTeam != null) {
-                                //Auto-Nuke Slay Duration
-                                var duration = NowDuration(_lastNukeTime);
-                                var nukeInfoMessage = "";
-                                var durationIncrease = 0;
-                                ATeam team1, team2;
-                                if (!_nukeAutoSlayActive && GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
-                                    if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > _surrenderAutoNukeDurationIncreaseTicketDiff) {
-                                        durationIncrease = _surrenderAutoNukeDurationIncrease * Math.Max(getNukeCount(_lastNukeTeam.TeamID) - 1, 0);
-                                    }
-                                    switch (_populationStatus) {
-                                        case PopulationState.High:
-                                            _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationHigh + durationIncrease;
-                                            nukeInfoMessage = "High population nuke: " + _surrenderAutoNukeDurationHigh + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
-                                            break;
-                                        case PopulationState.Medium:
-                                            _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationMed + durationIncrease;
-                                            nukeInfoMessage = "Medium population nuke: " + _surrenderAutoNukeDurationMed + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
-                                            break;
-                                        case PopulationState.Low:
-                                            _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationLow + durationIncrease;
-                                            nukeInfoMessage = "Low population nuke: " + _surrenderAutoNukeDurationLow + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
-                                            break;
-                                    }
-                                }
-                                if (_nukeAutoSlayActiveDuration > 0) {
-                                    if (duration.TotalSeconds < _nukeAutoSlayActiveDuration) {
-                                        if (!_nukeAutoSlayActive) {
-                                            AdminSayMessage(nukeInfoMessage);
-                                        }
-                                        _nukeAutoSlayActive = true;
-                                        Double endDuration = NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration)).TotalSeconds;
-                                        Int32 endDurationSeconds = (Int32)Math.Round(endDuration);
-                                        String endDurationString = endDurationSeconds.ToString();
-                                        var durationMessage = _lastNukeTeam.TeamKey + " nuke active for " + endDurationString + " seconds!";
-                                        if (_lastNukeSlayDurationMessage != durationMessage && endDurationSeconds > 0 && (endDurationSeconds % 2 == 0 || endDuration <= 5)) {
-                                            AdminTellMessage(durationMessage);
-                                            _lastNukeSlayDurationMessage = durationMessage;
-                                        }
-                                    } else if (_nukeAutoSlayActive) {
-                                        _nukeAutoSlayActive = false;
-                                        _nukeAutoSlayActiveDuration = 0;
-                                        AdminTellMessage(_lastNukeTeam.TeamKey + " nuke has ended!");
-                                    }
-                                }
-                            }
+                            RunNukeAnnounceMonitor();
 
                             if (_pluginEnabled) {
                                 //Sleep 50ms between loops
@@ -7773,22 +7877,26 @@ namespace PRoConEvents {
         }
 
         private void AssignTeam(ASquad aSquad, ATeam aTeam, List<ASquad> squadList) {
-            // Assign this squad to team
-            aSquad.TeamID = aTeam.TeamID;
-            Log.Info("Assigned " + aSquad + " to team " + aTeam.TeamID + ".");
-            // Find the first available squad in team 2
-            // Do not include the "None" squad
-            var named = false;
-            foreach (var squadID in ASquad.Names.Keys.ToList().Where(sqaudKey => sqaudKey != 0).Reverse()) {
-                if (!squadList.Any(dSquad => dSquad.SquadID == squadID)) {
-                    aSquad.SquadID = squadID;
-                    named = true;
-                    Log.Info("Named " + aSquad + ".");
-                    break;
+            try {
+                // Assign this squad to team
+                aSquad.TeamID = aTeam.TeamID;
+                Log.Info("Assigned " + aSquad + " to team " + aTeam.TeamID + ".");
+                // Find the first available squad in team 2
+                // Do not include the "None" squad
+                var named = false;
+                foreach (var squadID in ASquad.Names.Keys.ToList().Where(sqaudKey => sqaudKey != 0).Reverse()) {
+                    if (!squadList.Any(dSquad => dSquad.SquadID == squadID)) {
+                        aSquad.SquadID = squadID;
+                        named = true;
+                        Log.Info("Named " + aSquad + ".");
+                        break;
+                    }
                 }
-            }
-            if (!named) {
-                Log.Error("Unable to name squad " + aSquad);
+                if (!named) {
+                    Log.Error("Unable to name squad " + aSquad);
+                }
+            } catch(Exception e) {
+                HandleException(new AException("Error assigning teams.", e));
             }
         }
 
@@ -7870,7 +7978,9 @@ namespace PRoConEvents {
                     if (_UseExperimentalTools) {
                         Log.Info(aPlayer.player_name + " has " + movesLast5 + " moves in last 5 seconds.");
                     }
-                    if (aPlayer.RequiredTeam != null && movesLast5 >= 8) {
+                    if (aPlayer.RequiredTeam != null && 
+                        _roundState == RoundState.Playing &&
+                        movesLast5 >= 8) {
                         // The player is stuck in a move loop, remove their required squad and bow to whatever script/plugin is causing this
                         aPlayer.RequiredTeam = null;
                         Log.Warn(aPlayer.GetVerboseName() + " was stuck in a move loop. Removing their required team.");
@@ -9067,21 +9177,25 @@ namespace PRoConEvents {
         }
 
         private void FetchAllAccess(Boolean async) {
-            if (async) {
-                _AccessFetchWaitHandle.Set();
-            } else if (_threadsReady) {
-                lock (_userCache) {
-                    DateTime start = UtcNow();
-                    FetchCommands();
-                    Log.Debug(() => "Command fetch took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
-                    start = UtcNow();
-                    FetchRoles();
-                    Log.Debug(() => "Role fetch took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
-                    start = UtcNow();
-                    FetchUserList();
-                    Log.Debug(() => "User fetch took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
-                    start = UtcNow();
+            try {
+                if (async) {
+                    _AccessFetchWaitHandle.Set();
+                } else if (_threadsReady) {
+                    lock (_userCache) {
+                        DateTime start = UtcNow();
+                        FetchCommands();
+                        Log.Debug(() => "Command fetch took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
+                        start = UtcNow();
+                        FetchRoles();
+                        Log.Debug(() => "Role fetch took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
+                        start = UtcNow();
+                        FetchUserList();
+                        Log.Debug(() => "User fetch took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
+                        start = UtcNow();
+                    }
                 }
+            } catch (Exception e) {
+                HandleException(new AException("Error fetching all access.", e));
             }
         }
 
@@ -10473,164 +10587,172 @@ namespace PRoConEvents {
 
         public void RunFactionRandomizer() {
             Log.Debug(() => "Entering RunFactionRandomizer", 6);
-            //Faction Randomizer
-            //Credit to LumPenPacK
-            if (_factionRandomizerEnable && _gameVersion == GameVersion.BF4) {
-                var nextMap = _serverInfo.GetNextMap();
-                if (((_serverInfo.InfoObject.CurrentRound + 1) >= _serverInfo.InfoObject.TotalRounds) &&
-                    (nextMap != null && (nextMap.MapFileName == "XP3_UrbanGdn" || nextMap.MapFileName == "X0_Oman"))) {
-                    //Cannot change things on urban garden or oman
-                    Log.Info("Cannot run faction randomizer on urban garden or gulf of oman.");
-                    return;
-                }
-
-                var team1Selection = 0;
-                var team2Selection = 1;
-                var selectionValid = false;
-                var attempts = 0;
-                Random rnd = new Random();
-                Int32 US = 0;
-                Int32 RU = 1;
-                Int32 CN = 2;
-
-                while (!selectionValid && ++attempts < 1000) {
-                    switch (_factionRandomizerRestriction) {
-                        case FactionRandomizerRestriction.NoRestriction:
-                            team1Selection = rnd.Next(0, 3);
-                            team2Selection = rnd.Next(0, 3);
-                            break;
-                        case FactionRandomizerRestriction.NeverSameFaction:
-                            team1Selection = rnd.Next(0, 3);
-                            team2Selection = rnd.Next(0, 3);
-                            if (team1Selection == team2Selection) {
-                                continue;
-                            }
-                            break;
-                        case FactionRandomizerRestriction.AlwaysSameFaction:
-                            team1Selection = rnd.Next(0, 3);
-                            team2Selection = team1Selection;
-                            break;
-                        case FactionRandomizerRestriction.AlwaysSwapUSvsRU:
-                            if (_factionRandomizerCurrentTeam1 == US &&
-                                _factionRandomizerCurrentTeam2 == RU) {
-                                team1Selection = RU;
-                                team2Selection = US;
-                            } else {
-                                team1Selection = US;
-                                team2Selection = RU;
-                            }
-                            break;
-                        case FactionRandomizerRestriction.AlwaysSwapUSvsCN:
-                            if (_factionRandomizerCurrentTeam1 == US &&
-                                _factionRandomizerCurrentTeam2 == CN) {
-                                team1Selection = CN;
-                                team2Selection = US;
-                            } else {
-                                team1Selection = US;
-                                team2Selection = CN;
-                            }
-                            break;
-                        case FactionRandomizerRestriction.AlwaysSwapRUvsCN:
-                            if (_factionRandomizerCurrentTeam1 == RU &&
-                                _factionRandomizerCurrentTeam2 == CN) {
-                                team1Selection = CN;
-                                team2Selection = RU;
-                            } else {
-                                team1Selection = RU;
-                                team2Selection = CN;
-                            }
-                            break;
-                        case FactionRandomizerRestriction.AlwaysBothUS:
-                            team1Selection = US;
-                            team2Selection = US;
-                            break;
-                        case FactionRandomizerRestriction.AlwaysBothRU:
-                            team1Selection = RU;
-                            team2Selection = RU;
-                            break;
-                        case FactionRandomizerRestriction.AlwaysBothCN:
-                            team1Selection = CN;
-                            team2Selection = CN;
-                            break;
-                        case FactionRandomizerRestriction.AlwaysUSvsX:
-                            team1Selection = rnd.Next(0, 3);
-                            team2Selection = rnd.Next(0, 3);
-                            if (team1Selection != US && team2Selection != US) {
-                                continue;
-                            }
-                            break;
-                        case FactionRandomizerRestriction.AlwaysRUvsX:
-                            team1Selection = rnd.Next(0, 3);
-                            team2Selection = rnd.Next(0, 3);
-                            if (team1Selection != RU && team2Selection != RU) {
-                                continue;
-                            }
-                            break;
-                        case FactionRandomizerRestriction.AlwaysCNvsX:
-                            team1Selection = rnd.Next(0, 3);
-                            team2Selection = rnd.Next(0, 3);
-                            if (team1Selection != CN && team2Selection != CN) {
-                                continue;
-                            }
-                            break;
-                        case FactionRandomizerRestriction.NeverUSvsX:
-                            team1Selection = rnd.Next(0, 3);
-                            team2Selection = rnd.Next(0, 3);
-                            if (team1Selection == US || team2Selection == US) {
-                                continue;
-                            }
-                            break;
-                        case FactionRandomizerRestriction.NeverRUvsX:
-                            team1Selection = rnd.Next(0, 3);
-                            team2Selection = rnd.Next(0, 3);
-                            if (team1Selection == RU || team2Selection == RU) {
-                                continue;
-                            }
-                            break;
-                        case FactionRandomizerRestriction.NeverCNvsX:
-                            team1Selection = rnd.Next(0, 3);
-                            team2Selection = rnd.Next(0, 3);
-                            if (team1Selection == CN || team2Selection == CN) {
-                                continue;
-                            }
-                            break;
-                        default:
-                            break;
+            try {
+                //Faction Randomizer
+                //Credit to LumPenPacK
+                if (_factionRandomizerEnable && _gameVersion == GameVersion.BF4) {
+                    var nextMap = _serverInfo.GetNextMap();
+                    if (((_serverInfo.InfoObject.CurrentRound + 1) >= _serverInfo.InfoObject.TotalRounds) &&
+                        (nextMap != null && (nextMap.MapFileName == "XP3_UrbanGdn" || nextMap.MapFileName == "X0_Oman"))) {
+                        //Cannot change things on urban garden or oman
+                        Log.Info("Cannot run faction randomizer on urban garden or gulf of oman.");
+                        return;
                     }
 
-                    if (!_factionRandomizerAllowRepeatSelection) {
-                        //We cannot allow the same teams to be selected again
-                        if (_factionRandomizerCurrentTeam1 == team1Selection &&
-                            _factionRandomizerCurrentTeam2 == team2Selection) {
-                            continue;
+                    var team1Selection = 0;
+                    var team2Selection = 1;
+                    var selectionValid = false;
+                    var attempts = 0;
+                    Random rnd = new Random();
+                    Int32 US = 0;
+                    Int32 RU = 1;
+                    Int32 CN = 2;
+
+                    while (!selectionValid && ++attempts < 1000) {
+                        switch (_factionRandomizerRestriction) {
+                            case FactionRandomizerRestriction.NoRestriction:
+                                team1Selection = rnd.Next(0, 3);
+                                team2Selection = rnd.Next(0, 3);
+                                break;
+                            case FactionRandomizerRestriction.NeverSameFaction:
+                                team1Selection = rnd.Next(0, 3);
+                                team2Selection = rnd.Next(0, 3);
+                                if (team1Selection == team2Selection) {
+                                    continue;
+                                }
+                                break;
+                            case FactionRandomizerRestriction.AlwaysSameFaction:
+                                team1Selection = rnd.Next(0, 3);
+                                team2Selection = team1Selection;
+                                break;
+                            case FactionRandomizerRestriction.AlwaysSwapUSvsRU:
+                                if (_factionRandomizerCurrentTeam1 == US &&
+                                    _factionRandomizerCurrentTeam2 == RU) {
+                                    team1Selection = RU;
+                                    team2Selection = US;
+                                } else {
+                                    team1Selection = US;
+                                    team2Selection = RU;
+                                }
+                                break;
+                            case FactionRandomizerRestriction.AlwaysSwapUSvsCN:
+                                if (_factionRandomizerCurrentTeam1 == US &&
+                                    _factionRandomizerCurrentTeam2 == CN) {
+                                    team1Selection = CN;
+                                    team2Selection = US;
+                                } else {
+                                    team1Selection = US;
+                                    team2Selection = CN;
+                                }
+                                break;
+                            case FactionRandomizerRestriction.AlwaysSwapRUvsCN:
+                                if (_factionRandomizerCurrentTeam1 == RU &&
+                                    _factionRandomizerCurrentTeam2 == CN) {
+                                    team1Selection = CN;
+                                    team2Selection = RU;
+                                } else {
+                                    team1Selection = RU;
+                                    team2Selection = CN;
+                                }
+                                break;
+                            case FactionRandomizerRestriction.AlwaysBothUS:
+                                team1Selection = US;
+                                team2Selection = US;
+                                break;
+                            case FactionRandomizerRestriction.AlwaysBothRU:
+                                team1Selection = RU;
+                                team2Selection = RU;
+                                break;
+                            case FactionRandomizerRestriction.AlwaysBothCN:
+                                team1Selection = CN;
+                                team2Selection = CN;
+                                break;
+                            case FactionRandomizerRestriction.AlwaysUSvsX:
+                                team1Selection = rnd.Next(0, 3);
+                                team2Selection = rnd.Next(0, 3);
+                                if (team1Selection != US && team2Selection != US) {
+                                    continue;
+                                }
+                                break;
+                            case FactionRandomizerRestriction.AlwaysRUvsX:
+                                team1Selection = rnd.Next(0, 3);
+                                team2Selection = rnd.Next(0, 3);
+                                if (team1Selection != RU && team2Selection != RU) {
+                                    continue;
+                                }
+                                break;
+                            case FactionRandomizerRestriction.AlwaysCNvsX:
+                                team1Selection = rnd.Next(0, 3);
+                                team2Selection = rnd.Next(0, 3);
+                                if (team1Selection != CN && team2Selection != CN) {
+                                    continue;
+                                }
+                                break;
+                            case FactionRandomizerRestriction.NeverUSvsX:
+                                team1Selection = rnd.Next(0, 3);
+                                team2Selection = rnd.Next(0, 3);
+                                if (team1Selection == US || team2Selection == US) {
+                                    continue;
+                                }
+                                break;
+                            case FactionRandomizerRestriction.NeverRUvsX:
+                                team1Selection = rnd.Next(0, 3);
+                                team2Selection = rnd.Next(0, 3);
+                                if (team1Selection == RU || team2Selection == RU) {
+                                    continue;
+                                }
+                                break;
+                            case FactionRandomizerRestriction.NeverCNvsX:
+                                team1Selection = rnd.Next(0, 3);
+                                team2Selection = rnd.Next(0, 3);
+                                if (team1Selection == CN || team2Selection == CN) {
+                                    continue;
+                                }
+                                break;
+                            default:
+                                break;
                         }
+
+                        if (!_factionRandomizerAllowRepeatSelection) {
+                            //We cannot allow the same teams to be selected again
+                            if (_factionRandomizerCurrentTeam1 == team1Selection &&
+                                _factionRandomizerCurrentTeam2 == team2Selection) {
+                                continue;
+                            }
+                        }
+
+                        selectionValid = true;
                     }
 
-                    selectionValid = true;
+                    if (selectionValid) {
+                        _factionRandomizerCurrentTeam1 = team1Selection;
+                        _factionRandomizerCurrentTeam2 = team2Selection;
+                        ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "1", Convert.ToString(team1Selection));
+                        ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "2", Convert.ToString(team2Selection));
+                        ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "3", Convert.ToString(team1Selection));
+                        ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "4", Convert.ToString(team2Selection));
+                    } else {
+                        Log.Error("Faction randomizer failed!");
+                    }
                 }
-
-                if (selectionValid) {
-                    _factionRandomizerCurrentTeam1 = team1Selection;
-                    _factionRandomizerCurrentTeam2 = team2Selection;
-                    ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "1", Convert.ToString(team1Selection));
-                    ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "2", Convert.ToString(team2Selection));
-                    ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "3", Convert.ToString(team1Selection));
-                    ExecuteCommand("procon.protected.send", "vars.teamFactionOverride", "4", Convert.ToString(team2Selection));
-                } else {
-                    Log.Error("Faction randomizer failed!");
-                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running faction randomizer.", e));
             }
             Log.Debug(() => "Exiting RunFactionRandomizer", 6);
         }
 
         public override void OnRunNextLevel() {
-            if (_roundState != RoundState.Ended) {
-                getMapInfo();
-                _roundState = RoundState.Ended;
-                _pingKicksThisRound = 0;
-                foreach (APlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
-                    aPlayer.RequiredTeam = null;
+            try {
+                if (_roundState != RoundState.Ended) {
+                    getMapInfo();
+                    _roundState = RoundState.Ended;
+                    _pingKicksThisRound = 0;
+                    foreach (APlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
+                        aPlayer.RequiredTeam = null;
+                    }
                 }
+            } catch (Exception e) {
+                HandleException(new AException("Error handling next level.", e));
             }
         }
 
@@ -12355,32 +12477,36 @@ namespace PRoConEvents {
         }
 
         public Boolean PlayerProtected(APlayer aPlayer) {
-            //Pull players from special player cache
-            if (GetMatchingASPlayersOfGroup("whitelist_anticheat", aPlayer).Any()) {
-                return true;
-            }
-            List<ASpecialPlayer> protectedList = GetVerboseASPlayersOfGroup("whitelist_anticheat");
-            if (protectedList.Any()) {
-                foreach (ASpecialPlayer asPlayer in protectedList) {
-                    if (asPlayer.player_object != null && asPlayer.player_object.player_id == aPlayer.player_id) {
-                        Log.Debug(() => aPlayer.GetVerboseName() + " protected from AntiCheat by database ID.", 2);
-                        return true;
-                    }
-                    if (!String.IsNullOrEmpty(asPlayer.player_identifier)) {
-                        if (aPlayer.player_name == asPlayer.player_identifier) {
-                            Log.Debug(() => aPlayer.GetVerboseName() + " protected from AntiCheat by NAME.", 2);
+            try {
+                //Pull players from special player cache
+                if (GetMatchingASPlayersOfGroup("whitelist_anticheat", aPlayer).Any()) {
+                    return true;
+                }
+                List<ASpecialPlayer> protectedList = GetVerboseASPlayersOfGroup("whitelist_anticheat");
+                if (protectedList.Any()) {
+                    foreach (ASpecialPlayer asPlayer in protectedList) {
+                        if (asPlayer.player_object != null && asPlayer.player_object.player_id == aPlayer.player_id) {
+                            Log.Debug(() => aPlayer.GetVerboseName() + " protected from AntiCheat by database ID.", 2);
                             return true;
                         }
-                        if (aPlayer.player_guid == asPlayer.player_identifier) {
-                            Log.Debug(() => aPlayer.GetVerboseName() + " protected from AntiCheat by GUID.", 2);
-                            return true;
-                        }
-                        if (aPlayer.player_ip == asPlayer.player_identifier) {
-                            Log.Debug(() => aPlayer.GetVerboseName() + " protected from AntiCheat by IP.", 2);
-                            return true;
+                        if (!String.IsNullOrEmpty(asPlayer.player_identifier)) {
+                            if (aPlayer.player_name == asPlayer.player_identifier) {
+                                Log.Debug(() => aPlayer.GetVerboseName() + " protected from AntiCheat by NAME.", 2);
+                                return true;
+                            }
+                            if (aPlayer.player_guid == asPlayer.player_identifier) {
+                                Log.Debug(() => aPlayer.GetVerboseName() + " protected from AntiCheat by GUID.", 2);
+                                return true;
+                            }
+                            if (aPlayer.player_ip == asPlayer.player_identifier) {
+                                Log.Debug(() => aPlayer.GetVerboseName() + " protected from AntiCheat by IP.", 2);
+                                return true;
+                            }
                         }
                     }
                 }
+            } catch (Exception e) {
+                HandleException(new AException("Error fetching player protected status.", e));
             }
             return false;
         }
@@ -13199,57 +13325,61 @@ namespace PRoConEvents {
 
         public Boolean OnlineNonWhitelistSayMessage(String message, Boolean displayProconChat) {
             Boolean nonAdminsTold = false;
-            Dictionary<String, APlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
-            foreach (APlayer aPlayer in _PlayerDictionary.Values.ToList()) {
-                if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
-                    if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
-                        (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 5.0) ||
-                        (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
-                        _TeamspeakPlayers.ContainsKey(aPlayer.player_name)) {
-                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+            try {
+                Dictionary<String, APlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
+                foreach (APlayer aPlayer in _PlayerDictionary.Values.ToList()) {
+                    if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                        if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
+                            (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 5.0) ||
+                            (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
+                            _TeamspeakPlayers.ContainsKey(aPlayer.player_name)) {
+                            whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                        }
                     }
                 }
-            }
-            const string bypassPrefix = "[whitelistbypass]";
-            var bypass = false;
-            while (message.Contains(bypassPrefix)) {
-                message = message.Replace(bypassPrefix, "");
-                bypass = true;
-            }
-            if (bypass) {
-                whitelistedPlayers.Clear();
-            }
-            if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any()) {
-                Thread nonAdminSayThread = new Thread(new ThreadStart(delegate {
-                    Log.Debug(() => "Starting an online non-admin say thread.", 8);
-                    try {
-                        Thread.CurrentThread.Name = "OnlineNonAdminSay";
-                        var spambotMessage = false;
-                        if (message.Contains("[SpamBotMessage]")) {
-                            message = message.Replace("[SpamBotMessage]", "");
-                            spambotMessage = true;
-                        }
-                        if (displayProconChat) {
-                            ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Say (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
-                        }
-                        //Process will take ~2 seconds for a full server
-                        foreach (APlayer aPlayer in FetchOnlineNonAdminSoldiers()) {
-                            if (whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
-                                continue;
+                const string bypassPrefix = "[whitelistbypass]";
+                var bypass = false;
+                while (message.Contains(bypassPrefix)) {
+                    message = message.Replace(bypassPrefix, "");
+                    bypass = true;
+                }
+                if (bypass) {
+                    whitelistedPlayers.Clear();
+                }
+                if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any()) {
+                    Thread nonAdminSayThread = new Thread(new ThreadStart(delegate {
+                        Log.Debug(() => "Starting an online non-admin say thread.", 8);
+                        try {
+                            Thread.CurrentThread.Name = "OnlineNonAdminSay";
+                            var spambotMessage = false;
+                            if (message.Contains("[SpamBotMessage]")) {
+                                message = message.Replace("[SpamBotMessage]", "");
+                                spambotMessage = true;
                             }
-                            nonAdminsTold = true;
-                            aPlayer.Say(message, false, 1);
-                            Thread.Sleep(30);
+                            if (displayProconChat) {
+                                ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Say (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
+                            }
+                            //Process will take ~2 seconds for a full server
+                            foreach (APlayer aPlayer in FetchOnlineNonAdminSoldiers()) {
+                                if (whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                                    continue;
+                                }
+                                nonAdminsTold = true;
+                                aPlayer.Say(message, false, 1);
+                                Thread.Sleep(30);
+                            }
+                        } catch (Exception) {
+                            HandleException(new AException("Error while running online non-admin say."));
                         }
-                    } catch (Exception) {
-                        HandleException(new AException("Error while running online non-admin say."));
-                    }
-                    Log.Debug(() => "Exiting an online non-admin say thread.", 8);
-                    LogThreadExit();
-                }));
-                StartAndLogThread(nonAdminSayThread);
-            } else {
-                AdminSayMessage(message, displayProconChat);
+                        Log.Debug(() => "Exiting an online non-admin say thread.", 8);
+                        LogThreadExit();
+                    }));
+                    StartAndLogThread(nonAdminSayThread);
+                } else {
+                    AdminSayMessage(message, displayProconChat);
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running non-whitelist admin say.", e));
             }
             return nonAdminsTold;
         }
@@ -13260,57 +13390,61 @@ namespace PRoConEvents {
 
         public Boolean OnlineNonWhitelistYellMessage(String message, Boolean displayProconChat) {
             Boolean nonAdminsTold = false;
-            Dictionary<String, APlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
-            foreach (APlayer aPlayer in _PlayerDictionary.Values.ToList()) {
-                if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
-                    if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
-                        (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0) ||
-                        (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
-                        _TeamspeakPlayers.ContainsKey(aPlayer.player_name)) {
-                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+            try {
+                Dictionary<String, APlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
+                foreach (APlayer aPlayer in _PlayerDictionary.Values.ToList()) {
+                    if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                        if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
+                            (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0) ||
+                            (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
+                            _TeamspeakPlayers.ContainsKey(aPlayer.player_name)) {
+                            whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                        }
                     }
                 }
-            }
-            const string bypassPrefix = "[whitelistbypass]";
-            var bypass = false;
-            while (message.Contains(bypassPrefix)) {
-                message = message.Replace(bypassPrefix, "");
-                bypass = true;
-            }
-            if (bypass) {
-                whitelistedPlayers.Clear();
-            }
-            if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any()) {
-                Thread nonAdminSayThread = new Thread(new ThreadStart(delegate {
-                    Log.Debug(() => "Starting an online non-admin yell thread.", 8);
-                    try {
-                        Thread.CurrentThread.Name = "OnlineNonAdminYell";
-                        var spambotMessage = false;
-                        if (message.Contains("[SpamBotMessage]")) {
-                            message = message.Replace("[SpamBotMessage]", "");
-                            spambotMessage = true;
-                        }
-                        if (displayProconChat) {
-                            ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Yell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
-                        }
-                        //Process will take ~2 seconds for a full server
-                        foreach (APlayer aPlayer in FetchOnlineNonAdminSoldiers()) {
-                            if (whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
-                                continue;
+                const string bypassPrefix = "[whitelistbypass]";
+                var bypass = false;
+                while (message.Contains(bypassPrefix)) {
+                    message = message.Replace(bypassPrefix, "");
+                    bypass = true;
+                }
+                if (bypass) {
+                    whitelistedPlayers.Clear();
+                }
+                if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any()) {
+                    Thread nonAdminSayThread = new Thread(new ThreadStart(delegate {
+                        Log.Debug(() => "Starting an online non-admin yell thread.", 8);
+                        try {
+                            Thread.CurrentThread.Name = "OnlineNonAdminYell";
+                            var spambotMessage = false;
+                            if (message.Contains("[SpamBotMessage]")) {
+                                message = message.Replace("[SpamBotMessage]", "");
+                                spambotMessage = true;
                             }
-                            nonAdminsTold = true;
-                            PlayerYellMessage(aPlayer.player_name, message, false, 1);
-                            Thread.Sleep(30);
+                            if (displayProconChat) {
+                                ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Yell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
+                            }
+                            //Process will take ~2 seconds for a full server
+                            foreach (APlayer aPlayer in FetchOnlineNonAdminSoldiers()) {
+                                if (whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                                    continue;
+                                }
+                                nonAdminsTold = true;
+                                PlayerYellMessage(aPlayer.player_name, message, false, 1);
+                                Thread.Sleep(30);
+                            }
+                        } catch (Exception) {
+                            HandleException(new AException("Error while running online non-admin yell."));
                         }
-                    } catch (Exception) {
-                        HandleException(new AException("Error while running online non-admin yell."));
-                    }
-                    Log.Debug(() => "Exiting an online non-admin yell thread.", 8);
-                    LogThreadExit();
-                }));
-                StartAndLogThread(nonAdminSayThread);
-            } else {
-                AdminYellMessage(message, displayProconChat);
+                        Log.Debug(() => "Exiting an online non-admin yell thread.", 8);
+                        LogThreadExit();
+                    }));
+                    StartAndLogThread(nonAdminSayThread);
+                } else {
+                    AdminYellMessage(message, displayProconChat);
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running non-whitelist admin yell.", e));
             }
             return nonAdminsTold;
         }
@@ -13321,57 +13455,61 @@ namespace PRoConEvents {
 
         public Boolean OnlineNonWhitelistTellMessage(String message, Boolean displayProconChat) {
             Boolean nonAdminsTold = false;
-            Dictionary<String, APlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
-            foreach (APlayer aPlayer in _PlayerDictionary.Values.ToList()) {
-                if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
-                    if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
-                        (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0) ||
-                        (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
-                        _TeamspeakPlayers.ContainsKey(aPlayer.player_name)) {
-                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+            try {
+                Dictionary<String, APlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
+                foreach (APlayer aPlayer in _PlayerDictionary.Values.ToList()) {
+                    if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                        if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
+                            (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0) ||
+                            (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High) ||
+                            _TeamspeakPlayers.ContainsKey(aPlayer.player_name)) {
+                            whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                        }
                     }
                 }
-            }
-            const string bypassPrefix = "[whitelistbypass]";
-            var bypass = false;
-            while (message.Contains(bypassPrefix)) {
-                message = message.Replace(bypassPrefix, "");
-                bypass = true;
-            }
-            if (bypass) {
-                whitelistedPlayers.Clear();
-            }
-            if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any()) {
-                Thread nonAdminSayThread = new Thread(new ThreadStart(delegate {
-                    Log.Debug(() => "Starting an online non-admin tell thread.", 8);
-                    try {
-                        Thread.CurrentThread.Name = "OnlineNonAdminTell";
-                        var spambotMessage = false;
-                        if (message.Contains("[SpamBotMessage]")) {
-                            message = message.Replace("[SpamBotMessage]", "");
-                            spambotMessage = true;
-                        }
-                        if (displayProconChat) {
-                            ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
-                        }
-                        //Process will take ~2 seconds for a full server
-                        foreach (APlayer aPlayer in FetchOnlineNonAdminSoldiers()) {
-                            if (whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
-                                continue;
+                const string bypassPrefix = "[whitelistbypass]";
+                var bypass = false;
+                while (message.Contains(bypassPrefix)) {
+                    message = message.Replace(bypassPrefix, "");
+                    bypass = true;
+                }
+                if (bypass) {
+                    whitelistedPlayers.Clear();
+                }
+                if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any()) {
+                    Thread nonAdminSayThread = new Thread(new ThreadStart(delegate {
+                        Log.Debug(() => "Starting an online non-admin tell thread.", 8);
+                        try {
+                            Thread.CurrentThread.Name = "OnlineNonAdminTell";
+                            var spambotMessage = false;
+                            if (message.Contains("[SpamBotMessage]")) {
+                                message = message.Replace("[SpamBotMessage]", "");
+                                spambotMessage = true;
                             }
-                            nonAdminsTold = true;
-                            PlayerTellMessage(aPlayer.player_name, message, false, 1);
-                            Thread.Sleep(30);
+                            if (displayProconChat) {
+                                ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
+                            }
+                            //Process will take ~2 seconds for a full server
+                            foreach (APlayer aPlayer in FetchOnlineNonAdminSoldiers()) {
+                                if (whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                                    continue;
+                                }
+                                nonAdminsTold = true;
+                                PlayerTellMessage(aPlayer.player_name, message, false, 1);
+                                Thread.Sleep(30);
+                            }
+                        } catch (Exception) {
+                            HandleException(new AException("Error while running online non-admin tell."));
                         }
-                    } catch (Exception) {
-                        HandleException(new AException("Error while running online non-admin tell."));
-                    }
-                    Log.Debug(() => "Exiting an online non-admin tell thread.", 8);
-                    LogThreadExit();
-                }));
-                StartAndLogThread(nonAdminSayThread);
-            } else {
-                AdminTellMessage(message, displayProconChat);
+                        Log.Debug(() => "Exiting an online non-admin tell thread.", 8);
+                        LogThreadExit();
+                    }));
+                    StartAndLogThread(nonAdminSayThread);
+                } else {
+                    AdminTellMessage(message, displayProconChat);
+                }
+            } catch (Exception e) {
+                HandleException(new AException("Error running non-whitelist admin tell.", e));
             }
             return nonAdminsTold;
         }
@@ -13556,20 +13694,24 @@ namespace PRoConEvents {
         }
 
         public void AdminTellMessage(String message, Boolean displayProconChat) {
-            var spambotMessage = false;
-            if (message.Contains("[SpamBotMessage]")) {
-                message = message.Replace("[SpamBotMessage]", "");
-                spambotMessage = true;
+            try {
+                var spambotMessage = false;
+                if (message.Contains("[SpamBotMessage]")) {
+                    message = message.Replace("[SpamBotMessage]", "");
+                    spambotMessage = true;
+                }
+                const string bypassPrefix = "[whitelistbypass]";
+                while (message.Contains(bypassPrefix)) {
+                    message = message.Replace(bypassPrefix, "");
+                }
+                if (displayProconChat) {
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + message);
+                }
+                AdminSayMessage(message, false);
+                AdminYellMessage(message, false);
+            } catch (Exception e) {
+                HandleException(new AException("Error running admin tell message.", e));
             }
-            const string bypassPrefix = "[whitelistbypass]";
-            while (message.Contains(bypassPrefix)) {
-                message = message.Replace(bypassPrefix, "");
-            }
-            if (displayProconChat) {
-                ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + message);
-            }
-            AdminSayMessage(message, false);
-            AdminYellMessage(message, false);
         }
 
         public void PlayerTellMessage(String target, String message) {
@@ -13577,20 +13719,24 @@ namespace PRoConEvents {
         }
 
         public void PlayerTellMessage(String target, String message, Boolean displayProconChat, Int32 spamCount) {
-            var spambotMessage = false;
-            if (message.Contains("[SpamBotMessage]")) {
-                message = message.Replace("[SpamBotMessage]", "");
-                spambotMessage = true;
+            try {
+                var spambotMessage = false;
+                if (message.Contains("[SpamBotMessage]")) {
+                    message = message.Replace("[SpamBotMessage]", "");
+                    spambotMessage = true;
+                }
+                const string bypassPrefix = "[whitelistbypass]";
+                while (message.Contains(bypassPrefix)) {
+                    message = message.Replace(bypassPrefix, "");
+                }
+                if (displayProconChat) {
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + Log.CBlue(target) + " > " + message);
+                }
+                PlayerSayMessage(target, message, false, spamCount);
+                PlayerYellMessage(target, message, false, spamCount);
+            } catch (Exception e) {
+                HandleException(new AException("Error running player tell message.", e));
             }
-            const string bypassPrefix = "[whitelistbypass]";
-            while (message.Contains(bypassPrefix)) {
-                message = message.Replace(bypassPrefix, "");
-            }
-            if (displayProconChat) {
-                ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + Log.CBlue(target) + " > " + message);
-            }
-            PlayerSayMessage(target, message, false, spamCount);
-            PlayerYellMessage(target, message, false, spamCount);
         }
 
         private void QueueMessageForParsing(AChatMessage messageObject) {
