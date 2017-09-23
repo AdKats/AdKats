@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.310
+ * Version 6.9.0.311
  * 23-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.310</version_code>
+ * <version_code>6.9.0.311</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.310";
+        private const String PluginVersion = "6.9.0.311";
 
         public enum GameVersion {
             BF3,
@@ -8224,10 +8224,11 @@ namespace PRoConEvents {
                             }
                             // Assume max team size of 32 unless otherwise provided
                             var maxTeamPlayerCount = 32;
-                            if (_serverInfo.InfoObject != null && _serverInfo.InfoObject.MaxPlayerCount != maxTeamPlayerCount) {
+                            if (_serverInfo.InfoObject != null && 
+                                _serverInfo.InfoObject.MaxPlayerCount != maxTeamPlayerCount) {
                                 maxTeamPlayerCount = _serverInfo.InfoObject.MaxPlayerCount / 2;
                             }
-                            if (weakCount <= powerCount + teamCountLeniency &&
+                            if (weakCount - teamCountLeniency < powerCount &&
                                 weakCount < maxTeamPlayerCount && 
                                 weakTeam == mapDownTeam) {
                                 aPlayer.RequiredTeam = weakTeam;
