@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.309
- * 22-SEP-2017
+ * Version 6.9.0.310
+ * 23-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.309</version_code>
+ * <version_code>6.9.0.310</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.309";
+        private const String PluginVersion = "6.9.0.310";
 
         public enum GameVersion {
             BF3,
@@ -8216,8 +8216,10 @@ namespace PRoConEvents {
                             var powerCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
                                                                       dPlayer.fbpInfo.TeamID == powerTeam.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == powerTeam.TeamID));
                             var teamCountLeniency = 1;
-                            // If it's not the early game, and the weak team is also losing, increase leniency to 5 players
-                            if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 && weakTeam == losingTeam) {
+                            // If it's not the early game, the server is populated, and the weak team is also losing, increase leniency to 4 players
+                            if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 && 
+                                weakTeam == losingTeam &&
+                                _populationStatus == PopulationState.High) {
                                 teamCountLeniency = 4;
                             }
                             // Assume max team size of 32 unless otherwise provided
