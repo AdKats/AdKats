@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.311
+ * Version 6.9.0.312
  * 23-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.311</version_code>
+ * <version_code>6.9.0.312</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.311";
+        private const String PluginVersion = "6.9.0.312";
 
         public enum GameVersion {
             BF3,
@@ -10462,6 +10462,8 @@ namespace PRoConEvents {
                             } else {
                                 ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "False");
                             }
+                            SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Admins", "True");
+                            SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Reputable Players", "True");
                             //ACTIVE ROUND
                             for (int i = 0; i < 8; i++) {
                                 AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! " + GetEventMessage(false));
@@ -10485,7 +10487,13 @@ namespace PRoConEvents {
                             _surrenderVoteEnable = true;
                             _surrenderAutoEnable = true;
                             ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
+                            SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Admins", "False");
+                            SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Reputable Players", "False");
                             ProcessEventMapMode(AEventOption.ModeCode.RESET);
+                            for (int i = 0; i < 16; i++) {
+                                AdminTellMessage("EVENT IS OVER, THANK YOU FOR COMING!");
+                                Thread.Sleep(2000);
+                            }
                         }
                         UploadAllSettings();
                         UpdateSettingPage();
@@ -26440,7 +26448,11 @@ namespace PRoConEvents {
                                 chosenRule = AEventOption.RuleFromDisplay(ruleString);
 
                                 if (chosenRule == AEventOption.RuleCode.ENDEVENT) {
-                                    AdminTellMessage("Server voted to end the event. Normal rules next round.");
+                                    _EventRoundPolled = true;
+                                    for (int i = 0; i < 5; i++) {
+                                        AdminTellMessage("Server voted to end the event. Normal rules next round.");
+                                        Thread.Sleep(500);
+                                    }
                                 } else {
                                     // Reset the poll for the next stage
                                     _ActivePoll.Reset();
