@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.312
- * 23-SEP-2017
+ * Version 6.9.0.313
+ * 24-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.312</version_code>
+ * <version_code>6.9.0.313</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.312";
+        private const String PluginVersion = "6.9.0.313";
 
         public enum GameVersion {
             BF3,
@@ -10489,11 +10489,13 @@ namespace PRoConEvents {
                             ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Admins", "False");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Reputable Players", "False");
+                            /*
                             ProcessEventMapMode(AEventOption.ModeCode.RESET);
                             for (int i = 0; i < 16; i++) {
                                 AdminTellMessage("EVENT IS OVER, THANK YOU FOR COMING!");
                                 Thread.Sleep(2000);
                             }
+                            */
                         }
                         UploadAllSettings();
                         UpdateSettingPage();
