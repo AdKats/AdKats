@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.313
+ * Version 6.9.0.314
  * 24-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.313</version_code>
+ * <version_code>6.9.0.314</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.313";
+        private const String PluginVersion = "6.9.0.314";
 
         public enum GameVersion {
             BF3,
@@ -10193,7 +10193,7 @@ namespace PRoConEvents {
             ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.soldierHealth", "100");
             ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.hitIndicatorsEnabled", "true");
             ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.forceReloadWholeMags", "false");
-            ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.preset", "NORMAL", "false");
+            ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.preset", "NORMAL", "false");            
         }
 
         private void ProcessEventMapMode(Int32 eventRoundNumber) {
@@ -10212,6 +10212,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.T100:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10221,6 +10222,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.T300:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10230,6 +10232,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.T400:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10239,6 +10242,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.R200:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10248,6 +10252,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.R300:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10257,6 +10262,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.R400:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10266,6 +10272,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.C500:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10278,6 +10285,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.C1000:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10290,6 +10298,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.C2000:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10302,6 +10311,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.F9:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10311,6 +10321,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.F6:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10320,6 +10331,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.F3:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10329,6 +10341,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.D500:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10341,6 +10354,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.HD500:
                         ProcessPresetHardcore();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10353,6 +10367,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.D750:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10365,6 +10380,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.D1000:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
@@ -10377,6 +10393,7 @@ namespace PRoConEvents {
                         break;
                     case AEventOption.ModeCode.RESET:
                         ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "300");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
@@ -10477,25 +10494,21 @@ namespace PRoConEvents {
                                 Thread.Sleep(2000);
                             }
                             ProcessEventMapMode(AEventOption.ModeCode.D500);
-                        } else {
+                        } else if (nRound >= _CurrentEventRoundNumber + _EventRoundOptions.Count()) {
                             //NORMAL ROUND
-                            if (nRound >= _CurrentEventRoundNumber + _EventRoundOptions.Count()) {
-                                // Reset the current event number, as the event has ended.
-                                _CurrentEventRoundNumber = 999999;
-                            }
+                            // Reset the current event number, as the event has ended.
+                            _CurrentEventRoundNumber = 999999;
                             _pingEnforcerEnable = true;
                             _surrenderVoteEnable = true;
                             _surrenderAutoEnable = true;
                             ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Admins", "False");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Reputable Players", "False");
-                            /*
                             ProcessEventMapMode(AEventOption.ModeCode.RESET);
                             for (int i = 0; i < 16; i++) {
                                 AdminTellMessage("EVENT IS OVER, THANK YOU FOR COMING!");
                                 Thread.Sleep(2000);
                             }
-                            */
                         }
                         UploadAllSettings();
                         UpdateSettingPage();
