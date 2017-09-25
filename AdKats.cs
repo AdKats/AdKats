@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.314
+ * Version 6.9.0.315
  * 24-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.314</version_code>
+ * <version_code>6.9.0.315</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.314";
+        private const String PluginVersion = "6.9.0.315";
 
         public enum GameVersion {
             BF3,
@@ -11896,7 +11896,7 @@ namespace PRoConEvents {
                                     adminAssistantMessage += "AutoAdmin can handle some of your reports. ";
                                 }
                                 if (_EnableAdminAssistantPerk) {
-                                    adminAssistantMessage += "You can use the @" + command + " command.";
+                                    adminAssistantMessage += "You can use the !" + command + " command.";
                                 }
                             }
                             PlayerSayMessage(soldierName, adminAssistantMessage);
@@ -15247,7 +15247,7 @@ namespace PRoConEvents {
                         case ACommand.CommandAccess.AnyVisible:
                             //Require source to be any visible
                             if (record.record_access != ARecord.AccessMethod.PublicExternal && record.record_access != ARecord.AccessMethod.PublicGlobal && record.record_access != ARecord.AccessMethod.PublicTeam && record.record_access != ARecord.AccessMethod.PublicSquad) {
-                                SendMessageToSource(record, "Use !" + record.command_type.command_text + ", @" + record.command_type.command_text + ", or ." + record.command_type.command_text + " to access the " + record.command_type.command_name + " command.");
+                                SendMessageToSource(record, "Use !" + record.command_type.command_text + ", !" + record.command_type.command_text + ", or ." + record.command_type.command_text + " to access the " + record.command_type.command_name + " command.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -15255,7 +15255,7 @@ namespace PRoConEvents {
                         case ACommand.CommandAccess.GlobalVisible:
                             //Require source to be global visible
                             if (record.record_access != ARecord.AccessMethod.PublicGlobal) {
-                                SendMessageToSource(record, "Use !" + record.command_type.command_text + ", @" + record.command_type.command_text + ", or ." + record.command_type.command_text + " in GLOBAL chat to access the " + record.command_type.command_name + " command.");
+                                SendMessageToSource(record, "Use !" + record.command_type.command_text + ", !" + record.command_type.command_text + ", or ." + record.command_type.command_text + " in GLOBAL chat to access the " + record.command_type.command_name + " command.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -15263,7 +15263,7 @@ namespace PRoConEvents {
                         case ACommand.CommandAccess.TeamVisible:
                             //Require source to be global visible
                             if (record.record_access != ARecord.AccessMethod.PublicTeam) {
-                                SendMessageToSource(record, "Use !" + record.command_type.command_text + ", @" + record.command_type.command_text + ", or ." + record.command_type.command_text + " in TEAM chat to access the " + record.command_type.command_name + " command.");
+                                SendMessageToSource(record, "Use !" + record.command_type.command_text + ", !" + record.command_type.command_text + ", or ." + record.command_type.command_text + " in TEAM chat to access the " + record.command_type.command_name + " command.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -15271,7 +15271,7 @@ namespace PRoConEvents {
                         case ACommand.CommandAccess.SquadVisible:
                             //Require source to be global visible
                             if (record.record_access != ARecord.AccessMethod.PublicSquad) {
-                                SendMessageToSource(record, "Use !" + record.command_type.command_text + ", @" + record.command_type.command_text + ", or ." + record.command_type.command_text + " in SQUAD chat to access the " + record.command_type.command_name + " command.");
+                                SendMessageToSource(record, "Use !" + record.command_type.command_text + ", !" + record.command_type.command_text + ", or ." + record.command_type.command_text + " in SQUAD chat to access the " + record.command_type.command_name + " command.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -17542,11 +17542,11 @@ namespace PRoConEvents {
                             String[] parameters = ParseParameters(remainingMessage, 2);
                             switch (parameters.Length) {
                                 case 0:
-                                    SendMessageToSource(record, "Format must be: @" + command + " playername reason");
+                                    SendMessageToSource(record, "Format must be: !" + command + " playername reason");
                                     FinalizeRecord(record);
                                     return;
                                 case 1:
-                                    SendMessageToSource(record, "Format must be: @" + command + " playername reason");
+                                    SendMessageToSource(record, "Format must be: !" + command + " playername reason");
                                     FinalizeRecord(record);
                                     return;
                                 case 2:
@@ -17585,11 +17585,11 @@ namespace PRoConEvents {
                             String[] parameters = ParseParameters(remainingMessage, 2);
                             switch (parameters.Length) {
                                 case 0:
-                                    SendMessageToSource(record, "Format must be: @" + command + " playername reason");
+                                    SendMessageToSource(record, "Format must be: !" + command + " playername reason");
                                     FinalizeRecord(record);
                                     return;
                                 case 1:
-                                    SendMessageToSource(record, "Format must be: @" + command + " playername reason");
+                                    SendMessageToSource(record, "Format must be: !" + command + " playername reason");
                                     FinalizeRecord(record);
                                     return;
                                 case 2:
@@ -20605,7 +20605,7 @@ namespace PRoConEvents {
                                 Int32 requiredVotes = (Int32)((_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                                 OnlineAdminSayMessage(record.GetSourceName() + " removed their surrender vote.");
-                                AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                                AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use !" + GetCommandByKey("self_surrender").command_text + ", !" + GetCommandByKey("self_votenext").command_text + ", or !" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                                 AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                             }
                         }
@@ -24538,7 +24538,7 @@ namespace PRoConEvents {
                     }
                     //Check for player access to change teams
                     if (record.target_player.fbpInfo.TeamID != sourcePlayer.fbpInfo.TeamID && !HasAccess(record.source_player, GetCommandByKey("self_teamswap"))) {
-                        SendMessageToSource(record, "Target player is not on your team, you need @" + GetCommandByKey("self_teamswap").command_text + "/TeamSwap access to join them.");
+                        SendMessageToSource(record, "Target player is not on your team, you need !" + GetCommandByKey("self_teamswap").command_text + " access to join them.");
                     } else {
                         //Move to specific squad
                         Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
@@ -25682,7 +25682,7 @@ namespace PRoConEvents {
                     return;
                 }
                 if (_surrenderVoteList.Contains(record.source_name)) {
-                    SendMessageToSource(record, "You already voted! You can cancel your vote with @" + GetCommandByKey("command_cancel").command_text);
+                    SendMessageToSource(record, "You already voted! You can cancel your vote with !" + GetCommandByKey("command_cancel").command_text);
                     FinalizeRecord(record);
                     return;
                 }
@@ -25795,9 +25795,9 @@ namespace PRoConEvents {
                 } else {
                     SendMessageToSource(record, "You voted to end the round!");
                     if (voteEnabled) {
-                        AdminTellMessage("Surrender Vote started! Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                        AdminTellMessage("Surrender Vote started! Use !" + GetCommandByKey("self_surrender").command_text + ", !" + GetCommandByKey("self_votenext").command_text + ", or !" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                     } else {
-                        AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                        AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use !" + GetCommandByKey("self_surrender").command_text + ", !" + GetCommandByKey("self_votenext").command_text + ", or !" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                         AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                     }
                     OnlineAdminSayMessage(record.GetSourceName() + " voted for round surrender.");
@@ -25849,7 +25849,7 @@ namespace PRoConEvents {
                 Int32 requiredVotes = (Int32)((_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 SendMessageToSource(record, "You voted against ending the round!");
-                AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use !" + GetCommandByKey("self_surrender").command_text + ", !" + GetCommandByKey("self_votenext").command_text + ", or !" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                 AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                 OnlineAdminSayMessage(record.GetSourceName() + " voted against round surrender.");
             } catch (Exception e) {
