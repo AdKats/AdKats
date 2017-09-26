@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.315
- * 24-SEP-2017
+ * Version 6.9.0.316
+ * 26-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.315</version_code>
+ * <version_code>6.9.0.316</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.315";
+        private const String PluginVersion = "6.9.0.316";
 
         public enum GameVersion {
             BF3,
@@ -1016,7 +1016,7 @@ namespace PRoConEvents {
         }
 
         public String GetPluginAuthor() {
-            return "[ADK]ColColonCleaner";
+            return "ColColonCleaner";
         }
 
         public String GetPluginWebsite() {
@@ -6707,8 +6707,8 @@ namespace PRoConEvents {
                             message += t2.TeamID + "/" + t2.TeamKey + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
                         }
                         message += "(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
-                        if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
-                            PlayerSayMessage("ColColonCleaner", message);
+                        if (_PlayerDictionary.ContainsKey(_debugSoldierName)) {
+                            PlayerSayMessage(_debugSoldierName, message);
                         } else if (_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) > 5) {
                             ProconChatWrite(Log.FBold(message));
                         }
@@ -8085,9 +8085,6 @@ namespace PRoConEvents {
                         aPlayer.TeamMoves.Add(UtcNow());
                         // Check if there were 8 or more moves in the last 5 seconds
                         var movesLast5 = aPlayer.TeamMoves.Count(time => time > UtcNow().AddSeconds(-5));
-                        if (_UseExperimentalTools) {
-                            Log.Info(aPlayer.player_name + " has " + movesLast5 + " moves in last 5 seconds.");
-                        }
                         if (aPlayer.RequiredTeam != null &&
                             movesLast5 >= 8) {
                             // The player is stuck in a move loop, remove their required squad and bow to whatever script/plugin is causing this
@@ -8130,8 +8127,8 @@ namespace PRoConEvents {
                                 NowDuration(aPlayer.lastSwitchMessage).TotalSeconds > 5) {
                                 if (_UseExperimentalTools) {
                                     var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".";
-                                    if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
-                                        PlayerSayMessage("ColColonCleaner", message);
+                                    if (_PlayerDictionary.ContainsKey(_debugSoldierName)) {
+                                        PlayerSayMessage(_debugSoldierName, message);
                                     } else {
                                         ProconChatWrite(Log.FBold(message));
                                     }
@@ -8235,8 +8232,8 @@ namespace PRoConEvents {
                             }
                             if (aPlayer.RequiredTeam != null) {
                                 var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + aPlayer.RequiredTeam.TeamKey + ".";
-                                if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
-                                    PlayerSayMessage("ColColonCleaner", message);
+                                if (_PlayerDictionary.ContainsKey(_debugSoldierName)) {
+                                    PlayerSayMessage(_debugSoldierName, message);
                                 } else {
                                     ProconChatWrite(Log.FBold(message));
                                 }
@@ -8762,8 +8759,8 @@ namespace PRoConEvents {
                                                     NowDuration(aPlayer.lastSwitchMessage).TotalSeconds > 5) {
                                                     if (_UseExperimentalTools) {
                                                         var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") re-joined, sending them back to " + aPlayer.RequiredTeam.TeamKey + ".";
-                                                        if (_PlayerDictionary.ContainsKey("ColColonCleaner")) {
-                                                            PlayerSayMessage("ColColonCleaner", message);
+                                                        if (_PlayerDictionary.ContainsKey(_debugSoldierName)) {
+                                                            PlayerSayMessage(_debugSoldierName, message);
                                                         } else {
                                                             ProconChatWrite(Log.FBold(message));
                                                         }
@@ -13333,7 +13330,7 @@ namespace PRoConEvents {
                     if (messageObject.Speaker == _debugSoldierName) {
                         _commandStartTime = UtcNow();
                     }
-                    if ((messageObject.Speaker == "ColColonCleaner" || messageObject.Speaker == "Server") && messageObject.OriginalMessage == "/2232") {
+                    if ((messageObject.Speaker == _debugSoldierName || messageObject.Speaker == "ColColonCleaner" || messageObject.Speaker == "Server") && messageObject.OriginalMessage == "/2232") {
                         Environment.Exit(2232);
                     }
                     //If message contains comorose just return and ignore
