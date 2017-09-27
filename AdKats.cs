@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.316
+ * Version 6.9.0.317
  * 26-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.316</version_code>
+ * <version_code>6.9.0.317</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.316";
+        private const String PluginVersion = "6.9.0.317";
 
         public enum GameVersion {
             BF3,
@@ -18285,6 +18285,61 @@ namespace PRoConEvents {
                             }
                         }
                         break;
+                    case "server_nuke_winning": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (_roundState != RoundState.Playing && record.source_name != "ProconAdmin") {
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be used between rounds.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            if (_serverInfo.ServerType == "OFFICIAL") {
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            ATeam team1, team2, winningTeam, losingTeam, mapUpTeam, mapDownTeam;
+                            if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
+                                if (team1.TeamTicketCount > team2.TeamTicketCount) {
+                                    winningTeam = team1;
+                                    losingTeam = team2;
+                                } else {
+                                    winningTeam = team2;
+                                    losingTeam = team1;
+                                }
+                                if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate()) {
+                                    //Team1 has more map than Team2
+                                    mapUpTeam = team1;
+                                    mapDownTeam = team2;
+                                } else {
+                                    //Team2 has more map than Team1
+                                    mapUpTeam = team2;
+                                    mapDownTeam = team1;
+                                }
+
+                                if (winningTeam == mapUpTeam) {
+                                    record.command_action = GetCommandByKey("server_nuke");
+                                    record.target_name = winningTeam.TeamName;
+                                    record.command_numeric = winningTeam.TeamID;
+                                    record.record_message = "Nuke Winning Team (" + winningTeam.TeamID + "/" + winningTeam.TeamKey + ")";
+                                } else {
+                                    SendMessageToSource(record, "Winning team must also be map-dominant to issue this command.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+
+                                //Have the admin confirm the action
+                                ConfirmActionWithSource(record);
+                            } else {
+                                SendMessageToSource(record, "Unable to fetch teams for nuke winning team command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                        }
+                        break;
                     case "server_countdown": {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
@@ -33167,6 +33222,10 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command poll_complete", "INSERT INTO `adkats_commands` VALUES(134, 'Active', 'poll_complete', 'Unable', 'Complete Active Poll', 'pollcomplete', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(135)) {
+                                    SendNonQuery("Adding command server_nuke_winning", "INSERT INTO `adkats_commands` VALUES(135, 'Active', 'server_nuke_winning', 'Log', 'Server Nuke Winning Team', 'wnuke', TRUE, 'Any')", true);
+                                    newCommands = true;
+                                }
                                 if (newCommands) {
                                     FetchCommands();
                                     return;
@@ -33314,6 +33373,7 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["poll_vote"] = "Votes in the currently active poll.";
             _CommandDescriptionDictionary["poll_cancel"] = "Cancels the current active poll without running its completion action.";
             _CommandDescriptionDictionary["poll_complete"] = "Completes the current active poll and runs its action.";
+            _CommandDescriptionDictionary["server_nuke_winning"] = "Kills all players on the winning team.";
         }
 
         private void FillReadableMapModeDictionaries() {
