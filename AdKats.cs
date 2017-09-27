@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.317
+ * Version 6.9.0.318
  * 26-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.317</version_code>
+ * <version_code>6.9.0.318</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.317";
+        private const String PluginVersion = "6.9.0.318";
 
         public enum GameVersion {
             BF3,
@@ -31427,6 +31427,14 @@ namespace PRoConEvents {
                 InfoOrRespond(debugRecord, "Invalid teams when attempting to assist.");
                 return false;
             }
+            ATeam mapUpTeam, mapDownTeam;
+            if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate()) {
+                mapUpTeam = team1;
+                mapDownTeam = team2;
+            } else {
+                mapUpTeam = team2;
+                mapDownTeam = team1;
+            }
 
             String recordMessage = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]";
             if (realRecord != null) {
@@ -31444,6 +31452,19 @@ namespace PRoConEvents {
             var oldEnemyPower = enemyTeam.GetTeamPower();
             var newFriendlyPower = friendlyTeam.GetTeamPower(aPlayer, null);
             var newEnemyPower = enemyTeam.GetTeamPower(null, aPlayer);
+            var map = _serverInfo.GetMap();
+            if (map != null && map.MapFileName == "XP0_Metro" && enemyTeam == team1) {
+                // If this is metro, overstate the power of the lower team slightly
+                // The upper team needs a slight stat boost over normal
+                if (enemyTeam == mapUpTeam) {
+                    // If the lower team has the map, overstate its power even more
+                    oldEnemyPower *= 1.35;
+                    newEnemyPower *= 1.35;
+                } else {
+                    oldEnemyPower *= 1.1;
+                    newEnemyPower *= 1.1;
+                }
+            }
             var newFriendlyCount = _PlayerDictionary.Values.ToList().Count(dPlayer => dPlayer.fbpInfo.TeamID == friendlyTeam.TeamID && dPlayer.player_type == PlayerType.Player) - 1;
             var newEnemyCount = _PlayerDictionary.Values.ToList().Count(dPlayer => dPlayer.fbpInfo.TeamID == enemyTeam.TeamID && dPlayer.player_type == PlayerType.Player) + 1;
             // Weed out bad assumptions
@@ -31465,10 +31486,7 @@ namespace PRoConEvents {
             } else if (_UseTeamPowerMonitor) {
                 var enemyMorePowerful = newEnemyPower > newFriendlyPower;
                 var powerDifferenceIncreased = newPowerDiff > oldPowerDiff;
-                var map = _serverInfo.GetMap();
-                var isMetroLowerTeam = (_roundState == RoundState.Playing && map != null && map.MapFileName == "XP0_Metro" && enemyTeam.TeamID == 1);
-                // If the map is metro, and the target team is the lower team, don't give the 18% power difference allowance
-                var powerDifferencePercOverThreshold = isMetroLowerTeam ? (powerDifferenceIncreased) : (newPercDiff > powerPercentageThreshold);
+                var powerDifferencePercOverThreshold = newPercDiff > powerPercentageThreshold;
 
                 // Hard cap the number of players a team can have over another
                 if (canAssist &&
@@ -31530,7 +31548,14 @@ namespace PRoConEvents {
             } else {
                 if (realRecord != null) {
                     SendMessageToSource(realRecord, "Queuing you to assist the weak team. Thank you.");
-                    AdminSayMessage(realRecord.GetTargetNames() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + (ticketBypass ? "Bypass" : Math.Round(newPercDiff) + "<" + Math.Round(oldPercDiff)) + ")" : "") + ", queueing.");
+                    var powerDiffString = Math.Round(newPercDiff) + "<" + Math.Round(oldPercDiff);
+                    if (newPercDiff > oldPercDiff && newPercDiff <= powerPercentageThreshold) {
+                        powerDiffString = "Lenient";
+                    }
+                    if (ticketBypass) {
+                        powerDiffString = "Bypass";
+                    }
+                    AdminSayMessage(realRecord.GetTargetNames() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + powerDiffString + ")" : "") + ", queueing.");
                     realRecord.command_action = GetCommandByKey("self_assist_unconfirmed");
                 } else if (debugRecord != null) {
                     SendMessageToSource(debugRecord, "Assist accepted.");
