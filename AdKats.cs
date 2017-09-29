@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.319
- * 26-SEP-2017
+ * Version 6.9.0.320
+ * 29-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.319</version_code>
+ * <version_code>6.9.0.320</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.319";
+        private const String PluginVersion = "6.9.0.320";
 
         public enum GameVersion {
             BF3,
@@ -31571,7 +31571,7 @@ namespace PRoConEvents {
                 return 0;
             }
             var durationTillEvent = roundDate.Subtract(DateTime.Now);
-            return _roundID + (int)Math.Ceiling((durationTillEvent.TotalMinutes + _serverInfo.GetRoundElapsedTime().TotalMinutes) / FetchAverageRoundMinutes(durationTillEvent.TotalHours < 24));
+            return _roundID + (int)Math.Ceiling((durationTillEvent.TotalMinutes + _serverInfo.GetRoundElapsedTime().TotalMinutes) / FetchAverageRoundMinutes(durationTillEvent.TotalHours < 72));
         }
 
         private DateTime GetEventRoundDateTime() {
@@ -31583,7 +31583,7 @@ namespace PRoConEvents {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         if (active) {
-                            //Only include active rounds, this is best for durations in the same day as the event
+                            //Only include active rounds, this is best for durations when the event is near
                             command.CommandText = @"
                             select avg(round_duration) `AvgRoundDuration`
                               from (select *
