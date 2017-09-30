@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.326
+ * Version 6.9.0.327
  * 30-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.326</version_code>
+ * <version_code>6.9.0.327</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.326";
+        private const String PluginVersion = "6.9.0.327";
 
         public enum GameVersion {
             BF3,
@@ -26073,10 +26073,10 @@ namespace PRoConEvents {
                             List<String> validRules = new List<String>() ;
                             if (_AvailableMapModes.Any()) {
                                 //Confirm that rule prefixes conform to the map/modes available
-                                var allMaps = _AvailableMapModes.Select(mapMode => mapMode.PublicLevelName).Distinct();
-                                Log.Info("All Maps: " + String.Concat(allMaps, ", "));
-                                var allModes = _AvailableMapModes.Select(mapMode => mapMode.GameMode).Distinct();
-                                Log.Info("All Modes: " + String.Concat(allModes, ", "));
+                                var allMaps = _AvailableMapModes.Select(mapMode => mapMode.PublicLevelName).Distinct().ToArray();
+                                Log.Info("All Maps: " + String.Join(", ", allMaps));
+                                var allModes = _AvailableMapModes.Select(mapMode => mapMode.GameMode).Distinct().ToArray();
+                                Log.Info("All Modes: " + String.Join(", ", allModes));
                                 var matchingMapMode = _AvailableMapModes.First(mapMode => mapMode.FileName == _serverInfo.InfoObject.Map &&
                                                                                           mapMode.PlayList == _serverInfo.InfoObject.GameMode);
                                 var serverMap = matchingMapMode.GameMode;
