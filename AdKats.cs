@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.322
+ * Version 6.9.0.323
  * 30-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.322</version_code>
+ * <version_code>6.9.0.323</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.322";
+        private const String PluginVersion = "6.9.0.323";
 
         public enum GameVersion {
             BF3,
@@ -12356,8 +12356,8 @@ namespace PRoConEvents {
                                         }
                                         PlayerTellMessage(aPlayer.player_name, repMessage);
                                     }
-                                } catch (Exception) {
-                                    HandleException(new AException("Error while printing spawn messages"));
+                                } catch (Exception e) {
+                                    HandleException(new AException("Error while printing spawn messages", e));
                                 }
                                 Log.Debug(() => "Exiting a spawn printer.", 5);
                                 LogThreadExit();
@@ -25569,8 +25569,8 @@ namespace PRoConEvents {
                                 PlayerTellMessage(aPlayer.player_name, record.record_message + " NOW!", false, 1);
                             }
                         }
-                    } catch (Exception) {
-                        HandleException(new AException("Error while printing server countdown"));
+                    } catch (Exception e) {
+                        HandleException(new AException("Error while printing server countdown", e));
                     }
                     Log.Debug(() => "Exiting a countdown printer.", 5);
                     LogThreadExit();
@@ -26137,8 +26137,8 @@ namespace PRoConEvents {
                                 }
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(_ServerRulesInterval));
                             }
-                        } catch (Exception) {
-                            HandleException(new AException("Error while printing server rules"));
+                        } catch (Exception e) {
+                            HandleException(new AException("Error while printing server rules", e));
                         }
                         Log.Debug(() => "Exiting a rule printer.", 5);
                         LogThreadExit();
