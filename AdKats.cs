@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.324
+ * Version 6.9.0.325
  * 30-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.324</version_code>
+ * <version_code>6.9.0.325</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.324";
+        private const String PluginVersion = "6.9.0.325";
 
         public enum GameVersion {
             BF3,
@@ -26071,56 +26071,55 @@ namespace PRoConEvents {
                             _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(_ServerRulesDelay));
                             Int32 ruleIndex = 0;
                             List<String> validRules = new List<String>() ;
-                            //Confirm that rule prefixes conform to the map/modes available
-                            var allMaps = _AvailableMapModes.Select(mapMode => mapMode.PublicLevelName).Distinct();
-                            var allModes = _AvailableMapModes.Select(mapMode => mapMode.GameMode).Distinct();
-                            var matchingMapMode = _AvailableMapModes.First(mapMode => mapMode.FileName == _serverInfo.InfoObject.Map && 
-                                                                                      mapMode.PlayList == _serverInfo.InfoObject.GameMode);
-                            var serverMap = matchingMapMode.GameMode;
-                            var serverMode = matchingMapMode.PublicLevelName;
-                            Log.Info("Matched server mapmode to: " + serverMap + "/" + serverMode);
-                            foreach (var rule in _ServerRulesList.Where(rule => !String.IsNullOrEmpty(rule))) {
-                                // Need to pull rule into a new var since foreach vars can't be modified
-                                var ruleString = rule;
-                                var useRule = true;
-                                //Check if the rule starts with any map
-                                foreach (var ruleMap in allMaps) {
-                                    if(ruleString.StartsWith(ruleMap + "/")) {
-                                        //Remove the map from the rule text
-                                        ruleString = TrimStart(ruleString, ruleMap + "/");
-                                        if (ruleMap != serverMap) {
-                                            Log.Info("Rule for map " + ruleMap + " but server map is " + serverMap);
-                                            useRule = false;
+                            if (_AvailableMapModes.Any()) {
+                                //Confirm that rule prefixes conform to the map/modes available
+                                var allMaps = _AvailableMapModes.Select(mapMode => mapMode.PublicLevelName).Distinct();
+                                var allModes = _AvailableMapModes.Select(mapMode => mapMode.GameMode).Distinct();
+                                var matchingMapMode = _AvailableMapModes.First(mapMode => mapMode.FileName == _serverInfo.InfoObject.Map &&
+                                                                                          mapMode.PlayList == _serverInfo.InfoObject.GameMode);
+                                var serverMap = matchingMapMode.GameMode;
+                                var serverMode = matchingMapMode.PublicLevelName;
+                                Log.Info("Matched server mapmode to: " + serverMap + "/" + serverMode);
+                                foreach (var rule in _ServerRulesList.Where(rule => !String.IsNullOrEmpty(rule))) {
+                                    // Need to pull rule into a new var since foreach vars can't be modified
+                                    var ruleString = rule;
+                                    var useRule = true;
+                                    //Check if the rule starts with any map
+                                    Log.Info(ruleString);
+                                    foreach (var ruleMap in allMaps) {
+                                        if (ruleString.StartsWith(ruleMap + "/")) {
+                                            //Remove the map from the rule text
+                                            ruleString = TrimStart(ruleString, ruleMap + "/");
+                                            if (ruleMap != serverMap) {
+                                                Log.Info("Rule for map '" + ruleMap + "' but server map is '" + serverMap + "'");
+                                                useRule = false;
+                                            }
+                                            break;
                                         }
-                                        break;
+                                    }
+                                    Log.Info(ruleString);
+                                    //Check if the rule starts with any mode
+                                    foreach (var ruleMode in allModes) {
+                                        if (ruleString.StartsWith(ruleMode + "/")) {
+                                            //Remove the mode from the rule text
+                                            ruleString = TrimStart(ruleString, ruleMode + "/");
+                                            if (ruleMode != serverMode) {
+                                                Log.Info("Rule for mode '" + ruleMode + "' but server mode is '" + serverMode + "'");
+                                                useRule = false;
+                                            }
+                                            break;
+                                        }
+                                    }
+                                    Log.Info(ruleString);
+                                    //Check again for maps, since they might have put them in a different order
+
+                                    if (useRule) {
+                                        validRules.Add(ruleString);
                                     }
                                 }
-                                //Check if the rule starts with any mode
-                                foreach (var ruleMode in allModes) {
-                                    if (ruleString.StartsWith(ruleMode + "/")) {
-                                        //Remove the mode from the rule text
-                                        ruleString = TrimStart(ruleString, ruleMode + "/");
-                                        if (ruleMode != serverMode) {
-                                            Log.Info("Rule for mode " + ruleMode + " but server mode is " + serverMap);
-                                            useRule = false;
-                                        }
-                                        break;
-                                    }
-                                }
-                                //Check again for maps, since they might have put them in a different order
-                                foreach (var ruleMap in allMaps) {
-                                    if (ruleString.StartsWith(ruleMap + "/")) {
-                                        //Remove the map from the rule text
-                                        ruleString = TrimStart(ruleString, ruleMap + "/");
-                                        if (ruleMap != serverMap) {
-                                            Log.Info("Rule for map " + ruleMap + " but server map is " + serverMap);
-                                            useRule = false;
-                                        }
-                                        break;
-                                    }
-                                }
-                                if (useRule) {
-                                    validRules.Add(ruleString);
+                            } else {
+                                foreach (var rule in _ServerRulesList.Where(rule => !String.IsNullOrEmpty(rule))) {
+                                    validRules.Add(rule);
                                 }
                             }
                             foreach (string rule in validRules) {
