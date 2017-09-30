@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.321
- * 29-SEP-2017
+ * Version 6.9.0.322
+ * 30-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.321</version_code>
+ * <version_code>6.9.0.322</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.321";
+        private const String PluginVersion = "6.9.0.322";
 
         public enum GameVersion {
             BF3,
@@ -1008,6 +1008,9 @@ namespace PRoConEvents {
             _DiscordManager = new DiscordManager(this);
 
             FillReadableMapModeDictionaries();
+
+            // Populate the list of available maps
+            _AvailableMapModes = this.GetMapDefines();
         }
 
         public String GetPluginName() {
@@ -1829,7 +1832,7 @@ namespace PRoConEvents {
                         }
                         lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power (Display)", typeof(String), teamPower));
                         lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Online Top Players (Display)", typeof(String[]), onlineTopPlayerListing.ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Balancer", typeof(Boolean), _UseTeamPowerMonitorBalance));
+                        //lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Balancer", typeof(Boolean), _UseTeamPowerMonitorBalance));
                         lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
                         lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
                         lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Seeder Control", typeof(Boolean), _UseTeamPowerMonitorSeeders));
@@ -6234,9 +6237,6 @@ namespace PRoConEvents {
 
                         //Make sure the default in-game admin is disabled
                         ExecuteCommand("procon.protected.plugins.enable", "CInGameAdmin", "False");
-
-                        // Populate the list of available maps
-                        _AvailableMapModes = this.GetMapDefines();
 
                         //Initialize the stat library
                         _StatLibrary = new StatLibrary(this);
@@ -26067,7 +26067,59 @@ namespace PRoConEvents {
                             //Wait the rule delay duration
                             _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(_ServerRulesDelay));
                             Int32 ruleIndex = 0;
-                            IEnumerable<string> validRules = _ServerRulesList.Where(rule => !String.IsNullOrEmpty(rule));
+                            List<String> validRules = new List<String>() ;
+                            //Confirm that rule prefixes conform to the map/modes available
+                            var allMaps = _AvailableMapModes.Select(mapMode => mapMode.PublicLevelName).Distinct();
+                            var allModes = _AvailableMapModes.Select(mapMode => mapMode.GameMode).Distinct();
+                            var matchingMapMode = _AvailableMapModes.First(mapMode => mapMode.FileName == _serverInfo.InfoObject.Map && 
+                                                                                      mapMode.PlayList == _serverInfo.InfoObject.GameMode);
+                            var serverMap = matchingMapMode.GameMode;
+                            var serverMode = matchingMapMode.PublicLevelName;
+                            Log.Info("Matched server mapmode to: " + serverMap + "/" + serverMode);
+                            foreach (var rule in _ServerRulesList.Where(rule => !String.IsNullOrEmpty(rule))) {
+                                // Need to pull rule into a new var since foreach vars can't be modified
+                                var ruleString = rule;
+                                var useRule = true;
+                                //Check if the rule starts with any map
+                                foreach (var ruleMap in allMaps) {
+                                    if(ruleString.StartsWith(ruleMap + "/")) {
+                                        //Remove the map from the rule text
+                                        ruleString = TrimStart(ruleString, ruleMap + "/");
+                                        if (ruleMap != serverMap) {
+                                            Log.Info("Rule for map " + ruleMap + " but server map is " + serverMap);
+                                            useRule = false;
+                                        }
+                                        break;
+                                    }
+                                }
+                                //Check if the rule starts with any mode
+                                foreach (var ruleMode in allModes) {
+                                    if (ruleString.StartsWith(ruleMode + "/")) {
+                                        //Remove the mode from the rule text
+                                        ruleString = TrimStart(ruleString, ruleMode + "/");
+                                        if (ruleMode != serverMode) {
+                                            Log.Info("Rule for mode " + ruleMode + " but server mode is " + serverMap);
+                                            useRule = false;
+                                        }
+                                        break;
+                                    }
+                                }
+                                //Check again for maps, since they might have put them in a different order
+                                foreach (var ruleMap in allMaps) {
+                                    if (ruleString.StartsWith(ruleMap + "/")) {
+                                        //Remove the map from the rule text
+                                        ruleString = TrimStart(ruleString, ruleMap + "/");
+                                        if (ruleMap != serverMap) {
+                                            Log.Info("Rule for map " + ruleMap + " but server map is " + serverMap);
+                                            useRule = false;
+                                        }
+                                        break;
+                                    }
+                                }
+                                if (useRule) {
+                                    validRules.Add(ruleString);
+                                }
+                            }
                             foreach (string rule in validRules) {
                                 String currentPrefix = (_ServerRulesNumbers) ? ("(" + (++ruleIndex) + "/" + validRules.Count() + ") ") : ("");
                                 if (allPlayers) {
@@ -28456,7 +28508,7 @@ namespace PRoConEvents {
                         `setting_server` SMALLINT(5) NOT NULL,
                         `setting_plugin` VARCHAR(100) NOT NULL,
                         `setting_name` VARCHAR(100) NOT NULL,
-                        `setting_value` VARCHAR (2000) NOT NULL,
+                        `setting_value` VARCHAR (5000) NOT NULL,
                         PRIMARY KEY (`setting_id`),
                         UNIQUE(`setting_server`, `setting_plugin`, `setting_name`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Plugin Orchestration'", true);
@@ -28535,6 +28587,7 @@ namespace PRoConEvents {
                       CONSTRAINT `adkats_rolegroups_fk_role` FOREIGN KEY (`role_id`) REFERENCES `adkats_roles` (`role_id`) ON DELETE CASCADE ON UPDATE CASCADE
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Connection of groups to roles'", true);
             }
+            SendNonQuery("Updating setting value length to 10000.", "ALTER TABLE adkats_settings MODIFY setting_value varchar(10000)", false);
             return ConfirmTable("adkats_bans") &&
                    ConfirmTable("adkats_commands") &&
                    ConfirmTable("adkats_infractions_global") &&
@@ -28926,8 +28979,8 @@ namespace PRoConEvents {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         //Check for length too great
-                        if (var.Value.Length > 2999) {
-                            Log.Error("Unable to upload setting, length of setting too great. Really dude? It's 3000+ characters. This is battlefield, not a book club.");
+                        if (var.Value.Length > 9999) {
+                            Log.Error("Unable to upload setting, length of setting too great. Really dude? It's 10000+ characters. This is battlefield, not a book club.");
                             return;
                         }
                         Log.Debug(() => var.Value, 7);
@@ -38878,6 +38931,22 @@ namespace PRoConEvents {
                 Thread.Sleep(_GoogleWaitDuration - (UtcNow() - _LastGoogleAction));
             }
             _LastGoogleAction = UtcNow();
+        }
+
+        //Credit Patrick McDonald
+        public static string TrimStart(string target, string trimString) {
+            string result = target;
+            while (result.StartsWith(trimString)) {
+                result = result.Substring(trimString.Length);
+            }
+            return result;
+        }
+        public static string TrimEnd(string target, string trimString) {
+            string result = target;
+            while (result.EndsWith(trimString)) {
+                result = result.Substring(0, result.Length - trimString.Length);
+            }
+            return result;
         }
 
         public Int64 ConvertVersionInt(String version) {
