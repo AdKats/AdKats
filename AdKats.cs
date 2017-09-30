@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.323
+ * Version 6.9.0.324
  * 30-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.323</version_code>
+ * <version_code>6.9.0.324</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.323";
+        private const String PluginVersion = "6.9.0.324";
 
         public enum GameVersion {
             BF3,
@@ -1008,9 +1008,6 @@ namespace PRoConEvents {
             _DiscordManager = new DiscordManager(this);
 
             FillReadableMapModeDictionaries();
-
-            // Populate the list of available maps
-            _AvailableMapModes = this.GetMapDefines();
         }
 
         public String GetPluginName() {
@@ -6205,6 +6202,12 @@ namespace PRoConEvents {
                         _roundState = RoundState.Loaded;
 
                         UpdateFactions();
+
+                        // Populate the list of available maps
+                        _AvailableMapModes = this.GetMapDefines();
+                        if (!_AvailableMapModes.Any()) {
+                            Log.Error("Available map modes were empty on load.");
+                        }
 
                         //Add command informing other plugins that AdKats is enabling
                         RegisterCommand(_PluginEnabledMatchCommand);
