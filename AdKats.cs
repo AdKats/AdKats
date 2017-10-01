@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.331
+ * Version 6.9.0.332
  * 1-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.331</version_code>
+ * <version_code>6.9.0.332</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.331";
+        private const String PluginVersion = "6.9.0.332";
 
         public enum GameVersion {
             BF3,
@@ -1119,6 +1119,7 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Setting Import", typeof(String), _serverInfo.ServerID));
                     lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Server ID (Display)", typeof(Int32), _serverInfo.ServerID));
                     lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Server IP (Display)", typeof(String), _serverInfo.ServerIP));
+                    lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Server Game (Display)", typeof(String), _gameVersion.ToString()));
                     lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
                     lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "High Population Value", typeof(Int32), _highPopulationPlayerCount));
                     lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Server Restart When Empty", typeof(Boolean), _automaticServerRestart));
