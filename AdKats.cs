@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.328
+ * Version 6.9.0.329
  * 30-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.328</version_code>
+ * <version_code>6.9.0.329</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.328";
+        private const String PluginVersion = "6.9.0.329";
 
         public enum GameVersion {
             BF3,
@@ -790,10 +790,10 @@ namespace PRoConEvents {
 
         //Polling
         private APoll _ActivePoll = null;
-        private TimeSpan _PollMaxDuration = TimeSpan.FromMinutes(4);
+        private TimeSpan _PollMaxDuration = TimeSpan.FromMinutes(3.5);
         private TimeSpan _PollPrintInterval = TimeSpan.FromSeconds(30);
         private Int32 _PollMaxVotes = 20;
-        private Int32 _PollMaxOptions = 4;
+        private Int32 _PollMaxOptions = 5;
         private String[] _AvailablePolls = new String[] {
             "event"
         };
@@ -819,7 +819,7 @@ namespace PRoConEvents {
         private List<AEventOption> _EventRoundOptions = new List<AEventOption>();
         private Boolean _EventRoundPolled = false;
         private Int32 _EventRoundAutoPollsMax = 7;
-        private TimeSpan _EventRoundAutoVoteDuration = TimeSpan.FromMinutes(3.5);
+        private TimeSpan _EventRoundAutoVoteDuration = TimeSpan.FromMinutes(2.5);
         private List<AEventOption> _EventRoundPollOptions = new List<AEventOption>();
         private String _EventRoundOptionsEnum;
         private String _eventBaseServerName = "Event Base Server Name";
@@ -6751,167 +6751,51 @@ namespace PRoConEvents {
                     _firstPlayerListComplete &&
                     playerCount > 0) {
                     if ((UtcNow() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
-                        String message = "[SpamBotMessage]" + _spamBotSayQueue.Peek();
-                        var eventDate = GetEventRoundDateTime();
-                        if (((_CurrentEventRoundNumber == 999999 && eventDate < DateTime.Now) || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
-                            message = message.Replace("%EventDateDuration%", "TBD")
-                                             .Replace("%EventDateTime%", "TBD")
-                                             .Replace("%EventDate%", "TBD")
-                                             .Replace("%EventRound%", "TBD")
-                                             .Replace("%RemainingRounds%", "TBD")
-                                             .Replace("%s%", "s")
-                                             .Replace("%S%", "S");
-                        } else {
-                            if (message.Contains("%EventDateDuration%")) {
-                                message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
-                            }
-                            if (message.Contains("%EventDateTime%")) {
-                                message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
-                            }
-                            if (message.Contains("%EventDate%")) {
-                                message = message.Replace("%EventDate%", eventDate.ToShortDateString());
-                            }
-                            if (message.Contains("%CurrentRound%")) {
-                                message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
-                            }
-                            if (message.Contains("%EventRound%")) {
-                                if (_CurrentEventRoundNumber != 999999) {
-                                    message = message.Replace("%EventRound%", String.Format("{0:n0}", _CurrentEventRoundNumber));
-                                } else {
-                                    message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
+                        String message = _spamBotSayQueue.Peek();
+                        message = ConfirmSpambotMessageValid(message);
+                        if (message != null) {
+                            message = ReplaceSpambotEventInfo(message);
+                            message = "[SpamBotMessage]" + message;
+                            if (_spamBotExcludeAdminsAndWhitelist) {
+                                if (!String.IsNullOrEmpty(message)) {
+                                    OnlineNonWhitelistSayMessage(message, playerCount > 5);
+                                }
+                            } else {
+                                if (!String.IsNullOrEmpty(message)) {
+                                    AdminSayMessage(message, playerCount > 5);
                                 }
                             }
-                            if (message.Contains("%RemainingRounds%")) {
-                                var remainingRounds = 0;
-                                if (_CurrentEventRoundNumber != 999999) {
-                                    remainingRounds = _CurrentEventRoundNumber - _roundID;
-                                    message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
-                                    message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
-                                    message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
-                                } else {
-                                    remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
-                                    message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
-                                    message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
-                                    message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
-                                }
-                            }
+                            _spamBotSayQueue.Enqueue(_spamBotSayQueue.Dequeue());
+                            _spamBotSayLastPost = UtcNow();
                         }
-                        if (_spamBotExcludeAdminsAndWhitelist) {
-                            if (!String.IsNullOrEmpty(message)) {
-                                OnlineNonWhitelistSayMessage(message, playerCount > 5);
-                            }
-                        } else {
-                            if (!String.IsNullOrEmpty(message)) {
-                                AdminSayMessage(message, playerCount > 5);
-                            }
-                        }
-                        _spamBotSayQueue.Enqueue(_spamBotSayQueue.Dequeue());
-                        _spamBotSayLastPost = UtcNow();
                     }
                     if ((UtcNow() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds && _spamBotYellQueue.Any()) {
-                        String message = "[SpamBotMessage]" + _spamBotYellQueue.Peek();
-                        var eventDate = GetEventRoundDateTime();
-                        if (((_CurrentEventRoundNumber == 999999 && eventDate < DateTime.Now) || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
-                            message = message.Replace("%EventDateDuration%", "TBD")
-                                             .Replace("%EventDateTime%", "TBD")
-                                             .Replace("%EventDate%", "TBD")
-                                             .Replace("%EventRound%", "TBD")
-                                             .Replace("%RemainingRounds%", "TBD")
-                                             .Replace("%s%", "s")
-                                             .Replace("%S%", "S");
-                        } else {
-                            if (message.Contains("%EventDateDuration%")) {
-                                message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
-                            }
-                            if (message.Contains("%EventDateTime%")) {
-                                message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
-                            }
-                            if (message.Contains("%EventDate%")) {
-                                message = message.Replace("%EventDate%", eventDate.ToShortDateString());
-                            }
-                            if (message.Contains("%CurrentRound%")) {
-                                message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
-                            }
-                            if (message.Contains("%EventRound%")) {
-                                if (_CurrentEventRoundNumber != 999999) {
-                                    message = message.Replace("%EventRound%", String.Format("{0:n0}", _CurrentEventRoundNumber));
-                                } else {
-                                    message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
+                        String message = _spamBotYellQueue.Peek();
+                        message = ConfirmSpambotMessageValid(message);
+                        if (message != null) {
+                            message = ReplaceSpambotEventInfo(message);
+                            message = "[SpamBotMessage]" + message;
+                            if (_spamBotExcludeAdminsAndWhitelist) {
+                                if (!String.IsNullOrEmpty(message)) {
+                                    OnlineNonWhitelistYellMessage(message, playerCount > 5);
+                                }
+                            } else {
+                                if (!String.IsNullOrEmpty(message)) {
+                                    AdminYellMessage(message, playerCount > 5);
                                 }
                             }
-                            if (message.Contains("%RemainingRounds%")) {
-                                var remainingRounds = 0;
-                                if (_CurrentEventRoundNumber != 999999) {
-                                    remainingRounds = _CurrentEventRoundNumber - _roundID;
-                                    message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
-                                    message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
-                                    message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
-                                } else {
-                                    remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
-                                    message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
-                                    message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
-                                    message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
-                                }
-                            }
+                            _spamBotYellQueue.Enqueue(_spamBotYellQueue.Dequeue());
+                            _spamBotYellLastPost = UtcNow();
                         }
-                        if (_spamBotExcludeAdminsAndWhitelist) {
-                            if (!String.IsNullOrEmpty(message)) {
-                                OnlineNonWhitelistYellMessage(message, playerCount > 5);
-                            }
-                        } else {
-                            if (!String.IsNullOrEmpty(message)) {
-                                AdminYellMessage(message, playerCount > 5);
-                            }
-                        }
-                        _spamBotYellQueue.Enqueue(_spamBotYellQueue.Dequeue());
-                        _spamBotYellLastPost = UtcNow();
                     }
                     if ((UtcNow() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds && _spamBotTellQueue.Any()) {
-                        String message = "[SpamBotMessage]" + _spamBotTellQueue.Peek();
-                        var eventDate = GetEventRoundDateTime();
-                        if (((_CurrentEventRoundNumber == 999999 && eventDate < DateTime.Now) || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
-                            message = message.Replace("%EventDateDuration%", "TBD")
-                                             .Replace("%EventDateTime%", "TBD")
-                                             .Replace("%EventDate%", "TBD")
-                                             .Replace("%EventRound%", "TBD")
-                                             .Replace("%RemainingRounds%", "TBD")
-                                             .Replace("%s%", "s")
-                                             .Replace("%S%", "S");
-                        } else {
-                            if (message.Contains("%EventDateDuration%")) {
-                                message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
-                            }
-                            if (message.Contains("%EventDateTime%")) {
-                                message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
-                            }
-                            if (message.Contains("%EventDate%")) {
-                                message = message.Replace("%EventDate%", eventDate.ToShortDateString());
-                            }
-                            if (message.Contains("%CurrentRound%")) {
-                                message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
-                            }
-                            if (message.Contains("%EventRound%")) {
-                                if (_CurrentEventRoundNumber != 999999) {
-                                    message = message.Replace("%EventRound%", String.Format("{0:n0}", _CurrentEventRoundNumber));
-                                } else {
-                                    message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
-                                }
-                            }
-                            if (message.Contains("%RemainingRounds%")) {
-                                var remainingRounds = 0;
-                                if (_CurrentEventRoundNumber != 999999) {
-                                    remainingRounds = _CurrentEventRoundNumber - _roundID;
-                                    message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
-                                    message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
-                                    message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
-                                } else {
-                                    remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
-                                    message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
-                                    message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
-                                    message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
-                                }
-                            }
+                        String message = _spamBotTellQueue.Peek();
+                        message = ConfirmSpambotMessageValid(message);
+                        if (message != null) {
+
                         }
+                        message = ReplaceSpambotEventInfo(message);
+                        message = "[SpamBotMessage]" + message;
                         if (_spamBotExcludeAdminsAndWhitelist) {
                             if (!String.IsNullOrEmpty(message)) {
                                 OnlineNonWhitelistTellMessage(message, playerCount > 5);
@@ -6928,6 +6812,100 @@ namespace PRoConEvents {
             } catch (Exception e) {
                 HandleException(new AException("Error running spambot monitor.", e));
             }
+        }
+
+        private String ConfirmSpambotMessageValid(String messageString) {
+            //Confirm that rule prefixes conform to the map/modes available
+            var allMaps = _AvailableMapModes.Select(mapMode => mapMode.PublicLevelName).Distinct().ToArray();
+            var allModes = _AvailableMapModes.Select(mapMode => mapMode.GameMode).Distinct().ToArray();
+            var matchingMapMode = _AvailableMapModes.FirstOrDefault(mapMode => mapMode.FileName == _serverInfo.InfoObject.Map &&
+                                                                               mapMode.PlayList == _serverInfo.InfoObject.GameMode);
+            if (matchingMapMode != null) {
+                var serverMap = matchingMapMode.PublicLevelName;
+                var serverMode = matchingMapMode.GameMode;
+                //Check if the rule starts with any map
+                foreach (var ruleMap in allMaps) {
+                    if (messageString.StartsWith(ruleMap + "/")) {
+                        //Remove the map from the rule text
+                        messageString = TrimStart(messageString, ruleMap + "/");
+                        if (ruleMap != serverMap) {
+                            return null;
+                        }
+                        break;
+                    }
+                }
+                //Check if the rule starts with any mode
+                foreach (var ruleMode in allModes) {
+                    if (messageString.StartsWith(ruleMode + "/")) {
+                        //Remove the mode from the rule text
+                        messageString = TrimStart(messageString, ruleMode + "/");
+                        if (ruleMode != serverMode) {
+                            return null;
+                        }
+                        break;
+                    }
+                }
+                //Check again for maps, since they might have put them in a different order
+                foreach (var ruleMap in allMaps) {
+                    if (messageString.StartsWith(ruleMap + "/")) {
+                        //Remove the map from the rule text
+                        messageString = TrimStart(messageString, ruleMap + "/");
+                        if (ruleMap != serverMap) {
+                            return null;
+                        }
+                        break;
+                    }
+                }
+            }
+            return messageString;
+        }
+
+        private String ReplaceSpambotEventInfo(String message) {
+            var eventDate = GetEventRoundDateTime();
+            if (((_CurrentEventRoundNumber == 999999 && eventDate < DateTime.Now) || _CurrentEventRoundNumber < _roundID) && !EventActive()) {
+                message = message.Replace("%EventDateDuration%", "TBD")
+                                 .Replace("%EventDateTime%", "TBD")
+                                 .Replace("%EventDate%", "TBD")
+                                 .Replace("%EventRound%", "TBD")
+                                 .Replace("%RemainingRounds%", "TBD")
+                                 .Replace("%s%", "s")
+                                 .Replace("%S%", "S");
+            } else {
+                if (message.Contains("%EventDateDuration%")) {
+                    message = message.Replace("%EventDateDuration%", FormatTimeString(eventDate - DateTime.Now, 3));
+                }
+                if (message.Contains("%EventDateTime%")) {
+                    message = message.Replace("%EventDateTime%", eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString());
+                }
+                if (message.Contains("%EventDate%")) {
+                    message = message.Replace("%EventDate%", eventDate.ToShortDateString());
+                }
+                if (message.Contains("%CurrentRound%")) {
+                    message = message.Replace("%CurrentRound%", String.Format("{0:n0}", _roundID));
+                }
+                if (message.Contains("%EventRound%")) {
+                    if (_CurrentEventRoundNumber != 999999) {
+                        message = message.Replace("%EventRound%", String.Format("{0:n0}", _CurrentEventRoundNumber));
+                    } else {
+                        message = message.Replace("%EventRound%", String.Format("{0:n0}", FetchEstimatedEventRoundNumber()));
+                    }
+                }
+                if (message.Contains("%RemainingRounds%")) {
+                    var remainingRounds = 0;
+                    if (_CurrentEventRoundNumber != 999999) {
+                        remainingRounds = _CurrentEventRoundNumber - _roundID;
+                        message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                        message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                        message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
+                    } else {
+                        remainingRounds = FetchEstimatedEventRoundNumber() - _roundID;
+                        message = message.Replace("%RemainingRounds%", String.Format("{0:n0}", Math.Max(remainingRounds, 0)));
+                        message = message.Replace("%s%", remainingRounds > 1 ? "s" : "");
+                        message = message.Replace("%S%", remainingRounds > 1 ? "S" : "");
+                    }
+                }
+            }
+            return message;
         }
 
         private void RunAutoAssistMonitor() {
@@ -10847,9 +10825,14 @@ namespace PRoConEvents {
 
                 // EVENT AUTOMATION
                 if (_ActivePoll != null) {
-                    // If there is an active poll, auto-complete it
-                    _ActivePoll.Completed = true;
-                    _threadMasterWaitHandle.WaitOne(1000);
+                    // If there is an active poll auto-complete it and any subsequent polls for 3 seconds
+                    var startTime = UtcNow();
+                    while(NowDuration(startTime).TotalSeconds < 3) {
+                        if (_ActivePoll != null) {
+                            _ActivePoll.Completed = true;
+                        }
+                        _threadMasterWaitHandle.WaitOne(100);
+                    }
                 }
                 if (_UseExperimentalTools &&
                     _EventRoundOptions.Any() &&
@@ -10857,7 +10840,7 @@ namespace PRoConEvents {
                     var nRound = _roundID + 1;
                     StartAndLogThread(new Thread(new ThreadStart(delegate {
                         Thread.CurrentThread.Name = "EventAnnounce";
-                        Thread.Sleep(TimeSpan.FromSeconds(6));
+                        Thread.Sleep(TimeSpan.FromSeconds(5));
                         // The new _roundID is fetched by now
                         if (EventActive(nRound)) {
                             _pingEnforcerEnable = false;
@@ -26084,7 +26067,6 @@ namespace PRoConEvents {
                                     var ruleString = rule;
                                     var useRule = true;
                                     //Check if the rule starts with any map
-                                    Log.Info(ruleString);
                                     foreach (var ruleMap in allMaps) {
                                         if (ruleString.StartsWith(ruleMap + "/")) {
                                             //Remove the map from the rule text
@@ -26095,7 +26077,6 @@ namespace PRoConEvents {
                                             break;
                                         }
                                     }
-                                    Log.Info(ruleString);
                                     //Check if the rule starts with any mode
                                     foreach (var ruleMode in allModes) {
                                         if (ruleString.StartsWith(ruleMode + "/")) {
@@ -26107,7 +26088,6 @@ namespace PRoConEvents {
                                             break;
                                         }
                                     }
-                                    Log.Info(ruleString);
                                     //Check again for maps, since they might have put them in a different order
                                     foreach (var ruleMap in allMaps) {
                                         if (ruleString.StartsWith(ruleMap + "/")) {
@@ -26949,7 +26929,7 @@ namespace PRoConEvents {
                                     _ActivePoll.PrintPoll();
                                 }
 
-                                _threadMasterWaitHandle.WaitOne(250);
+                                _threadMasterWaitHandle.WaitOne(200);
                             }
 
                             if (_ActivePoll.Completed) {
@@ -26993,6 +26973,7 @@ namespace PRoConEvents {
                                         // They used almost all the modes during this event
                                         // Just give them everything
                                         foreach (var option in _EventRoundPollOptions
+                                                                .Where(option => option.Rule == chosenRule)
                                                                 .Select(option => option.Mode)
                                                                 .Distinct()
                                                                 .OrderBy(option => rng.Next())
@@ -27021,7 +27002,7 @@ namespace PRoConEvents {
                                             _ActivePoll.PrintPoll();
                                         }
 
-                                        _threadMasterWaitHandle.WaitOne(250);
+                                        _threadMasterWaitHandle.WaitOne(200);
                                     }
 
                                     if (_ActivePoll.Completed) {
