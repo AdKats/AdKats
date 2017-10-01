@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.329
+ * Version 6.9.0.330
  * 30-SEP-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.329</version_code>
+ * <version_code>6.9.0.330</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.329";
+        private const String PluginVersion = "6.9.0.330";
 
         public enum GameVersion {
             BF3,
@@ -6751,62 +6751,64 @@ namespace PRoConEvents {
                     _firstPlayerListComplete &&
                     playerCount > 0) {
                     if ((UtcNow() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
-                        String message = _spamBotSayQueue.Peek();
-                        message = ConfirmSpambotMessageValid(message);
-                        if (message != null) {
-                            message = ReplaceSpambotEventInfo(message);
-                            message = "[SpamBotMessage]" + message;
-                            if (_spamBotExcludeAdminsAndWhitelist) {
-                                if (!String.IsNullOrEmpty(message)) {
+                        Boolean posted = false;
+                        Int32 attempts = 0;
+                        do {
+                            String message = _spamBotSayQueue.Peek();
+                            message = ConfirmSpambotMessageValid(message);
+                            if (!String.IsNullOrEmpty(message)) {
+                                message = ReplaceSpambotEventInfo(message);
+                                message = "[SpamBotMessage]" + message;
+                                if (_spamBotExcludeAdminsAndWhitelist) {
                                     OnlineNonWhitelistSayMessage(message, playerCount > 5);
-                                }
-                            } else {
-                                if (!String.IsNullOrEmpty(message)) {
+                                } else {
                                     AdminSayMessage(message, playerCount > 5);
                                 }
+                                posted = true;
+                                _spamBotSayLastPost = UtcNow();
                             }
                             _spamBotSayQueue.Enqueue(_spamBotSayQueue.Dequeue());
-                            _spamBotSayLastPost = UtcNow();
-                        }
+                        } while (!posted && ++attempts < _spamBotSayQueue.Count());
                     }
                     if ((UtcNow() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds && _spamBotYellQueue.Any()) {
-                        String message = _spamBotYellQueue.Peek();
-                        message = ConfirmSpambotMessageValid(message);
-                        if (message != null) {
-                            message = ReplaceSpambotEventInfo(message);
-                            message = "[SpamBotMessage]" + message;
-                            if (_spamBotExcludeAdminsAndWhitelist) {
-                                if (!String.IsNullOrEmpty(message)) {
+                        Boolean posted = false;
+                        Int32 attempts = 0;
+                        do {
+                            String message = _spamBotYellQueue.Peek();
+                            message = ConfirmSpambotMessageValid(message);
+                            if (!String.IsNullOrEmpty(message)) {
+                                message = ReplaceSpambotEventInfo(message);
+                                message = "[SpamBotMessage]" + message;
+                                if (_spamBotExcludeAdminsAndWhitelist) {
                                     OnlineNonWhitelistYellMessage(message, playerCount > 5);
-                                }
-                            } else {
-                                if (!String.IsNullOrEmpty(message)) {
+                                } else {
                                     AdminYellMessage(message, playerCount > 5);
                                 }
+                                posted = true;
+                                _spamBotYellLastPost = UtcNow();
                             }
                             _spamBotYellQueue.Enqueue(_spamBotYellQueue.Dequeue());
-                            _spamBotYellLastPost = UtcNow();
-                        }
+                        } while (!posted && ++attempts < _spamBotYellQueue.Count());
                     }
                     if ((UtcNow() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds && _spamBotTellQueue.Any()) {
-                        String message = _spamBotTellQueue.Peek();
-                        message = ConfirmSpambotMessageValid(message);
-                        if (message != null) {
-
-                        }
-                        message = ReplaceSpambotEventInfo(message);
-                        message = "[SpamBotMessage]" + message;
-                        if (_spamBotExcludeAdminsAndWhitelist) {
+                        Boolean posted = false;
+                        Int32 attempts = 0;
+                        do {
+                            String message = _spamBotTellQueue.Peek();
+                            message = ConfirmSpambotMessageValid(message);
                             if (!String.IsNullOrEmpty(message)) {
-                                OnlineNonWhitelistTellMessage(message, playerCount > 5);
+                                message = ReplaceSpambotEventInfo(message);
+                                message = "[SpamBotMessage]" + message;
+                                if (_spamBotExcludeAdminsAndWhitelist) {
+                                    OnlineNonWhitelistTellMessage(message, playerCount > 5);
+                                } else {
+                                    AdminTellMessage(message, playerCount > 5);
+                                }
+                                posted = true;
+                                _spamBotTellLastPost = UtcNow();
                             }
-                        } else {
-                            if (!String.IsNullOrEmpty(message)) {
-                                AdminTellMessage(message, playerCount > 5);
-                            }
-                        }
-                        _spamBotTellQueue.Enqueue(_spamBotTellQueue.Dequeue());
-                        _spamBotTellLastPost = UtcNow();
+                            _spamBotTellQueue.Enqueue(_spamBotTellQueue.Dequeue());
+                        } while (!posted && ++attempts < _spamBotTellQueue.Count());
                     }
                 }
             } catch (Exception e) {
