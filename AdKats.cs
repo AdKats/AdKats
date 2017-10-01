@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.330
- * 30-SEP-2017
+ * Version 6.9.0.331
+ * 1-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.330</version_code>
+ * <version_code>6.9.0.331</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.330";
+        private const String PluginVersion = "6.9.0.331";
 
         public enum GameVersion {
             BF3,
@@ -9189,7 +9189,8 @@ namespace PRoConEvents {
                                                 QueueRecordForProcessing(record);
                                             }
                                             if (GetVerboseASPlayersOfGroup("slot_spectator").Any() &&
-                                                !GetMatchingVerboseASPlayersOfGroup("slot_spectator", aPlayer).Any()) {
+                                                !GetMatchingVerboseASPlayersOfGroup("slot_spectator", aPlayer).Any() &&
+                                                aPlayer.player_name != _debugSoldierName) {
                                                 ARecord record = new ARecord {
                                                     record_source = ARecord.Sources.InternalAutomated,
                                                     server_id = _serverInfo.ServerID,
@@ -31929,21 +31930,23 @@ namespace PRoConEvents {
                     canAssist = false;
                     rejectionMessage += "would have too many players";
                 }
-                if (canAssist &&
-                    _previousRoundDuration.TotalSeconds > 0 &&
-                    _serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 &&
-                    Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > ticketBypassAmount &&
-                    enemyTeam == losingTeam) {
-                    ticketBypass = true;
-                } else {
-                    if (// The new team would be absolutely more powerful than the current team
-                        enemyMorePowerful &&
-                        // The differenct in power between the teams would go up
-                        powerDifferenceIncreased &&
-                        // The difference in power would be over the threshold, or the enemy has more map
-                        (powerDifferencePercOverThreshold || enemyHasMoreMap)) {
-                        canAssist = false;
-                        rejectionMessage += "would be too strong";
+                // Check team power
+                if (canAssist) {
+                    if (_previousRoundDuration.TotalSeconds > 0 &&
+                        _serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 &&
+                        Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > ticketBypassAmount &&
+                        enemyTeam == losingTeam) {
+                        ticketBypass = true;
+                    } else {
+                        if (// The new team would be absolutely more powerful than the current team
+                            enemyMorePowerful &&
+                            // The differenct in power between the teams would go up
+                            powerDifferenceIncreased &&
+                            // The difference in power would be over the threshold, or the enemy has more map
+                            (powerDifferencePercOverThreshold || enemyHasMoreMap)) {
+                            canAssist = false;
+                            rejectionMessage += "would be too strong";
+                        }
                     }
                 }
                 if (!auto) {
