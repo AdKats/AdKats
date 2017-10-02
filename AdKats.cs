@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.332
+ * Version 6.9.0.333
  * 1-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.332</version_code>
+ * <version_code>6.9.0.333</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.332";
+        private const String PluginVersion = "6.9.0.333";
 
         public enum GameVersion {
             BF3,
@@ -1826,7 +1826,7 @@ namespace PRoConEvents {
                         ATeam t1, t2;
                         String teamPower = "Unknown";
                         if (_roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
-                            teamPower = t1.TeamKey + ": (" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + ") / " + t2.TeamKey + ": (" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
+                            teamPower = t1.GetTeamIDKey() + ": (" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + ") / " + t2.GetTeamIDKey() + ": (" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
                         }
                         lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power (Display)", typeof(String), teamPower));
                         lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Online Top Players (Display)", typeof(String[]), onlineTopPlayerListing.ToArray()));
@@ -7077,9 +7077,9 @@ namespace PRoConEvents {
                         Double percDiff = Math.Abs(t1Power - t2Power) / ((t1Power + t2Power) / 2.0) * 100.0;
                         String message = "";
                         if (t1Power > t2Power) {
-                            message += t1.TeamID + "/" + t1.TeamKey + " up " + Math.Round(((t1Power - t2Power) / t2Power) * 100) + "% ";
+                            message += t1.GetTeamIDKey() + " up " + Math.Round(((t1Power - t2Power) / t2Power) * 100) + "% ";
                         } else {
-                            message += t2.TeamID + "/" + t2.TeamKey + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
+                            message += t2.GetTeamIDKey() + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
                         }
                         message += "(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
                         if (_PlayerDictionary.ContainsKey(_debugSoldierName)) {
@@ -8494,14 +8494,14 @@ namespace PRoConEvents {
                             _roundState == RoundState.Playing &&
                             _serverInfo.GetRoundElapsedTime().TotalMinutes > _minimumAssistMinutes) {
                             if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 3) {
-                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + newTeam.TeamKey + ".");
+                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") REASSIGNED themselves from " + aPlayer.RequiredTeam.GetTeamIDKey() + " to " + newTeam.GetTeamIDKey() + ".");
                             }
                             aPlayer.RequiredTeam = newTeam;
                         } else {
                             if (_roundState == RoundState.Playing &&
                                 NowDuration(aPlayer.lastSwitchMessage).TotalSeconds > 5) {
                                 if (_UseExperimentalTools) {
-                                    var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.TeamKey + ".";
+                                    var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.GetTeamIDKey() + ".";
                                     if (_PlayerDictionary.ContainsKey(_debugSoldierName)) {
                                         PlayerSayMessage(_debugSoldierName, message);
                                     } else {
@@ -8606,7 +8606,7 @@ namespace PRoConEvents {
                                 aPlayer.RequiredTeam = weakTeam;
                             }
                             if (aPlayer.RequiredTeam != null) {
-                                var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + aPlayer.RequiredTeam.TeamKey + ".";
+                                var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + aPlayer.RequiredTeam.GetTeamIDKey() + ".";
                                 if (_PlayerDictionary.ContainsKey(_debugSoldierName)) {
                                     PlayerSayMessage(_debugSoldierName, message);
                                 } else {
@@ -9126,14 +9126,14 @@ namespace PRoConEvents {
                                                 _roundState == RoundState.Playing &&
                                                 _serverInfo.GetRoundElapsedTime().TotalMinutes > _minimumAssistMinutes) {
                                                 if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 3) {
-                                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") REASSIGNED themselves from " + aPlayer.RequiredTeam.TeamKey + " to " + playerTeam.TeamKey + ".");
+                                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") REASSIGNED themselves from " + aPlayer.RequiredTeam.GetTeamIDKey() + " to " + playerTeam.GetTeamIDKey() + ".");
                                                 }
                                                 aPlayer.RequiredTeam = playerTeam;
                                             } else {
                                                 if (_roundState == RoundState.Playing &&
                                                     NowDuration(aPlayer.lastSwitchMessage).TotalSeconds > 5) {
                                                     if (_UseExperimentalTools) {
-                                                        var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") re-joined, sending them back to " + aPlayer.RequiredTeam.TeamKey + ".";
+                                                        var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") re-joined, sending them back to " + aPlayer.RequiredTeam.GetTeamIDKey() + ".";
                                                         if (_PlayerDictionary.ContainsKey(_debugSoldierName)) {
                                                             PlayerSayMessage(_debugSoldierName, message);
                                                         } else {
@@ -9152,7 +9152,7 @@ namespace PRoConEvents {
                                                 if (playerTeam == null || playerTeam.TeamID == 0) {
                                                     joinLocation += "player";
                                                 } else {
-                                                    joinLocation += playerTeam.TeamKey + " player";
+                                                    joinLocation += playerTeam.GetTeamIDKey() + " player";
                                                 }
                                                 break;
                                             case 1:
@@ -9166,7 +9166,7 @@ namespace PRoConEvents {
                                             case 3:
                                                 aPlayer.player_type = PlayerType.CommanderMobile;
                                                 if (playerTeam != null) {
-                                                    joinLocation += playerTeam.TeamKey + " ";
+                                                    joinLocation += playerTeam.GetTeamIDKey() + " ";
                                                 }
                                                 joinLocation += "tablet commander";
                                                 break;
@@ -9904,34 +9904,34 @@ namespace PRoConEvents {
                                             if (winRate > -20 && loseRate > -20) {
                                                 flagMessage = " | Flags equal, ";
                                             } else if (loseRate <= -20 && loseRate > -34) {
-                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 1 flag, ";
+                                                flagMessage = " | " + mapUpTeam.GetTeamIDKey() + " up 1 flag, ";
                                             } else if (loseRate <= -34 && loseRate > -38) {
-                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 1-3 flags, ";
+                                                flagMessage = " | " + mapUpTeam.GetTeamIDKey() + " up 1-3 flags, ";
                                             } else if (loseRate <= -38 && loseRate > -44 || maxFlags == 3) {
-                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 3 flags, ";
+                                                flagMessage = " | " + mapUpTeam.GetTeamIDKey() + " up 3 flags, ";
                                             } else if (loseRate <= -44 && loseRate > -48) {
-                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 3-5 flags, ";
+                                                flagMessage = " | " + mapUpTeam.GetTeamIDKey() + " up 3-5 flags, ";
                                             } else if (loseRate <= -48 && loseRate > -54 || maxFlags == 5) {
-                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 5 flags, ";
+                                                flagMessage = " | " + mapUpTeam.GetTeamIDKey() + " up 5 flags, ";
                                             } else if (loseRate <= -54 && loseRate > -58) {
-                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 5-7 flags, ";
+                                                flagMessage = " | " + mapUpTeam.GetTeamIDKey() + " up 5-7 flags, ";
                                             } else if (loseRate <= -58 && loseRate > -64 || maxFlags == 7) {
-                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 7 flags, ";
+                                                flagMessage = " | " + mapUpTeam.GetTeamIDKey() + " up 7 flags, ";
                                             } else if (loseRate <= -64 && loseRate > -68) {
-                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 7-9 flags, ";
+                                                flagMessage = " | " + mapUpTeam.GetTeamIDKey() + " up 7-9 flags, ";
                                             } else if (loseRate <= -68 && loseRate > -74 || maxFlags == 9) {
-                                                flagMessage = " | " + mapUpTeam.TeamKey + " up 9 flags, ";
+                                                flagMessage = " | " + mapUpTeam.GetTeamIDKey() + " up 9 flags, ";
                                             } else if (loseRate < -74) {
-                                                flagMessage = " | " + mapUpTeam.TeamKey + " up many flags, ";
+                                                flagMessage = " | " + mapUpTeam.GetTeamIDKey() + " up many flags, ";
                                             }
                                             double t1t = team1.TeamAdjustedTicketAccellerationRate - team2.TeamAdjustedTicketAccellerationRate;
                                             double t2t = team2.TeamAdjustedTicketAccellerationRate - team1.TeamAdjustedTicketAccellerationRate;
                                             if (Math.Abs(t1t - t2t) < 10) {
                                                 flagMessage += "not changing.";
                                             } else if (t1t > t2t) {
-                                                flagMessage += team1.TeamKey + " gaining ground.";
+                                                flagMessage += team1.GetTeamIDKey() + " gaining ground.";
                                             } else {
-                                                flagMessage += team2.TeamKey + " gaining ground.";
+                                                flagMessage += team2.GetTeamIDKey() + " gaining ground.";
                                             }
                                         } else {
                                             flagMessage = " | Calculating flag state.";
@@ -9945,9 +9945,9 @@ namespace PRoConEvents {
                                         var t1Duration = TimeSpan.FromMinutes(team1.TeamTicketCount / Math.Abs(t1RawRate));
                                         var t2Duration = TimeSpan.FromMinutes(team2.TeamTicketCount / Math.Abs(t2RawRate));
                                         if (t1Duration < t2Duration) {
-                                            winMessage = " | " + team2.TeamKey + " wins in " + FormatTimeString(t1Duration, 2) + ".";
+                                            winMessage = " | " + team2.GetTeamIDKey() + " wins in " + FormatTimeString(t1Duration, 2) + ".";
                                         } else {
-                                            winMessage = " | " + team1.TeamKey + " wins in " + FormatTimeString(t2Duration, 2) + ".";
+                                            winMessage = " | " + team1.GetTeamIDKey() + " wins in " + FormatTimeString(t2Duration, 2) + ".";
                                         }
                                     }
                                 }
@@ -10348,7 +10348,7 @@ namespace PRoConEvents {
                                                         command_numeric = baserapingTeam.TeamID,
                                                         target_name = baserapingTeam.TeamName,
                                                         source_name = "RoundManager",
-                                                        record_message = "Auto-Surrender (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")",
+                                                        record_message = "Auto-Surrender (" + baserapingTeam.GetTeamIDKey() + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")",
                                                         record_time = UtcNow()
                                                     };
                                                     QueueRecordForProcessing(repRecord);
@@ -12397,8 +12397,11 @@ namespace PRoConEvents {
                         _lastNukeTeam != null &&
                         aPlayer.fbpInfo.TeamID == _lastNukeTeam.TeamID) {
                         var endDuration = NowDuration(_lastNukeTime.AddSeconds(_nukeAutoSlayActiveDuration));
-                        PlayerTellMessage(aPlayer.player_name, _lastNukeTeam.TeamKey + " nuke active for " + Math.Round(endDuration.TotalSeconds, 1) + " seconds!");
-                        ExecuteCommand("procon.protected.send", "admin.killPlayer", aPlayer.player_name);
+                        var durationRounded = Math.Round(endDuration.TotalSeconds, 1);
+                        if (durationRounded > 0) {
+                            PlayerTellMessage(aPlayer.player_name, _lastNukeTeam.TeamKey + " nuke active for " + Math.Round(endDuration.TotalSeconds, 1) + " seconds!");
+                            ExecuteCommand("procon.protected.send", "admin.killPlayer", aPlayer.player_name);
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -18647,12 +18650,12 @@ namespace PRoConEvents {
                                     if (matchingTeam != null) {
                                         record.target_name = matchingTeam.TeamName;
                                         record.command_numeric = matchingTeam.TeamID;
-                                        record.record_message += " (" + matchingTeam.TeamID + "/" + matchingTeam.TeamKey + ")";
+                                        record.record_message += " (" + matchingTeam.GetTeamIDKey() + ")";
                                     } else if (targetTeam == "all") {
                                         record.target_name = "Everyone";
                                         record.record_message += " (Everyone)";
                                     } else {
-                                        SendMessageToSource(record, "Team " + targetTeam.ToUpper() + " not found. Available: " + String.Join(", ", validTeams.Select(aTeam => aTeam.TeamID + "/" + aTeam.TeamKey).ToArray()));
+                                        SendMessageToSource(record, "Team " + targetTeam.ToUpper() + " not found. Available: " + String.Join(", ", validTeams.Select(aTeam => aTeam.GetTeamIDKey()).ToArray()));
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -18705,7 +18708,7 @@ namespace PRoConEvents {
                                     record.command_action = GetCommandByKey("server_nuke");
                                     record.target_name = winningTeam.TeamName;
                                     record.command_numeric = winningTeam.TeamID;
-                                    record.record_message = "Nuke Winning Team (" + winningTeam.TeamID + "/" + winningTeam.TeamKey + ")";
+                                    record.record_message = "Nuke Winning Team (" + winningTeam.GetTeamIDKey() + ")";
                                 } else {
                                     SendMessageToSource(record, "Winning team must also be map-dominant to issue this command.");
                                     FinalizeRecord(record);
@@ -26267,7 +26270,7 @@ namespace PRoConEvents {
                                     command_numeric = winningTeam.TeamID,
                                     target_name = winningTeam.TeamName,
                                     source_name = "RoundManager",
-                                    record_message = "Surrender Vote (" + winningTeam.TeamKey + " Win)(" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + ")",
+                                    record_message = "Surrender Vote (" + winningTeam.GetTeamIDKey() + " Win)(" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + ")",
                                     record_time = UtcNow()
                                 };
                                 QueueRecordForProcessing(repRecord);
@@ -31955,8 +31958,8 @@ namespace PRoConEvents {
                     "Old Diff " + Math.Round(oldPercDiff, 1) + " | " +
                     "New Diff " + Math.Round(newPercDiff, 1) + "");
                     InfoOrRespond(debugRecord,
-                        "Old " + friendlyTeam.TeamKey + "(" + Math.Round(oldFriendlyPower) + ")/" + enemyTeam.TeamKey + "(" + Math.Round(oldEnemyPower) + ") | " +
-                        "New " + friendlyTeam.TeamKey + "(" + Math.Round(newFriendlyPower) + ")/" + enemyTeam.TeamKey + "(" + Math.Round(newEnemyPower) + ")");
+                        "Old " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(oldFriendlyPower) + ")/" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(oldEnemyPower) + ") | " +
+                        "New " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(newFriendlyPower) + ")/" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(newEnemyPower) + ")");
                 }
             } else {
                 if (enemyHasMoreMap) {
@@ -31966,7 +31969,7 @@ namespace PRoConEvents {
             }
             if (!canAssist) {
                 if (realRecord != null) {
-                    rejectionMessage = realRecord.GetSourceName() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.TeamKey + " rejected (" + rejectionMessage + ").";
+                    rejectionMessage = realRecord.GetSourceName() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.GetTeamIDKey() + " rejected (" + rejectionMessage + ").";
                     if (!auto) {
                         if (_UseExperimentalTools) {
                             rejectionMessage += " Queued (#" + (_AssistAttemptQueue.Count() + 1) + ") for 5 minute auto-assist.";
@@ -31980,7 +31983,7 @@ namespace PRoConEvents {
                         }
                     }
                 } else if (debugRecord != null) {
-                    rejectionMessage = debugRecord.GetTargetNames() + " (" + Math.Round(debugRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.TeamKey + " rejected, " + rejectionMessage;
+                    rejectionMessage = debugRecord.GetTargetNames() + " (" + Math.Round(debugRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.GetTeamIDKey() + " rejected, " + rejectionMessage;
                     if (!auto) {
                         InfoOrRespond(debugRecord, rejectionMessage);
                     }
@@ -31995,7 +31998,7 @@ namespace PRoConEvents {
                     if (ticketBypass) {
                         powerDiffString = "Bypass";
                     }
-                    AdminSayMessage(realRecord.GetTargetNames() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.TeamKey + " accepted" + (_UseTeamPowerMonitor ? " (" + powerDiffString + ")" : "") + ", queueing.");
+                    AdminSayMessage(realRecord.GetTargetNames() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.GetTeamIDKey() + " accepted" + (_UseTeamPowerMonitor ? " (" + powerDiffString + ")" : "") + ", queueing.");
                     realRecord.command_action = GetCommandByKey("self_assist_unconfirmed");
                 } else if (debugRecord != null) {
                     SendMessageToSource(debugRecord, "Assist accepted.");
@@ -40231,6 +40234,10 @@ namespace PRoConEvents {
             public String TeamKey { get; private set; }
             public String TeamName { get; private set; }
             public String TeamDesc { get; private set; }
+
+            public String GetTeamIDKey() {
+                return TeamID + "/" + TeamKey;
+            }
 
             //Live Vars
             public Boolean Populated { get; private set; }
