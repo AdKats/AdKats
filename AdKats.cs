@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.333
- * 1-OCT-2017
+ * Version 6.9.0.334
+ * 3-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.333</version_code>
+ * <version_code>6.9.0.334</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.333";
+        private const String PluginVersion = "6.9.0.334";
 
         public enum GameVersion {
             BF3,
@@ -790,9 +790,9 @@ namespace PRoConEvents {
 
         //Polling
         private APoll _ActivePoll = null;
-        private TimeSpan _PollMaxDuration = TimeSpan.FromMinutes(3.5);
-        private TimeSpan _PollPrintInterval = TimeSpan.FromSeconds(30);
-        private Int32 _PollMaxVotes = 20;
+        private TimeSpan _PollMaxDuration = TimeSpan.FromMinutes(4);
+        private TimeSpan _PollPrintInterval = TimeSpan.FromSeconds(25);
+        private Int32 _PollMaxVotes = 18;
         private Int32 _PollMaxOptions = 5;
         private String[] _AvailablePolls = new String[] {
             "event"
@@ -8993,6 +8993,7 @@ namespace PRoConEvents {
                                             //Automatic ping kick
                                             if (_pingEnforcerEnable &&
                                                 aPlayer.player_type == PlayerType.Player &&
+                                                !EventActive() &&
                                                 !PlayerIsAdmin(aPlayer) &&
                                                 !GetMatchingVerboseASPlayersOfGroup("whitelist_ping", aPlayer).Any() &&
                                                 !_pingEnforcerIgnoreRoles.Contains(aPlayer.player_role.role_key) &&
@@ -9966,6 +9967,7 @@ namespace PRoConEvents {
                             //Auto-Surrender System
                             if (_surrenderAutoEnable &&
                                 _roundState == RoundState.Playing &&
+                                !EventActive() &&
                                 !_endingRound &&
                                 (UtcNow() - _lastAutoSurrenderTriggerTime).TotalSeconds > 9.0 &&
                                 _serverInfo.GetRoundElapsedTime().TotalSeconds > 60 &&
@@ -10828,28 +10830,26 @@ namespace PRoConEvents {
                 }
 
                 // EVENT AUTOMATION
-                if (_ActivePoll != null) {
-                    // If there is an active poll auto-complete it and any subsequent polls for 3 seconds
-                    var startTime = UtcNow();
-                    while(NowDuration(startTime).TotalSeconds < 3) {
-                        if (_ActivePoll != null) {
-                            _ActivePoll.Completed = true;
-                        }
-                        _threadMasterWaitHandle.WaitOne(100);
-                    }
-                }
                 if (_UseExperimentalTools &&
                     _EventRoundOptions.Any() &&
                     _EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString()) {
                     var nRound = _roundID + 1;
                     StartAndLogThread(new Thread(new ThreadStart(delegate {
                         Thread.CurrentThread.Name = "EventAnnounce";
-                        Thread.Sleep(TimeSpan.FromSeconds(5));
+                        // If there is an active poll auto-complete it and any subsequent polls for 5 seconds
+                        // This ensures that the next round is ready and configured
+                        var startTime = UtcNow();
+                        _threadMasterWaitHandle.WaitOne(100);
+                        while (NowDuration(startTime).TotalSeconds < 5) {
+                            try {
+                                if (_ActivePoll != null) {
+                                    _ActivePoll.Completed = true;
+                                }
+                            } catch (Exception) { }
+                            _threadMasterWaitHandle.WaitOne(100);
+                        }
                         // The new _roundID is fetched by now
                         if (EventActive(nRound)) {
-                            _pingEnforcerEnable = false;
-                            _surrenderVoteEnable = false;
-                            _surrenderAutoEnable = false;
                             var nextCode = GetEventRoundRuleCode(GetActiveEventRoundNumber(false));
                             if (nextCode == AEventOption.RuleCode.AO ||
                                 nextCode == AEventOption.RuleCode.BKO) {
@@ -10876,19 +10876,19 @@ namespace PRoConEvents {
                             //NORMAL ROUND
                             // Reset the current event number, as the event has ended.
                             _CurrentEventRoundNumber = 999999;
-                            _pingEnforcerEnable = true;
-                            _surrenderVoteEnable = true;
-                            _surrenderAutoEnable = true;
                             ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Admins", "False");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Reputable Players", "False");
+                            for (int i = 0; i < 8; i++) {
+                                AdminTellMessage("EVENT IS OVER, THANK YOU FOR COMING!");
+                                Thread.Sleep(2000);
+                            }
                             ProcessEventMapMode(AEventOption.ModeCode.RESET);
-                            for (int i = 0; i < 16; i++) {
+                            for (int i = 0; i < 8; i++) {
                                 AdminTellMessage("EVENT IS OVER, THANK YOU FOR COMING!");
                                 Thread.Sleep(2000);
                             }
                         }
-                        UploadAllSettings();
                         UpdateSettingPage();
                         LogThreadExit();
                     })));
@@ -14972,6 +14972,11 @@ namespace PRoConEvents {
                             break;
                         case "self_surrender":
                         case "self_votenext": {
+                                if (EventActive()) {
+                                    SendMessageToSource(record, "Surrender Vote is not available during events.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                                 if (!_surrenderVoteEnable) {
                                     SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
                                     FinalizeRecord(record);
@@ -15058,6 +15063,11 @@ namespace PRoConEvents {
                             }
                             break;
                         case "self_nosurrender": {
+                                if (EventActive()) {
+                                    SendMessageToSource(record, "Surrender Vote is not available during events.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                                 if (!_surrenderVoteEnable) {
                                     SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
                                     FinalizeRecord(record);
@@ -18992,6 +19002,12 @@ namespace PRoConEvents {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
+                            if (EventActive()) {
+                                SendMessageToSource(record, "Surrender Vote is not available during events.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
                             if (!_surrenderVoteEnable) {
                                 SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
                                 FinalizeRecord(record);
@@ -19026,6 +19042,12 @@ namespace PRoConEvents {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
+                            if (EventActive()) {
+                                SendMessageToSource(record, "Surrender Vote is not available during events.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
                             if (!_surrenderVoteEnable) {
                                 SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
                                 FinalizeRecord(record);
@@ -19059,6 +19081,12 @@ namespace PRoConEvents {
                     case "self_nosurrender": {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
+
+                            if (EventActive()) {
+                                SendMessageToSource(record, "Surrender Vote is not available during events.");
+                                FinalizeRecord(record);
+                                return;
+                            }
 
                             if (!_surrenderVoteEnable) {
                                 SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
@@ -26155,6 +26183,12 @@ namespace PRoConEvents {
             try {
                 record.record_action_executed = true;
 
+                if (EventActive()) {
+                    SendMessageToSource(record, "Surrender Vote is not available during events.");
+                    FinalizeRecord(record);
+                    return;
+                }
+
                 //Case for database added records 
                 if (!_surrenderVoteEnable) {
                     SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
@@ -26304,6 +26338,12 @@ namespace PRoConEvents {
             Log.Debug(() => "Entering SourceVoteNoSurrender", 6);
             try {
                 record.record_action_executed = true;
+
+                if (EventActive()) {
+                    SendMessageToSource(record, "Surrender Vote is not available during events.");
+                    FinalizeRecord(record);
+                    return;
+                }
 
                 //Case for database added records 
                 if (!_surrenderVoteEnable) {
@@ -26884,6 +26924,7 @@ namespace PRoConEvents {
                             _ActivePoll = new APoll(this) {
                                 ID = "EVENT"
                             };
+                            _EventRoundPolled = true;
 
                             // This poll has two stages. Choosing the rules and choosing the mode.
                             AEventOption.RuleCode chosenRule;
@@ -26901,7 +26942,7 @@ namespace PRoConEvents {
                                                         .Distinct()
                                                         .OrderBy(option => rng.Next())
                                                         .ToList();
-                            if (availableRuleOptions.Count() < 4) {
+                            if (availableRuleOptions.Count() <= 3) {
                                 // They used almost all the rules during this event
                                 // Just give them everything
                                 foreach(var option in _EventRoundPollOptions
@@ -26936,16 +26977,14 @@ namespace PRoConEvents {
                                     _ActivePoll.PrintPoll();
                                 }
 
-                                _threadMasterWaitHandle.WaitOne(200);
+                                _threadMasterWaitHandle.WaitOne(100);
                             }
 
                             if (_ActivePoll.Completed) {
-                                AdminSayMessage("Poll completed with current winner.");
+                                AdminSayMessage("Event rule poll completed with current winner.");
                             }
-                            // Only continue if the round is still active
-                            // And the poll has not been canceled
+                            // Only continue if the poll has not been canceled
                             if (_pluginEnabled &&
-                                _roundState == RoundState.Playing &&
                                 !_ActivePoll.Canceled) {
 
                                 // Get the outcome
@@ -26953,7 +26992,6 @@ namespace PRoConEvents {
                                 chosenRule = AEventOption.RuleFromDisplay(ruleString);
 
                                 if (chosenRule == AEventOption.RuleCode.ENDEVENT) {
-                                    _EventRoundPolled = true;
                                     for (int i = 0; i < 5; i++) {
                                         AdminTellMessage("Server voted to end the event. Normal rules next round.");
                                         Thread.Sleep(500);
@@ -26976,7 +27014,7 @@ namespace PRoConEvents {
                                                                 .Distinct()
                                                                 .OrderBy(option => rng.Next())
                                                                 .ToList();
-                                    if (availableModeOptions.Count() < 4) {
+                                    if (availableModeOptions.Count() <= 3) {
                                         // They used almost all the modes during this event
                                         // Just give them everything
                                         foreach (var option in _EventRoundPollOptions
@@ -27009,11 +27047,11 @@ namespace PRoConEvents {
                                             _ActivePoll.PrintPoll();
                                         }
 
-                                        _threadMasterWaitHandle.WaitOne(200);
+                                        _threadMasterWaitHandle.WaitOne(100);
                                     }
 
                                     if (_ActivePoll.Completed) {
-                                        AdminSayMessage("Poll completed with current winner.");
+                                        AdminSayMessage("Event mode poll completed with current winner.");
                                     }
 
                                     // Only continue if the round is still active
@@ -27027,7 +27065,6 @@ namespace PRoConEvents {
                                             Mode = chosenMode,
                                             Rule = chosenRule
                                         };
-                                        _EventRoundPolled = true;
                                         _EventRoundOptions.Add(option);
                                         QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
                                         AdminTellMessage("EVENT POLL COMPLETE! Next event round is " + option.getModeRuleDisplay());
