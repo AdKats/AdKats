@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.336
- * 4-OCT-2017
+ * Version 6.9.0.337
+ * 5-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.336</version_code>
+ * <version_code>6.9.0.337</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.336";
+        private const String PluginVersion = "6.9.0.337";
 
         public enum GameVersion {
             BF3,
@@ -42163,120 +42163,122 @@ namespace PRoConEvents {
                                 foreach (Hashtable member in responseMembers) {
                                     DiscordMember builtMember = null;
                                     String ID = (String)member["id"];
-                                    validMembers.Add(ID);
-                                    if (!Members.TryGetValue(ID, out builtMember)) {
-                                        builtMember = new DiscordMember();
-                                        builtMember.ID = ID;
-                                        builtMember.Name = (String)member["username"];
-                                        Members[builtMember.ID] = builtMember;
-                                    }
-                                    //username
-                                    if (member.ContainsKey("username")) {
-                                        builtMember.Name = (String)member["username"];
-                                    }
-                                    // Player Object
-                                    if (!builtMember.PlayerTested && 
-                                        _plugin._threadsReady && 
-                                        _plugin._firstPlayerListComplete && 
-                                        !_plugin._databaseConnectionCriticalState) {
-                                        builtMember.PlayerTested = true;
-                                        builtMember.PlayerObject = _plugin.FetchPlayer(false, false, false, null, -1, null, null, null, builtMember.ID);
-                                        // Do not accept memory-only players, only those with real IDs
-                                        if (builtMember.PlayerObject != null && builtMember.PlayerObject.player_id <= 0) {
-                                            builtMember.PlayerObject = null;
+                                    if (!String.IsNullOrEmpty(ID)) {
+                                        validMembers.Add(ID);
+                                        if (!Members.TryGetValue(ID, out builtMember)) {
+                                            builtMember = new DiscordMember();
+                                            builtMember.ID = ID;
+                                            builtMember.Name = (String)member["username"];
+                                            Members[builtMember.ID] = builtMember;
                                         }
-                                        if (builtMember.PlayerObject != null && DebugMembers) {
-                                            _plugin.Log.Info("Discord member " + builtMember.Name + " loaded with link to " + builtMember.PlayerObject.GetVerboseName());
+                                        //username
+                                        if (member.ContainsKey("username")) {
+                                            builtMember.Name = (String)member["username"];
                                         }
-                                    }
-                                    // Update their last usage time so they aren't purged from memory
-                                    if (builtMember.PlayerObject != null) {
-                                        builtMember.PlayerObject.LastUsage = _plugin.UtcNow();
-                                    }
-                                    //nick
-                                    if (member.ContainsKey("nick")) {
-                                        // Replace their username with their nickname, since that's what client's see
-                                        builtMember.Name = (String)member["nick"];
-                                    }
-                                    //status
-                                    if (member.ContainsKey("status")) {
-                                        builtMember.Status = (String)member["status"];
-                                    }
-                                    //bot
-                                    if (member.ContainsKey("bot")) {
-                                        builtMember.Bot = (Boolean)member["bot"];
-                                    } else {
-                                        builtMember.Bot = false;
-                                    }
-                                    //channel_id
-                                    if (member.ContainsKey("channel_id")) {
-                                        Channels.TryGetValue((String)member["channel_id"], out builtMember.Channel);
-                                    } else {
-                                        builtMember.Channel = null;
-                                    }
-                                    //game
-                                    if (member.ContainsKey("game")) {
-                                        DiscordGame builtGame = null;
-                                        Hashtable responseGame = (Hashtable)member["game"];
-                                        if (responseGame.ContainsKey("name")) {
-                                            builtGame = new DiscordGame();
-                                            builtGame.Name = (String)responseGame["name"];
+                                        // Player Object
+                                        if (!builtMember.PlayerTested &&
+                                            _plugin._threadsReady &&
+                                            _plugin._firstPlayerListComplete &&
+                                            !_plugin._databaseConnectionCriticalState) {
+                                            builtMember.PlayerTested = true;
+                                            builtMember.PlayerObject = _plugin.FetchPlayer(false, false, false, null, -1, null, null, null, builtMember.ID);
+                                            // Do not accept memory-only players, only those with real IDs
+                                            if (builtMember.PlayerObject != null && builtMember.PlayerObject.player_id <= 0) {
+                                                builtMember.PlayerObject = null;
+                                            }
+                                            if (builtMember.PlayerObject != null && DebugMembers) {
+                                                _plugin.Log.Info("Discord member " + builtMember.Name + " loaded with link to " + builtMember.PlayerObject.GetVerboseName());
+                                            }
                                         }
-                                        builtMember.Game = builtGame;
-                                    } else {
-                                        builtMember.Game = null;
-                                    }
-                                    //mute
-                                    if (member.ContainsKey("mute")) {
-                                        builtMember.Mute = (Boolean)member["mute"];
-                                    } else {
-                                        builtMember.Mute = false;
-                                    }
-                                    //self_mute
-                                    if (member.ContainsKey("self_mute")) {
-                                        builtMember.SelfMute = (Boolean)member["self_mute"];
-                                    } else {
-                                        builtMember.SelfMute = false;
-                                    }
-                                    //suppress
-                                    if (member.ContainsKey("suppress")) {
-                                        builtMember.Suppress = (Boolean)member["suppress"];
-                                    } else {
-                                        builtMember.Suppress = false;
-                                    }
-                                    //deaf
-                                    if (member.ContainsKey("deaf")) {
-                                        builtMember.Deaf = (Boolean)member["deaf"];
-                                    } else {
-                                        builtMember.Deaf = false;
-                                    }
-                                    //self_deaf
-                                    if (member.ContainsKey("self_deaf")) {
-                                        builtMember.SelfDeaf = (Boolean)member["self_deaf"];
-                                    } else {
-                                        builtMember.SelfDeaf = false;
-                                    }
-                                    //avatar_url
-                                    if (member.ContainsKey("avatar_url")) {
-                                        builtMember.AvatarURL = (String)member["avatar_url"];
-                                    } else {
-                                        builtMember.AvatarURL = null;
-                                    }
-                                    //avatar
-                                    if (member.ContainsKey("avatar")) {
-                                        builtMember.Avatar = (String)member["avatar"];
-                                    } else {
-                                        builtMember.Avatar = null;
-                                    }
-                                    //discriminator
-                                    if (member.ContainsKey("discriminator")) {
-                                        builtMember.Discriminator = (String)member["discriminator"];
-                                    } else {
-                                        builtMember.Discriminator = null;
+                                        // Update their last usage time so they aren't purged from memory
+                                        if (builtMember.PlayerObject != null) {
+                                            builtMember.PlayerObject.LastUsage = _plugin.UtcNow();
+                                        }
+                                        //nick
+                                        if (member.ContainsKey("nick")) {
+                                            // Replace their username with their nickname, since that's what client's see
+                                            builtMember.Name = (String)member["nick"];
+                                        }
+                                        //status
+                                        if (member.ContainsKey("status")) {
+                                            builtMember.Status = (String)member["status"];
+                                        }
+                                        //bot
+                                        if (member.ContainsKey("bot")) {
+                                            builtMember.Bot = (Boolean)member["bot"];
+                                        } else {
+                                            builtMember.Bot = false;
+                                        }
+                                        //channel_id
+                                        if (member.ContainsKey("channel_id")) {
+                                            Channels.TryGetValue((String)member["channel_id"], out builtMember.Channel);
+                                        } else {
+                                            builtMember.Channel = null;
+                                        }
+                                        //game
+                                        if (member.ContainsKey("game")) {
+                                            DiscordGame builtGame = null;
+                                            Hashtable responseGame = (Hashtable)member["game"];
+                                            if (responseGame.ContainsKey("name")) {
+                                                builtGame = new DiscordGame();
+                                                builtGame.Name = (String)responseGame["name"];
+                                            }
+                                            builtMember.Game = builtGame;
+                                        } else {
+                                            builtMember.Game = null;
+                                        }
+                                        //mute
+                                        if (member.ContainsKey("mute")) {
+                                            builtMember.Mute = (Boolean)member["mute"];
+                                        } else {
+                                            builtMember.Mute = false;
+                                        }
+                                        //self_mute
+                                        if (member.ContainsKey("self_mute")) {
+                                            builtMember.SelfMute = (Boolean)member["self_mute"];
+                                        } else {
+                                            builtMember.SelfMute = false;
+                                        }
+                                        //suppress
+                                        if (member.ContainsKey("suppress")) {
+                                            builtMember.Suppress = (Boolean)member["suppress"];
+                                        } else {
+                                            builtMember.Suppress = false;
+                                        }
+                                        //deaf
+                                        if (member.ContainsKey("deaf")) {
+                                            builtMember.Deaf = (Boolean)member["deaf"];
+                                        } else {
+                                            builtMember.Deaf = false;
+                                        }
+                                        //self_deaf
+                                        if (member.ContainsKey("self_deaf")) {
+                                            builtMember.SelfDeaf = (Boolean)member["self_deaf"];
+                                        } else {
+                                            builtMember.SelfDeaf = false;
+                                        }
+                                        //avatar_url
+                                        if (member.ContainsKey("avatar_url")) {
+                                            builtMember.AvatarURL = (String)member["avatar_url"];
+                                        } else {
+                                            builtMember.AvatarURL = null;
+                                        }
+                                        //avatar
+                                        if (member.ContainsKey("avatar")) {
+                                            builtMember.Avatar = (String)member["avatar"];
+                                        } else {
+                                            builtMember.Avatar = null;
+                                        }
+                                        //discriminator
+                                        if (member.ContainsKey("discriminator")) {
+                                            builtMember.Discriminator = (String)member["discriminator"];
+                                        } else {
+                                            builtMember.Discriminator = null;
+                                        }
                                     }
                                 }
                                 //Remove all old channels
-                                List<String> removeMemberIDs = Members.Keys.Where(ID => !validMembers.Contains(ID)).ToList();
+                                List<String> removeMemberIDs = Members.Keys.Where(ID => !validMembers.Contains(ID) && !String.IsNullOrEmpty(ID)).ToList();
                                 foreach (String removeID in removeMemberIDs) {
                                     Members.Remove(removeID);
                                 }
