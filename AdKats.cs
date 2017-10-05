@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.335
+ * Version 6.9.0.336
  * 4-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.335</version_code>
+ * <version_code>6.9.0.336</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.335";
+        private const String PluginVersion = "6.9.0.336";
 
         public enum GameVersion {
             BF3,
@@ -926,7 +926,7 @@ namespace PRoConEvents {
             _EventRoundOptionsEnum = String.Empty;
             random = new Random(Environment.TickCount);
             foreach (String mapMode in AEventOption.ModeNames.Values) {
-                foreach (String rule in AEventOption.RuleNames.Values) {
+                foreach (String rule in AEventOption.RuleNames.Values.Where(ruleValue => ruleValue != AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT])) {
                     if (String.IsNullOrEmpty(_EventRoundOptionsEnum)) {
                         _EventRoundOptionsEnum += "enum.EventRoundOptionsEnum_" + random.Next(100000, 999999) + "(Remove|";
                     } else {
@@ -4638,7 +4638,7 @@ namespace PRoConEvents {
                                 AEventOption.RuleCode chosenRule = AEventOption.RuleCode.UNKNOWN;
                                 Boolean chosen = false;
                                 foreach (AEventOption.ModeCode mapMode in AEventOption.ModeNames.Keys) {
-                                    foreach (AEventOption.RuleCode rule in AEventOption.RuleNames.Keys) {
+                                    foreach (AEventOption.RuleCode rule in AEventOption.RuleNames.Keys.Where(rule => rule != AEventOption.RuleCode.ENDEVENT)) {
                                         if (!optionList.Any(option => option.Mode == mapMode && option.Rule == rule)) {
                                             chosenMapMode = mapMode;
                                             chosenRule = rule;
@@ -4698,7 +4698,7 @@ namespace PRoConEvents {
                                 AEventOption.RuleCode chosenRule = AEventOption.RuleCode.UNKNOWN;
                                 Boolean chosen = false;
                                 foreach (AEventOption.ModeCode mapMode in AEventOption.ModeNames.Keys) {
-                                    foreach (AEventOption.RuleCode rule in AEventOption.RuleNames.Keys) {
+                                    foreach (AEventOption.RuleCode rule in AEventOption.RuleNames.Keys.Where(rule => rule != AEventOption.RuleCode.ENDEVENT)) {
                                         if (!optionList.Any(option => option.Mode == mapMode && option.Rule == rule)) {
                                             chosenMapMode = mapMode;
                                             chosenRule = rule;
