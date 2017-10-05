@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.334
- * 3-OCT-2017
+ * Version 6.9.0.335
+ * 4-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.334</version_code>
+ * <version_code>6.9.0.335</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.334";
+        private const String PluginVersion = "6.9.0.335";
 
         public enum GameVersion {
             BF3,
@@ -791,9 +791,10 @@ namespace PRoConEvents {
         //Polling
         private APoll _ActivePoll = null;
         private TimeSpan _PollMaxDuration = TimeSpan.FromMinutes(4);
-        private TimeSpan _PollPrintInterval = TimeSpan.FromSeconds(25);
+        private TimeSpan _PollPrintInterval = TimeSpan.FromSeconds(30);
         private Int32 _PollMaxVotes = 18;
         private Int32 _PollMaxOptions = 5;
+        private Boolean _PollPrintWinning = true;
         private String[] _AvailablePolls = new String[] {
             "event"
         };
@@ -1874,6 +1875,7 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
                         }
                         lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Print Current Winning Poll Option", typeof(Boolean), _PollPrintWinning));
                     }
                 }
             } catch (Exception e) {
@@ -4514,6 +4516,13 @@ namespace PRoConEvents {
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                     }
+                } else if (Regex.Match(strVariable, @"Print Current Winning Poll Option").Success) {
+                    Boolean PollPrintWinning = Boolean.Parse(strValue);
+                    if (PollPrintWinning != _PollPrintWinning) {
+                        _PollPrintWinning = PollPrintWinning;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Print Current Winning Poll Option", typeof(Boolean), _PollPrintWinning));
+                    }
                 } else if (strVariable == "Weekly Events") {
                     Boolean EventWeeklyRepeat = Boolean.Parse(strValue);
                     if (EventWeeklyRepeat != _EventWeeklyRepeat) {
@@ -6783,7 +6792,7 @@ namespace PRoConEvents {
                                 if (_spamBotExcludeAdminsAndWhitelist) {
                                     OnlineNonWhitelistYellMessage(message, playerCount > 5);
                                 } else {
-                                    AdminYellMessage(message, playerCount > 5);
+                                    AdminYellMessage(message, playerCount > 5, 0);
                                 }
                                 posted = true;
                                 _spamBotYellLastPost = UtcNow();
@@ -10852,7 +10861,8 @@ namespace PRoConEvents {
                         if (EventActive(nRound)) {
                             var nextCode = GetEventRoundRuleCode(GetActiveEventRoundNumber(false));
                             if (nextCode == AEventOption.RuleCode.AO ||
-                                nextCode == AEventOption.RuleCode.BKO) {
+                                nextCode == AEventOption.RuleCode.BKO ||
+                                nextCode == AEventOption.RuleCode.CVI) {
                                 ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
                             } else {
                                 ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "False");
@@ -11426,6 +11436,10 @@ namespace PRoConEvents {
                         return "NO HEADSHOTS!";
                     case AEventOption.RuleCode.AW:
                         return "ALL WEAPONS!";
+                    case AEventOption.RuleCode.CVI:
+                        return "COWBOYS VS INDIANS!";
+                    case AEventOption.RuleCode.TR:
+                        return "TROLL RULES!";
                 }
             } catch (Exception e) {
                 HandleException(new AException("Error while getting event message.", e));
@@ -11468,6 +11482,10 @@ namespace PRoConEvents {
                         return "NO HEADSHOTS! No weapon restrictions, however you cannot kill with headshots. If you kill with a headshot you are auto-killed.";
                     case AEventOption.RuleCode.AW:
                         return "ALL WEAPONS! No weapon restrictions. Go nuts.";
+                    case AEventOption.RuleCode.CVI:
+                        return "COWBOYS VS INDIANS! Upper team (spawn outside) uses PHANTOM BOW! Lower team (spawn downstairs) uses MARES LEG! Knives are allowed.";
+                    case AEventOption.RuleCode.TR:
+                        return "TROLL RULES! Knives, Defibs, RepairTools, Shields, EODBots, SUAVs, and Smoke Launchers.";
                 }
             } catch (Exception e) {
                 HandleException(new AException("Error while getting event description.", e));
@@ -11598,6 +11616,7 @@ namespace PRoConEvents {
                         if (aKill.weaponCategory != DamageTypes.Explosive &&
                             aKill.weaponCategory != DamageTypes.ProjectileExplosive &&
                             aKill.weaponCode != "DamageArea" &&
+                            aKill.weaponCode != "Gameplay/Gadgets/MAV/MAV" &&
                             aKill.weaponCode != "Death") {
                             return true;
                         }
@@ -11660,6 +11679,79 @@ namespace PRoConEvents {
                         return false;
                     case AEventOption.RuleCode.AW:
                         // Everything is allowed, always return false
+                        return false;
+                    case AEventOption.RuleCode.CVI:
+                        // COWBOYS VS INDIANS!
+                        switch (aKill.killer.fbpInfo.TeamID) {
+                            case 1:
+                                // Lower team uses maresleg/knives
+                                if (!aKill.weaponCode.ToLower().Contains("knife") &&
+                                    !aKill.weaponCode.ToLower().Contains("melee") &&
+                                    aKill.weaponCode != "U_SaddlegunSnp" &&
+                                    aKill.weaponCode != "DamageArea") {
+                                    QueueRecordForProcessing(new ARecord {
+                                        record_source = ARecord.Sources.InternalAutomated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("player_kill"),
+                                        command_numeric = _roundID,
+                                        target_name = aKill.killer.player_name,
+                                        target_player = aKill.killer,
+                                        source_name = "AutoAdmin",
+                                        record_time = UtcNow(),
+                                        record_message = "LOWER TEAM USE MARESLEG/KNIVES!"
+                                    });
+                                }
+                                break;
+                            case 2:
+                                // Upper team uses bow/knives
+                                if (!aKill.weaponCode.ToLower().Contains("knife") &&
+                                    !aKill.weaponCode.ToLower().Contains("melee") &&
+                                    aKill.weaponCode != "dlSHTR" &&
+                                    aKill.weaponCode != "DamageArea") {
+                                    QueueRecordForProcessing(new ARecord {
+                                        record_source = ARecord.Sources.InternalAutomated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("player_kill"),
+                                        command_numeric = _roundID,
+                                        target_name = aKill.killer.player_name,
+                                        target_player = aKill.killer,
+                                        source_name = "AutoAdmin",
+                                        record_time = UtcNow(),
+                                        record_message = "UPPER TEAM USE BOW/KNIVES!"
+                                    });
+                                }
+                                break;
+                            default:
+                                Log.Info("Invalid team when killing during cowboys vs indians.");
+                                break;
+                        }
+                        return false;
+                    case AEventOption.RuleCode.TR:
+                        // TROLL RULES!
+                        if (!aKill.weaponCode.ToLower().Contains("knife") &&
+                            !aKill.weaponCode.ToLower().Contains("melee") &&
+                            aKill.weaponCode != "U_Defib" &&
+                            aKill.weaponCode != "U_Repairtool" &&
+                            aKill.weaponCode != "U_BallisticShield" &&
+                            aKill.weaponCode != "EODBot" &&
+                            aKill.weaponCode != "U_SUAV" &&
+                            aKill.weaponCode != "Gameplay/Gadgets/MAV/MAV" &&
+                            aKill.weaponCode != "XP4/Gameplay/Gadgets/MKV/MKV" &&
+                            aKill.weaponCode != "U_XM25_Smoke" &&
+                            !aKill.weaponCode.ToLower().Contains("m320_smk") &&
+                            aKill.weaponCode != "DamageArea") {
+                            QueueRecordForProcessing(new ARecord {
+                                record_source = ARecord.Sources.InternalAutomated,
+                                server_id = _serverInfo.ServerID,
+                                command_type = GetCommandByKey("player_kill"),
+                                command_numeric = _roundID,
+                                target_name = aKill.killer.player_name,
+                                target_player = aKill.killer,
+                                source_name = "AutoAdmin",
+                                record_time = UtcNow(),
+                                record_message = GetEventMessage(false) + " Use !rules for details."
+                            });
+                        }
                         return false;
                     default:
                         Log.Error("Unknown restriction type when processing event kill");
@@ -12221,8 +12313,13 @@ namespace PRoConEvents {
                         if (EventActive()) {
                             StartAndLogThread(new Thread(new ThreadStart(delegate {
                                 Thread.CurrentThread.Name = "RoundWelcome";
-                                Thread.Sleep(TimeSpan.FromSeconds(17));
+                                Thread.Sleep(TimeSpan.FromSeconds(10));
                                 AdminTellMessage("WELCOME TO ROUND EVENT " + String.Format("{0:n0}", _roundID) + "! " + GetEventMessage(false));
+                                Int32 messages = 0;
+                                while (messages++ < 10) {
+                                    _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(3));
+                                    AdminSayMessage(GetEventMessage(false) + " Use !rules for details.");
+                                }
                                 LogThreadExit();
                             })));
                         } else if (_UseExperimentalTools && _gameVersion == GameVersion.BF4 && _serverInfo != null && _serverInfo.GetRoundElapsedTime().TotalSeconds < 30) {
@@ -13891,7 +13988,7 @@ namespace PRoConEvents {
                     }));
                     StartAndLogThread(nonAdminSayThread);
                 } else {
-                    AdminYellMessage(message, displayProconChat);
+                    AdminYellMessage(message, displayProconChat, 0);
                 }
             } catch (Exception e) {
                 HandleException(new AException("Error running non-whitelist admin yell.", e));
@@ -14077,12 +14174,16 @@ namespace PRoConEvents {
         }
 
         public void AdminYellMessage(String message) {
-            AdminYellMessage(message, true);
+            AdminYellMessage(message, true, 0);
         }
 
-        public void AdminYellMessage(String message, Boolean displayProconChat) {
+        public void AdminYellMessage(String message, Boolean displayProconChat, Int32 overrideYellDuration) {
             Log.Debug(() => "Entering adminYell", 7);
             try {
+                var duration = _YellDuration;
+                if (overrideYellDuration > 0) {
+                    duration = overrideYellDuration;
+                }
                 if (String.IsNullOrEmpty(message)) {
                     Log.Error("message null in adminYell");
                     return;
@@ -14097,9 +14198,9 @@ namespace PRoConEvents {
                     message = message.Replace(bypassPrefix, "");
                 }
                 if (displayProconChat) {
-                    ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Yell[" + _YellDuration + "s] > " + message);
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Yell[" + duration + "s] > " + message);
                 }
-                ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion == GameVersion.BF4) ? (Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "all");
+                ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion == GameVersion.BF4) ? (Environment.NewLine) : ("")) + message.ToUpper(), duration + "", "all");
             } catch (Exception e) {
                 HandleException(new AException("Error while sending admin yell.", e));
             }
@@ -14158,7 +14259,7 @@ namespace PRoConEvents {
                     ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + message);
                 }
                 AdminSayMessage(message, false);
-                AdminYellMessage(message, false);
+                AdminYellMessage(message, false, 0);
             } catch (Exception e) {
                 HandleException(new AException("Error running admin tell message.", e));
             }
@@ -14614,12 +14715,12 @@ namespace PRoConEvents {
                                             Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                                             ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                             _MULTIBalancerUnswitcherDisabled = true;
-                                            PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2.TeamName + " to team " + team1.TeamName);
+                                            PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2.TeamKey + " to team " + team1.TeamKey);
                                             if (dicPlayer != null) {
                                                 dicPlayer.RequiredTeam = team1;
                                                 ARecord assistRecord = dicPlayer.TargetedRecords.FirstOrDefault(record => record.command_type.command_key == "self_assist" && record.command_action.command_key == "self_assist_unconfirmed");
                                                 if (assistRecord != null) {
-                                                    AdminSayMessage(assistRecord.target_player.GetVerboseName() + ", thank you for assisting " + team1.TeamName + "!");
+                                                    AdminSayMessage(assistRecord.target_player.GetVerboseName() + " (" + Math.Round(assistRecord.target_player.GetPower(true)) + "), thank you for assisting " + team1.TeamKey + "!");
                                                     assistRecord.command_action = GetCommandByKey("self_assist");
                                                     QueueRecordForProcessing(assistRecord);
                                                 }
@@ -14648,11 +14749,11 @@ namespace PRoConEvents {
                                             Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                                             ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                             _MULTIBalancerUnswitcherDisabled = true;
-                                            PlayerSayMessage(player.SoldierName, "Swapping you from team " + team1.TeamName + " to team " + team2.TeamName);
+                                            PlayerSayMessage(player.SoldierName, "Swapping you from team " + team1.TeamKey + " to team " + team2.TeamKey);
                                             if (dicPlayer != null) {
                                                 ARecord assistRecord = dicPlayer.TargetedRecords.FirstOrDefault(record => record.command_type.command_key == "self_assist" && record.command_action.command_key == "self_assist_unconfirmed");
                                                 if (assistRecord != null) {
-                                                    AdminSayMessage(assistRecord.target_player.GetVerboseName() + ", thank you for assisting " + team2.TeamName + "!");
+                                                    AdminSayMessage(assistRecord.target_player.GetVerboseName() + " (" + Math.Round(assistRecord.target_player.GetPower(true)) + "), thank you for assisting " + team2.TeamKey + "!");
                                                     assistRecord.command_action = GetCommandByKey("self_assist");
                                                     QueueRecordForProcessing(assistRecord);
                                                 }
@@ -26974,7 +27075,7 @@ namespace PRoConEvents {
                                    !_ActivePoll.Canceled) {
                                 if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval) {
                                     // Print the poll
-                                    _ActivePoll.PrintPoll();
+                                    _ActivePoll.PrintPoll(_PollPrintWinning);
                                 }
 
                                 _threadMasterWaitHandle.WaitOne(100);
@@ -26988,7 +27089,7 @@ namespace PRoConEvents {
                                 !_ActivePoll.Canceled) {
 
                                 // Get the outcome
-                                var ruleString = _ActivePoll.GetWinningOption(true);
+                                var ruleString = _ActivePoll.GetWinningOption("won", false);
                                 chosenRule = AEventOption.RuleFromDisplay(ruleString);
 
                                 if (chosenRule == AEventOption.RuleCode.ENDEVENT) {
@@ -27044,7 +27145,7 @@ namespace PRoConEvents {
                                            !_ActivePoll.Canceled) {
                                         if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval) {
                                             // Print the poll
-                                            _ActivePoll.PrintPoll();
+                                            _ActivePoll.PrintPoll(_PollPrintWinning);
                                         }
 
                                         _threadMasterWaitHandle.WaitOne(100);
@@ -27060,7 +27161,7 @@ namespace PRoConEvents {
                                         !_ActivePoll.Canceled) {
 
                                         // Get the outcome
-                                        chosenMode = AEventOption.ModeFromDisplay(_ActivePoll.GetWinningOption(true));
+                                        chosenMode = AEventOption.ModeFromDisplay(_ActivePoll.GetWinningOption("won", false));
                                         var option = new AEventOption() {
                                             Mode = chosenMode,
                                             Rule = chosenRule
@@ -28812,6 +28913,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
+                QueueSettingForUpload(new CPluginVariable(@"Print Current Winning Poll Option", typeof(Boolean), _PollPrintWinning));
                 QueueSettingForUpload(new CPluginVariable(@"Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
                 QueueSettingForUpload(new CPluginVariable(@"Event Day", typeof(String), _EventWeeklyDay.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
@@ -39288,7 +39390,9 @@ namespace PRoConEvents {
                 BSO,
                 RTO,
                 HO,
-                NH
+                NH,
+                CVI,
+                TR
             };
             public static readonly Dictionary<RuleCode, String> RuleNames = new Dictionary<RuleCode, String> {
                 {RuleCode.ENDEVENT, "End The Event"},
@@ -39306,7 +39410,9 @@ namespace PRoConEvents {
                 {RuleCode.BSO, "Bolt Sniper Only"},
                 {RuleCode.RTO, "Repair Tool Only"},
                 {RuleCode.HO, "Headshots Only"},
-                {RuleCode.NH, "No Headshots"}
+                {RuleCode.NH, "No Headshots"},
+                {RuleCode.CVI, "Cowboys VS Indians"},
+                {RuleCode.TR, "Troll Rules"}
             };
 
             public ModeCode Mode;
@@ -39430,7 +39536,7 @@ namespace PRoConEvents {
                 return true;
             }
 
-            public void PrintPoll() {
+            public void PrintPoll(Boolean printWinning) {
                 List<String> optionStrings = new List<String>();
                 foreach (var option in Options) {
                     optionStrings.Add(option.Key + ". " + option.Value.Key + " [" + Votes.Count(vote => vote.Value == option.Key) + "]");
@@ -39455,13 +39561,16 @@ namespace PRoConEvents {
                     _FirstPrint = true;
                 } else {
                     Plugin.AdminSayMessage(Title);
+                    if (printWinning) {
+                        GetWinningOption("leading", true);
+                    }
                 }
                 foreach (var line in optionLines) {
                     Plugin.AdminSayMessage(line);
                 }
             }
 
-            public String GetWinningOption(Boolean print) {
+            public String GetWinningOption(String printType, Boolean yell) {
                 if (!Votes.Any()) {
                     // If nobody has voted yet, use the first option
                     return Options.Values.FirstOrDefault().Key;
@@ -39484,8 +39593,22 @@ namespace PRoConEvents {
                             winnerString = null;
                         }
                     }
-                    if (print && winnerString != null) {
-                        Plugin.AdminSayMessage("'" + winnerString + "' won with " + winner.Count + " votes!");
+                    if (printType != null && winnerString != null) {
+                        if (printType == "won") {
+                            String wonMessage = "'" + winnerString + "' won with " + winner.Count + " votes!";
+                            if (yell) {
+                                Plugin.AdminYellMessage(wonMessage, true, 0);
+                            } else {
+                                Plugin.AdminSayMessage(wonMessage);
+                            }
+                        } else if (printType == "leading") {
+                            String leadingMessage = "'" + winnerString + "' is winning! (" + winner.Count + " votes)";
+                            if (yell) {
+                                Plugin.AdminYellMessage(leadingMessage, true, 1);
+                            } else {
+                                Plugin.AdminSayMessage(leadingMessage);
+                            }
+                        }
                     }
                 } while (winnerString == null);
 
