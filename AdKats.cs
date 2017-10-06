@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.338
+ * Version 6.9.0.339
  * 5-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.338</version_code>
+ * <version_code>6.9.0.339</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ using PRoCon.Core.Maps;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.338";
+        private const String PluginVersion = "6.9.0.339";
 
         public enum GameVersion {
             BF3,
@@ -8547,7 +8547,8 @@ namespace PRoConEvents {
                         oldTeam.TeamKey == "Neutral" &&
                         _roundState == RoundState.Playing &&
                         aPlayer.RequiredTeam == null &&
-                        playerCount > 15) {
+                        playerCount > 15 &&
+                        (aPlayer.GetPower(true) > 8 || aPlayer.fbpInfo.Rank > 25)) {
                         var startTime = UtcNow();
                         while (_pluginEnabled && !aPlayer.TopStats.Fetched && NowDuration(startTime).TotalSeconds < 10) {
                             _threadMasterWaitHandle.WaitOne(200);
@@ -18145,7 +18146,7 @@ namespace PRoConEvents {
                             String[] parameters = ParseParameters(remainingMessage, 2);
                             switch (parameters.Length) {
                                 case 1:
-                                    if (record.source_player != null && !PlayerIsAdmin(record.source_player)) {
+                                    if (record.source_player != null && !PlayerIsAdmin(record.source_player) && record.source_name != _debugSoldierName) {
                                         SendMessageToSource(record, "You cannot see another player's perks. Admin only.");
                                         FinalizeRecord(record);
                                         return;
