@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.341
+ * Version 6.9.0.342
  * 7-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.341</version_code>
+ * <version_code>6.9.0.342</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.341";
+        private const String PluginVersion = "6.9.0.342";
 
         public enum GameVersion
         {
@@ -37789,13 +37789,10 @@ namespace PRoConEvents
 	                        `tbl_server`.`GameID` = `tbl_playerdata`.`GameID`
                         WHERE
 	                        `tbl_currentplayers`.`ServerID` != @current_server_id 
-                        AND
-	                        `tbl_playerdata`.`GameID` != @game_id 
                         GROUP BY
 	                        `tbl_playerdata`.`PlayerID`";
                         command.CommandText = sql;
                         command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
-                        command.Parameters.AddWithValue("@game_id", _serverInfo.GameID);
                         using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
                             while (reader.Read())
@@ -47279,11 +47276,6 @@ namespace PRoConEvents
         {
             try
             {
-                // Temporary patch for FPSG's memory issues
-                if (!manual && _serverInfo.ServerName.ToUpper().Contains("FPSG"))
-                {
-                    return;
-                }
                 if ((_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled && !_pluginUpdatePatched) ||
                     _pluginVersionStatus == VersionStatus.TestBuild ||
                     (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken)) ||
