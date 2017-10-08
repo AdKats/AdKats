@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.342
+ * Version 6.9.0.343
  * 7-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.342</version_code>
+ * <version_code>6.9.0.343</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.342";
+        private const String PluginVersion = "6.9.0.343";
 
         public enum GameVersion
         {
@@ -13790,7 +13790,7 @@ namespace PRoConEvents
                             //ACTIVE ROUND
                             for (int i = 0; i < 8; i++)
                             {
-                                AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! " + GetEventMessage(false));
+                                AdminTellMessage("PREPARING EVENT! " + GetEventMessage(false));
                                 Thread.Sleep(2000);
                             }
                             ProcessEventMapMode(GetActiveEventRoundNumber(false));
@@ -13800,7 +13800,7 @@ namespace PRoConEvents
                             //TEST ROUND
                             for (int i = 0; i < 8; i++)
                             {
-                                AdminTellMessage("PREPARING ROUND " + String.Format("{0:n0}", nRound) + " EVENT! TESTING! TESTING!");
+                                AdminTellMessage("PREPARING EVENT! TESTING! TESTING!");
                                 Thread.Sleep(2000);
                             }
                             ProcessEventMapMode(AEventOption.ModeCode.D500);
@@ -14624,7 +14624,7 @@ namespace PRoConEvents
             Log.Debug(() => "Entering ProcessEventKill", 7);
             try
             {
-                message = GetEventMessage(false) + " ROUND " + String.Format("{0:n0}", _roundID) + " EVENT";
+                message = GetEventMessage(false) + " EVENT";
                 switch (GetEventRoundRuleCode(GetActiveEventRoundNumber(false)))
                 {
                     case AEventOption.RuleCode.KO:
@@ -14837,27 +14837,19 @@ namespace PRoConEvents
                             aKill.weaponCode != "U_Repairtool" &&
                             aKill.weaponCode != "U_BallisticShield" &&
                             aKill.weaponCode != "EODBot" &&
+                            aKill.weaponCode != "Death" &&
                             aKill.weaponCode != "U_SUAV" &&
+                            aKill.weaponCode.ToLower() != "roadkill" &&
                             aKill.weaponCode != "Gameplay/Gadgets/MAV/MAV" &&
                             aKill.weaponCode != "XP4/Gameplay/Gadgets/MKV/MKV" &&
                             aKill.weaponCode != "U_XM25_Smoke" &&
                             !aKill.weaponCode.ToLower().Contains("m320_smk") &&
                             aKill.weaponCode != "DamageArea")
                         {
-                            QueueRecordForProcessing(new ARecord
-                            {
-                                record_source = ARecord.Sources.InternalAutomated,
-                                server_id = _serverInfo.ServerID,
-                                command_type = GetCommandByKey("player_kill"),
-                                command_numeric = _roundID,
-                                target_name = aKill.killer.player_name,
-                                target_player = aKill.killer,
-                                source_name = "AutoAdmin",
-                                record_time = UtcNow(),
-                                record_message = GetEventMessage(false) + " Use !rules for details."
-                            });
+                            message = GetEventMessage(false) + " Use !rules for details.";
+                            return true;
                         }
-                        return false;
+                        break;
                     default:
                         Log.Error("Unknown restriction type when processing event kill");
                         break;
@@ -18877,7 +18869,7 @@ namespace PRoConEvents
                                 }
                                 if (EventActive())
                                 {
-                                    SendMessageToSource(record, "ROUND " + String.Format("{0:n0}", _roundID) + " EVENT. REPORT DISABLED.");
+                                    SendMessageToSource(record, "REPORTING IS DISABLED DURING EVENTS.");
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -23743,7 +23735,7 @@ namespace PRoConEvents
 
                             if (EventActive())
                             {
-                                SendMessageToSource(record, "ROUND " + String.Format("{0:n0}", _roundID) + " EVENT. " + GetEventDescription(false));
+                                SendMessageToSource(record, GetEventDescription(false));
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -28054,7 +28046,6 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    KickPlayerMessage(record.target_player, kickReason);
                     if (record.target_name != record.source_name)
                     {
                         if (record.source_name == "PingEnforcer")
@@ -28074,6 +28065,7 @@ namespace PRoConEvents
                     {
                         SendMessageToSource(record, "You KICKED " + record.GetTargetNames() + " for " + record.record_message);
                     }
+                    KickPlayerMessage(record.target_player, kickReason);
                 }
             }
             catch (Exception e)
@@ -33530,7 +33522,7 @@ namespace PRoConEvents
                             }
                             if (_EventRoundOptions.Count() >= _EventRoundAutoPollsMax)
                             {
-                                _ActivePoll.AddOption(AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT], false);
+                                _ActivePoll.AddOption(AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT], true);
                             }
 
                             while (_pluginEnabled &&
@@ -46728,8 +46720,6 @@ namespace PRoConEvents
 
         public void KickPlayerMessage(String playerName, String message, Int32 kickDuration)
         {
-            APlayer aPlayer;
-            _PlayerDictionary.TryGetValue(playerName, out aPlayer);
             ExecuteCommand("procon.protected.send", "admin.killPlayer", playerName);
             if (kickDuration > 0)
             {
@@ -46738,7 +46728,7 @@ namespace PRoConEvents
                 {
                     Thread.CurrentThread.Name = "KickPlayerMessage";
                     var startTime = UtcNow();
-                    while (NowDuration(startTime).TotalSeconds < kickDuration && (aPlayer == null || !aPlayer.player_spawnedOnce))
+                    while (NowDuration(startTime).TotalSeconds < kickDuration)
                     {
                         PlayerTellMessage(playerName, "KICKED from server: " + message, false, 1);
                         Thread.Sleep(500);
@@ -46783,7 +46773,7 @@ namespace PRoConEvents
                 {
                     Thread.CurrentThread.Name = "BanKickPlayerMessage";
                     var startTime = UtcNow();
-                    while (NowDuration(startTime).TotalSeconds < kickDuration && (aPlayer == null || !aPlayer.player_spawnedOnce))
+                    while (NowDuration(startTime).TotalSeconds < kickDuration)
                     {
                         PlayerTellMessage(playerName, "BANNED from server: " + message, false, 1);
                         Thread.Sleep(500);
