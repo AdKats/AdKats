@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.343
+ * Version 6.9.0.344
  * 7-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.343</version_code>
+ * <version_code>6.9.0.344</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.343";
+        private const String PluginVersion = "6.9.0.344";
 
         public enum GameVersion
         {
@@ -831,7 +831,7 @@ namespace PRoConEvents
         private Int32 _CurrentEventRoundNumber = 999999;
         private List<AEventOption> _EventRoundOptions = new List<AEventOption>();
         private Boolean _EventRoundPolled = false;
-        private Int32 _EventRoundAutoPollsMax = 7;
+        private Int32 _EventRoundAutoPollsMax = 10;
         private TimeSpan _EventRoundAutoVoteDuration = TimeSpan.FromMinutes(2.5);
         private List<AEventOption> _EventRoundPollOptions = new List<AEventOption>();
         private String _EventRoundOptionsEnum;
@@ -33190,11 +33190,13 @@ namespace PRoConEvents
                         _threadMasterWaitHandle.WaitOne(2000);
                         if (_PlayerDictionary.ContainsKey(record.target_player.player_name))
                         {
-                            SendMessageToSource(record, "Time on server: " + FormatTimeString(record.target_player.player_serverplaytime + NowDuration(record.target_player.JoinTime), 3) + ".");
+                            var duration = record.target_player.player_serverplaytime + NowDuration(record.target_player.JoinTime);
+                            SendMessageToSource(record, "Time on server: " + Math.Round(duration.TotalHours, 1) + "hrs (" +  FormatTimeString(duration, 3) + ").");
                         }
                         else
                         {
-                            SendMessageToSource(record, "Time on server: " + FormatTimeString(record.target_player.player_serverplaytime, 3) + ".");
+                            var duration = record.target_player.player_serverplaytime;
+                            SendMessageToSource(record, "Time on server: " + Math.Round(duration.TotalHours, 1) + "hrs (" + FormatTimeString(duration, 3) + ").");
                         }
                         _threadMasterWaitHandle.WaitOne(2000);
                         String playerLoc = "Unknown";
@@ -33522,7 +33524,7 @@ namespace PRoConEvents
                             }
                             if (_EventRoundOptions.Count() >= _EventRoundAutoPollsMax)
                             {
-                                _ActivePoll.AddOption(AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT], true);
+                                _ActivePoll.AddOption(AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT], false);
                             }
 
                             while (_pluginEnabled &&
