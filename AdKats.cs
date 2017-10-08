@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.344
- * 7-OCT-2017
+ * Version 6.9.0.345
+ * 8-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.344</version_code>
+ * <version_code>6.9.0.345</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.344";
+        private const String PluginVersion = "6.9.0.345";
 
         public enum GameVersion
         {
@@ -628,16 +628,14 @@ namespace PRoConEvents
         public readonly String[] _subscriptionGroups = { "OnlineSoldiers" };
         private readonly List<AClient> _subscribedClients = new List<AClient>();
         private String[] _BannedTags = { };
-        //Top Players
-        private Boolean _UseTeamPowerMonitor = false;
+        //Team Power Monitor
         private Boolean _UseTeamPowerMonitorSeeders = false;
         private Boolean _UseTeamPowerMonitorBalance = false;
         private Boolean _UseTeamPowerMonitorScrambler = false;
         private Boolean _UseTeamPowerMonitorReassign = false;
         private Boolean currentStartingTeam1 = true;
         private Boolean _PlayersAutoAssistedThisRound = false;
-        private Double _TeamPowerActiveInfluence = 32;
-        private String _TopPlayersAffected = "Good And Above";
+        private Double _TeamPowerActiveInfluence = 35;
         //Populators
         private Boolean _PopulatorMonitor;
         private Boolean _PopulatorUseSpecifiedPopulatorsOnly;
@@ -2356,20 +2354,12 @@ namespace PRoConEvents
                     {
                         lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "[" + _TeamspeakPlayers.Count() + "] Teamspeak Players (Display)", typeof(String[]), _TeamspeakPlayers.Values.Select(aPlayer => aPlayer.player_name + " (" + aPlayer.TSClientObject.TsName + ")").ToArray()));
                         lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Use Custom Teamspeak Web Service", typeof(Boolean), _TeamspeakManager.UseWebService));
-                        if (_TeamspeakManager.UseWebService)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Web Service URL", typeof(String), _TeamspeakManager.WebServiceURL));
-                        }
-                        else
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server IP", typeof(String), _TeamspeakManager.Ts3ServerIp));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Port", typeof(Int32), _TeamspeakManager.Ts3ServerPort));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Port", typeof(Int32), _TeamspeakManager.Ts3QueryPort));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Username", typeof(String), _TeamspeakManager.Ts3QueryUsername));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Password", typeof(String), _TeamspeakManager.Ts3QueryPassword));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Nickname", typeof(String), _TeamspeakManager.Ts3QueryNickname));
-                        }
+                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server IP", typeof(String), _TeamspeakManager.Ts3ServerIp));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Port", typeof(Int32), _TeamspeakManager.Ts3ServerPort));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Port", typeof(Int32), _TeamspeakManager.Ts3QueryPort));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Username", typeof(String), _TeamspeakManager.Ts3QueryUsername));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Password", typeof(String), _TeamspeakManager.Ts3QueryPassword));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Nickname", typeof(String), _TeamspeakManager.Ts3QueryNickname));
                         lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Main Channel Name", typeof(String), _TeamspeakManager.Ts3MainChannelName));
                         lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Secondary Channel Names", typeof(String[]), _TeamspeakManager.Ts3SubChannelNames));
                         lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Debug Display Teamspeak Clients", typeof(Boolean), _TeamspeakManager.DebugClients));
@@ -2441,35 +2431,42 @@ namespace PRoConEvents
             {
                 if (IsActiveSettingSection(teamPowerSection))
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
                     lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power Active Influence", typeof(Double), _TeamPowerActiveInfluence));
-                    if (_UseTeamPowerMonitor)
+                    var onlineTopPlayers = _PlayerDictionary.Values.ToList()
+                        .Where(aPlayer => aPlayer.GetPower(true) > 1);
+                    var onlineTopPlayerListing = onlineTopPlayers
+                        .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + "+) ") : ("(" + _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + ") ")) +
+                                           "(" + aPlayer.GetPower(true, true, true).ToString("00") +
+                                           "|" + aPlayer.GetPower(false, true, true).ToString("00") +
+                                           "|" + aPlayer.GetPower(true, true, false).ToString("00") +
+                                           "|" + aPlayer.GetPower(true, false, true).ToString("00") +
+                                           "|" + aPlayer.GetPower(true, false, false).ToString("00") +
+                                           "|" + aPlayer.TopStats.TopCount +
+                                           "|" + aPlayer.TopStats.RoundCount +
+                                           ") " + aPlayer.GetVerboseName())
+                        .OrderByDescending(item => item);
+                    ATeam t1, t2;
+                    String teamPower = "Unknown";
+                    if (_roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2))
                     {
-                        var onlineTopPlayers = _PlayerDictionary.Values.ToList()
-                            .Where(aPlayer => aPlayer.GetPower(true) > 1);
-                        var onlineTopPlayerListing = onlineTopPlayers
-                            .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + "+) ") : ("(" + _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + ") ")) +
-                                               "(" + aPlayer.GetPower(true, true).ToString("00") +
-                                               "|" + aPlayer.GetPower(true, false).ToString("00") +
-                                               "|" + aPlayer.GetPower(false, true).ToString("00") +
-                                               "|" + aPlayer.GetPower(false, false).ToString("00") +
-                                               "|" + aPlayer.TopStats.TopCount +
-                                               "|" + aPlayer.TopStats.RoundCount +
-                                               ") " + aPlayer.GetVerboseName())
-                            .OrderByDescending(item => item);
-                        ATeam t1, t2;
-                        String teamPower = "Unknown";
-                        if (_roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2))
+                        Double t1Power = t1.GetTeamPower();
+                        Double t2Power = t2.GetTeamPower();
+                        Double percDiff = Math.Abs(t1Power - t2Power) / ((t1Power + t2Power) / 2.0) * 100.0;
+                        if (t1Power > t2Power)
                         {
-                            teamPower = t1.GetTeamIDKey() + ": (" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + ") / " + t2.GetTeamIDKey() + ": (" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
+                            teamPower += t1.GetTeamIDKey() + " up " + Math.Round(((t1Power - t2Power) / t2Power) * 100) + "% ";
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power (Display)", typeof(String), teamPower));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Online Top Players (Display)", typeof(String[]), onlineTopPlayerListing.ToArray()));
-                        //lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Balancer", typeof(Boolean), _UseTeamPowerMonitorBalance));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Seeder Control", typeof(Boolean), _UseTeamPowerMonitorSeeders));
+                        else
+                        {
+                            teamPower += t2.GetTeamIDKey() + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
+                        }
+                        teamPower += "(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
                     }
+                    lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power (Display)", typeof(String), teamPower));
+                    lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Online Top Players (Display)", typeof(String[]), onlineTopPlayerListing.ToArray()));
+                    lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
+                    lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
+                    lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Seeder Control", typeof(Boolean), _UseTeamPowerMonitorSeeders));
                 }
             }
             catch (Exception e)
@@ -4415,58 +4412,6 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Enable Team Power Monitor").Success)
-                {
-                    //Initial parse
-                    Boolean UseTeamPowerMonitor = Boolean.Parse(strValue);
-                    //Check for changed value
-                    if (UseTeamPowerMonitor != _UseTeamPowerMonitor)
-                    {
-                        //Rejection cases
-                        if (_threadsReady && !_FeedMultiBalancerWhitelist && UseTeamPowerMonitor)
-                        {
-                            Log.Error("'Enable Team Power Monitor' cannot be enabled when 'Feed MULTIBalancer Whitelist' in A16 is disabled.");
-                            return;
-                        }
-                        //Assignment
-                        _UseTeamPowerMonitor = UseTeamPowerMonitor;
-                        if (_UseTeamPowerMonitor)
-                        {
-                            Log.Info("Team power monitor enabled.");
-                            if (!_aliveThreads.Values.Any(aThread => aThread.Name == "PowerInformationFetcher"))
-                            {
-                                StartAndLogThread(new Thread(new ThreadStart(delegate
-                                {
-                                    Thread.CurrentThread.Name = "PowerInformationFetcher";
-                                    Thread.Sleep(TimeSpan.FromMilliseconds(250));
-                                    Log.Info("Fetching player power information.");
-                                    //Update top player information for all online players
-                                    foreach (APlayer aPlayer in _PlayerDictionary.Values.ToList())
-                                    {
-                                        FetchPowerInformation(aPlayer);
-                                        Log.Info("Fetched player power info for " + aPlayer.GetVerboseName() + ": (" + Math.Round(aPlayer.GetPower(false), 2) + ").");
-                                    }
-                                    LogThreadExit();
-                                })));
-                            }
-                        }
-                        else
-                        {
-                            Log.Info("Team power monitor disabled.");
-                        }
-                        //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"Affected Top Players").Success)
-                {
-                    if (strValue != _TopPlayersAffected)
-                    {
-                        _TopPlayersAffected = strValue;
-                        //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Affected Top Players", typeof(String), _TopPlayersAffected));
-                    }
-                }
                 else if (Regex.Match(strVariable, @"Team Power Active Influence").Success)
                 {
                     //Initial parse
@@ -4910,34 +4855,6 @@ namespace PRoConEvents
                         //No Notification
                         //Upload change to database
                         QueueSettingForUpload(new CPluginVariable(@"Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"Use Custom Teamspeak Web Service").Success)
-                {
-                    //Initial parse
-                    Boolean UseWebService = Boolean.Parse(strValue);
-                    //Check for changed value
-                    if (UseWebService != _TeamspeakManager.UseWebService)
-                    {
-                        if (_threadsReady && !UseWebService && _TeamspeakManager.UseWebService && _TeamspeakManager.Enabled())
-                        {
-                            Log.Warn("Switching TS monitor modes, it must be re-enabled manually.");
-                            _TeamspeakPlayerMonitorEnable = false;
-                            _TeamspeakManager.Disable();
-                        }
-                        //Assignment
-                        _TeamspeakManager.UseWebService = UseWebService;
-                        //Upload change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Use Custom Teamspeak Web Service", typeof(Boolean), _TeamspeakManager.UseWebService));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"Teamspeak Web Service URL").Success)
-                {
-                    if (_TeamspeakManager.WebServiceURL != strValue)
-                    {
-                        _TeamspeakManager.WebServiceURL = strValue;
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Teamspeak Web Service URL", typeof(String), _TeamspeakManager.WebServiceURL));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Teamspeak Server IP").Success)
@@ -9115,8 +9032,7 @@ namespace PRoConEvents
         {
             try
             {
-                if (_UseTeamPowerMonitor &&
-                    _UseExperimentalTools &&
+                if (_UseExperimentalTools &&
                     _firstPlayerListComplete)
                 {
                     ATeam t1, t2;
@@ -9303,8 +9219,7 @@ namespace PRoConEvents
                             }
                         }
                         //Server seeder balance
-                        if (_UseTeamPowerMonitor &&
-                            _UseTeamPowerMonitorSeeders &&
+                        if (_UseTeamPowerMonitorSeeders &&
                             _PlayerDictionary.Any())
                         {
                             var seeders = _PlayerDictionary.Values.ToList().Where(dPlayer =>
@@ -10237,8 +10152,7 @@ namespace PRoConEvents
                 }
 
                 //Team power monitor assignment code
-                if (_UseTeamPowerMonitor &&
-                    _UseTeamPowerMonitorScrambler &&
+                if (_UseTeamPowerMonitorScrambler &&
                     _firstPlayerListComplete &&
                     _populationStatus != PopulationState.Low &&
                     _aliveThreads.Values.All(thread => thread.Name != "TeamPowerMonitorAssignment"))
@@ -10933,8 +10847,7 @@ namespace PRoConEvents
                         }
                     }
                     var playerCount = _PlayerDictionary.Values.ToList().Count(dPlayer => dPlayer.player_type == PlayerType.Player);
-                    if (_UseTeamPowerMonitor &&
-                        _UseTeamPowerMonitorReassign &&
+                    if (_UseTeamPowerMonitorReassign &&
                         _firstPlayerListComplete &&
                         oldTeam.TeamKey == "Neutral" &&
                         _roundState == RoundState.Playing &&
@@ -11010,7 +10923,9 @@ namespace PRoConEvents
                             // If it's not the early game, the server is populated, and the weak team is also losing, increase leniency to 4 players
                             if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 &&
                                 weakTeam == losingTeam &&
-                                _populationStatus == PopulationState.High)
+                                // Require both high population state, and 50 players (accounting for smaller servers)
+                                _populationStatus == PopulationState.High &&
+                                weakCount + powerCount >= 50)
                             {
                                 teamCountLeniency = 4;
                             }
@@ -11624,10 +11539,7 @@ namespace PRoConEvents
                                         //Fetch their infraction points
                                         FetchPoints(aPlayer, false, true);
                                         //Team Power Information
-                                        if (_UseTeamPowerMonitor)
-                                        {
-                                            FetchPowerInformation(aPlayer);
-                                        }
+                                        FetchPowerInformation(aPlayer);
                                         if (aPlayer.location == null || aPlayer.location.status != "success" || aPlayer.location.IP != aPlayer.player_ip)
                                         {
                                             //Update IP location
@@ -13304,15 +13216,8 @@ namespace PRoConEvents
             {
                 List<APlayer> OrderedPlayers = _PlayerDictionary.Values
                     .Where(aPlayer => aPlayer.player_type == PlayerType.Player).ToList();
-                if (_UseTeamPowerMonitor)
-                {
-                    // Do not use their stored power, since that would skew the numbers
-                    OrderedPlayers = OrderedPlayers.OrderByDescending(aPlayer => aPlayer.GetPower(true, false)).ToList();
-                }
-                else
-                {
-                    OrderedPlayers = OrderedPlayers.OrderByDescending(aPlayer => aPlayer.fbpInfo.Score).ToList();
-                }
+                // Do not use their stored power, since that would skew the numbers
+                OrderedPlayers = OrderedPlayers.OrderByDescending(aPlayer => aPlayer.GetPower(false, true, false)).ToList();
                 List<APlayer> WinningPlayers = OrderedPlayers
                     .Where(aPlayer => aPlayer.fbpInfo.TeamID == winningTeam.TeamID).ToList();
                 List<APlayer> LosingPlayers = OrderedPlayers
@@ -13907,9 +13812,7 @@ namespace PRoConEvents
 
                 if (_roundOverPlayers != null)
                 {
-
-                    if (_UseTeamPowerMonitor &&
-                        _UseTeamPowerMonitorScrambler)
+                    if (_UseTeamPowerMonitorScrambler)
                     {
                         //Clear out the round over squad list
                         _RoundPrepSquads.Clear();
@@ -15633,7 +15536,7 @@ namespace PRoConEvents
                     {
                         if (_ShowNewPlayerAnnouncement && aPlayer.player_new)
                         {
-                            OnlineAdminSayMessage(aPlayer.GetVerboseName() + " just joined this server group for the first time!");
+                            OnlineAdminSayMessage(aPlayer.GetVerboseName() + " just joined for the first time!");
                         }
 
                         if (_UseFirstSpawnMessage ||
@@ -15689,7 +15592,7 @@ namespace PRoConEvents
                                     if (_useFirstSpawnRepMessage)
                                     {
                                         Boolean isAdmin = PlayerIsAdmin(aPlayer);
-                                        String repMessage = "Your server reputation is " + Math.Round(aPlayer.player_reputation, 2) + ", with ";
+                                        String repMessage = "Your reputation is " + Math.Round(aPlayer.player_reputation, 2) + ", with ";
                                         if (points > 0)
                                         {
                                             repMessage += points + " infraction point(s). ";
@@ -20031,16 +19934,10 @@ namespace PRoConEvents
                             }
 
                             var assists = _roundAssists.Values;
-                            if (!_UseTeamPowerMonitor && assists.Any())
+                            if (assists.Any())
                             {
                                 //Timeout or over-queueing
-                                if (assists.Any(aRecord => aRecord.command_action.command_key == "self_assist_unconfirmed"))
-                                {
-                                    SendMessageToSource(record, "Another player is already queued for assist. Please wait for them to be moved. Thank you.");
-                                    FinalizeRecord(record);
-                                    return;
-                                }
-                                Double secondTimeout = _UseTeamPowerMonitor ? 15 : 60;
+                                Double secondTimeout = 20;
                                 Double timeout = (secondTimeout - (UtcNow() - assists.Max(aRecord => aRecord.record_time_update)).TotalSeconds);
                                 if (timeout > 0)
                                 {
@@ -27733,12 +27630,6 @@ namespace PRoConEvents
                     record.record_message += " [Rejected]";
                     return;
                 }
-                if (friendlyTeam.TeamID == losingTeam.TeamID && !_UseTeamPowerMonitor)
-                {
-                    SendMessageToSource(record, "Player already on losing team, rejecting switch attempt.");
-                    record.record_message += " [Rejected]";
-                    return;
-                }
                 if (record.source_name == record.target_name)
                 {
                     _roundAssists[record.target_player.player_name] = record;
@@ -33298,7 +33189,7 @@ namespace PRoConEvents
                         SendMessageToSource(record, "Ping Kicks: " + pingKicksText + " Current Ping [" + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping_avg, 2) + "") : ("Missing")) + "].");
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Reputation
-                        SendMessageToSource(record, "Reputation: " + ((!PlayerIsAdmin(record.target_player)) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)));
+                        SendMessageToSource(record, "Reputation: " + Math.Round(record.target_player.player_reputation, 2));
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Previous Names
                         String playerNames = "No previous names.";
@@ -33620,7 +33511,8 @@ namespace PRoConEvents
                                         if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
                                         {
                                             // Print the poll
-                                            _ActivePoll.PrintPoll(_PollPrintWinning);
+                                            // Do not announce the current mode leader
+                                            _ActivePoll.PrintPoll(false);
                                         }
 
                                         _threadMasterWaitHandle.WaitOne(100);
@@ -35745,8 +35637,6 @@ namespace PRoConEvents
                 // Teamspeak Monitor
                 QueueSettingForUpload(new CPluginVariable(@"Monitor Teamspeak Players", typeof(Boolean), _TeamspeakPlayerMonitorView));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
-                QueueSettingForUpload(new CPluginVariable(@"Use Custom Teamspeak Web Service", typeof(Boolean), _TeamspeakManager.UseWebService));
-                QueueSettingForUpload(new CPluginVariable(@"Teamspeak Web Service URL", typeof(String), _TeamspeakManager.WebServiceURL));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server IP", typeof(String), _TeamspeakManager.Ts3ServerIp));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Port", typeof(Int32), _TeamspeakManager.Ts3ServerPort));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Server Query Port", typeof(Int32), _TeamspeakManager.Ts3QueryPort));
@@ -35779,8 +35669,6 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Discord Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _DiscordPlayerPerksTeamKillTrackerWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Debug Display Discord Members", typeof(Boolean), _DiscordManager.DebugMembers));
                 // Team Power Monitor
-                QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Monitor", typeof(Boolean), _UseTeamPowerMonitor));
-                QueueSettingForUpload(new CPluginVariable(@"Affected Top Players", typeof(String), _TopPlayersAffected));
                 QueueSettingForUpload(new CPluginVariable(@"Team Power Active Influence", typeof(Double), _TeamPowerActiveInfluence));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Balancer", typeof(Boolean), _UseTeamPowerMonitorBalance));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
@@ -39643,7 +39531,7 @@ namespace PRoConEvents
                 canAssist = false;
                 rejectionMessage += "is already winning and strong";
             }
-            else if (_UseTeamPowerMonitor)
+            else
             {
                 var enemyMorePowerful = newEnemyPower > newFriendlyPower;
                 var powerDifferenceIncreased = newPowerDiff > oldPowerDiff;
@@ -39688,14 +39576,6 @@ namespace PRoConEvents
                     InfoOrRespond(debugRecord,
                         "Old " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(oldFriendlyPower) + ")/" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(oldEnemyPower) + ") | " +
                         "New " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(newFriendlyPower) + ")/" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(newEnemyPower) + ")");
-                }
-            }
-            else
-            {
-                if (enemyHasMoreMap)
-                {
-                    canAssist = false;
-                    rejectionMessage += "is losing, but is making a comeback";
                 }
             }
             if (!canAssist)
@@ -39744,7 +39624,7 @@ namespace PRoConEvents
                     {
                         powerDiffString = "Bypass";
                     }
-                    AdminSayMessage(realRecord.GetTargetNames() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.GetTeamIDKey() + " accepted" + (_UseTeamPowerMonitor ? " (" + powerDiffString + ")" : "") + ", queueing.");
+                    AdminSayMessage(realRecord.GetTargetNames() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.GetTeamIDKey() + " accepted (" + powerDiffString + "), queueing.");
                     realRecord.command_action = GetCommandByKey("self_assist_unconfirmed");
                 }
                 else if (debugRecord != null)
@@ -46352,10 +46232,13 @@ namespace PRoConEvents
                 HandleException(new AException("commandKey was null when fetching command"));
                 return command;
             }
-            _CommandKeyDictionary.TryGetValue(commandKey, out command);
-            if (command == null)
+            if (!_CommandKeyDictionary.TryGetValue(commandKey, out command))
             {
-                HandleException(new AException("Unable to get command for key '" + commandKey + "'"));
+                _threadMasterWaitHandle.WaitOne(500);
+                if (!_CommandKeyDictionary.TryGetValue(commandKey, out command))
+                {
+                    HandleException(new AException("Unable to get command for key '" + commandKey + "'"));
+                }
             }
             return command;
         }
@@ -49059,7 +48942,7 @@ namespace PRoConEvents
                             String leadingMessage = "'" + winnerString + "' is winning! (" + winner.Count + " votes)";
                             if (yell)
                             {
-                                Plugin.AdminYellMessage(leadingMessage, true, 1);
+                                Plugin.AdminYellMessage(leadingMessage, true, 2);
                             }
                             else
                             {
@@ -49305,9 +49188,9 @@ namespace PRoConEvents
             private Double maxKd = 4.0;
             public Double GetPower(Boolean includeMods)
             {
-                return GetPower(includeMods, includeMods);
+                return GetPower(true, includeMods, includeMods);
             }
-            public Double GetPower(Boolean includeActive, Boolean includeSaved)
+            public Double GetPower(Boolean includeBase, Boolean includeActive, Boolean includeSaved)
             {
                 // Base power is 7-32
                 Double basePower = min7(TopStats.RoundCount >= 3 && TopStats.TopCount > 0 ? Math.Pow(TopStats.TopRoundRatio + 1, 5) : 1.0);
@@ -49339,7 +49222,11 @@ namespace PRoConEvents
                 Double activePower = (killPower + kdPower + scorePower) / 3.0;
                 // Take whichever power level is greatest
                 TopStats.TempTopPower = Math.Max(Math.Max(basePower, savedPower), activePower);
-                var returnPower = basePower;
+                var returnPower = min7(0);
+                if (includeBase)
+                {
+                    returnPower = Math.Max(returnPower, basePower);
+                }
                 if (includeActive)
                 {
                     returnPower = Math.Max(returnPower, activePower);
@@ -50247,7 +50134,7 @@ namespace PRoConEvents
             {
                 try
                 {
-                    if (!Plugin._PlayerDictionary.Any() || !Plugin._UseTeamPowerMonitor)
+                    if (!Plugin._PlayerDictionary.Any())
                     {
                         return 0;
                     }
@@ -52217,8 +52104,6 @@ namespace PRoConEvents
             public VoipJoinDisplayType JoinDisplay = VoipJoinDisplayType.Disabled;
             public String JoinDisplayMessage = "%playerusername% joined teamspeak! Welcome!";
             public Int32 UpdateIntervalSeconds = 30;
-            public Boolean UseWebService = false;
-            public String WebServiceURL = "";
 
             private const Int32 SynDelayQueriesAmount = 1000;
             private const Int32 ErrReconnectOnErrorAttempts = 20;
@@ -54122,14 +54007,7 @@ namespace PRoConEvents
                                 PerformCloseConnection();
                                 break;
                             case Commands.UpdateTsClientInfo:
-                                if (UseWebService)
-                                {
-                                    UpdateTsInfoFromService();
-                                }
-                                else
-                                {
-                                    UpdateTsInfo();
-                                }
+                                UpdateTsInfo();
                                 break;
                         }
                     }
@@ -54157,78 +54035,75 @@ namespace PRoConEvents
 
             private void PerformOpenConnection()
             {
-                if (!UseWebService)
+                for (int secondsSlept = 0; secondsSlept < 10 && Ts3ServerIp == "Teamspeak Ip"; secondsSlept++)
                 {
-                    for (int secondsSlept = 0; secondsSlept < 10 && Ts3ServerIp == "Teamspeak Ip"; secondsSlept++)
-                    {
-                        Thread.Sleep(1000);
-                    }
+                    Thread.Sleep(1000);
+                }
 
-                    ConsoleWrite("[Connection] Establishing a connection to a Teamspeak 3 Server.");
-                    _mTsResponse = _mTsConnection.Open(Ts3ServerIp, Ts3QueryPort);
-                    if (!PerformResponseHandling(Queries.OpenConnectionEstablish))
-                    {
-                        return;
-                    }
-                    ConsoleWrite("[Connection] ^2Established a connection to {0}:{1}.", Ts3ServerIp, Ts3QueryPort);
+                ConsoleWrite("[Connection] Establishing a connection to a Teamspeak 3 Server.");
+                _mTsResponse = _mTsConnection.Open(Ts3ServerIp, Ts3QueryPort);
+                if (!PerformResponseHandling(Queries.OpenConnectionEstablish))
+                {
+                    return;
+                }
+                ConsoleWrite("[Connection] ^2Established a connection to {0}:{1}.", Ts3ServerIp, Ts3QueryPort);
 
-                    ConsoleWrite("[Connection] Attempting to login as a Server Query Client.");
-                    SendTeamspeakQuery(TeamspeakQuery.BuildLoginQuery(Ts3QueryUsername, Ts3QueryPassword));
-                    if (!PerformResponseHandling(Queries.OpenConnectionLogin))
-                    {
-                        return;
-                    }
-                    ConsoleWrite("[Connection] ^2Logged in as {0}.", Ts3QueryUsername);
+                ConsoleWrite("[Connection] Attempting to login as a Server Query Client.");
+                SendTeamspeakQuery(TeamspeakQuery.BuildLoginQuery(Ts3QueryUsername, Ts3QueryPassword));
+                if (!PerformResponseHandling(Queries.OpenConnectionLogin))
+                {
+                    return;
+                }
+                ConsoleWrite("[Connection] ^2Logged in as {0}.", Ts3QueryUsername);
 
-                    ConsoleWrite("[Connection] Attempting to select the correct virtual server.");
-                    SendTeamspeakQuery(TeamspeakQuery.BuildUsePortQuery(Ts3ServerPort));
-                    if (!PerformResponseHandling(Queries.OpenConnectionUse))
-                    {
-                        return;
-                    }
-                    ConsoleWrite("[Connection] ^2Selected the virtual server using port {0}.", Ts3ServerPort);
+                ConsoleWrite("[Connection] Attempting to select the correct virtual server.");
+                SendTeamspeakQuery(TeamspeakQuery.BuildUsePortQuery(Ts3ServerPort));
+                if (!PerformResponseHandling(Queries.OpenConnectionUse))
+                {
+                    return;
+                }
+                ConsoleWrite("[Connection] ^2Selected the virtual server using port {0}.", Ts3ServerPort);
 
-                    ConsoleWrite("[Connection] Attempting to find the main channel.");
-                    SendTeamspeakQuery(TeamspeakQuery.BuildChannelFindQuery(Ts3MainChannelName));
-                    if (!PerformResponseHandling(Queries.OpenConnectionMain))
-                    {
-                        return;
-                    }
-                    _mMainChannel.SetBasicData(_mTsResponse.Sections[0].Groups[0]);
-                    ConsoleWrite("[Connection] ^2Found the channel named {0}.", _mMainChannel.TsName);
+                ConsoleWrite("[Connection] Attempting to find the main channel.");
+                SendTeamspeakQuery(TeamspeakQuery.BuildChannelFindQuery(Ts3MainChannelName));
+                if (!PerformResponseHandling(Queries.OpenConnectionMain))
+                {
+                    return;
+                }
+                _mMainChannel.SetBasicData(_mTsResponse.Sections[0].Groups[0]);
+                ConsoleWrite("[Connection] ^2Found the channel named {0}.", _mMainChannel.TsName);
 
-                    ConsoleWrite("[Connection] Attempting to alter the Server Query Client's name.");
-                    SendTeamspeakQuery(TeamspeakQuery.BuildChangeNicknameQuery(Ts3QueryNickname));
-                    if (!PerformResponseHandling(Queries.OpenConnectionNickname))
-                    {
-                        return;
-                    }
-                    if (_mTsResponse.Id != "513")
-                    {
-                        ConsoleWrite("[Connection] ^2Changed the Server Query Client's name to {0}.", Ts3QueryNickname);
-                    }
-                    _mTsResponse = new TeamspeakResponse("error id=0 msg=ok");
+                ConsoleWrite("[Connection] Attempting to alter the Server Query Client's name.");
+                SendTeamspeakQuery(TeamspeakQuery.BuildChangeNicknameQuery(Ts3QueryNickname));
+                if (!PerformResponseHandling(Queries.OpenConnectionNickname))
+                {
+                    return;
+                }
+                if (_mTsResponse.Id != "513")
+                {
+                    ConsoleWrite("[Connection] ^2Changed the Server Query Client's name to {0}.", Ts3QueryNickname);
+                }
+                _mTsResponse = new TeamspeakResponse("error id=0 msg=ok");
 
-                    ConsoleWrite("[Connection] Attempting to find existing pickup, team, and squad channels.");
-                    SendTeamspeakQuery(TeamspeakQuery.BuildChannelListQuery());
-                    List<TeamspeakChannel> tsChannels = new List<TeamspeakChannel>();
-                    foreach (TeamspeakResponseSection tsResponseSection in _mTsResponse.Sections)
+                ConsoleWrite("[Connection] Attempting to find existing pickup, team, and squad channels.");
+                SendTeamspeakQuery(TeamspeakQuery.BuildChannelListQuery());
+                List<TeamspeakChannel> tsChannels = new List<TeamspeakChannel>();
+                foreach (TeamspeakResponseSection tsResponseSection in _mTsResponse.Sections)
+                {
+                    foreach (TeamspeakResponseGroup tsResponseGroup in tsResponseSection.Groups)
                     {
-                        foreach (TeamspeakResponseGroup tsResponseGroup in tsResponseSection.Groups)
+                        tsChannels.Add(new TeamspeakChannel(tsResponseGroup));
+                    }
+                }
+                foreach (TeamspeakChannel tsChannel in tsChannels)
+                {
+                    foreach (String tsName in Ts3SubChannelNames)
+                    {
+                        if (tsChannel.TsName == tsName)
                         {
-                            tsChannels.Add(new TeamspeakChannel(tsResponseGroup));
-                        }
-                    }
-                    foreach (TeamspeakChannel tsChannel in tsChannels)
-                    {
-                        foreach (String tsName in Ts3SubChannelNames)
-                        {
-                            if (tsChannel.TsName == tsName)
-                            {
-                                _mPickupChannels.Add(tsChannel);
-                                ConsoleWrite("[Connection] ^2Found ^bPickup^n Channel: {0} ({1}).", tsChannel.TsName, tsChannel.TsId);
-                                break;
-                            }
+                            _mPickupChannels.Add(tsChannel);
+                            ConsoleWrite("[Connection] ^2Found ^bPickup^n Channel: {0} ({1}).", tsChannel.TsName, tsChannel.TsId);
+                            break;
                         }
                     }
                 }
@@ -54241,10 +54116,7 @@ namespace PRoConEvents
             {
                 ConsoleWrite("[Closing] Shutting down TSCV.");
 
-                if (!UseWebService)
-                {
-                    _mTsConnection.Close();
-                }
+                _mTsConnection.Close();
 
                 ConsoleWrite("[Closing] Cleaning up resources.");
                 _mClientTsInfo.Clear();
@@ -54398,53 +54270,7 @@ namespace PRoConEvents
                 _mTsReconnecting = false;
                 return false;
             }
-
-            public void UpdateTsInfoFromService()
-            {
-                _plugin.Log.Debug(() => "Preparing to fetch information from teamspeak web service.", 7);
-                if (String.IsNullOrEmpty(WebServiceURL))
-                {
-                    _plugin.Log.Error("Cannot fetch from teamspeak web service, no URL provided.");
-                    return;
-                }
-
-                using (WebClient client = new WebClient())
-                {
-                    try
-                    {
-                        List<TeamspeakClient> clientInfo = new List<TeamspeakClient>();
-                        String clientResponse = _plugin.ClientDownloadTimer(client, WebServiceURL);
-                        ArrayList tsClientList = (ArrayList)JSON.JsonDecode(clientResponse);
-                        foreach (Hashtable tsClient in tsClientList)
-                        {
-                            TeamspeakClient parsedTsClient = new TeamspeakClient();
-                            parsedTsClient.TsName = (String)tsClient["client_nickname"];
-                            parsedTsClient.AdvIpAddress = (String)tsClient["connection_client_ip"];
-                            parsedTsClient.MedChannelId = Int32.Parse((String)tsClient["cid"]);
-                            parsedTsClient.MedChannelName = (String)tsClient["channel_name"];
-
-                            // Only add the client to the list of online clients if they are in a monitored channel
-                            if (parsedTsClient.MedChannelName == Ts3MainChannelName ||
-                                Ts3SubChannelNames.Contains(parsedTsClient.MedChannelName))
-                            {
-                                clientInfo.Add(parsedTsClient);
-                            }
-                        }
-                        _mClientTsInfo = clientInfo;
-                    }
-                    catch (Exception e)
-                    {
-                        if (e is WebException)
-                        {
-                            _plugin.Log.Warn("Issue connecting to teamspeak web service.");
-                            return;
-                        }
-                        _plugin.HandleException(new AException("Error while parsing teamspeak web service data.", e));
-                        return;
-                    }
-                }
-            }
-
+            
             private void UpdateTsInfo()
             {
                 List<TeamspeakClient> clientInfo = new List<TeamspeakClient>();
