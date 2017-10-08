@@ -13,7 +13,7 @@
 </p>
 <h2>Overview</h2>
 <p>
-    Admin Toolset with a plethora of features, ~100 available in-game commands, and many customization options.
+    Admin Toolset with a plethora of features, Over 100 available in-game commands, and many customization options.
     AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any
     setup.
     Includes a cross-server ban enforcer with advanced enforcement features, metabans support, global admin management,
@@ -24,26 +24,26 @@
     <li>
         <b>Extensive In-Game Commands.</b>
         Commands for player killing, kicking, punishing, banning, unbanning, moving, joining, whitelisting, messaging,
-        etc, etc... ~100 available in-game commands. Commands can be accessed from in-game, Procon's chat window,
+        etc, etc... Over 100 available in-game commands. Commands can be accessed from in-game, Procon's chat window,
         database, and from other plugins.
     </li>
     <li>
         <b>Customizable User Roles.</b>
-        Custom user roles can be created for admins and players, with each role given access to only the commands you want them
+        Custom user roles can be created for admins and players with each role given access to only the commands you want them
         to use. Default guest role is given to all players and can be edited to your desired specs. Roles and powers
         are automatically synced between servers so you only need to change user information once. Soldiers assigned
         to users will also keep their powers even if they change their in-game names.
     </li>
     <li>
         <b>Setting sync between servers.</b>
-        All changes to plugin settings are stored in the database and can be automatically synced between your Procon
+        Changes to plugin settings are stored in the database and can be automatically synced between your Procon
         layers. Setting up new layers or switching layers is a breeze as the settings for existing servers are
         automatically imported on startup.
     </li>
     <li>
         <b>Infraction Tracking System.</b>
         Punish/forgive players for breaking rules on your servers. Everything is tracked so the more infractions they
-        commit, the worse their punishment automatically gets. Created so all players can be treated equally based on
+        commit the worse their punishment automatically gets. Created so all players are treated equally based on
         their history, regardless of who is issuing punishments against them. Heavily customizable.
     </li>
     <li>
@@ -52,7 +52,7 @@
         Documentation below. A local leaderboard for reputation is provided in the BFAdminCP.
     </li>
     <li>
-        <b>Quick Player Report and Admin Call Handling, with email support.</b>
+        <b>Quick Player Report and Admin Call Handling with email support.</b>
         Notification system and quick handling features for all admin calls and player reports.
         Reports can be referenced by number for instant action. Automatic PBSS are triggered on reported players.
     </li>
@@ -233,14 +233,14 @@
     This plugin requires a MySQL database, and XpKiller's Stat logger plugin to operate. If you do not have an existing
     database and/or a Procon layer we suggest using Branzone's hosting services. Our group has been with them across
     BF3, BF4, and Hardline with no issues.<br/>
-    <b>Web/Database Hosting:</b><a href="https://www.branzone.com/aff.php?aff=226&pid=266" target="_blank">
+    <b>Web/Database Hosting Suggestion:</b><a href="https://www.branzone.com/aff.php?aff=226&pid=266" target="_blank">
     Branzone MySQL Databases</a><br/>
-    <b>Procon Layer Hosting:</b><a href="https://www.branzone.com/aff.php?aff=226&pid=192" target="_blank">
+    <b>Procon Layer Hosting Suggestion:</b><a href="https://www.branzone.com/aff.php?aff=226&pid=192" target="_blank">
     Branzone Procon Layers</a>
 </p>
 <h4><b>2. XpKiller's "Procon Chat, GUID, Stats and Mapstats Logger" Plugin</b></h4>
 <p>
-    AdKats will only run if one of this plugin is (1) using the same database AdKats uses, and (2) running on every
+    AdKats will only run if one of this plugin is using the same database AdKats uses, and running on every
     battlefield Server you plan to install AdKats on.
     Running it along-side AdKats on each Procon layer is advised, and will ensure these conditions are met.
 </p>
@@ -265,18 +265,17 @@
 </p>
 <p>
     <b>WARNING: Running AdKats on a Linux environment is not advised or fully supported.</b>
-    Testing on linux environments has been limited for AdKats. Some things have been mitigated, namely issues with connecting over HTTPS for plugin documentation, updates, and startup, but this was simply necessary because the plugin wouldn't start otherwise. However, beyond that there has been very little or no full fledged testing on linux environments for this plugin, and there are so many facets of the plugin now I cannot guarantee functionality on that platform.
+    Testing on linux environments has been limited for AdKats. Some issues have been mitigated, namely issues with connecting over HTTPS for plugin documentation, updates, and startup, but this was necessary because the plugin wouldn't start otherwise. However, beyond that there has been very little full fledged testing on linux environments for this plugin, and there are so many facets of the plugin now I cannot guarantee functionality on that platform.
 </p>
 <p>
-    <b>WARNING: Do NOT run more than one instance of AdKats on a single procon layer at the same time.</b>
+    <b>WARNING: DO NOT run more than one instance of AdKats on a single procon layer at the same time.</b>
     Procon provides the ability to have a single layer monitor multiple servers at the same time, and this is normally a good thing. However, AdKats is nearly the same size (logic wise) as procon itself now, and running multiple instances on the same process can result in heavy performance issues and instability. Do not use this multiple-server-per-layer functionality unless only ONE of the servers on the layer has AdKats running. Each server should have its own dedicated layer when running AdKats.
 </p>
 <ol>
     <li>
         <b>Install XpKiller's Stat logger plugin.</b>
         Download and install the latest universal version of XpKiller's
-        <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats
-            Logger</a>.
+        <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>.
         Make sure stat logger is running without error for a few minutes after installation.
         If you are already running the BF3 only version of stat logger, that is fine,
         but the universal version is preferred for full functionality.
@@ -2449,57 +2448,125 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 </p>
 <h3>0. Instance Settings:</h3>
 <ul>
-    <li><b>'Auto-Enable/Keep-Alive'</b> - When this is enabled, AdKats will auto-recover from shutdowns and auto-restart
-        if disabled.
+    <li><b>'Auto-Enable/Keep-Alive'</b> - 
+        When this is enabled, AdKats will auto-recover from shutdowns and auto-restart if disabled.
+    </li>
+    <li><b>'Lock Settings - Create Password'</b> - 
+        Lock settings with a new created password. 
+        Must be greater than 5 characters.
+    </li>
+    <li><b>'Lock Settings'</b> - 
+        Lock settings with the existing settings password.
+    </li>
+    <li><b>'Unlock Settings'</b> - 
+        Unlock settings with the existing settings password.
     </li>
 </ul>
 <h3>1. Server Settings:</h3>
 <ul>
-    <li><b>'Lock Settings - Create Password'</b> - Lock settings with a new created password > 5 characters.</li>
-    <li><b>'Lock Settings'</b> - Lock settings with the existing settings password.</li>
-    <li><b>'Unlock Settings'</b> - Unlock settings with the existing settings password.</li>
-    <li><b>'Setting Import'</b> - Enter an existing server ID here and all settings from that instance will be imported
-        here. All settings on this instance will be overwritten.<br/></li>
-    <li><b>'Server ID (Display)'</b> - ID of this server. Automatically set via the database.</li>
-    <li><b>'Server IP (Display)'</b> - IP address and port of this server. Automatically set via Procon.<br/></li>
-    <li><b>'Low Population Value'</b> - Number of players at which the server is deemed 'Low Population'.</li>
-    <li><b>'High Population Value'</b> - Number of players at which the server is deemed 'High Population'.</li>
+    <li><b>'Setting Import'</b> - 
+        Enter an existing server ID here and all settings from that instance will be imported here. 
+        Settings on this instance will be overwritten.
+    </li>
+    <li><b>'Server ID (Display)'</b> - 
+        ID of this server. 
+        Automatically set by the database.
+    </li>
+    <li><b>'Server IP (Display)'</b> - 
+        IP address and port of this server. 
+        Automatically set by Procon.
+    </li>
+    <li><b>'Server Game (Display)'</b> - 
+        Game version of this server as recognized by AdKats.
+        Automatically set by Procon.
+    </li>
+    <li><b>'Low Population Value'</b> - 
+        Number of players at which the server is deemed 'Low Population'.
+        Server is consider 'Medium Population' when the number of players is between the low and high population values.
+    </li>
+    <li><b>'High Population Value'</b> - 
+        Number of players at which the server is deemed 'High Population'.
+        Server is consider 'Medium Population' when the number of players is between the low and high population values.
+    </li>
+    <li><b>'Automatic Server Restart When Empty'</b> - 
+        Enable/Disable automatically rebooting the server when it is empty. 
+        Automatically accounts for seeder players.
+    </li>
+    <li><b>'Automatic Restart Minimum Uptime Hours'</b> - 
+        When automatically rebooting the server, this is the minimum number of hours that the server must be online before the automatic reboot is triggered.
+    </li>
+    <li><b>'Automatic Procon Reboot When Server Reboots'</b> - 
+        Only enable this setting if you have procon set up on a service which automatically reboots if it crashes. 
+        This setting will cause procon to kill its own process shortly after the server is rebooted.
+    </li>
 </ul>
 <h3>2. MySQL Settings:</h3>
 <ul>
-    <li><b>'MySQL Hostname'</b> - Hostname of the MySQL server AdKats should connect to.</li>
-    <li><b>'MySQL Port'</b> - Port of the MySQL server AdKats should connect to, most of the time it's 3306.</li>
-    <li><b>'MySQL Database'</b> - Database name AdKats should use for storage. Creation script given in database
-        section.
+    <li><b>'MySQL Hostname'</b> to- 
+        Hostname of the MySQL server AdKats should connect to.
     </li>
-    <li><b>'MySQL Username'</b> - Username of the MySQL server AdKats should connect to.</li>
-    <li><b>'MySQL Password'</b> - Password of the MySQL server AdKats should connect to.</li>
+    <li><b>'MySQL Port'</b> - 
+        Port of the MySQL server AdKats should connect to.
+        Most of the time it's 3306.
+    </li>
+    <li><b>'MySQL Database'</b> - 
+        Database name AdKats should use for storage. 
+        Creation script given in database section.
+    </li>
+    <li><b>'MySQL Username'</b> - 
+        Username of the MySQL server AdKats should connect to.
+    </li>
+    <li><b>'MySQL Password'</b> - 
+        Password of the MySQL server AdKats should connect to.
+    </li>
 </ul>
 <h3>3. User Settings:</h3>
 <ul>
-    <li><b>'Add User'</b> - Add a user to the user list by entering their unique username here.</li>
-    <li><b>*User Email*</b> - Current stored email of the listed user.</li>
-    <li><b>*User Expiration*</b> - Date that the user will revert to Default Guest role.</li>
-    <li><b>*User Notes*</b> - Any notes that are logged for the user.</li>
-    <li><b>*User Role*</b> - Current role of the listed user.</li>
-    <li><b>*Delete User?*</b> - Type delete in this line to delete the listed user.</li>
-    <li><b>*Add Soldier?*</b> - Type a logged soldier name in this line to connect it to the listed user. Unique
-        soldiers cannot be connected to more than one user at a time.
+    <li><b>'Add User'</b> - 
+        Add a user to the user list by entering their unique username here.
     </li>
-    <li><b>*Delete Soldier?*</b> - Type delete in this line to remove the listed soldier connection from the user.</li>
+    <li><b>*User Email*</b> - 
+        Current stored email address of the listed user.
+    </li>
+    <li><b>*User Expiration*</b> - 
+        Date that the user will revert to Default Guest role.
+    </li>
+    <li><b>*User Notes*</b> - 
+        Any notes that are logged for the user.
+    </li>
+    <li><b>*User Role*</b> - 
+        Current role of the listed user.
+    </li>
+    <li><b>*Delete User?*</b> - 
+        Type delete in this line to delete the listed user.
+    </li>
+    <li><b>*Add Soldier?*</b> - 
+        Type a logged soldier name in this line to connect it to the listed user. 
+        Unique soldiers cannot be connected to more than one user at a time.
+    </li>
+    <li><b>*Delete Soldier?*</b> - 
+        Type delete in this line to remove the listed soldier connection from the user.
     </li>
 </ul>
 <h3>3-2. Special Player Display:</h3>
 <ul>
-    <li><b>*Special Player Group Name* (Display)</b> - Displays all imperical players matching the given special player group for either all servers or this server specifically.</li>
+    <li><b>*Special Player Group Name* (Display)</b> - 
+        Displays all players specifically assigned the given group for either all servers or this server specifically.
+    </li>
 </ul>
 <h3>3-3. Verbose Special Player Display:</h3>
 <ul>
-    <li><b>*Verbose Special Player Group Name* (Display)</b> - Same as section 3-2 but includes all players part of these groups because of extraneous cases, not being explicitly added to the group.</li>
+    <li><b>*Verbose Special Player Group Name* (Display)</b> - 
+        Displayes all players assigned to a group, even if they aren't specifically assigned to it. 
+        For example admins would be included in this list if you are automatically assigning reserved slot to admins.
+        Many things can cause players to be assigned groups, and this section displays the final result.
+    </li>
 </ul>
 <h3>4. Role Settings:</h3>
 <ul>
-    <li><b>'Add Role'</b> - Type a new role name in this line to add a new role. Role names must be unique.</li>
+    <li><b>'Add Role'</b> - 
+        Type a new role name in this line to add a new role. Role names must be unique.
+    </li>
 </ul>
 <p>
     Listed below "Add Role" are all the command assignments for each role.
@@ -2507,523 +2574,889 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     Type delete in the "delete?" line to delete the user role.
     When a user role is deleted, all users on that role are changed to the Default Guest role.
     You cannot delete the Default Guest role.
+    Commands that are classified as admin commands (commands that when enabled will make a role be considered admin), show up in the list with [ADMIN] next to them. Commands that are causing a role to be considered admin will have a '<---' next to the command, so it's easy to find those commands in the list.
 </p>
 <h3>4-2. Role Group Settings:</h3>
 <p>
-    Listed in this section is an entry for each possible special player group, on every role in your role list. Setting 'Assign' to any entry will place all users/soldiers under that role on the selected special player group. Some settings are forced to 'Assign' per settings in other places in the program, for example if you've fed reserved slots for admins that group is force assigned for all admin roles.
+    Listed in this section is an entry for each possible special player group, on every role in your role list. 
+    Setting 'Assign' to any entry will place all users/soldiers under that role on the selected special player group. 
+    Some groups may be forced to 'Assign' by other options you've set around AdKats, for example if you've fed reserved slots for admins that group is force assigned for all admin roles.
 </p>
 <h3>5. Command Settings:</h3>
 <ul>
-    <li><b>'Minimum Required Reason Length'</b> - The minimum length a reason must be for commands that require a reason
-        to execute. This only applies to admin commands.
+    <li><b>'Minimum Required Reason Length'</b> - 
+        The minimum length a reason must be for commands that require a reason to execute. 
+        This only applies to admin commands.
     </li>
-    <li><b>'Minimum Report Handle Seconds'</b> - The minimum number of seconds before a report can be acted on by admins
-        using report ID.
+    <li><b>'Minimum Report Handle Seconds'</b> - 
+        The minimum number of seconds before a report can be acted on by admins using report ID.
     </li>
-    <li><b>'Maximum Temp-Ban Duration Minutes'</b> - The maximum number of minutes that a temp-ban can be issued for.
+    <li><b>'Minimum Minutes Into Round To Use Assist'</b> - 
+        The number of minutes that a round needs to be active before players are allowed to use the !assist command.
     </li>
-    <li><b>'Allow Commands from Admin Say'</b> - When this is enabled, all admins with procon access have unrestricted
-        access to all enabled commands through procon's chat tab. When issuing commands through procon's chat tab, the
-        commands must be prefixed with a / for them to work.
+    <li><b>'Maximum Temp-Ban Duration Minutes'</b> - 
+        The maximum number of minutes that a temp-ban can be issued for.
     </li>
-    <li><b>'Bypass all command confirmation -DO NOT USE-'</b> - Disables all command confirmation. Do not use this
-        setting unless you want to kick/ban the wrong people.
-    <li><b>'External plugin player commands'</b> - List of commands (witjh prefixes) that general players can access.
-        Currently used for the help command.
-    <li><b>'External plugin admin commands'</b> - List of commands (with prefixes) that admins can access. Currently
-        used for the help command.
+    <li><b>'Countdown Duration before a Nuke is fired'</b> - 
+        When an admin or the auto-nuke system issues a nuke on the server, this is the number of seconds warning that the server is given before the nuke is actually fired.
     </li>
-    <li><b>'Command Target Whitelist Commands'</b> - List of commands that will be blocked when attempted to issue
-        on command whitelisted players.
+    <li><b>'Allow Commands from Admin Say'</b> - 
+        When this is enabled, all admins with procon access have unrestricted access to all enabled commands through procon's chat tab. 
+        When issuing commands through procon's chat tab, the commands must be prefixed with a / for them to work.
+    </li>
+    <li><b>'Bypass all command confirmation -DO NOT USE-'</b> - 
+        Disables all command confirmation. Do not use this setting unless you want to kick/ban the wrong people.
+    </li>
+    <li><b>'External plugin player commands'</b> - 
+        List of commands from other plugins (with prefixes) that general players can access. Currently used for the help command.
+    </li>
+    <li><b>'External plugin admin commands'</b> - 
+        List of commands from other plugins (with prefixes) that admins can access. Currently used for the help command.
+    </li>
+    <li><b>'Command Target Whitelist Commands'</b> - 
+        List of commands that will be blocked when attempted to issue on players which have the command target whitelist group.
     </li>
 </ul>
 <h3>6. Command List:</h3>
 <ul>
-    <li><b>*Active*</b> - Globally disable or enable the given command.</li>
+    <li><b>*Active*</b> - 
+        Globally disable or enable the given command.
+    </li>
     <li><b>*Logging*</b> - Set whether usage of this command is logged. All commands log by default.
     </li>
-    <li><b>*Text*</b> - Globally change the in-game text for this command. Command text must be unique.</li>
-    <li><b>*Access Method*</b> - The method that must be used to access this command from in-game. Either 'Any', 'AnyHidden', 'AnyVisible', 'GlobalVisible', 'TeamVisible', 'SquadVisible'.</li>
+    <li><b>*Text*</b> - 
+        Globally change the in-game text for this command. Command text must be unique.
+    </li>
+    <li><b>*Access Method*</b> - 
+        The method that must be used to access this command from in-game. 
+        Options are 'Any', 'AnyHidden', 'AnyVisible', 'GlobalVisible', 'TeamVisible', and 'SquadVisible'.
+    </li>
 </ul>
 <h3>7. Punishment Settings:</h3>
 <ul>
-    <li><b>'Punishment Hierarchy'</b> - List of punishments in order from lightest to most severe. Index in list is the
-        action taken at that number of points.
+    <li><b>'Punishment Hierarchy'</b> - 
+        List of punishments in the order you want them to be issued on players. Index in the list is the action taken at that number of infraction points. The default hierarchy is only an example list containing the available options, you should customize it for your server.
     </li>
-    <li><b>'Combine Server Punishments'</b> - Whether to make punishes from all servers on this database affect players
-        on this server. Default is false.
+    <li><b>'Combine Server Punishments'</b> - 
+        Whether to make punishes from all servers on the connected database affect players on this server. Default is false.
     </li>
-    <li><b>'Automatic Forgives'</b> - Whether to enable automatic forgives on players who have positive reputation
-        but still have infractions on the current server.
+    <li><b>'Automatic Forgives'</b> - 
+        Whether to enable automatic forgives on players who have infractions on the current server. These automatic forgives are given after they have clean play for a defined amount of time. By default auto-forgives start a month after last punishment, and every 2 weeks thereafter.
     </li>
-    <li><b>'Automatic Forgive Days Since Punished'</b> - The number of days since last punished required for an
-        automatic forgive to be issued.
+    <li><b>'Automatic Forgive Days Since Punished'</b> - 
+        The number of days since last punished required for an automatic forgive to be issued. Default is 30 days.
     </li>
-    <li><b>'Automatic Forgive Days Since Forgiven'</b> - The number of days since last forgiven required for an
-        automatic forgive to be issued.
+    <li><b>'Automatic Forgive Days Since Forgiven'</b> - 
+        The number of days since last forgiven required for an automatic forgive to be issued. Default is 14 days.
     </li>
-    <li><b>'Only Kill Players when Server in low population'</b> - When server population is below 'Low Server Pop
-        Value', only kill players, so server does not empty. Player points will be incremented normally.
+    <li><b>'Only Kill Players when Server in low population'</b> - 
+        When server population is below 'Low Population Value' only kill players so server does not empty. Player infraction points will be incremented normally.
     </li>
-    <li><b>'Use IRO Punishment'</b> - Whether the IRO punishment described in the infraction tracking docs will be used.
+    <li><b>'Use IRO Punishment'</b> - 
+        Whether the IRO punishment described in the infraction tracking docs will be used.
     </li>
-    <li><b>'IRO Timeout Minutes'</b> - Number of minutes after a punish that IRO status expires for the next punish.
+    <li><b>'IRO Timeout Minutes'</b> - 
+        Number of minutes after a punish that IRO status expires for the next punish.
     </li>
-    <li><b>'IRO Punishment Overrides Low Pop'</b> - When punishing players, if a player gets an IRO punish, it will
-        ignore whether server is in low population or not.
+    <li><b>'IRO Punishment Overrides Low Pop'</b> - 
+        When punishing players if a player gets an IRO punish it will ignore whether server is in low population or not.
+    </li>
+    <li><b>'IRO Punishment Infractions Required to Override'</b> - 
+        Minimum number of infraction points a player must have for IRO punishments to override low population actions.
     </li>
 </ul>
 <h3>8. Email Settings:</h3>
 <ul>
-    <li><b>'Send Emails.'</b> - Whether sending emails will be enabled. By default the adkatsbattlefield gmail account
-        will be used to send emails. When this is true, all reports and admin calls will be send to the supplied email
-        addresses on users and the extra email list.
+    <li><b>'Send Emails.'</b> - 
+        Whether sending emails will be enabled.
     </li>
-    <li><b>'Use SSL?' - Whether SSL will be used in connection to given SMTP server.</b></li>
-    <li><b>'SMTP-Server address.' - Address of the SMTP server.</b></li>
-    <li><b>'SMTP-Server port.'</b> - Port to use for the SMTP server.</li>
-    <li><b>'Sender address.'</b> - The email address used to send all emails.</li>
-    <li><b>'SMTP-Server username.'</b> - The username used to authenticate into the SMTP server.</li>
-    <li><b>'SMTP-Server password.'</b> - The password used to authenticate into the SMTP server.</li>
-    <li><b>'Custom HTML Addition.'</b> - Custom HTML to add to the end of each email. String replacements include.
-        %player_id%, $player_name%, %player_guid%, %player_pbguid%, and %player_ip%.
+    <li><b>'Use SSL?'</b> - 
+        Whether SSL will be used for connection to the SMTP server.
     </li>
-    <li><b>'Extra Recipient Email Addresses.'</b> - List of all extra email addresses beside user email addresses that
-        you would like to blast.
+    <li><b>'SMTP-Server address.'</b> - 
+        Address of the SMTP server.
     </li>
-    <li><b>'Only Send Report Emails When Admins Offline.'</b> - Only send report notification emails when there are no
-        admins in the server.
+    <li><b>'SMTP-Server port.'</b> - 
+        Port to use for the SMTP server.
+    </li>
+    <li><b>'Sender address.'</b> - 
+        The email address used to send all emails.
+    </li>
+    <li><b>'SMTP-Server username.'</b> - 
+        The username used to authenticate into the SMTP server.
+    </li>
+    <li><b>'SMTP-Server password.'</b> - 
+        The password used to authenticate into the SMTP server.
+    </li>
+    <li><b>'Custom HTML Addition.'</b> - 
+        Custom HTML to add to the end of each email. 
+        String replacements include: %player_id%, $player_name%, %player_guid%, %player_pbguid%, %player_ip%
+    </li>
+    <li><b>'Extra Recipient Email Addresses.'</b> - 
+        List of all extra email addresses beside user email addresses that you would like to blast.
+    </li>
+    <li><b>'Only Send Report Emails When Admins Offline.'</b> - 
+        Only send report notification emails when there are no admins in the server.
+    </li>
+</ul>
+<h3>8-2. PushBullet Settings:</h3>
+<ul>
+    <li><b>'Send PushBullet Reports'</b> - 
+        Whether to enable the PushBullet integration for AdKats reports against players.
+    </li>
+    <li><b>'PushBullet Access Token'</b> - 
+        The access token required for sending notes through the PushBullet service.
+    </li>
+    <li><b>'PushBullet Note Target'</b> - 
+        Either Private or Channel. 
+        Private messages are to a specific person, channel messages need a separate channel tag.
+    </li>
+    <li><b>'PushBullet Channel Tag'</b> - 
+        If Channel is chosen for the note target this setting takes the required tag to identify which channel to use.
+    </li>
+    <li><b>'Only Send PushBullet Reports When Admins Offline'</b> - 
+        When this is enabled AdKats will only use the PushBullet system when there are no admins in the server.
     </li>
 </ul>
 <h3>9. TeamSwap Settings:</h3>
 <ul>
-    <li><b>'Ticket Window High'</b> - When either team is above this ticket count, nobody (except admins) will be able
-        to use TeamSwap.
+    <li><b>'Ticket Window High'</b> - 
+        When either team is above this ticket count, nobody (except admins) will be able to use TeamSwap.
     </li>
-    <li><b>'Ticket Window Low'</b> - When either team is below this ticket count, nobody (except admins) will be able to
-        use TeamSwap.
+    <li><b>'Ticket Window Low'</b> - 
+        When either team is below this ticket count, nobody (except admins) will be able to use TeamSwap.
     </li>
 </ul>
 <h3>A10. Admin Assistant Settings:</h3>
 <ul>
-    <li><b>'Enable Admin Assistants'</b> - Whether admin assistant statuses can be assigned to players.</li>
-    <li><b>'Minimum Confirmed Reports Per Month'</b> - How many confirmed reports the player must have in the past month
-        to be considered an admin assistant.
+    <li><b>'Enable Admin Assistants'</b> - 
+        Whether admin assistant statuses can be assigned to players.
     </li>
-    <li><b>'Enable Admin Assistant Perk'</b> - Whether admin assistants will get the TeamSwap perk for their help.</li>
-    <li><b>'Use AA Report Auto Handler'</b> - Whether the internal auto-handling system for admin assistant reports is
-        enabled.
+    <li><b>'Minimum Confirmed Reports Per Month'</b> - 
+        How many confirmed reports the player must have in the past month to be considered an admin assistant.
     </li>
-    <li><b>'Auto-Report-Handler Strings'</b> - List of trigger words/phrases that the auto-handler will act on. One per
-        line.
+    <li><b>'Enable Admin Assistant Perk'</b> - 
+        Whether admin assistants will get the TeamSwap perk for their help.
+    </li>
+    <li><b>'Use AA Report Auto Handler'</b> - 
+        Whether the internal auto-handling system for admin assistant reports is enabled.
+    </li>
+    <li><b>'Auto-Report-Handler Strings'</b> - 
+        List of trigger words/phrases that the auto-handler will act on. One per line.
     </li>
 </ul>
 <h3>A11. Player Mute Settings:</h3>
 <ul>
-    <li><b>'On-Player-Muted Message'</b> - The message given to players when they are muted by an admin.</li>
-    <li><b>'On-Player-Killed Message'</b> - The message given to players when they are killed for talking in chat after
-        muting.
+    <li><b>'On-Player-Muted Message'</b> - 
+        The message given to players when they are muted by an admin.
     </li>
-    <li><b>'On-Player-Kicked Message'</b> - The message given to players when they are kicked for talking more than X
-        times in chat after muting.
+    <li><b>'On-Player-Killed Message'</b> - 
+        The message given to players when they are killed for talking in chat after muting.
     </li>
-    <li><b>'# Chances to give player before kicking'</b> - The number of chances players get to talk after being muted
-        before they are kicked. After testing, 5 appears to be the perfect number, but change as desired.
+    <li><b>'On-Player-Kicked Message'</b> - 
+        The message given to players when they are kicked for talking more than X times in chat after muting.
     </li>
-    <li><b>'Ignore commands for mute enforcement'</b> - Whether to ignore commands when enforcing mute status on a
-        player.
+    <li><b>'# Chances to give player before kicking'</b> - 
+        The number of chances players get to talk after being muted before they are kicked. 
+        After testing, 4 appears to be the perfect number, but change as desired.
+    </li>
+    <li><b>'Ignore commands for mute enforcement'</b> - 
+        Whether to ignore commands when enforcing mute status on a player.
     </li>
 </ul>
 <h3>A12. Messaging Settings:</h3>
 <ul>
-    <li>
-        <b>'Display Admin Name in Kick and Ban Announcement'</b>
+    <li><b>'Display Admin Name in Action Announcement'</b> -
         When players are kicked or banned from the server, the whole server is told.
-        This changes whether the message includes the kicking or banning admin name, instead of just "admin".
+        This changes whether the message includes the acting admin name.
     </li>
-    <li><b>'Display New Player Announcement'</b> - Whether to inform admins when a player joins the server for the
-        first time.
+    <li><b>'Display New Player Announcement'</b> - 
+        Whether to inform admins when a player joins the server for the first time. 
+        This message is displayed when the player actually spawns.
     </li>
-    <li><b>'Display Player Name Change Announcement'</b> - Whether to inform admins when a player joins the server with
-        a changed name.
+    <li><b>'Display Player Name Change Announcement'</b> - 
+        Whether to inform admins when a player joins the server with a changed name, or a changed clan tag.
     </li>
-    <li><b>'Display Targeted Player Left Notification'</b> - Whether to inform admins when a player they acted on
-        leaves the server.
+    <li><b>'Display Targeted Player Left Notification'</b> - 
+        Whether to inform admins when a player they acted on leaves the server.
     </li>
-    <li><b>'Display Ticket Rates in Procon Chat'</b> - Whether to display team ticket loss/gain rates in the Procon
-        chat tab. Useful for setting values in auto-surrender.
+    <li><b>'Display Ticket Rates in Procon Chat'</b> - 
+        Whether to display team ticket loss/gain rates in the Procon chat tab. 
+        Useful for setting values in auto-surrender.
+        This also includes flag estimates for conquest, and estimations of the winning team based on current ticket loss rates.
     </li>
-    <li><b>'Inform reputable players and admins of admin joins'</b> - Whether to tell admins and reputable players that an admin joins the server.
+    <li><b>'Inform players of reports against them'</b> - 
+        Whether to inform players when someone reports them.
     </li>
-    <li><b>'Inform players of reports against them'</b> - Whether to inform targeted players when someone reports them.
+    <li><b>'Player Inform Exclusion Strings'</b> - 
+        List of words or phrases that will cancel informing reported players.
+        For example, use if you don't want players to know if someone reports them with "hack", or "cheat" in the message.
     </li>
-    <li><b>'Player Inform Exclusion Strings'</b> - List of words or phrases that will cancel informing reported players.
-        For example, use if you don't want players to know if someone reports them with "hack", or "cheat" in the
-        message.
+    <li><b>'Inform reputable players of admin joins'</b> - 
+        Whether to tell reputable players that an admin joins the server.
     </li>
-    <li><b>'Yell display time seconds'</b> - The integer time in seconds that yell messages will be displayed.</li>
-    <li><b>'Pre-Message List'</b> - List of messages, mapped to IDs, that can be used in action commands.
-        e.g. !kill mustardman 23. The !whatis command can be used to check what each ID references.</li>
-    <li><b>'Require Use of Pre-Messages'</b> - Whether using pre-messages in commands is required instead of custom
-        messages.
+    <li><b>'Inform admins of admin joins'</b> - 
+        Whether to tell admins that an admin joins the server.
     </li>
-    <li><b>'Use first spawn message'</b> - Whether to use the first spawn message for players.</li>
-    <li><b>'First spawn message text'</b> - Message to send players when they first spawn in the server. Uses tell.</li>
-    <li><b>'Use First Spawn Reputation and Infraction Message'</b> - Whether to inform players of their current server
-        reputation and infraction count after the first spawn message is shown.</li>
+    <li><b>'Yell display time seconds'</b> - 
+        The time in seconds that yell messages will be displayed.
+    </li>
+    <li><b>'Pre-Message List'</b> - 
+        List of messages mapped to IDs that can be used in action commands. 
+        e.g. !kill mustardman 23. 
+        The !whatis command can be used to check what each ID means.
+    </li>
+    <li><b>'Require Use of Pre-Messages'</b> - 
+        Whether using pre-messages in commands is required instead of custom messages.
+    </li>
+    <li><b>'Use first spawn message'</b> -
+        Whether to use the first spawn message for players.
+    </li>
+    <li><b>'First spawn message text'</b> - 
+        Message to send players when they first spawn in the server. Uses tell.
+    </li>
+    <li><b>'Use First Spawn Reputation and Infraction Message'</b> - 
+        Whether to inform players of their current server reputation and infraction count after the first spawn message is shown.
+    </li>
+    <li><b>'Use Perk Expiration Notification'</b> - 
+        Whether to tell players that they have perks which are expiring soon.
+        This message is sent when they first spawn into the server.
+    </li>
+    <li><b>'Perk Expiration Notify Days Remaining'</b> - 
+        The number of days before their perks expire that the notification messages start showing.
+    </li>
 </ul>
 <h3>A12-2. SpamBot Settings:</h3>
+<p>
+    To bypass any whitelist (aside from the admin whitelist), simply add [whitelistbypass] to the start of any spambot message to make it always display that message.
+    You can also add any map or mode combination to the start of a spambot message to make it specific to that map/mode combination. 
+    The mode or map needs to be the exact name as displayed in the procon maplist tab.
+    Examples are below.
+    <ul>
+        <li>
+            Operation Metro 2014/Conquest Large/This is my first message which shows on conquest metro only.
+        </li>
+        <li>
+            Operation Locker/Rush/[whitelistbypass]This is my second message which shows on locker rush only, and will bypass whitelist.
+        </li>
+        <li>
+            CTF/This is my third message that shows on capture the flag, regardless of map.
+        </li>
+        <li>
+            Zavod 311/[whitelistbypass]This is my fourth message which shows on zavod, regardless of game mode, and will bypass whitelist.
+        </li>
+        <li>
+            This is my fifth message which shows on every map and mode.
+        </li>
+    </ul>
+</p>
 <ul>
-    <li><b>'SpamBot Enable'</b> - Whether to enable the SpamBot.</li>
-    <li><b>'SpamBot Say List'</b> - List of messages to send to the server as SAY.</li>
-    <li><b>'SpamBot Say Delay Seconds'</b> - The number of seconds between each SAY message is sent.</li>
-    <li><b>'SpamBot Yell List'</b> - List of messages to send to the server as YELL.</li>
-    <li><b>'SpamBot Yell Delay Seconds'</b> - The number of seconds between each YELL message is sent.</li>
-    <li><b>'SpamBot Tell List'</b> - List of messages to send to the server as TELL.</li>
-    <li><b>'SpamBot Tell Delay Seconds'</b> - The number of seconds between each TELL message is sent.</li>
-    <li><b>'Exclude Admins and Whitelist from Spam'</b> - Whether to exclude admins and whitelisted players from seeing
-        any messages sent from the SpamBot.</li>
+    <li><b>'SpamBot Enable'</b> - 
+        Whether to enable the SpamBot.
+    </li>
+    <li><b>'SpamBot Say List'</b> - 
+        List of messages to send to the server as SAY.
+    </li>
+    <li><b>'SpamBot Say Delay Seconds'</b> - 
+        The number of seconds between each SAY message is sent.
+    </li>
+    <li><b>'SpamBot Yell List'</b> - 
+        List of messages to send to the server as YELL.
+    </li>
+    <li><b>'SpamBot Yell Delay Seconds'</b> - 
+        The number of seconds between each YELL message is sent.
+    </li>
+    <li><b>'SpamBot Tell List'</b> - 
+        List of messages to send to the server as TELL.
+    </li>
+    <li><b>'SpamBot Tell Delay Seconds'</b> - 
+        The number of seconds between each TELL message is sent.
+    </li>
+    <li><b>'Exclude Admins and Whitelist from Spam'</b> - 
+        Whether to exclude admins and whitelisted players from seeing any messages sent from the SpamBot.
+    </li>
+</ul>
+<h3>A12-3. Battlecry Settings - Thanks WDF:</h3>
+<ul>
+    <li><b>'Player Battlecry Volume'</b> - 
+        How 'loud' the player's battlecry will be. Options are Disabled, Say, Yell, and Tell.
+    </li>
+    <li><b>'Player Battlecry Max Length'</b> - 
+        The maximum number of characters in a battlecry message. Cannot be less than 20 or more than 300.
+    </li>
+    <li><b>'Player Battlecry Denied Words'</b> - 
+        List of case-insensitive words that are not allowed in battlecry messages. The !setbattlecry command available to admins overrides this list.
+    </li>
+</ul>
+<h3>A12-4. All-Caps Chat Monitor:</h3>
+<ul>
+    <li><b>'Use All Caps Limiter'</b> - 
+        Toggles the all caps limiter on or off.
+    </li>
+    <li><b>'All Caps Limiter Only Limit Specified Players'</b> - 
+        When enabled this will make the all caps monitor not look at the entire server, instead only looking at a few choice players assigned the all caps blacklist special player group.
+    </li>
+    <li><b>'All Caps Limiter Character Percentage'</b> - 
+        The percentage of characters in a given message that must be all caps before the message is considered all caps. 
+        This ignores numbers and special characters, so #%28THIS99/$ would be considered 100% all caps.
+    </li>
+    <li><b>'All Caps Limiter Minimum Characters'</b> - 
+        Minimum length a message needs to be before the all-caps system will examine it.
+    </li>
+    <li><b>'All Caps Limiter Warn Threshold'</b> - 
+        The number of all caps messages before the player is warned in chat about the limitation.
+        This value must be less than the kill threshold.
+    </li>
+    <li><b>'All Caps Limiter Kill Threshold'</b> - 
+        The number of all caps messages before the player is killed.
+    </li>
+    <li><b>'All Caps Limiter Kick Threshold'</b> - 
+        The number of all caps messages before the player is kicked.
+        This value must be greater than the kill threshold.
+    </li>
 </ul>
 <h3>A13. Banning Settings:</h3>
 <ul>
-    <li><b>'Use Additional Ban Message'</b> - Whether to have an additional message append on each ban.</li>
-    <li><b>'Additional Ban Message'</b> - Additional ban message to append on each ban. e.g. "Dispute at
-        www.yourclansite.com"
+    <li><b>'Use Additional Ban Message'</b> - 
+        Whether to have an additional message append on each ban.
     </li>
-    <li><b>'Procon Ban Admin Name'</b> - Admin name that will be used for bans filed via procon.</li>
+    <li><b>'Additional Ban Message'</b> - 
+        Additional ban message to append on each ban. e.g. "Dispute at www.yourclansite.com"
+    </li>
+    <li><b>'Procon Ban Admin Name'</b> - 
+        Admin name that will be used for bans filed via procon.
+    </li>
 </ul>
 <h3>A13-2. Ban Enforcer Settings:</h3>
 <ul>
-    <li><b>'Use Ban Enforcer'</b> - Whether to use the internal AdKats Ban Enforcer.</li>
-    <li><b>'Enforce New Bans by NAME'</b> - Whether to use a player's name to ban them. (Insecure, players can change
-        their names)
+    <li><b>'Use Ban Enforcer'</b> - 
+        Whether to use the internal AdKats Ban Enforcer.
     </li>
-    <li><b>'Enforce New Bans by GUID'</b> - Whether to use a player's EA GUID to ban them. (Secure, players cannot
-        change their GUIDs)
+    <li><b>'Enforce New Bans by NAME'</b> - 
+        Whether to use a player's name to ban them. (Insecure, players can change their names)
     </li>
-    <li><b>'Enforce New Bans by IP'</b> - Whether to use a player's IP Address to ban them. (Somewhat secure,
-        experienced players can change their IP, and IP bans can hit multiple players.)
+    <li><b>'Enforce New Bans by GUID'</b> - 
+        Whether to use a player's EA GUID to ban them. (Secure, players cannot change their GUIDs)
     </li>
-    <li><b>'Use Metabans?'</b> - Whether to use metabans functionality when banning/unbanning in ban enforcer.</li>
-    <li><b>'Metabans Username'</b> - Username for authentication to your metabans account.</li>
-    <li><b>'Metabans API Key'</b> - API Key for your metabans account.</li>
+    <li><b>'Enforce New Bans by IP'</b> - 
+        Whether to use a player's IP Address to ban them. (Somewhat secure, experienced players can change their IP, and IP bans can hit multiple players.)
+    </li>
+    <li><b>'Use Metabans?'</b> - 
+        Whether to use metabans functionality when banning/unbanning in ban enforcer.
+    </li>
+    <li><b>'Metabans Username'</b> - 
+        Username for authentication to your metabans account.
+    </li>
+    <li><b>'Metabans API Key'</b> - 
+        API Key for your metabans account.
+    </li>
+    <li><b>'Metabans Filter Strings'</b> - 
+        List of case-insensitive words/strings that must be in a ban message for it to be posted to metabans.
+    </li>
 </ul>
 <h3>A13-3. Mini Ban Management:</h3>
 <ul>
-    <li><b>'NAME Ban Count'</b> - How many NAME bans are currently being enforced by AdKats Ban Enforcer.</li>
-    <li><b>'GUID Ban Count'</b> - How many EA GUID bans are currently being enforced by AdKats Ban Enforcer.</li>
-    <li><b>'IP Ban Count'</b> - How many IP bans are currently being enforced by AdKats Ban Enforcer.</li>
-    <li><b>'Ban Search'</b> - Enter a full or partial player name here and AdKats will display all ACTIVE matching bans.
+    <li><b>'NAME Ban Count'</b> - 
+        How many NAME bans are currently being enforced by AdKats Ban Enforcer.
+    </li>
+    <li><b>'GUID Ban Count'</b> - 
+        How many EA GUID bans are currently being enforced by AdKats Ban Enforcer.
+    </li>
+    <li><b>'IP Ban Count'</b> - 
+        How many IP bans are currently being enforced by AdKats Ban Enforcer.
+    </li>
+    <li><b>'Ban Search'</b> - 
+        Enter a full or partial player name here and AdKats will display all ACTIVE matching bans.
     </li>
 </ul>
 <h3>A14. External Command Settings:</h3>
 <ul>
-    <li><b>'AdKatsLRT Extension Token'</b> - Usable with AdKatsLRT - OnSpawn Loadout Enforcer plugin. Once that plugin is purchased, the token can be placed here for automatic install/updates.
+    <li><b>'AdKatsLRT Extension Token'</b> - 
+        Usable with AdKatsLRT - OnSpawn Loadout Enforcer plugin. Once that plugin is purchased, the token can be placed here for automatic install/updates.
     </li>
 </ul>
 <h3>A15. VOIP Settings:</h3>
 <ul>
-    <li><b>'Server VOIP Address'</b> - String that will be sent to players using the VOIP command.</li>
+    <li><b>'Server VOIP Address'</b> - 
+        String that will be sent to players using the VOIP command.
+    </li>
 </ul>
 <h3>A16. Orchestration Settings:</h3>
 <ul>
-    <li><b>'Feed MULTIBalancer Whitelist'</b> - When enabled, the adkats_specialplayers table (group:
-        whitelist_multibalancer) is used to feed MULTIBalancer's player whitelist.
+    <li><b>'Feed MULTIBalancer Whitelist'</b> - 
+        When enabled, the adkats_specialplayers table (group: whitelist_multibalancer) is used to feed MULTIBalancer's player whitelist.
     </li>
-    <li><b>'Automatic MULTIBalancer Whitelist for Admins'</b> - When enabled, all admins in your User List will be given
-        whitelist from balance in MULTIBalancer.
+    <li><b>'Automatic MULTIBalancer Whitelist for Admins'</b> - 
+        When enabled, all admins in your User List will be given whitelist from balance in MULTIBalancer.
     </li>
-    <li><b>'Feed MULTIBalancer Even Dispersion List'</b> - When enabled, the adkats_specialplayers table (group:
-        blacklist_dispersion) is used to feed MULTIBalancer's even dispersion list.
+    <li><b>'Feed MULTIBalancer Even Dispersion List'</b> - 
+        When enabled, the adkats_specialplayers table (group: blacklist_dispersion) is used to feed MULTIBalancer's even dispersion list.
     </li>
-    <li><b>'Feed TeamKillTracker Whitelist'</b> - When enabled, the TeamKillTracker whitelist will include all players in the TeamKillTracker whitelist special player group.
+    <li><b>'Feed TeamKillTracker Whitelist'</b> - 
+        When enabled, the TeamKillTracker whitelist will include all players in the TeamKillTracker whitelist special player group.
     </li>
-    <li><b>'Automatic TeamKillTracker Whitelist for Admins'</b> - When enabled, all admins in your User List will be given an automatic TeamKillTracker whitelist.
+    <li><b>'Automatic TeamKillTracker Whitelist for Admins'</b> - 
+        When enabled, all admins in your User List will be given an automatic TeamKillTracker whitelist.
     </li>
-    <li><b>'Feed Server Reserved Slots'</b> - When enabled, players in the reserved slot special player group will be assigned a reserved slot. Any modifications of the reserved slot list outside of Adkats will be erased.
+    <li><b>'Feed Server Reserved Slots'</b> - 
+        When enabled, players in the reserved slot special player group will be assigned a reserved slot. 
+        Any modifications of the reserved slot list outside of Adkats will be erased.
     </li>
-    <li><b>'Automatic Reserved Slot for Admins'</b> - When enabled, all admins in your User List will be given a
-        reserved slot.
+    <li><b>'Automatic Reserved Slot for Admins'</b> - 
+        When enabled, all admins in your User List will be given a reserved slot.
     </li>
-    <li><b>'Feed Server Spectator List'</b> - When enabled, the servers spectator list will include all AdKats user's
-        soldiers.
+    <li><b>'Automatic VIP Kick Whitelist for Admins'</b> - 
+        When enabled, all admins in your User List will be given a VIP kick whitelist.
     </li>
-    <li><b>'Automatic Spectator Slot for Admins'</b> - When enabled, all admins in your User List will be given a
-        spectator slot.
+    <li><b>'Feed Server Spectator List'</b> - 
+        When enabled, the servers spectator list will include all AdKats user's soldiers.
     </li>
-    <li><b>'Feed Stat Logger Settings'</b> - When enabled, stat logger is fed settings appropriate for AdKats, including
-        correct database time offset, instant chat logging, etc.
+    <li><b>'Automatic Spectator Slot for Admins'</b> - 
+        When enabled, all admins in your User List will be given a spectator slot.
+    </li>
+    <li><b>'Feed Stat Logger Settings'</b> - 
+        When enabled, stat logger is fed settings appropriate for AdKats, including correct database time offset, instant chat logging, etc.
         <p>
-            The following settings are sent to stat logger when using the "Feed Stat Logger Settings" orchestration
-            option:
-        <ul>
-            <li>"Servertime Offset" (TIME OFFSET CONVERSION TO UTC TIME)</li>
-            <li>"Enable Chatlogging?" "Yes"</li>
-            <li>"Instant Logging of Chat Messages?" "Yes"</li>
-            <li>"Enable Statslogging?" "Yes"</li>
-            <li>"Enable Weaponstats?" "Yes"</li>
-            <li>"Enable KDR correction?" "Yes"</li>
-            <li>"MapStats ON?" "Yes"</li>
-            <li>"Session ON?" "Yes"</li>
-            <li>"Save Sessiondata to DB?" "Yes"</li>
-            <li>"Log playerdata only (no playerstats)?" "No"</li>
-        </ul>
-        "Enable Live Scoreboard in DB" is forced on at all times.
+            The following settings are sent to stat logger when using the "Feed Stat Logger Settings" orchestration option:
+            <ul>
+                <li>"Servertime Offset" (TIME OFFSET CONVERSION TO UTC TIME)</li>
+                <li>"Enable Chatlogging?" "Yes"</li>
+                <li>"Instant Logging of Chat Messages?" "Yes"</li>
+                <li>"Enable Statslogging?" "Yes"</li>
+                <li>"Enable Weaponstats?" "Yes"</li>
+                <li>"Enable KDR correction?" "Yes"</li>
+                <li>"MapStats ON?" "Yes"</li>
+                <li>"Session ON?" "Yes"</li>
+                <li>"Save Sessiondata to DB?" "Yes"</li>
+                <li>"Log playerdata only (no playerstats)?" "No"</li>
+            </ul>
+            "Enable Live Scoreboard in DB" is forced on at all times.
         </p>
     </li>
-    <li><b>'Post Stat Logger Chat Manually'</b> - Sometimes stat logger chat upload glitches and stops, this overrides
-        that posting and uploads all chat to the database manually.
+    <li><b>'Post Stat Logger Chat Manually'</b> - 
+        Sometimes stat logger chat upload glitches and stops, this overrides that posting and uploads all chat to the database manually.
     </li>
-    <li><b>'Post Server Chat Spam'</b> - Whether to include server spam messages when posting stat logger chat manually.
+    <li><b>'Post Server Chat Spam'</b> - 
+        Whether to include server spam messages when posting stat logger chat manually.
     </li>
-    <li><b>'Exclude Commands from Chat Logs'</b> - Whether to exclude messages containing commands from being stored in the database.
+    <li><b>'Exclude Commands from Chat Logs'</b> - 
+        Whether to exclude messages containing commands from being stored in the database.
     </li>
-    <li><b>'Banned Tags'</b> - List of clan tags which will cause players to be banned from the server.
+    <li><b>'Banned Tags'</b> - 
+        List of clan tags which will cause players to be banned from the server.
     </li>
 </ul>
 <h3>A17. Round Settings:</h3>
 <ul>
-    <li><b>'Round Timer: Enable'</b> - When enabled, rounds will be limited to X minutes.</li>
-    <li><b>'Round Timer: Round Duration Minutes'</b> - Number of minutes that the round will last before the current
-        winning team wins (Will only work correctly in conquest/domination at the moment).
+    <li><b>'Round Timer: Enable'</b> - 
+        When enabled, rounds will be limited to X minutes.
+    </li>
+    <li><b>'Round Timer: Round Duration Minutes'</b> - 
+        Number of minutes that the round will last before the current winning team wins (Will only work correctly in conquest/domination at the moment).
     </li>
 </ul>
 <h3>A18. Internal Hacker-Checker Settings:</h3>
 <ul>
-    <li><b>'HackerChecker: DPS Checker: Ban Message'</b> - Message prefix to use when banning for damage mod.</li>
-    <li><b>'HackerChecker: HSK Checker: Enable'</b> - Whether the Aimbot portion of the hacker-checker is enabled.</li>
+    <li><b>'HackerChecker: DPS Checker: Ban Message'</b> - 
+        Message prefix to use when banning for damage mod.
+    </li>
+    <li><b>'HackerChecker: HSK Checker: Enable'</b> - 
+        Whether the Aimbot portion of the hacker-checker is enabled.
+    </li>
     <li><b>'HackerChecker: HSK Checker: Trigger Level'</b> -
-        The headshot/kill ratio for automatic weapons that will trigger a ban.
-        100 kills minimum to trigger.
+        The headshot/kill ratio for automatic weapons that will trigger a ban. 100 kills minimum to trigger.
         After 3 months of testing, we suggest setting between 50 and 70 depending on the severity you want to enforce.
-        You will get some false positives down near 50 but will catch many more aimbotters, setting near 70 will not
-        result in false positives but also wont catch as many bots.
+        You will get some false positives down near 50 but will catch many more aimbotters, setting near 70 will not result in false positives but also wont catch as many bots.
     </li>
-    <li><b>'HackerChecker: HSK Checker: Ban Message'</b> - Message prefix to use when banning for high HSK.</li>
-    <li><b>'HackerChecker: KPM Checker: Enable'</b> - Whether the KPM portion of the hacker-checker is enabled.</li>
-    <li><b>'HackerChecker: KPM Checker: Trigger Level'</b> - Kills-per-minute with any included weapon that will trigger
-        the ban.
+    <li><b>'HackerChecker: HSK Checker: Ban Message'</b> - 
+        Message prefix to use when banning for high HSK.
     </li>
-    <li><b>'HackerChecker: KPM Checker: Ban Message'</b> - Message prefix to use when banning for high KPM.</li>
+    <li><b>'HackerChecker: KPM Checker: Enable'</b> - 
+        Whether the KPM portion of the hacker-checker is enabled.
+    </li>
+    <li><b>'HackerChecker: KPM Checker: Trigger Level'</b> - 
+        Kills-per-minute with any included weapon that will trigger the ban.
+    </li>
+    <li><b>'HackerChecker: KPM Checker: Ban Message'</b> - 
+        Message prefix to use when banning for high KPM.
+    </li>
 </ul>
 <h3>A19. Server Rules Settings:</h3>
 <ul>
-    <li><b>'Rule Print Delay'</b> - Delay in seconds after the command is issued that commands start being sent to the
-        player.
+    <li><b>'Rule Print Delay'</b> - 
+        Delay in seconds after the command is issued that commands start being sent to the player.
     </li>
-    <li><b>'Rule Print Interval'</b> - Number of seconds between each rule being sent to the player.</li>
-    <li><b>'Server Rule List'</b> - List of rules for the server. Raw messages can be used here, or alternatively
-        pre-message IDs.
+    <li><b>'Rule Print Interval'</b> - 
+        Number of seconds between each rule being sent to the player.
     </li>
-    <li><b>'Server Rule Numbers'</b> - Whether to include the rule numbers at the beginning of each line during rule
-        printing.
+    <li><b>'Server Rule List'</b> - 
+        List of rules for the server. Raw messages can be used here, or alternatively pre-message IDs.
     </li>
-    <li><b>'Yell Server Rules'</b> - Whether to send rules in both yell and chat to players requesting them or being
-        told them.
+    <li><b>'Server Rule Numbers'</b> - 
+        Whether to include the rule numbers at the beginning of each line during rule printing.
+    </li>
+    <li><b>'Yell Server Rules'</b> - 
+        Whether to send rules in both yell and chat to players requesting them or being told them.
     </li>
 </ul>
 <h3>B20. AFK Settings:</h3>
 <ul>
-    <li><b>'AFK System Enable'</b> - Whether to enable the AFK management system.</li>
-    <li><b>'AFK Ignore Chat'</b> - Events are used to cancel AFK timeout for players. When this is enabled, players just
-        sitting in the spawn screen chatting will be kicked. They must play in order to stay in the server..
+    <li><b>'AFK System Enable'</b> - 
+        Whether to enable the AFK management system.
     </li>
-    <li><b>'AFK Auto-Kick Enable'</b> - Whether to automatically kick using the trigger time. When disabled, the afk
-        command must be used for kicking afk players.
+    <li><b>'AFK Ignore Chat'</b> - 
+        Events are used to cancel AFK timeout for players. 
+        When this is enabled, players just sitting in the spawn screen chatting will be kicked. 
+        They must play in order to stay in the server..
     </li>
-    <li><b>'AFK Trigger Minutes'</b> - The number of minutes a player can do nothing before being considered AFK.</li>
-    <li><b>'AFK Minimum Players'</b> - Minimum number of players that must be in the server before the system will kick
-        AFK players.
+    <li><b>'AFK Auto-Kick Enable'</b> - 
+        Whether to automatically kick using the trigger time. When disabled, the afk command must be used for kicking afk players.
     </li>
-    <li><b>'AFK Ignore User List'</b> - Whether to ignore all users on the user list.</li>
-    <li><b>'AFK Ignore Roles'</b> - Visible when not ignoring all users on the user list. List the role keys that will
-        be ignored.
+    <li><b>'AFK Trigger Minutes'</b> - 
+        The number of minutes a player can do nothing before being considered AFK.
+    </li>
+    <li><b>'AFK Minimum Players'</b> - 
+        Minimum number of players that must be in the server before the system will kick AFK players.
+    </li>
+    <li><b>'AFK Ignore User List'</b> - 
+        Whether to ignore all users on the user list.
+    </li>
+    <li><b>'AFK Ignore Roles'</b> - 
+        Visible when not ignoring all users on the user list. List the role keys that will be ignored.
     </li>
 </ul>
 <h3>B21. Ping Enforcer Settings:</h3>
 <ul>
-    <li><b>'Ping Enforcer Enable'</b> - Whether to enable the Ping Enforcer.</li>
-    <li><b>'Current Pint Limit (Display)'</b> - The current ping limit based on all the settings below, showing the
-        formula for how it was calculated.</li>
-    <li><b>'Ping Moving Average Duration sec'</b> - The amount of time that should be used to average the player pings.
-        Default is a 3 minute window.</li>
-    <li><b>'Ping Kick Low Population Trigger ms'</b> - The minimum ping that will trigger a kick in low population.</li>
-    <li><b>'Ping Kick Low Population Time Modifier'</b> - 24 lines, one for each hour of the day. Positive numbers will
-        add to the current ping limit at this population level, negative numbers will take away from it.</li>
-    <li><b>'Ping Kick Medium Population Trigger ms'</b> - The minimum ping that will trigger a kick in medium population.</li>
-    <li><b>'Ping Kick Medium Population Time Modifier'</b> - 24 lines, one for each hour of the day. Positive numbers will
-        add to the current ping limit at this population level, negative numbers will take away from it.</li>
-    <li><b>'Ping Kick High Population Trigger ms'</b> - The minimum ping that will trigger a kick in high population.</li>
-    <li><b>'Ping Kick High Population Time Modifier'</b> - 24 lines, one for each hour of the day. Positive numbers will
-        add to the current ping limit at this population level, negative numbers will take away from it.</li>
-    <li><b>'Ping Kick Full Population Trigger ms'</b> - The minimum ping that will trigger a kick in full population.</li>
-    <li><b>'Ping Kick Full Population Time Modifier'</b> - 24 lines, one for each hour of the day. Positive numbers will
-        add to the current ping limit at this population level, negative numbers will take away from it.</li>
-    <li><b>'Ping Kick Minimum Players'</b> - The minimum number of players that must be in the server before ping kicks
-        will happen.</li>
-    <li><b>'Kick Missing Pings'</b> - Whether to kick players for having missing ping.</li>
-    <li><b>'Attempt Manual Ping when Missing'</b> - If the server does not provide the player a ping, attempt to fetch
-        their ping manually from the Procon instance.</li>
-    <li><b>'Ping Kick Ignore User List'</b> - Whether to ignore all users on the user list.</li>
-    <li><b>'Ping Kick Ignore Roles'</b> - List the role keys that will be ignored.</li>
-    <li><b>'Ping Kick Message Prefix'</b> - Custom message to be displayed in ping kicks.</li>
+    <li><b>'Ping Enforcer Enable'</b> - 
+        Whether to enable the Ping Enforcer.
+    </li>
+    <li><b>'Current Pint Limit (Display)'</b> - 
+        The current ping limit based on all the settings below, showing the formula for how it was calculated.
+    </li>
+    <li><b>'Ping Moving Average Duration sec'</b> - 
+        The amount of time that should be used to average the player pings.
+        Default is a 3 minute window.
+    </li>
+    <li><b>'Ping Kick Low Population Trigger ms'</b> - 
+        The minimum ping that will trigger a kick in low population.
+    </li>
+    <li><b>'Ping Kick Low Population Time Modifier'</b> - 
+        24 lines, one for each hour of the day. 
+        Positive numbers will add to the current ping limit at this population level, negative numbers will take away from it.
+    </li>
+    <li><b>'Ping Kick Medium Population Trigger ms'</b> - 
+        The minimum ping that will trigger a kick in medium population.
+    </li>
+    <li><b>'Ping Kick Medium Population Time Modifier'</b> - 
+        24 lines, one for each hour of the day. 
+        Positive numbers will add to the current ping limit at this population level, negative numbers will take away from it.
+    </li>
+    <li><b>'Ping Kick High Population Trigger ms'</b> - 
+        The minimum ping that will trigger a kick in high population.
+    </li>
+    <li><b>'Ping Kick High Population Time Modifier'</b> - 
+        24 lines, one for each hour of the day. 
+        Positive numbers will add to the current ping limit at this population level, negative numbers will take away from it.
+    </li>
+    <li><b>'Ping Kick Full Population Trigger ms'</b> - 
+        The minimum ping that will trigger a kick in full population.
+    </li>
+    <li><b>'Ping Kick Full Population Time Modifier'</b> - 
+        24 lines, one for each hour of the day. 
+        Positive numbers will add to the current ping limit at this population level, negative numbers will take away from it.
+    </li>
+    <li><b>'Ping Kick Minimum Players'</b> - 
+        The minimum number of players that must be in the server before ping kicks will happen.
+    </li>
+    <li><b>'Kick Missing Pings'</b> - 
+        Whether to kick players for having missing ping.
+    </li>
+    <li><b>'Attempt Manual Ping when Missing'</b> - 
+        If the server does not provide the player a ping, attempt to fetch their ping manually from the Procon instance.
+    </li>
+    <li><b>'Ping Kick Ignore User List'</b> - 
+        Whether to ignore all users on the user list.
+    </li>
+    <li><b>'Ping Kick Ignore Roles'</b> - 
+        List the role keys that will be ignored.
+    </li>
+    <li><b>'Ping Kick Message Prefix'</b> - 
+        Custom message to be displayed in ping kicks.
+    </li>
 </ul>
 <h3>B22. Commander Manager Settings:</h3>
 <ul>
-    <li><b>'Commander Manager Enable'</b> - Whether to enable the Commander Manager.</li>
-    <li><b>'Minimum Players to Allow Commanders'</b> - Commanders will be automatically kicked when attempting to join with
-        active player count less than this value. Existing commanders will be kicked if player count drops below 2/3 of this
-        value.</li>
+    <li><b>'Commander Manager Enable'</b> - 
+        Whether to enable the Commander Manager.
+    </li>
+    <li><b>'Minimum Players to Allow Commanders'</b> - 
+        Commanders will be automatically kicked when attempting to join with active player count less than this value. 
+        Existing commanders will be kicked if player count drops below 75% of this value.
+    </li>
 </ul>
 <h3>B23. Player Locking Settings:</h3>
 <ul>
-    <li><b>'Player Lock Manual Duration Minutes'</b> - When locking players via command, they will be locked for the
-        given duration in minutes.</li>
-    <li><b>'Automatically Lock Players on Admin Action'</b> - When a player is acted on by an admin, they will be
-        automatically locked from action by other admins.</li>
-    <li><b>'Player Lock Automatic Duration Minutes'</b> - When automatically locking players, they will be locked for
-        the given duration in minutes.</li>
+    <li><b>'Player Lock Manual Duration Minutes'</b> - 
+        When locking players via command, they will be locked for the given duration in minutes.
+    </li>
+    <li><b>'Automatically Lock Players on Admin Action'</b> - 
+        When a player is acted on by an admin, they will be automatically locked from action by other admins.
+    </li>
+    <li><b>'Player Lock Automatic Duration Minutes'</b> - 
+        When automatically locking players, they will be locked for the given duration in minutes.
+    </li>
 </ul>
 <h3>B24. Surrender Vote Settings:</h3>
 <ul>
-    <li><b>'Surrender Vote Enable'</b> - Whether to enable the Surrender Vote System.</li>
-    <li><b>'Percentage Votes Needed for Surrender'</b> - Percentage of a team required for surrender vote to
-        complete.</li>
-    <li><b>'Minimum Player Count to Enable Surrender'</b> - The minimum number of players that must be in the server for
-        a surrender vote to be allowed.</li>
-    <li><b>'Minimum Ticket Gap to Surrender'</b> - The minimum difference in tickets between teams for a surrender vote
-        to be allowed.</li>
-    <li><b>'Enable Required Ticket Rate Gap to Surrender'</b> - Whether to require a minimum ticket loss/gain rate
-        between teams before a surrender vote is allowed. Use 'Display Ticket Rates in Procon Chat' in section A12 to
-        monitor ticket loss/gain rates.</li>
-    <li><b>'Minimum Ticket Rate Gap to Surrender'</b> - The minimum difference in ticket rates between teams for
-        a surrender vote to be allowed.</li>
-    <li><b>'Surrender Vote Timeout Enable'</b> - Whether to enable a timeout on the surrender vote. After this timeout
-        all votes will be removed, and the surrender vote will be stopped.</li>
-    <li><b>'Surrender Vote Timeout Minutes'</b> - The number of minutes after surrender vote start that it will time
-        out and remove all votes.</li>
+    <li><b>'Surrender Vote Enable'</b> - 
+        Whether to enable the Surrender Vote System.
+    </li>
+    <li><b>'Percentage Votes Needed for Surrender'</b> - 
+        Percentage of a team required for surrender vote to complete.
+    </li>
+    <li><b>'Minimum Player Count to Enable Surrender'</b> - 
+        The minimum number of players that must be in the server for a surrender vote to be allowed.
+    </li>
+    <li><b>'Minimum Ticket Gap to Surrender'</b> - 
+        The minimum difference in tickets between teams for a surrender vote to be allowed.
+    </li>
+    <li><b>'Enable Required Ticket Rate Gap to Surrender'</b> - 
+        Whether to require a minimum ticket loss/gain rate between teams before a surrender vote is allowed.
+        Use 'Display Ticket Rates in Procon Chat' in section A12 to monitor ticket loss/gain rates.
+    </li>
+    <li><b>'Minimum Ticket Rate Gap to Surrender'</b> - 
+        The minimum difference in ticket rates between teams for a surrender vote to be allowed.
+    </li>
+    <li><b>'Surrender Vote Timeout Enable'</b> - 
+        Whether to enable a timeout on the surrender vote. 
+        After this timeout all votes will be removed, and the surrender vote will be stopped.
+    </li>
+    <li><b>'Surrender Vote Timeout Minutes'</b> - 
+        The number of minutes after surrender vote start that it will time out and remove all votes.
+    </li>
 </ul>
 <h3>B25. Auto-Surrender Settings:</h3>
 <ul>
-    <li><b>'Auto-Surrender Enable'</b> - Whether to enable the Auto-Surrender System. When enabled, all below values
-        must be contained in a round for it to trigger an automatic round surrender.</li>
-    <li><b>'Auto-Surrender Use Optimal Values for Metro Conquest'</b> - If you are running Metro 2014 on Conquest, use this
-        setting, it will issue auto-surrender when a baserape happens and the weak team cannot recover.</li>
-    <li><b>'Auto-Surrender Use Optimal Values for Locker Conquest'</b> - If you are running Operation Locker on Conquest, use this
-        setting, it will issue auto-surrender when a baserape happens and the weak team cannot recover.</li>
-    <li><b>'Auto-Surrender Minimum Ticket Gap'</b> - The minimum difference in ticket counts between teams for
-        auto-surrender to fire.</li>
-    <li><b>'Auto-Surrender Use Adjusted Ticket Rates'</b> - Adjusted ticket rates are designed for modes where player spawns affect ticket count, like conquest and domination, it removes them from the equation leaving only flags affecting the ticket rates.</li>
-    <li><b>'Auto-Surrender Losing Team Rate Window Max'</b> - The losing team's ticket rate must not be greater than
-        this value for auto-surrender to fire.</li>
-    <li><b>'Auto-Surrender Losing Team Rate Window Min'</b> - The losing team's ticket rate must not be less than
-        this value for auto-surrender to fire.</li>
-    <li><b>'Auto-Surrender Winning Team Rate Window Max'</b> - The winning team's ticket rate must not be greater than
-        this value for auto-surrender to fire.</li>
-    <li><b>'Auto-Surrender Winning Team Rate Window Min'</b> - The winning team's ticket rate must not be less than
-        this value for auto-surrender to fire.</li>
-    <li><b>'Auto-Surrender Trigger Count to Surrender'</b> - Triggers happen every 10 seconds. The above
-        values must be hit this number of times for auto-surrender to fire. Admins are informed of triggers every </li>
-    <li><b>'Auto-Surrender Message'</b> - The message that will be sent to the server when an auto-surrender is fired.
-        Place %WinnerName% in the string for the name of the winning team.</li>
-    <li><b>'Nuke Winning Team Instead of Surrendering Losing Team'</b> - When an auto-surrender would have been triggered
-        on the losing team due to the settings above, instead, nuke the winning team. It will be common for 1-3 nukes to be
-        issued within a few seconds of each other, to make sure all players both currently alive and about to spawn are
-        dead.</li>
-    <li><b>'Auto-Nuke Message'</b> - The message that will be sent to the server when an auto-nuke is fired.
-        Place %WinnerName% in the string for the name of the winning team being nuked.</li>
-    <li><b>'Start Surrender Vote Instead of Surrendering Losing Team'</b> - When an auto-surrender would have been triggered
-        on the losing team due to the settings above, instead, simply start a surrender vote, with AutoAdmin giving 1 vote toward surrender.</li>
+    <li><b>'Auto-Surrender Enable'</b> - 
+        Whether to enable the Auto-Surrender System. When enabled, all below values must be contained in a round for it to trigger an automatic round surrender.
+    </li>
+    <li><b>'Auto-Surrender Use Optimal Values for Metro Conquest'</b> - 
+        If you are running Metro 2014 on Conquest, use this setting, it will issue auto-surrender when a baserape happens and the weak team cannot recover.
+    </li>
+    <li><b>'Auto-Surrender Use Optimal Values for Locker Conquest'</b> - 
+        If you are running Operation Locker on Conquest, use this setting, it will issue auto-surrender when a baserape happens and the weak team cannot recover.
+    </li>
+    <li><b>'Auto-Surrender Minimum Ticket Gap'</b> - 
+        The minimum difference in ticket counts between teams for auto-surrender to fire.
+    </li>
+    <li><b>'Auto-Surrender Use Adjusted Ticket Rates'</b> - 
+        Adjusted ticket rates are designed for modes where player spawns affect ticket count, like conquest and domination, it removes them from the equation leaving only flags affecting the ticket rates.
+    </li>
+    <li><b>'Auto-Surrender Losing Team Rate Window Max'</b> - 
+        The losing team's ticket rate must not be greater than this value for auto-surrender to fire.
+    </li>
+    <li><b>'Auto-Surrender Losing Team Rate Window Min'</b> - 
+        The losing team's ticket rate must not be less than this value for auto-surrender to fire.
+    </li>
+    <li><b>'Auto-Surrender Winning Team Rate Window Max'</b> - 
+        The winning team's ticket rate must not be greater than this value for auto-surrender to fire.
+    </li>
+    <li><b>'Auto-Surrender Winning Team Rate Window Min'</b> - 
+        The winning team's ticket rate must not be less than this value for auto-surrender to fire.
+    </li>
+    <li><b>'Auto-Surrender Trigger Count to Surrender'</b> - 
+        Triggers happen every 10 seconds. 
+        The above values must be hit this number of times for auto-surrender to fire. Admins and players are optionally informed of triggers.
+    </li>
+    <li><b>'Auto-Surrender Message'</b> - 
+        The message that will be sent to the server when an auto-surrender is fired.
+        Place %WinnerName% in the string for the name of the winning team.
+    </li>
+    <li><b>'Nuke Winning Team Instead of Surrendering Losing Team'</b> - 
+        When an auto-surrender would have been triggered on the losing team due to the settings above, instead, nuke the winning team. 
+        It will be common for 1-3 nukes to be issued within a few seconds of each other, to make sure all players both currently alive and about to spawn are dead.
+    </li>
+    <li><b>'Auto-Nuke Message'</b> - 
+        The message that will be sent to the server when an auto-nuke is fired.
+        Place %WinnerName% in the string for the name of the winning team being nuked.
+    </li>
+    <li><b>'Start Surrender Vote Instead of Surrendering Losing Team'</b> - 
+        When an auto-surrender would have been triggered on the losing team due to the settings above, instead, simply start a surrender vote, with AutoAdmin giving 1 vote toward surrender.
+    </li>
 </ul>
 <h3>B26. Statistics Settings:</h3>
 <ul>
-    <li><b>'Post Map Benefit/Detriment Statistics'</b> - Whether to post statistics on which maps are most beneficial/detrimental to the population of the server. Queries to extract meaning from this information can be aquired in the main AdKats forum thread.</li>
-    <li><b>'Post Win/Loss/Baserape statistics'</b> - Whether to post statistics on wins, losses, and baserape causing players. Requires auto-surrender to be enabled and configured, and only works as intended when not using the auto-nuke or auto-vote settings.</li>
+    <li><b>'Post Map Benefit/Detriment Statistics'</b> - 
+        Whether to post statistics on which maps are most beneficial/detrimental to the population of the server. Queries to extract meaning from this information can be aquired in the main AdKats forum thread.
+    </li>
+    <li><b>'Post Win/Loss/Baserape statistics'</b> - 
+        Whether to post statistics on wins, losses, and baserape causing players. Requires auto-surrender to be enabled and configured, and only works as intended when not using the auto-nuke or auto-vote settings.
+    </li>
 </ul>
 <h3>B27. Player Monitor Settings:</h3>
 <ul>
-    <li><b>'Monitor Baserape Causing Players'</b> - When enabled, players who cause baserape will be automatically monitored and can be acted on in setting section B27-1. Requires posting win/loss/baserape statistics.</li>
-    <li><b>'Monitor Populator Players - Thanks CMWGaming'</b> - When enabled, players who help populate servers can be automatically monitored and given perks in setting section B27-2.</li>
-    <li><b>'Monitor Teamspeak Players - Thanks CMWGaming'</b> - When enabled, the teamspeak player monitor settings
-        will be displayed in setting section B27-3.
+    <li><b>'Monitor Baserape Causing Players'</b> - 
+        When enabled, players who cause baserape will be automatically monitored and can be acted on in setting section B27-1. 
+        Requires posting win/loss/baserape statistics.
     </li>
-    <li><b>'Monitor/Disperse Top Players'</b> - When enabled, the top player monitor settings will be displayed in
-        setting section B27-4.
-        This is a new take on server balance, mainly to prevent stacking, it uses how often players place in top team
-        positions to split and balance them and only affects top tier players if set up that way.
+    <li><b>'Monitor Populator Players - Thanks CMWGaming'</b> - 
+        When enabled, players who help populate servers can be automatically monitored and given perks in setting section B27-2.
+    </li>
+    <li><b>'Monitor Teamspeak Players - Thanks CMWGaming'</b> - 
+        When enabled, the teamspeak player monitor settings will be displayed in setting section B27-3.
+    </li>
+    <li><b>'Monitor/Disperse Top Players'</b> - 
+        When enabled, the top player monitor settings will be displayed in setting section B27-4.
+        This is a new take on server balance, mainly to prevent stacking, it uses how often players place in top team positions to split and balance them and only affects top tier players if set up that way.
         Built to work in tandem with MULTIBalancer.
     </li>
 </ul>
 <h3>B27-1. Baserape Causing Player Monitor Settings:</h3>
 <ul>
-    <li><b>'Baserape Causing Players (Display)'</b> - Current display of baserape causing players using the below options.</li>
-    <li><b>'Past Days to Monitor Baserape Causing Players'</b> - Past days worth of stats to be considered when calculating baserape causing players.</li>
-    <li><b>'Count to Consider Baserape Causing'</b> - Number of baserapes contributed to in the considered duration in order to be considered baserape causing. Players must meet this stat, and either have a win/loss ratio over 1.25, or have more than 10% of their played matches end with them baseraping.</li>
-    <li><b>'Automatic Dispersion for Baserape Causing Players'</b> - When enabled, players causing baserape are automatically included in the MULTIBalancer dispersion list.</li>
-    <li><b>'Automatic Assist Trigger for Baserape Causing Players'</b> - When enabled, players causing baserape will be automatically sent to the weak team if auto-surrender begins its countdown. Number of auto-surrender triggers are automatically doubled if this case triggers.</li>
+    <li><b>'Baserape Causing Players (Display)'</b> - 
+        Current display of baserape causing players using the below options.
+    </li>
+    <li><b>'Past Days to Monitor Baserape Causing Players'</b> - 
+        Past days worth of stats to be considered when calculating baserape causing players.
+    </li>
+    <li><b>'Count to Consider Baserape Causing'</b> - 
+        Number of baserapes contributed to in the considered duration in order to be considered baserape causing. 
+        Players must meet this stat, and either have a win/loss ratio over 1.25, or have more than 10% of their played matches end with them baseraping.
+    </li>
+    <li><b>'Automatic Dispersion for Baserape Causing Players'</b> - 
+        When enabled, players causing baserape are automatically included in the MULTIBalancer dispersion list.
+    </li>
+    <li><b>'Automatic Assist Trigger for Baserape Causing Players'</b> - 
+        When enabled, players causing baserape will be automatically sent to the weak team if auto-surrender begins its countdown. 
+        Number of auto-surrender triggers are automatically doubled if this case triggers.
+    </li>
 </ul>
 <h3>B27-2. Populator Monitor Settings - Thanks CMWGaming:</h3>
 <ul>
-    <li><b>'Populator Players (Display)'</b> - Current display of populator players using the below options.</li>
-    <li><b>'Monitor Specified Populators Only'</b> - When enabled, players must be placed under populator whitelist in order to be considered for populator status on this server.</li>
-    <li><b>'Monitor Populators of This Server Only'</b> - When enabled, only population counts of this server are used to count toward populator stats on this server.</li>
-    <li><b>'Count to Consider Populator Past Week'</b> - Players will be considered populator if they have this many populations in the past week.</li>
-    <li><b>'Count to Consider Populator Past 2 Weeks'</b> - Players will be considered populator if they have this many populations in the past 2 weeks.</li>
-    <li><b>'Enable Populator Perks.'</b> - When enabled, populator perk options are made visible.</li>
-    <li><b>'Populator Perks - Reserved Slot.'</b> - When enabled, populators are given reserved slots.</li>
-    <li><b>'Populator Perks - Autobalance Whitelist.'</b> - When enabled, populators are given MULTIBalancer whitelist.</li>
-    <li><b>'Populator Perks - Ping Whitelist.'</b> - When enabled, populators are given whitelist from ping kicks.</li>
-    <li><b>'Populator Perks - TeamKillTracker Whitelist.'</b> - When enabled, populators are given a whitelist in TeamKillTracker.</li>
+    <li><b>'Populator Players (Display)'</b> - 
+        Current display of populator players using the below options.
+    </li>
+    <li><b>'Monitor Specified Populators Only'</b> - 
+        When enabled, players must be placed under populator whitelist in order to be considered for populator status on this server.
+    </li>
+    <li><b>'Monitor Populators of This Server Only'</b> - 
+        When enabled, only population counts of this server are used to count toward populator stats on this server.
+    </li>
+    <li><b>'Count to Consider Populator Past Week'</b> - 
+        Players will be considered populator if they have this many populations in the past week.
+    </li>
+    <li><b>'Count to Consider Populator Past 2 Weeks'</b> - 
+        Players will be considered populator if they have this many populations in the past 2 weeks.
+    </li>
+    <li><b>'Enable Populator Perks.'</b> - 
+        When enabled, populator perk options are made visible.
+    </li>
+    <li><b>'Populator Perks - Reserved Slot.'</b> - 
+        When enabled, populators are given reserved slots.
+    </li>
+    <li><b>'Populator Perks - Autobalance Whitelist.'</b> - 
+        When enabled, populators are given MULTIBalancer whitelist.
+    </li>
+    <li><b>'Populator Perks - Ping Whitelist.'</b> - 
+        When enabled, populators are given whitelist from ping kicks.
+    </li>
+    <li><b>'Populator Perks - TeamKillTracker Whitelist.'</b> - 
+        When enabled, populators are given a whitelist in TeamKillTracker.
+    </li>
 </ul>
 <h3>B27-3. Teamspeak Monitor Settings - Thanks CMWGaming:</h3>
 <ul>
-    <li><b>'Teamspeak Players (Display)'</b> - Current display of teamspeak players using the below options.</li>
-    <li><b>'Enable Teamspeak Player Monitor'</b> - When enabled, the below settings will be used to monitor
-        players in the targeted teamspeak server.</li>
-    <li><b>'Teamspeak Server IP'</b> - IP address of the teamspeak server.</li>
-    <li><b>'Teamspeak Server Port'</b> - Public port number of the teamspeak server.</li>
-    <li><b>'Teamspeak Server Query Port'</b> - Query port number of the teamspeak server.</li>
-    <li><b>'Teamspeak Server Query Username'</b> - Username to use for teamspeak connection.</li>
-    <li><b>'Teamspeak Server Query Password'</b> - Password to use for teamspeak connection.</li>
-    <li><b>'Teamspeak Server Query Nickname'</b> - Nickname to use for the teamspeak connection.</li>
-    <li><b>'Teamspeak Main Channel Name'</b> - Main channel to grab players from. Must be set on connection start, cannot be modified afterwards.</li>
-    <li><b>'Teamspeak Secondary Channel Names'</b> - Any additional channels to pull players from.</li>
-    <li><b>'Debug Display Teamspeak Clients'</b> - Display console debug when relevant events happen.</li>
-    <li><b>'TeamSpeak Player Join Announcement'</b> - Whether to announce players who join in both teamspeak and the game.</li>
-    <li><b>'TeamSpeak Player Join Message'</b> - Message to announce joining teamspeak players with.</li>
-    <li><b>'TeamSpeak Player Update Seconds'</b> - How often the system will query teamspeak for client updates.
-        Minimum 5 seconds.</li>
-    <li><b>'Enable Teamspeak Player Perks'</b> - Whether to give players in teamspeak any automatic perks.</li>
-    <li><b>'Teamspeak Player Perks - Reserved Slot'</b> - When enabled, teamspeak players are given reserved slots. (used to avoid agressive kicks as well).</li>
-    <li><b>'Teamspeak Player Perks - Autobalance Whitelist'</b> - When enabled, teamspeak players are given MULTIBalancer whitelist.</li>
-    <li><b>'Teamspeak Player Perks - Ping Whitelist'</b> - When enabled, teamspeak players are given whitelist from ping kicks.</li>
-    <li><b>'Teamspeak Player Perks - TeamKillTracker Whitelist'</b> - When enabled, teamspeak players are given a whitelist in TeamKillTracker.</li>
+    <li><b>'Teamspeak Players (Display)'</b> - 
+        Current display of teamspeak players using the below options.
+    </li>
+    <li><b>'Enable Teamspeak Player Monitor'</b> - 
+        When enabled, the below settings will be used to monitor players in the targeted teamspeak server.
+    </li>
+    <li><b>'Teamspeak Server IP'</b> - 
+        IP address of the teamspeak server.
+    </li>
+    <li><b>'Teamspeak Server Port'</b> - 
+        Public port number of the teamspeak server.
+    </li>
+    <li><b>'Teamspeak Server Query Port'</b> - 
+        Query port number of the teamspeak server.
+    </li>
+    <li><b>'Teamspeak Server Query Username'</b> - 
+        Username to use for teamspeak connection.
+    </li>
+    <li><b>'Teamspeak Server Query Password'</b> - 
+        Password to use for teamspeak connection.
+    </li>
+    <li><b>'Teamspeak Server Query Nickname'</b> - 
+        Nickname to use for the teamspeak connection.
+    </li>
+    <li><b>'Teamspeak Main Channel Name'</b> - 
+        Main channel to grab players from. 
+        Must be set on connection start, cannot be modified afterwards.
+    </li>
+    <li><b>'Teamspeak Secondary Channel Names'</b> - 
+        Any additional channels to pull players from.
+    </li>
+    <li><b>'Debug Display Teamspeak Clients'</b> - 
+        Display console debug when relevant events happen.
+    </li>
+    <li><b>'TeamSpeak Player Join Announcement'</b> - 
+        Whether to announce players who join in both teamspeak and the game.
+    </li>
+    <li><b>'TeamSpeak Player Join Message'</b> - 
+        Message to announce joining teamspeak players with.
+    </li>
+    <li><b>'TeamSpeak Player Update Seconds'</b> - 
+        How often the system will query teamspeak for client updates. Minimum 5 seconds.
+    </li>
+    <li><b>'Enable Teamspeak Player Perks'</b> - 
+        Whether to give players in teamspeak any automatic perks.
+    </li>
+    <li><b>'Teamspeak Player Perks - Reserved Slot'</b> - 
+        When enabled, teamspeak players are given reserved slots. (used to avoid agressive kicks as well).
+    </li>
+    <li><b>'Teamspeak Player Perks - Autobalance Whitelist'</b> - 
+        When enabled, teamspeak players are given MULTIBalancer whitelist.
+    </li>
+    <li><b>'Teamspeak Player Perks - Ping Whitelist'</b> - 
+        When enabled, teamspeak players are given whitelist from ping kicks.
+    </li>
+    <li><b>'Teamspeak Player Perks - TeamKillTracker Whitelist'</b> - 
+        When enabled, teamspeak players are given a whitelist in TeamKillTracker.
+    </li>
 </ul>
 <h3>B27-4. Top Player Monitor Settings:</h3>
 <ul>
-    <li><b>'Online Top Players (Display)'</b> - Current display of online top players using the below options.</li>
-    <li><b>'Top Players (Display)'</b> - Current display of all top players using the below options.</li>
-    <li><b>'Affected Top Players'</b> - How many players should be affected by this system.</li>
+    <li><b>'Online Top Players (Display)'</b> - 
+        Current display of online top players using the below options.
+    </li>
+    <li><b>'Top Players (Display)'</b> - 
+        Current display of all top players using the below options.
+    </li>
+    <li><b>'Affected Top Players'</b> - 
+        How many players should be affected by this system.
+    </li>
 </ul>
 <h3>D99. Debug Settings:</h3>
 <ul>
     <li><b>'Debug level'</b> -
         Indicates how much debug-output is printed to the plugin-console.
         0 turns off debug messages (just shows important warnings/exceptions/success), 7 documents nearly every step.
-        Don't edit unless you really want to be spammed with console logs, it will also slow down the plugin when turned
-        up.
+        Don't edit unless you really want to be spammed with console logs, it will also slow down the plugin when turned up.
     </li>
     <li><b>'Debug Soldier Name'</b> -
         When this soldier issues commands in your server, the time for any command to complete is told in-game.
         Duration is from the time you entered the message, until all aspects of the command have been completed.
     </li>
-    <li><b>'Disable Automatic Updates'</b> - Disables automatic updates for the plugin. Should only be disabled if
-        you've modified the plugin code manually.
+    <li><b>'Disable Automatic Updates'</b> - 
+        Disables automatic updates for the plugin. Should only be disabled if you've modified the plugin code manually.
     </li>
-    <li><b>'Disable Version Tracking - Required For TEST Builds'</b> - Tracks version numbers for stable and TEST builds. Used to see how many servers are currently running certain versions of AdKats.
+    <li><b>'Disable Version Tracking - Required For TEST Builds'</b> - 
+        Tracks version numbers for stable and TEST builds. 
+        Used to see how many servers are currently running certain versions of AdKats.
     </li>
     <li><b>'Command Entry'</b> -
-        Enter commands here just like in game, mainly for debug purposes. Don't let more than one person use this at any
-        time.
+        Enter commands here just like in game, mainly for debug purposes. 
+        Don't let more than one person use this at any time.
     </li>
 </ul>
