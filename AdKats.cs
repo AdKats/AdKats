@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.346
+ * Version 6.9.0.347
  * 8-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.346</version_code>
+ * <version_code>6.9.0.347</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.346";
+        private const String PluginVersion = "6.9.0.347";
 
         public enum GameVersion
         {
@@ -44830,12 +44830,22 @@ namespace PRoConEvents
                                 Match pid = Regex.Match(personaResponse, @"bf4/soldier/" + aPlayer.player_name + @"/stats/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                                 if (!pid.Success)
                                 {
-                                    HandleException(new AException("Could not find persona ID for " + aPlayer.player_name));
-                                    if (!String.IsNullOrEmpty(personaResponse))
+                                    if (personaResponse.Contains("errorpage"))
                                     {
-                                        KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
+                                        Log.Warn("Battlelog returning errors, waiting 30 seconds.");
+                                        _LastBattlelogAction = UtcNow().AddSeconds(30);
+                                        _LastBattlelogIssue = UtcNow();
+                                        return true;
                                     }
-                                    return false;
+                                    else
+                                    {
+                                        HandleException(new AException("Could not find persona ID for " + aPlayer.player_name));
+                                        if (!String.IsNullOrEmpty(personaResponse))
+                                        {
+                                            KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
+                                        }
+                                        return false;
+                                    }
                                 }
                                 else
                                 {
@@ -44846,7 +44856,17 @@ namespace PRoConEvents
                                 Match uid = Regex.Match(personaResponse, @"data-user-id=""(\d+)"">", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                                 if (!uid.Success)
                                 {
-                                    HandleException(new AException("Could not find user ID for " + aPlayer.player_name));
+                                    if (personaResponse.Contains("errorpage"))
+                                    {
+                                        Log.Warn("Battlelog returning errors, waiting 30 seconds.");
+                                        _LastBattlelogAction = UtcNow().AddSeconds(30);
+                                        _LastBattlelogIssue = UtcNow();
+                                        return true;
+                                    }
+                                    else
+                                    {
+                                        HandleException(new AException("Could not find user ID for " + aPlayer.player_name));
+                                    }
                                 }
                                 else
                                 {
@@ -44863,7 +44883,7 @@ namespace PRoConEvents
                             DoBattlelogWait();
                             String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawoverviewpopulate/" + aPlayer.player_battlelog_personaID + "/1/?cacherand=" + Environment.TickCount);
                             Hashtable json = (Hashtable)JSON.JsonDecode(overviewResponse);
-                            if (json.ContainsKey("data"))
+                            if (json != null && json.ContainsKey("data"))
                             {
                                 Hashtable data = (Hashtable)json["data"];
                                 Hashtable info = null;
@@ -45085,7 +45105,6 @@ namespace PRoConEvents
                         DoBattlelogWait();
                         String weaponResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/weaponsPopulateStats/" + aPlayer.player_battlelog_personaID + "/1/?cacherand=" + Environment.TickCount);
                         Hashtable responseData = (Hashtable)JSON.JsonDecode(weaponResponse);
-
                         if (responseData != null &&
                             responseData.ContainsKey("type") &&
                             (String)responseData["type"] == "success" &&
@@ -45166,6 +45185,13 @@ namespace PRoConEvents
                         }
                         else
                         {
+                            if (weaponResponse.Contains("errorpage"))
+                            {
+                                Log.Warn("Battlelog returning errors, waiting 30 seconds.");
+                                _LastBattlelogAction = UtcNow().AddSeconds(30);
+                                _LastBattlelogIssue = UtcNow();
+                                return true;
+                            }
                             Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                         }
 
@@ -45175,7 +45201,6 @@ namespace PRoConEvents
                             DoBattlelogWait();
                             String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf3/vehiclesPopulateStats/" + aPlayer.player_battlelog_personaID + "/1/");
                             Hashtable vehicleResponseData = (Hashtable)JSON.JsonDecode(vehicleResponse);
-
                             if (vehicleResponseData != null &&
                                 vehicleResponseData.ContainsKey("type") &&
                                 (String)vehicleResponseData["type"] == "success" &&
@@ -45240,6 +45265,13 @@ namespace PRoConEvents
                             }
                             else
                             {
+                                if (vehicleResponse.Contains("errorpage"))
+                                {
+                                    Log.Warn("Battlelog returning errors, waiting 30 seconds.");
+                                    _LastBattlelogAction = UtcNow().AddSeconds(30);
+                                    _LastBattlelogIssue = UtcNow();
+                                    return true;
+                                }
                                 Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                             }
                         }
@@ -45276,7 +45308,7 @@ namespace PRoConEvents
                             DoBattlelogWait();
                             String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawdetailedstatspopulate/" + aPlayer.player_battlelog_personaID + "/1/?cacherand=" + Environment.TickCount);
                             Hashtable json = (Hashtable)JSON.JsonDecode(overviewResponse);
-                            if (json.ContainsKey("data"))
+                            if (json != null && json.ContainsKey("data"))
                             {
                                 Hashtable data = (Hashtable)json["data"];
                                 Hashtable overviewStatsTable = null;
@@ -45309,7 +45341,12 @@ namespace PRoConEvents
                         DoBattlelogWait();
                         String response = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawWeaponsPopulateStats/" + aPlayer.player_battlelog_personaID + "/1/stats/");
                         Hashtable responseData = (Hashtable)JSON.JsonDecode(response);
-                        if (responseData.ContainsKey("type") && (String)responseData["type"] == "success" && responseData.ContainsKey("message") && (String)responseData["message"] == "OK" && responseData.ContainsKey("data"))
+                        if (responseData != null && 
+                            responseData.ContainsKey("type") && 
+                            (String)responseData["type"] == "success" && 
+                            responseData.ContainsKey("message") && 
+                            (String)responseData["message"] == "OK" && 
+                            responseData.ContainsKey("data"))
                         {
                             Hashtable statsData = (Hashtable)responseData["data"];
                             if (statsData != null && statsData.ContainsKey("mainWeaponStats"))
@@ -45387,6 +45424,13 @@ namespace PRoConEvents
                         }
                         else
                         {
+                            if (response.Contains("errorpage"))
+                            {
+                                Log.Warn("Battlelog returning errors, waiting 30 seconds.");
+                                _LastBattlelogAction = UtcNow().AddSeconds(30);
+                                _LastBattlelogIssue = UtcNow();
+                                return true;
+                            }
                             Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                         }
 
@@ -45396,8 +45440,8 @@ namespace PRoConEvents
                             DoBattlelogWait();
                             String vehicleResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/en/warsawvehiclesPopulateStats/" + aPlayer.player_battlelog_personaID + "/1/stats/");
                             Hashtable vehicleResponseData = (Hashtable)JSON.JsonDecode(vehicleResponse);
-
-                            if (vehicleResponseData.ContainsKey("type") &&
+                            if (vehicleResponseData != null && 
+                                vehicleResponseData.ContainsKey("type") &&
                                 (String)vehicleResponseData["type"] == "success" &&
                                 vehicleResponseData.ContainsKey("message") &&
                                 (String)vehicleResponseData["message"] == "OK" &&
@@ -45460,6 +45504,13 @@ namespace PRoConEvents
                             }
                             else
                             {
+                                if (vehicleResponse.Contains("errorpage"))
+                                {
+                                    Log.Warn("Battlelog returning errors, waiting 30 seconds.");
+                                    _LastBattlelogAction = UtcNow().AddSeconds(30);
+                                    _LastBattlelogIssue = UtcNow();
+                                    return false;
+                                }
                                 Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                             }
                         }
@@ -45492,8 +45543,12 @@ namespace PRoConEvents
                         DoBattlelogWait();
                         String weaponResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bfh/BFHWeaponsPopulateStats/" + aPlayer.player_battlelog_personaID + "/1/stats/?cacherand=" + Environment.TickCount);
                         Hashtable responseData = (Hashtable)JSON.JsonDecode(weaponResponse);
-
-                        if (responseData.ContainsKey("type") && (String)responseData["type"] == "success" && responseData.ContainsKey("message") && (String)responseData["message"] == "OK" && responseData.ContainsKey("data"))
+                        if (responseData != null &&
+                            responseData.ContainsKey("type") && 
+                            (String)responseData["type"] == "success" && 
+                            responseData.ContainsKey("message") && 
+                            (String)responseData["message"] == "OK" && 
+                            responseData.ContainsKey("data"))
                         {
                             Hashtable statsData = (Hashtable)responseData["data"];
                             if (statsData != null && statsData.ContainsKey("mainWeaponStats"))
@@ -45568,6 +45623,13 @@ namespace PRoConEvents
                         }
                         else
                         {
+                            if (weaponResponse.Contains("errorpage"))
+                            {
+                                Log.Warn("Battlelog returning errors, waiting 30 seconds.");
+                                _LastBattlelogAction = UtcNow().AddSeconds(30);
+                                _LastBattlelogIssue = UtcNow();
+                                return false;
+                            }
                             Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                         }
                         aPlayer.RoundStats[_roundID] = stats;
