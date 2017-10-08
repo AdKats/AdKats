@@ -1474,6 +1474,16 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
+        <td><b>Server Nuke Winning Team</b></td>
+        <td>wnuke</td>
+        <td>
+            none
+        </td>
+        <td>
+            The in-game command used for killing all players on the winning team when they also have more map control.
+        </td>
+    </tr>
+    <tr>
         <td><b>SwapNuke Server</b></td>
         <td>swapnuke</td>
         <td>none</td>
@@ -1509,6 +1519,56 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
         <td>
             Calls the AFK Management functionality manually. Cannot be used if AFK payers are being managed automatically.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Force Player Loadout</b></td>
+        <td>floadout</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            If the loadout enforcer is installd and enabled then this command will force that player up to trigger level enforcement.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Set Own Battlecry</b></td>
+        <td>battlecry</td>
+        <td>
+            NONE
+        </td>
+        <td>
+            Sets the current player's battlecry. This will be displayed to the server when they spawn for the first time during a session.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Set Player Battlecry</b></td>
+        <td>setbattlecry</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Sets a players current battlecry. This will be displayed to the server when they spawn for the first time during a session. This command overrides the word filter for battle cries.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Force Manual Player Ping</b></td>
+        <td>fping</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Forces AdKats to ignore what the server claims a player's ping is, instead manually fetching the ping using procon.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Link Player to Discord Member</b></td>
+        <td>fping</td>
+        <td>
+            [player][discordmember]
+        </td>
+        <td>
+            This command links a player with an active Discord member by ID. Sometimes this is required if their name in game vs discord does not match.
         </td>
     </tr>
 </table>
@@ -1645,7 +1705,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
-        <td><b>MULTIBalancer Whitelist Player</b></td>
+        <td><b>Autobalance Whitelist Player</b></td>
         <td>mbwhitelist</td>
         <td>
             [duration or 'perm']<br/>
@@ -1660,7 +1720,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
-        <td><b>Un-MULTIBalancer Whitelist Player</b></td>
+        <td><b>Remove Autobalance Whitelist</b></td>
         <td>unmbwhitelist</td>
         <td>
             [player]
@@ -1670,7 +1730,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
-        <td><b>MULTIBalancer Disperse Player</b></td>
+        <td><b>Autobalance Disperse Player</b></td>
         <td>disperse</td>
         <td>
             [duration or 'perm']<br/>
@@ -1684,7 +1744,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
-        <td><b>Un-MULTIBalancer Disperse Player</b></td>
+        <td><b>Remove Autobalance Dispersion</b></td>
         <td>undisperse</td>
         <td>
             [player]
@@ -1780,13 +1840,109 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
-        <td><b>Un-TeamKillTracker Blacklist Player</b></td>
+        <td><b>Un-TeamKillTracker Whitelist Player</b></td>
         <td>untkwhitelist</td>
         <td>
             [player]
         </td>
         <td>
             The in-game command used for removing a player from TeamKillTracker Whitelist for all servers. "Feed TeamKillTracker Whitelist" must be enabled to use this command.
+        </td>
+    </tr>
+    <tr>
+        <td><b>AntiCheat Whitelist Player</b></td>
+        <td>acwhitelist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to the AntiCheat Whitelist for all servers. A player under AntiCheat whitelist will not be acted on in any way by either the normal AntiCheat scripts or by the LIVE system.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Remove AntiCheat Whitelist</b></td>
+        <td>unacwhitelist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from AntiCheat Whitelist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Command Target Whitelist Player</b></td>
+        <td>cwhitelist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to the Command Target Whitelist for all servers. A player under Command Target whitelist cannot be targeted by any commands configured in the 'Command Target Whitelist Commands' setting.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Remove Command Target Whitelist</b></td>
+        <td>uncwhitelist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from Command Target Whitelist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Auto-Assist Blacklist Player</b></td>
+        <td>auablacklist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to the Auto-Assist Blacklist for all servers. A player under Auto-Assist Blacklist will always be checked if they are able to assist the weak team, and if they are they are automatically moved to that team.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Remove Auto-Assist Blacklist</b></td>
+        <td>unauablacklist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from Auto-Assist Blacklist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>All-Caps Chat Blacklist Player</b></td>
+        <td>allcapsblacklist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to the All-Caps Chat Blacklist for all servers. A player under All-Caps Chat Blacklist will be specifically enforced by the all-caps monitoring system.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Remove All-Caps Chat Blacklist</b></td>
+        <td>unallcapsblacklist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from All-Caps Chat Blacklist for all servers.
         </td>
     </tr>
 </table>
@@ -2137,6 +2293,60 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
             Returns whether the given player is an admin, and states their role.
         </td>
     </tr>
+    <tr>
+        <td><b>Fetch Admin Status</b></td>
+        <td>isadmin</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Fetches the admin status and current role of the player.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Fetch Player Loadout</b></td>
+        <td>loadout</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            If the loadout enforcer is installed and enabled this command will return a player's current loadout.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Fetch Player Perks</b></td>
+        <td>perks</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player]
+        </td>
+        <td>
+            Returns a player's current active perks and when they are set to expire.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Fetch Player Ping</b></td>
+        <td>ping</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player]
+        </td>
+        <td>
+            Returns a player's current and average ping.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Debug Assist Losing Team</b></td>
+        <td>dassist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Returns whether a player is able to assist or not, and why.
+        </td>
+    </tr>
 </table>
 <h3>Logging Commands</h3>
 <table>
@@ -2157,7 +2367,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
-        <td><b>Feedback</b></td>
+        <td><b>Give Server Feedback</b></td>
         <td>feedback</td>
         <td>
             message
