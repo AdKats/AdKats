@@ -14,42 +14,42 @@
 <h2>Overview</h2>
 <p>
     Admin Toolset with a plethora of features, Over 100 available in-game commands, and many customization options.
-    AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any
-    setup.
-    Includes a cross-server ban enforcer with advanced enforcement features, metabans support, global admin management,
-    cross-server player messaging, and the BFAdminCP 2.0+ for web-based control has been released.
+    AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any setup.
+    Includes a cross-server ban enforcer with advanced enforcement features, metabans support, global admin management, cross-server player messaging, and the BFAdminCP 2.0+ for web-based control has been released.
     Designed for groups with high-traffic servers and many admins, but will function just as well for small servers.
 </p>
 <ul>
     <li>
         <b>Extensive In-Game Commands.</b>
         Commands for player killing, kicking, punishing, banning, unbanning, moving, joining, whitelisting, messaging,
-        etc, etc... Over 100 available in-game commands. Commands can be accessed from in-game, Procon's chat window,
-        database, and from other plugins.
+        etc, etc... 
+        Over 100 available in-game commands. 
+        Commands can be accessed from in-game, Procon's chat window, database, and from other plugins.
     </li>
     <li>
         <b>Customizable User Roles.</b>
-        Custom user roles can be created for admins and players with each role given access to only the commands you want them
-        to use. Default guest role is given to all players and can be edited to your desired specs. Roles and powers
-        are automatically synced between servers so you only need to change user information once. Soldiers assigned
-        to users will also keep their powers even if they change their in-game names.
+        Custom user roles can be created for admins and players with each role given access to only the commands you want them to use. 
+        Default guest role is given to all players and can be edited to your desired specs. 
+        Roles and powers are automatically synced between servers so you only need to change user information once. 
+        Soldiers assigned to users will also keep their powers if they change their in-game names.
     </li>
     <li>
         <b>Setting sync between servers.</b>
-        Changes to plugin settings are stored in the database and can be automatically synced between your Procon
-        layers. Setting up new layers or switching layers is a breeze as the settings for existing servers are
-        automatically imported on startup.
+        Changes to plugin settings are stored in the database and can be automatically synced between your Procon layers. 
+        Setting up new layers or switching layers is a breeze as the settings for existing servers are automatically imported on startup.
     </li>
     <li>
         <b>Infraction Tracking System.</b>
-        Punish/forgive players for breaking rules on your servers. Everything is tracked so the more infractions they
-        commit the worse their punishment automatically gets. Created so all players are treated equally based on
-        their history, regardless of who is issuing punishments against them. Heavily customizable.
+        Punish/forgive players for breaking rules on your servers. 
+        Everything is tracked so the more infractions they commit the worse their punishment automatically gets. 
+        Created so all players are treated equally based on their history, regardless of who is issuing punishments against them. 
+        Heavily customizable.
     </li>
     <li>
         <b>Player Reputation System.</b>
         Based on issued commands from and against players they can form a numeric reputation on the server.
-        Documentation below. A local leaderboard for reputation is provided in the BFAdminCP.
+        Documentation below. 
+        A local leaderboard for reputation is provided in the BFAdminCP.
     </li>
     <li>
         <b>Quick Player Report and Admin Call Handling with email support.</b>
@@ -58,21 +58,18 @@
     </li>
     <li>
         <b>Orchestration and Server List Management.</b>
-        Server reserved slots, spectator slots, autobalance whitelising through MULTIBalancer,
-        ping kick whitelists, and several others can be automatically handled through the AdKats user list, role groups, and
-        orchestration commands.
+        Server reserved slots, spectator slots, autobalance whitelist through MULTIBalancer, ping kick whitelists, and several others can be automatically handled through the AdKats user list, role groups, and orchestration commands.
     </li>
     <li>
         <b>AdKats Ban Enforcer.</b>
-        AdKats can enforce bans across all of your servers and can enforce on all identity metrics at the same time. System
-        will automatically import bans from your servers, consolidating them in one place, and can import existing bans
-        from the BF3 Ban Manager plugin's tables. Full documentation below.
+        AdKats can enforce bans across all of your servers and can enforce on all identity metrics at the same time. 
+        System will automatically import bans from your servers, consolidating them in one place, and can import existing bans from the BF3 Ban Manager plugin's tables. Full documentation below.
     </li>
     <li>
-        <b>BF3/BF4 "Hacker-Checker" with Whitelist.</b>
-        Battlelog stats can be polled for players in the server, issuing automatic bans for damage mods, aimbots,
-        magic bullet, and several others. The LIVE system can detect damage mods and magic bullet from a single round of
-        play. DPS checks are enabled by default, with others available after a few clicks.
+        <b>BF3/BF4 AntiCheat with Whitelist.</b>
+        Battlelog stats can be polled for players in the server, issuing automatic bans for damage mods, aimbots, magic bullet, and several others. 
+        The LIVE system can detect damage mods and magic bullet from a single round of play. 
+        DPS checks are enabled by default, with others available after a few clicks.
     </li>
     <li>
         <b>Surrender Vote System.</b>
@@ -80,59 +77,57 @@
     </li>
     <li>
         <b>Auto-Surrender/Auto-Nuke System.</b>
-        This uses ticket loss rates to detect where teams are on the map, specifically with how many flags are captured. If a team is being base-camped, it can either automatically end the round with current winner, or nuke the team who is causing the base-camp. Optimal values for Metro 2014 and Operation Locker are available, for both surrender and nuke options.
+        This uses ticket loss rates to detect where teams are on the map, specifically with how many flags are captured. 
+        If a team is being base-camped, it can either automatically end the round with current winner, or nuke the team who is causing the base-camp. 
+        Optimal values for Metro 2014 and Operation Locker are available, for both surrender and nuke options.
     </li>
     <li>
         <b>Automatic Updates.</b>
-        AdKats automatically updates itself when stable releases are made, only requiring a Procon instance
-        reboot to run updated versions. This can be disabled if desired, but is required if running TEST versions.
+        AdKats automatically updates itself when stable releases are made, only requiring a Procon instance reboot to run updated versions. 
+        This can be disabled if desired, but is required if running TEST versions.
     </li>
     <li>
         <b>Ping Enforcer.</b>
-        Automated kick system based on ping, with moving average calculation, modifiers based on time of day and server
-        population, customizable messages, logged kicks, and manual ping options.
+        Automated kick system based on ping, with moving average calculation, modifiers based on time of day and server population, customizable messages, logged kicks, and manual ping options.
     </li>
     <li>
         <b>AFK Manager.</b>
-        Automated kick system based on player AFK time, with manual kick command. Customizable durations, and option to
-        ignore chat messages counting toward active time.
+        Automated kick system based on player AFK time, with manual kick command. Customizable durations, and option to ignore chat messages counting toward active time.
     </li>
     <li>
         <b>Internal SpamBot with Whitelist.</b>
-        SpamBot with options for simultaneous say, yell, and tell. Customizable intervals between each type of message,
-        and ability to whitelist players/admins from seeing spambot messages.
+        SpamBot with options for simultaneous say, yell, and tell. 
+        Customizable intervals between each type of message, and ability to whitelist players/admins from seeing spambot messages.
+        Rules can also be made map and mode specific.
     </li>
     <li>
         <b>Commander Manager.</b>
-        Commanders can cause team imbalance when servers are in low population. This manager can forbid commanders before
-        a certain player count is active.
+        Commanders can cause team imbalance when servers are in low population. 
+        This manager can forbid commanders before a certain player count is active.
     </li>
     <li>
         <b>Cross-Server Player Messaging.</b>
-        Private conversations between players can operate not only within the same server, but will work between any
-        online server in the database, and even between any AdKats supported game.
+        Private conversations between players can operate not only within the same server, but will work between any online server in the database, and even between any AdKats supported game.
     </li>
     <li>
         <b>Admin Assistants.</b>
-        When fully used this can turn your regular playerbase into a human autoadmin. Trusted players fill the gaps
-        normal autoadmins don't see by utilizing the report system and keeping your server under control even when
-        normal admins are offline.
+        When fully used this can turn your regular player base into a human autoadmin. 
+        Trusted players fill the gaps normal autoadmins don't see by utilizing the report system and keeping your server under control even when normal admins are offline.
     </li>
     <li>
         <b>Email Notification System.</b>
-        Email addresses can be added to every user, and once enabled they will receive emails for player reports and
-        admin calls.
+        Email addresses can be added to every user, and once enabled they will receive emails for player reports and admin calls.
     </li>
     <li>
         <b>Fuzzy Player Name Completion.</b>
-        Fully completes partial or misspelled player names. I've been consistently able to find almost any player only
-        a few characters from their name. Can also fetch players who have left the server, are in another server of yours
-        on the same database, or have been in your servers at any point in time.
+        Fully completes partial or misspelled player names. 
+        I've been consistently able to find almost any player only a few characters from their name. 
+        Can also fetch players who have left the server, are in another server of yours on the same database, or have been in your servers at any point in time.
     </li>
     <li>
         <b>Player Muting.</b>
-        Players can be muted if necessary, giving warnings and kicks if they talk. Automatic mute in specific cases like
-        lanuage can be orchestrated by other plugins like Insane limits.
+        Players can be muted if necessary, giving warnings and kicks if they talk. 
+        Automatic mute in specific cases like language can be orchestrated by other plugins like Insane limits.
     </li>
     <li>
         <b>Player Joining.</b>
@@ -140,14 +135,12 @@
     </li>
     <li>
         <b>Player Locking.</b>
-        Players can be locked from admin commands for a specific timeout, the main purpose is if a certain admin is
-        handling them (checking stats for cheat detection, records, etc.) they shouldn't be interrupted by another admin
-        acting on the player.
+        Players can be locked from admin commands for a specific timeout, the main purpose is if a certain admin is handling them (checking stats for cheat detection, records, etc.) they shouldn't be interrupted by another admin acting on the player.
     </li>
     <li>
         <b>Player Assist.</b>
-        Player's want to play with their friends, but you don't want to imbalance the teams? The assist command lets
-        any player join the weak team to help them out and squad up with friends without hurting server balance.
+        Player's want to play with their friends, but you don't want to imbalance the teams? 
+        The assist command lets any player join the weak team to help them out and squad up with friends without hurting server balance.
     </li>
     <li>
         <b>Yell/Say Pre-Recording.</b>
@@ -155,44 +148,44 @@
     </li>
     <li>
         <b>Server Rule Management.</b>
-        Server rules can be listed, requests for rules logged, rules targeted at other players,
-        and rules can be distributed between servers automatically.
+        Server rules can be listed, requests for rules logged, rules targeted at other players, and rules can be distributed between servers automatically. 
+        Rules can also be made map and mode specific.
     </li>
     <li>
         <b>External Controller API.</b>
-        AdKats can be controlled from outside the game through systems like the BFAdminCP and through other plugins
-        like Insane Limits. For example, you can issue AdKats punish commands from Insane Limits or ProconRulz and have
-        them logged against the player's profile like any other admin command.
+        AdKats can be controlled from outside the game through systems like the BFAdminCP and through other plugins like Insane Limits. 
+        For example, you can issue AdKats punish commands from Insane Limits or ProconRulz and have them logged against the player's profile like any other admin command.
     </li>
     <li>
         <b>Internal Implementation of TeamSwap.</b>
-        Queued move system for servers that are consistently full, players can be queued to move to full teams once a
-        slot opens.
+        Queued move system for servers that are consistently full, players can be queued to move to full teams once a slot opens.
     </li>
     <li>
         <b>Metabans Support.</b>
-        When using ban enforcer all bans can be submitted to metabans and removed if the player is
-        unbanned.
+        When using ban enforcer all bans can be submitted to metabans and removed if the player is unbanned.
     </li>
     <li>
         <b>Editable In-Game Commands.</b>
         Command text, logging options, chat access types, and enable options can be edited to suit your needs.
     </li>
     <li>
+        <b>Configurable automatic server restarts.</b>
+        AdKats can automatically reboot your game server when it's empty.
+    </li>
+    <li>
         <b>Full Logging.</b>
-        All admin activity is tracked via the database per your custom settings for every command,
-        so holding your admins accountable for their actions is quick and painless.
+        All admin activity is tracked via the database per your custom settings for every command, so holding your admins accountable for their actions is quick and painless.
         If you are using the BFAdminCP nobody but your highest admins will need manual Procon access.
     </li>
     <li>
         <b>Setting Lock.</b>
-        The settings page in AdKats can be locked with a password. This means even admins with access to plugin settings
-        can be blocked from changes using the password.
+        The settings page in AdKats can be locked with a password. 
+        This means even admins with access to plugin settings can be blocked from changes using the password.
     </li>
     <li>
         <b>Performance.</b>
-        All actions, messaging, database communications, and command parsing take place on their own threads, minimizing
-        performance impacts.
+        All actions, messaging, database communications, and command parsing take place on their own threads, minimizing performance impacts.
+        However, AdKats is still almost the size of procon itself (logically anyway), and as such it's not suggested to run multiple instances of AdKats on a single procon layer.
     </li>
 </ul>
 <p>
@@ -242,7 +235,7 @@
 <p>
     AdKats will only run if one of this plugin is using the same database AdKats uses, and running on every
     battlefield Server you plan to install AdKats on.
-    Running it along-side AdKats on each Procon layer is advised, and will ensure these conditions are met.
+    Running it alongside AdKats on each Procon layer is advised, and will ensure these conditions are met.
 </p>
 <p>
     The latest universal version of XpKiller's Stat Logger can be downloaded from here: <a
@@ -277,19 +270,17 @@
         Download and install the latest universal version of XpKiller's
         <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>.
         Make sure stat logger is running without error for a few minutes after installation.
-        If you are already running the BF3 only version of stat logger, that is fine,
-        but the universal version is preferred for full functionality.
+        If you are already running the BF3 only version of stat logger, that is fine, but the universal version is preferred for full functionality.
     </li>
     <li>
         <b style='color:#DF0101;'>GO BACK TO STEP 1 AND INSTALL STAT LOGGER.</b>
-        I cannot emphasize this enough; Far too many people have posted issues because they refuse to follow instructions.
-        Do NOT attempt to install AdKats until stat logger is running without issue.
+        Far too many people have posted issues because they refuse to follow instructions.
+        DO NOT attempt to install AdKats until stat logger is running without issue.
     </li>
     <li>
         <b>Set up the database.</b>
         Run the contents of the <a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">AdKats Database Setup Script</a> on your database, on the same schema stat logger uses.
-        <b><u>WARNING: If you already have AdKats installed and running this script will completely wipe your existing
-            data for the plugin and all of your settings.</u></b>
+        <b><u>WARNING: If you already have AdKats installed and running this script will completely wipe your existing data for the plugin and all of your settings.</u></b>
         The script must be run by an account with permissions to create tables, triggers, and stored procedures.
     </li>
     <li>
@@ -328,13 +319,13 @@
     <li>
         <b>'You have an error in your SQL syntax' error when running the setup SQL script.</b>
         This error is due to an issue with the latest version of PHPMyAdmin, not a database or script problem. 
-        Please use another tool such as MySQL Workbench or a previous version of PHPMyAdmin to run this script 
-        and it will execute without issue.<br/><br/>
+        Please use another tool such as MySQL Workbench or a previous version of PHPMyAdmin to run this script and it will execute without issue.<br/><br/>
         The following error:<br/>
         #1064 - You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version 
         for the right syntax to use near 'REPLACE INTO `adkats_commands` VALUES(75, 'Active', 'player_pm_reply', 
         'Unable',' at line 3
-    </li><li>
+    </li>
+    <li>
         <b>Other troubles running the setup SQL script.</b>
         If this happens it is most likely your database provider has restricted your access to create triggers,
         stored procedures, or both.
@@ -343,8 +334,8 @@
     </li>
     <li>
         <b>"Stat logger tables missing" on first run after setting up the plugin.</b>
-        Confirm you have run the stat logger plugin on the same layer and it is functioning without error. If it is, try
-        rebooting your layer.
+        Confirm you have run the stat logger plugin on the same layer and it is functioning without error. 
+        If it is, try rebooting your layer.
     </li>
     <li>
         <b>Suggest more for this list if you run across them.</b>
@@ -386,7 +377,7 @@
     you are running this version of AdKats on and their information will be immediately added.
 </p>
 <p>
-    The user list is sorted by role power level and then by user name. Power level is a metric for how much a role has
+    The user list is sorted by role power level and then by username. Power level is a metric for how much a role has
     access to.
     For any setting item that says "Delete?" you need to type the word delete in the line and press enter, this avoids
     accidental deletion of users/roles.
@@ -405,7 +396,7 @@
     These commands have been dubbed "punish" and "forgive". Each time a player is punished a log is made in the
     database;
     The more punishes they get, the more severe the action gets.
-    Available punishments include: kill, kick, temp-ban 60 minutes, temp-ban 2 hours, temp-ban 1 day, temp-ban 2 days,
+    Available punishments include: warn, kill, kick, temp-ban 60 minutes, temp-ban 2 hours, temp-ban 1 day, temp-ban 2 days,
     temp-ban 3 days, temp temp-ban 1 week, temp-ban 2 weeks, temp-ban 1 month, and permaban.
     The order and severity of punishments can be configured to your needs.
 </p>
@@ -420,14 +411,15 @@
 </p>
 <h4>TeamKilling Management</h4>
 <p>
-    The punish and forgive commands in AdKats are admin use only. If you would like to integrate a teamkill punish/forgive system with the AdKats punish system, use the <a href="https://forum.myrcon.com/showthread.php?8690" target="_blank">Team Kill Tracker Plugin</a> and enable the AdKats integration settings.
+    The punish and forgive commands in AdKats are admin use only. 
+    If you would like to integrate a teamkill punish/forgive system with the AdKats punish system, use the <a href="https://forum.myrcon.com/showthread.php?8690" target="_blank">Team Kill Tracker Plugin</a> and enable the AdKats integration settings.
 </p>
 <h4>IRO Punishments</h4>
 <p>
     When a player is punished and has already been punished in the past 10 minutes the new punish counts
     for 2 infraction points instead of 1 since the player is immediately breaking server rules again.
     A punish worth 2 points is called an "IRO" punish by the plugin, standing for Immediate Repeat Offence.
-    "[IRO]" will be appended to the punish reason when this type of punish is activated.
+    "[IRO]" will be prepended to the punish reason when this type of punish is activated.
 </p>
 <h4>Punishment Hierarchy</h4>
 <p>
@@ -554,24 +546,24 @@
 </p>
 <p>
     The following are ways reputation can be gained:
-<ul>
-    <li>
-        <b>Issuing good reports on players.</b> Just reporting someone gives rep but when an admin accepts the
-        report or acts on it it's triple the rep bonus.
-    </li>
-    <li>
-        <b>Reporting from spectator.</b> Reporting from spectator is worth much more than reporting in-game. Players
-        are sacrificing their game time to help a server and should be rewarded.
-    </li>
-    <li>
-        <b>Using @assist.</b> Sometimes teams really need help, and sometimes a player's friends are stuck on the
-        weak team. Helping them and the server out by using this command to switch increases rep greatly.
-    </li>
-    <li>
-        <b>Populating servers.</b> Worth twice that of an assist, populating a server helps more than almost anything
-        else. Players are notified and thanked for populating servers along with the rep bonus.
-    </li>
-</ul>
+    <ul>
+        <li>
+            <b>Issuing good reports on players.</b> Just reporting someone gives rep but when an admin accepts the
+            report or acts on it it's triple the rep bonus.
+        </li>
+        <li>
+            <b>Reporting from spectator.</b> Reporting from spectator is worth much more than reporting in-game. Players
+            are sacrificing their game time to help a server and should be rewarded.
+        </li>
+        <li>
+            <b>Using !assist.</b> Sometimes teams really need help, and sometimes a player's friends are stuck on the
+            weak team. Helping them and the server out by using this command to switch increases rep greatly.
+        </li>
+        <li>
+            <b>Populating servers.</b> Worth twice that of an assist, populating a server helps more than almost anything
+            else. Players are notified and thanked for populating servers along with the rep bonus.
+        </li>
+    </ul>
 </p>
 <p>
     If a player has infractions on their record that causes a reputation reduction, but the reduction infraction points
@@ -619,10 +611,10 @@
 </p>
 <h3>Report/CallAdmin System w/Email Support</h3>
 <p>
-    When a player puts in a proper @report or @admin all in-game admins are notified.
+    When a player puts in a proper !report or !admin all in-game admins are notified.
     Reports are logged in the database with full player names for reporter/target and the full reason for
     reporting.
-    Uses of @report and @admin with this plugin require players to enter a reason, and will tell them if they
+    Uses of !report and !admin with this plugin require players to enter a reason, and will tell them if they
     haven't entered one.
     It will not send the report to admins unless reports are complete, cleaning up what admins end up seeing for
     reports.
@@ -632,9 +624,9 @@
     Reports and calls are issued a random three digit ID which expires either at the end of each round, or when it
     is used.
     These ID's can be used in any other action command, simply use that ID instead of a player-name and reason
-    (e.g. waffleman73 baserapes, another player reports them and gets report ID 582, admins just use @punish 582 instead
-    of @punish waffleman73 baserape).
-    Confirmation of command with @yes is required before a report ID is acted on.
+    (e.g. waffleman73 baserapes, another player reports them and gets report ID 582, admins just use !punish 582 instead
+    of !punish waffleman73 baserape).
+    Confirmation of command with !yes is required before a report ID is acted on.
     Players are thanked for reporting when an admin uses their report ID.
     Other online admins are informed when an admin acts on a report by ID, either with action, deny, or accept.
 </p>
@@ -680,7 +672,7 @@
     If admins are offline, and the report matches criteria, autoadmin will punish the target player after 5 seconds. If admins are online, a 45 second window is given for the admin to act on the report before automatic handling fires.
 </p>
 <p>
-    Admins can use any action command just like normal (e.g. @kill ID, @punish ID, etc...), but can also use the new @accept, @ignore, and @deny commands. @accept will confirm the report but take no action against the target player. @ignore is used for bad or invalid reports, the report is removed from the list and no action is taken. @deny is for malicious reports and abuse of the report system, this command will destroy a reporter's reputation and hurt their AA status.
+    Admins can use any action command just like normal (e.g. !kill ID, !punish ID, etc...), but can also use the new !accept, !ignore, and !deny commands. !accept will confirm the report but take no action against the target player. !ignore is used for bad or invalid reports, the report is removed from the list and no action is taken. !deny is for malicious reports and abuse of the report system, this command will destroy a reporter's reputation and hurt their AA status.
 </p>
 <p>
     Exceptions and Security Measures: Automatic handling will not be taken if the target of a report is an admin or another AA, a real admin must act on the report. Automatic action will also not be taken if the target player has already been acted on in some way in the past 60 seconds.
@@ -720,18 +712,18 @@
 <p>
     A list of editable pre-defined messages can be added in settings, then admins can use the message ID instead of
     typing the whole message in.
-    Example: "@say 2" will send the second pre-defined message.
+    Example: "!say 2" will send the second pre-defined message.
 </p>
 <p>
-    Use @whatis [preMessageID] to find out what a particular ID links to before using it in commands.
+    Use !whatis [preMessageID] to find out what a particular ID links to before using it in commands.
 </p>
 <p>
     <b>Anywhere a reason or message is needed, a preMessage ID can be used instead.</b><br/>
     Example: 4th preMessage is "Baserape. Do not shoot uncap."<br/>
-    "@punish muffinman 4" will punish them for the above reason.
+    "!punish muffinman 4" will punish them for the above reason.
     Even more useful is using report IDs with this, for example someone reports muffinman for "baseraping asshat" and
     gets report ID 283.
-    You don't want "baseraping asshat" to be the actual reason entered, so you can just do "@punish 283 4", and he will
+    You don't want "baseraping asshat" to be the actual reason entered, so you can just do "!punish 283 4", and he will
     get the proper punish message.
 </p>
 <h3>TeamSwap</h3>
@@ -749,10 +741,10 @@
     want (within a ticket count window).
     This is currently not an available option in default battlefield aside from Procon commands since the game limits
     players to one switch per gaming session.
-    Whitelisted players can type '@moveme' and TeamSwap will queue them.
+    Whitelisted players can type '!moveme' and TeamSwap will queue them.
     This is meant to be available to players outside the admin list, usually by paid usage to your community or to clan
     members only.
-    Admins can also use '@moveme', and in their case it bypasses the ticket window restriction.
+    Admins can also use '!moveme', and in their case it bypasses the ticket window restriction.
     When players are moved by admins, use the moveme command, or use assist, they are locked to that team for the
     current round.
     When a player is moved by admin, multibalancer unswitcher is disabled for a few seconds to remove the chance of
@@ -760,7 +752,7 @@
 </p>
 <h3>Requiring Reasons</h3>
 <p>
-    Any ommand which might lead to actions against players are required to have a reason entered, and will cancel if
+    Any command which might lead to actions against players are required to have a reason entered, and will cancel if
     no reason is given.
     Players (even the most atrocious in some cases) should know what they were acted on for, and it's also a good way to
     hold admins accountable for their actions.
@@ -784,9 +776,9 @@
     Valid groups can be seen on github, in the adkatsspecialgroups.json file.
     Players can be added by ID, or by identifier (name, guid, or IP), and can be assigned a game and server to apply
     them to.
-    If you use player IDs then you wont need to update player names if they change their names,
+    If you use player IDs then you won't need to update player names if they change their names,
     the player names will automatically update when they join the server;
-    This is especially good to use when whitelisting for the hacker-checker.
+    This is especially good to use when whitelisting for the AntiCheat system.
     Leave fields blank to indicate wildcard, for example leaving the server column blank for player will mean it applies
     to all servers of their game.
     If you specify the server, the group you have them assigned to will only apply for that one server.
@@ -798,9 +790,9 @@
     sent to the appropriate plugins. Add entries to that table with a given server ID, plugin name, plugin setting name,
     and setting value. AdKats will send those settings to the target plugins every 5 minutes.
 </p>
-<h3>Internal Hacker-Checker with Whitelist</h3>
+<h3>Internal AntiCheat System with Whitelist</h3>
 <p>
-    The "Hacker-Checker" (Was uninspired when naming it, sue me.) is a system for automatically catching and acting
+    The AntiCheat System is a system for automatically catching and acting
     on players with suspicious or impossible statistics.
 </p>
 <p>
@@ -850,12 +842,12 @@
 </p>
 <h4>Magic Bullet</h4>
 <p>
-    The hacker-checker is able to detect the magic bullet hack and will issue bans accordingly.
+    The AntiCheat system is able to detect the magic bullet hack and will issue bans accordingly.
     If any ban it issues is questionable please post about it on MyRCON in the AdKats thread.
 </p>
 <h4>Posting Method</h4>
 <p>
-    The heaviest hacked weapon (the one farthest above normal) is the one displayed in the ban reason using the
+    The "most hacked" weapon (the one farthest above normal) is the one displayed in the ban reason using the
     following formats:<br/>
     Damage Mod Bans:<br/>
     DPS Automatic Ban [WEAPONNAME-DPS-KILLS-HEADSHOTS]<br/>
@@ -871,8 +863,8 @@
 <p>
 <ul>
     <li>HSK bans take priority over DPS bans, and DPS over KPM.</li>
-    <li>Whitelisting can either be done using the hcwhitelist command, or by entering their player ID, name, guid,
-        or IP in the adkats_specialplayers table using the group "whitelist_hackerchecker"</li>
+    <li>Whitelisting can either be done using the acwhitelist command, or by entering their player ID, name, guid,
+        or IP in the adkats_specialplayers table using the group "whitelist_anticheat"</li>
 </ul>
 </p>
 <h3>Automatic Updates</h3>
@@ -952,7 +944,7 @@
     can be used.
 <ul>
     <li><b>surrender. </b> This command is usable by both teams, but will be translated to votenext if used by the
-        winning team. Players on the losing team don't want to sit though a baserape, this command lets them vote toward
+        winning team. Players on the losing team don't want to sit through a baserape, this command lets them vote toward
         round surrender. It adds one vote toward surrender.</li>
     <li><b>votenext. </b> This command is usable by both teams, but will be translated to surrender if used by the
         losing team. Players on the winning team will sometimes find it boring sitting at a baserape, this command
@@ -1060,7 +1052,7 @@ Parameters:
         admin_say.
     </li>
     <li><b>command_numeric</b> Used for commands like player_ban_temp that require a numerical input. Currently
-        player_ban_temp is the only command that requires a command numeric, and will throw errors if a numerica is not
+        player_ban_temp is the only command that requires a command numeric, and will throw errors if a numeric is not
         provided. In all other cases this field is optional.
     </li>
     <li><b>source_name</b> Name of the source you would like database logged. For example an admin name, plugin name, or
@@ -1085,7 +1077,7 @@ Response:
     <li><b>response_type</b> IssueCommand</li>
     <li><b>response_value</b> List of all messages sent for the command, comparable to what an admin would see in-game.
         CPluginVariable.EncodeStringArray used to compact into one field. CPluginVariable.DecodeStringArray can be used
-        to parse the field back into an array. If the command succeeds withouth issue there should (generally) only be
+        to parse the field back into an array. If the command succeeds without issue there should (generally) only be
         one message.
     </li>
 </ul>
@@ -1129,10 +1121,11 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     Commands can be accessed with '!', '@', '.', '/!', '/@', '/.', or just '/'.
 </p>
 <p>
-    Any action command given with no parameters (e.g. '!kill') will target the speaker.
+    Any action command issued with no parameters (e.g. '!kill') will target the speaker.
     If admins want to kill, kick, or even ban themselves, simply type the action command without any parameters.
     Any action command when given a player name (other than moving players) will require a reason.
 </p>
+<h3>Universal Commands</h3>
 <table>
     <tr>
         <td><b>Command</b></td>
@@ -1155,6 +1148,15 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         <td>
             The in-game command used to cancel other commands when needed. Must be active. Must be accessible under 'Any'. Must use 'no' as command text. Cannot be denied for any role
         </td>
+    </tr>
+</table>
+<h3>Action Commands</h3>
+<table>
+    <tr>
+        <td><b>Command</b></td>
+        <td><b>Default Text</b></td>
+        <td><b>Params</b></td>
+        <td><b>Description</b></td>
     </tr>
     <tr>
         <td><b>Kill Player</b></td>
@@ -1335,6 +1337,188 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
             Players will be muted till the end of the round, X kills then kick if they keep talking.
             Admins cannot be muted.
         </td>
+    </tr>
+    <tr>
+        <td><b>On-Death Move Player</b></td>
+        <td>move</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player]<br/>
+            OR<br/>
+            [reportID]
+        </td>
+        <td>
+            The in-game command used for moving players between teams.
+            Will add players to the "on-death" move list, when they die they will be sent to TeamSwap.
+            If the player is already dead, this command automatically changes to force move.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Force-Move Player</b></td>
+        <td>fmove</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player]<br/>
+            OR<br/>
+            [reportID]
+        </td>
+        <td>
+            The in-game command used for force-moving players between teams.
+            Will immediately send the given player to TeamSwap.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Join Player</b></td>
+        <td>join</td>
+        <td>
+            [player]<br/>
+            OR<br/>
+            [reportID]
+        </td>
+        <td>
+            The in-game command used for joining player's squads.
+            Will immediately send the speaker to the target if possible, within access limitations.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Pull Player</b></td>
+        <td>pull</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Pulls a player to your current squad, killing them in the process.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Mark Player</b></td>
+        <td>mark</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Marks a player for admin notification if they leave the server.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Lock Player</b></td>
+        <td>lock</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Locks a player from admin commands for 10 minutes. Only the locking admin will be able to act on them.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Unlock Player</b></td>
+        <td>unlock</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Allows the locking admin to unlock a currently locked player.
+        </td>
+    </tr>
+    <tr>
+        <td><b>TeamSwap Self</b></td>
+        <td>moveme</td>
+        <td>None</td>
+        <td>
+            The in-game command used for moving yourself between teams.
+            Will immediately send the speaker to TeamSwap.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Lead Current Squad</b></td>
+        <td>lead</td>
+        <td>
+            none<br/>
+            OR<br/>
+            [player]
+        </td>
+        <td>
+            The in-game command used to the speaker to leader of their current squad. When targeted at a player, that player
+            will be given leader of their current squad. Only available in BF4.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Assist Losing Team</b></td>
+        <td>assist</td>
+        <td>
+            none
+        </td>
+        <td>
+            The in-game command used to join the weak/losing team.
+            Blocked from usage until 2 minutes into any round.
+            Blocked from usage when teams are within 60 tickets of each other.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Kill Self</b></td>
+        <td>killme</td>
+        <td>None</td>
+        <td>
+            The in-game command used for killing the speaker.
+            Specific timeout of 10 minutes to avoid abuse.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Server Nuke</b></td>
+        <td>nuke</td>
+        <td>[US/RU/ALL]</td>
+        <td>
+            The in-game command used for killing all players in a subset. US, RU, or ALL will work.
+        </td>
+    </tr>
+    <tr>
+        <td><b>SwapNuke Server</b></td>
+        <td>swapnuke</td>
+        <td>none</td>
+        <td>
+            The in-game command used for team-switching all players in the server.
+            THIS IS EXPERIMENTAL, AND SHOULD BE USED WITH CAUTION.
+            MULTIBalancer unswitcher is automatically disabled when using this command, and re-enabled once complete.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Kick All Guests</b></td>
+        <td>kickall</td>
+        <td>None</td>
+        <td>
+            The in-game command used for kicking all players except admins.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Dequeue Player Action</b></td>
+        <td>deq</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Canceles all queued actions on the target player. Moves, kills, etc.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Manage AFK Players</b></td>
+        <td>afk</td>
+        <td>
+            None
+        </td>
+        <td>
+            Calls the AFK Management functionality manually. Cannot be used if AFK payers are being managed automatically.
+        </td>
+    </tr>
+</table>
+<h3>Special Player Group Commands</h3>
+<table>
+    <tr>
+        <td><b>Command</b></td>
+        <td><b>Default Text</b></td>
+        <td><b>Params</b></td>
+        <td><b>Description</b></td>
     </tr>
     <tr>
         <td><b>Reserved Slot Player</b></td>
@@ -1605,98 +1789,14 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
             The in-game command used for removing a player from TeamKillTracker Whitelist for all servers. "Feed TeamKillTracker Whitelist" must be enabled to use this command.
         </td>
     </tr>
+</table>
+<h3>Reporting Commands</h3>
+<table>
     <tr>
-        <td><b>On-Death Move Player</b></td>
-        <td>move</td>
-        <td>
-            None<br/>
-            OR<br/>
-            [player]<br/>
-            OR<br/>
-            [reportID]
-        </td>
-        <td>
-            The in-game command used for moving players between teams.
-            Will add players to the "on-death" move list, when they die they will be sent to TeamSwap.
-            If the player is already dead, this command automatically changes to force move.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Force-Move Player</b></td>
-        <td>fmove</td>
-        <td>
-            None<br/>
-            OR<br/>
-            [player]<br/>
-            OR<br/>
-            [reportID]
-        </td>
-        <td>
-            The in-game command used for force-moving players between teams.
-            Will immediately send the given player to TeamSwap.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Join Player</b></td>
-        <td>join</td>
-        <td>
-            [player]<br/>
-            OR<br/>
-            [reportID]
-        </td>
-        <td>
-            The in-game command used for joining player's squads.
-            Will immediately send the speaker to the target if possible, within access limitations.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Pull Player</b></td>
-        <td>pull</td>
-        <td>
-            [player]
-        </td>
-        <td>
-            Pulls a player to your current squad, killing them in the process.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Mark Player</b></td>
-        <td>mark</td>
-        <td>
-            [player]
-        </td>
-        <td>
-            Marks a player for admin notification if they leave the server.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Lock Player</b></td>
-        <td>lock</td>
-        <td>
-            [player]
-        </td>
-        <td>
-            Locks a player from admin commands for 10 minutes. Only the locking admin will be able to act on them.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Unlock Player</b></td>
-        <td>unlock</td>
-        <td>
-            [player]
-        </td>
-        <td>
-            Allows the locking admin to unlock a currently locked player.
-        </td>
-    </tr>
-    <tr>
-        <td><b>TeamSwap Self</b></td>
-        <td>moveme</td>
-        <td>None</td>
-        <td>
-            The in-game command used for moving yourself between teams.
-            Will immediately send the speaker to TeamSwap.
-        </td>
+        <td><b>Command</b></td>
+        <td><b>Default Text</b></td>
+        <td><b>Params</b></td>
+        <td><b>Description</b></td>
     </tr>
     <tr>
         <td><b>Report Player</b></td>
@@ -1759,6 +1859,15 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         <td>
             Usable by players to contest round reports before admins act on them.
         </td>
+    </tr>
+</table>
+<h3>Communication Commands</h3>
+<table>
+    <tr>
+        <td><b>Command</b></td>
+        <td><b>Default Text</b></td>
+        <td><b>Params</b></td>
+        <td><b>Description</b></td>
     </tr>
     <tr>
         <td><b>Admin Say</b></td>
@@ -1836,16 +1945,6 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
-        <td><b>Log Player Information</b></td>
-        <td>log</td>
-        <td>
-            [player][message]
-        </td>
-        <td>
-            The in-game command used for logging a message on a player's record. Does not affect their gameplay in any way.
-        </td>
-    </tr>
-    <tr>
         <td><b>Player Private Message</b></td>
         <td>msg</td>
         <td>
@@ -1878,6 +1977,23 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
+        <td><b>Server Countdown</b></td>
+        <td>cdown</td>
+        <td>[squad/team/all] [seconds] [reason]</td>
+        <td>
+            The in-game command used for issuing countdowns on a subset of players.
+        </td>
+    </tr>
+</table>
+<h3>Information Commands</h3>
+<table>
+    <tr>
+        <td><b>Command</b></td>
+        <td><b>Default Text</b></td>
+        <td><b>Params</b></td>
+        <td><b>Description</b></td>
+    </tr>
+    <tr>
         <td><b>What Is</b></td>
         <td>whatis</td>
         <td>
@@ -1887,19 +2003,6 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
         <td>
             The in-game command used for finding out what a particular preMessage ID, or command name, means.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Lead Current Squad</b></td>
-        <td>lead</td>
-        <td>
-            none<br/>
-            OR<br/>
-            [player]
-        </td>
-        <td>
-            The in-game command used to the speaker to leader of their current squad. When targeted at a player, that player
-            will be given leader of their current squad. Only available in BF4.
         </td>
     </tr>
     <tr>
@@ -1913,74 +2016,6 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         <td>
             The in-game command used to request the server rules. When targeted at a player, that player will be told the
             server rules. When targeted at a player, the command goes on timeout for that player.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Feedback</b></td>
-        <td>feedback</td>
-        <td>
-            message
-        </td>
-        <td>
-            Logs the given message as feedback for the server.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Request Reputation</b></td>
-        <td>rep</td>
-        <td>
-            none<br/>
-            OR<br/>
-            [player]
-        </td>
-        <td>
-            The in-game command used to request the server reputation. When targeted at a player, you will be told that
-            player's reputation. Requesting a player's reputation other than your own is admin only.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Vote Surrender</b></td>
-        <td>surrender</td>
-        <td>
-            none
-        </td>
-        <td>
-            The in-game command used for starting/voting for a round surrender. Losing team specific, but either surrender
-            or votenext can be used.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Vote Next Round</b></td>
-        <td>votenext</td>
-        <td>
-            none
-        </td>
-        <td>
-            The in-game command used for starting/voting for a round surrender. Losing team specific, but either surrender
-            or votenext can be used.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Vote Against Surrender</b></td>
-        <td>nosurrender</td>
-        <td>
-            none
-        </td>
-        <td>
-            The in-game command used for voting AGAINST a currently active round surrender. This command may only be
-            used by the losing team.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Assist Losing Team</b></td>
-        <td>assist</td>
-        <td>
-            none
-        </td>
-        <td>
-            The in-game command used to join the weak/losing team.
-            Blocked from usage until 2 minutes into any round.
-            Blocked from usage when teams are within 60 tickets of each other.
         </td>
     </tr>
     <tr>
@@ -2022,13 +2057,165 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
-        <td><b>Kill Self</b></td>
-        <td>killme</td>
-        <td>None</td>
+        <td><b>Fetch Player Info</b></td>
+        <td>pinfo</td>
         <td>
-            The in-game command used for killing the speaker.
-            Specific timeout of 10 minutes to avoid abuse.
+            [player]
         </td>
+        <td>
+            Fetches extended information about the player.
+            Player name, ID, role, team name, team position, current score, time first seen, amount of time spent on current
+            server, city location, IP change count, reports from/against during current round, infraction points, last
+            punishment time/reason, reputation, and previous names.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Fetch Player Chat</b></td>
+        <td>pchat</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [chatLines]<br/>
+            OR<br/>
+            [player]<br/>
+            OR<br/>
+            [chatLines][player]<br/>
+            OR<br/>
+            self [player]<br/>
+            OR<br/>
+            [chatLines] self [player]<br/>
+            OR<br/>
+            [player1][player2]<br/>
+            OR<br/>
+            [chatLines][player1][player2]
+        </td>
+        <td>
+            Fetches chat history or conversation history between players.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Request Reputation</b></td>
+        <td>rep</td>
+        <td>
+            none<br/>
+            OR<br/>
+            [player]
+        </td>
+        <td>
+            The in-game command used to request the server reputation. When targeted at a player, you will be told that
+            player's reputation. Requesting a player's reputation other than your own is admin only.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Request Server Commands</b></td>
+        <td>help</td>
+        <td>
+            None
+        </td>
+        <td>
+            Lists the server commands you can access.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Find Player</b></td>
+        <td>find</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Returns the team, position, and score, of the targeted player.
+            Chat access must be AnyHidden.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Player Is Admin</b></td>
+        <td>isadmin</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Returns whether the given player is an admin, and states their role.
+        </td>
+    </tr>
+</table>
+<h3>Logging Commands</h3>
+<table>
+    <tr>
+        <td><b>Command</b></td>
+        <td><b>Default Text</b></td>
+        <td><b>Params</b></td>
+        <td><b>Description</b></td>
+    </tr>
+    <tr>
+        <td><b>Log Player Information</b></td>
+        <td>log</td>
+        <td>
+            [player][message]
+        </td>
+        <td>
+            The in-game command used for logging a message on a player's record. Does not affect their gameplay in any way.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Feedback</b></td>
+        <td>feedback</td>
+        <td>
+            message
+        </td>
+        <td>
+            Logs the given message as feedback for the server.
+        </td>
+    </tr>
+</table>
+<h3>Voting Commands</h3>
+<table>
+    <tr>
+        <td><b>Command</b></td>
+        <td><b>Default Text</b></td>
+        <td><b>Params</b></td>
+        <td><b>Description</b></td>
+    </tr>
+    <tr>
+        <td><b>Vote Surrender</b></td>
+        <td>surrender</td>
+        <td>
+            none
+        </td>
+        <td>
+            The in-game command used for starting/voting for a round surrender. Losing team specific, but either surrender
+            or votenext can be used.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Vote Next Round</b></td>
+        <td>votenext</td>
+        <td>
+            none
+        </td>
+        <td>
+            The in-game command used for starting/voting for a round surrender. Losing team specific, but either surrender
+            or votenext can be used.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Vote Against Surrender</b></td>
+        <td>nosurrender</td>
+        <td>
+            none
+        </td>
+        <td>
+            The in-game command used for voting AGAINST a currently active round surrender. This command may only be
+            used by the losing team.
+        </td>
+    </tr>
+</table>
+<h3>Maintenance Commands</h3>
+<table>
+    <tr>
+        <td><b>Command</b></td>
+        <td><b>Default Text</b></td>
+        <td><b>Params</b></td>
+        <td><b>Description</b></td>
     </tr>
     <tr>
         <td><b>Restart Current Round</b></td>
@@ -2072,128 +2259,6 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
-        <td><b>Server Nuke</b></td>
-        <td>nuke</td>
-        <td>[US/RU/ALL]</td>
-        <td>
-            The in-game command used for killing all players in a subset. US, RU, or ALL will work.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Server Countdown</b></td>
-        <td>cdown</td>
-        <td>[squad/team/all] [seconds] [reason]</td>
-        <td>
-            The in-game command used for issuing countdowns on a subset of players.
-        </td>
-    </tr>
-    <tr>
-        <td><b>SwapNuke Server</b></td>
-        <td>swapnuke</td>
-        <td>none</td>
-        <td>
-            The in-game command used for team-switching all players in the server.
-            THIS IS EXPERIMENTAL, AND SHOULD BE USED WITH CAUTION.
-            MULTIBalancer unswitcher is automatically disabled when using this command, and re-enabled once complete.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Kick All Guests</b></td>
-        <td>kickall</td>
-        <td>None</td>
-        <td>
-            The in-game command used for kicking all players except admins.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Fetch Player Info</b></td>
-        <td>pinfo</td>
-        <td>
-            [player]
-        </td>
-        <td>
-            Fetches extended information about the player.
-            Player name, ID, role, team name, team posision, current score, time first seen, amount of time spent on current
-            server, city location, IP change count, reports from/against during current round, infraction points, last
-            punishment time/reason, reputation, and previous names.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Fetch Player Chat</b></td>
-        <td>pchat</td>
-        <td>
-            None<br/>
-            OR<br/>
-            [chatLines]<br/>
-            OR<br/>
-            [player]<br/>
-            OR<br/>
-            [chatLines][player]<br/>
-            OR<br/>
-            self [player]<br/>
-            OR<br/>
-            [chatLines] self [player]<br/>
-            OR<br/>
-            [player1][player2]<br/>
-            OR<br/>
-            [chatLines][player1][player2]
-        </td>
-        <td>
-            Fetches chat history or conversation history between players.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Dequeue Player Action</b></td>
-        <td>deq</td>
-        <td>
-            [player]
-        </td>
-        <td>
-            Canceles all queued actions on the target player. Moves, kills, etc.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Request Server Commands</b></td>
-        <td>help</td>
-        <td>
-            None
-        </td>
-        <td>
-            Lists the server commands you can access.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Find Player</b></td>
-        <td>find</td>
-        <td>
-            [player]
-        </td>
-        <td>
-            Returns the team, position, and score, of the targeted player.
-            Chat access must be AnyHidden.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Player Is Admin</b></td>
-        <td>isadmin</td>
-        <td>
-            [player]
-        </td>
-        <td>
-            Returns whether the given player is an admin, and states their role.
-        </td>
-    </tr>
-    <tr>
-        <td><b>Manage AFK Players</b></td>
-        <td>afk</td>
-        <td>
-            None
-        </td>
-        <td>
-            Calls the AFK Management functionality manually. Cannot be used if AFK payers are being managed automatically.
-        </td>
-    </tr>
-    <tr>
         <td><b>Plugin Update</b></td>
         <td>pupdate</td>
         <td>
@@ -2202,6 +2267,15 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         <td>
             Calls manual update of AdKats source and any connected extensions to their latest versions.
         </td>
+    </tr>
+</table>
+<h3>Other Commands</h3>
+<table>
+    <tr>
+        <td><b>Command</b></td>
+        <td><b>Default Text</b></td>
+        <td><b>Params</b></td>
+        <td><b>Description</b></td>
     </tr>
 </table>
 <HR>
@@ -2223,7 +2297,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </tr>
     <tr>
         <td>battlelog.battlefield.com</td>
-        <td>Player identity tracking and anti-cheat.</td>
+        <td>Player identity tracking and AntiCheat.</td>
     </tr>
     <tr>
         <td>raw.github.com</td>
@@ -2259,11 +2333,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     All are either simple GET or POST requests.
 </p>
 <p>
-    BF4DB.com might be used in the future to trigger updates on players BF4Stats data.
-</p>
-<p>
-    <b>The following URLS are used for reputation stats, special player groups, database updates, and weapon stats for
-        hacker-checker:</b>
+    <b>The following URLS are used for reputation stats, special player groups, database updates, and weapon stats for AntiCheat system:</b>
 </p>
 <p>
 <table>
@@ -2284,7 +2354,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         <td>Database Updates</td>
     </tr>
     <tr>
-        <td><a href="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/adkatsweaponstats.json" target="_blank">adkatsweaponstats.json</a></td>
+        <td><a href="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/adkatsblweaponstats.json" target="_blank">adkatsblweaponstats.json</a></td>
         <td>Battlefield Weapon Stats (Damages)</td>
     </tr>
 </table>
@@ -2482,11 +2552,11 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </li>
     <li><b>'Low Population Value'</b> - 
         Number of players at which the server is deemed 'Low Population'.
-        Server is consider 'Medium Population' when the number of players is between the low and high population values.
+        Server is considered 'Medium Population' when the number of players is between the low and high population values.
     </li>
     <li><b>'High Population Value'</b> - 
         Number of players at which the server is deemed 'High Population'.
-        Server is consider 'Medium Population' when the number of players is between the low and high population values.
+        Server is considered 'Medium Population' when the number of players is between the low and high population values.
     </li>
     <li><b>'Automatic Server Restart When Empty'</b> - 
         Enable/Disable automatically rebooting the server when it is empty. 
@@ -2557,7 +2627,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <h3>3-3. Verbose Special Player Display:</h3>
 <ul>
     <li><b>*Verbose Special Player Group Name* (Display)</b> - 
-        Displayes all players assigned to a group, even if they aren't specifically assigned to it. 
+        Displays all players assigned to a group, even if they aren't specifically assigned to it. 
         For example admins would be included in this list if you are automatically assigning reserved slot to admins.
         Many things can cause players to be assigned groups, and this section displays the final result.
     </li>
@@ -2972,7 +3042,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <h3>A14. External Command Settings:</h3>
 <ul>
     <li><b>'AdKatsLRT Extension Token'</b> - 
-        Usable with AdKatsLRT - OnSpawn Loadout Enforcer plugin. Once that plugin is purchased, the token can be placed here for automatic install/updates.
+        Usable with AdKatsLRT - On Spawn Loadout Enforcer plugin. Once that plugin is purchased, the token can be placed here for automatic install/updates.
     </li>
 </ul>
 <h3>A15. VOIP Settings:</h3>
@@ -3055,32 +3125,32 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         Number of minutes that the round will last before the current winning team wins (Will only work correctly in conquest/domination at the moment).
     </li>
 </ul>
-<h3>A18. Internal Hacker-Checker Settings:</h3>
+<h3>A18. Internal AntiCheat Settings:</h3>
 <ul>
     <li><b>'Use LIVE Anti Cheat System'</b> - 
-        The LIVE anti-cheak system looks at active statistics and between round statistics to bolster the abilities of the anti-cheat script. The only downside to this is that it issues more requests to battlelog.
+        The LIVE AntiCheat system looks at active statistics and between round statistics to bolster the abilities of the AntiCheat script. The only downside to this is that it issues more requests to battlelog.
     </li>
-    <li><b>'HackerChecker: DPS Checker: Ban Message'</b> - 
+    <li><b>'AntiCheat: DPS Checker: Ban Message'</b> - 
         Message prefix to use when banning for damage mod.
     </li>
-    <li><b>'HackerChecker: HSK Checker: Enable'</b> - 
-        Whether the Aimbot portion of the hacker-checker is enabled.
+    <li><b>'AntiCheat: HSK Checker: Enable'</b> - 
+        Whether the Aimbot portion of the AntiCheat system is enabled.
     </li>
-    <li><b>'HackerChecker: HSK Checker: Trigger Level'</b> -
+    <li><b>'AntiCheat: HSK Checker: Trigger Level'</b> -
         The headshot/kill ratio for automatic weapons that will trigger a ban. 100 kills minimum to trigger.
         After 3 months of testing, we suggest setting between 50 and 70 depending on the severity you want to enforce.
-        You will get some false positives down near 50 but will catch many more aimbotters, setting near 70 will not result in false positives but also wont catch as many bots.
+        You will get some false positives down near 50 but will catch many more aimbotters, setting near 70 will not result in false positives but also won't catch as many bots.
     </li>
-    <li><b>'HackerChecker: HSK Checker: Ban Message'</b> - 
+    <li><b>'AntiCheat: HSK Checker: Ban Message'</b> - 
         Message prefix to use when banning for high HSK.
     </li>
-    <li><b>'HackerChecker: KPM Checker: Enable'</b> - 
-        Whether the KPM portion of the hacker-checker is enabled.
+    <li><b>'AntiCheat: KPM Checker: Enable'</b> - 
+        Whether the KPM portion of the AntiCheat system is enabled.
     </li>
-    <li><b>'HackerChecker: KPM Checker: Trigger Level'</b> - 
+    <li><b>'AntiCheat: KPM Checker: Trigger Level'</b> - 
         Kills-per-minute with any included weapon that will trigger the ban.
     </li>
-    <li><b>'HackerChecker: KPM Checker: Ban Message'</b> - 
+    <li><b>'AntiCheat: KPM Checker: Ban Message'</b> - 
         Message prefix to use when banning for high KPM.
     </li>
 </ul>
@@ -3358,7 +3428,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         For example, if you have this setting at 10 seconds, and a high population nuke is fired for 15 seconds, but this is the 3rd nuke to be fired against this team, the resulting nuke is 35 seconds long.
     </li>
     <li><b>'Auto-Nuke Duration Increase Minimum Ticket Difference'</b> - 
-        The minimum ticket difference betweent teams before the nuke duration is allowed to increase.
+        The minimum ticket difference between teams before the nuke duration is allowed to increase.
     </li>
     <li><b>'Auto-Nuke Message'</b> - 
         The message that will be sent to the server when an auto-nuke is fired.
@@ -3368,7 +3438,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <h3>B26. Statistics Settings:</h3>
 <ul>
     <li><b>'Post Map Benefit/Detriment Statistics'</b> - 
-        Whether to post statistics on which maps are most beneficial/detrimental to the population of the server. Queries to extract meaning from this information can be aquired in the main AdKats forum thread.
+        Whether to post statistics on which maps are most beneficial/detrimental to the population of the server. Queries to extract meaning from this information can be acquired in the main AdKats forum thread.
     </li>
 </ul>
 <h3>B27. Populator Monitor Settings - Thanks CMWGaming:</h3>
@@ -3540,7 +3610,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         Player power ranges from 7-35.
     </li>
     <li><b>'Enable Team Power Scrambler'</b> - 
-        Completely expermental system, use with caution.
+        Completely experimental system, use with caution.
         This system uses team power metrics to scramble teams based on their power levels, keeping squads together. 
         Players are then locked to their assigned teams for the duration of the round unless they use assist or are moved by an admin.
         I've noticed that this system does not work well for metro since the rounds are so volatile and people quit and join at such a high rate.
