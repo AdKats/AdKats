@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.345
+ * Version 6.9.0.346
  * 8-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.345</version_code>
+ * <version_code>6.9.0.346</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.345";
+        private const String PluginVersion = "6.9.0.346";
 
         public enum GameVersion
         {
@@ -44863,58 +44863,68 @@ namespace PRoConEvents
                             DoBattlelogWait();
                             String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawoverviewpopulate/" + aPlayer.player_battlelog_personaID + "/1/?cacherand=" + Environment.TickCount);
                             Hashtable json = (Hashtable)JSON.JsonDecode(overviewResponse);
-                            Hashtable data = (Hashtable)json["data"];
-                            Hashtable info = null;
-                            if (!data.ContainsKey("viewedPersonaInfo") || (info = (Hashtable)data["viewedPersonaInfo"]) == null)
+                            if (json.ContainsKey("data"))
                             {
-                                aPlayer.player_clanTag = String.Empty;
-                                Log.Debug(() => "Could not find BF4 clan tag for " + aPlayer.player_name, 4);
-                            }
-                            else
-                            {
-                                String tag = String.Empty;
-                                if (!info.ContainsKey("tag") || String.IsNullOrEmpty(tag = (String)info["tag"]))
+                                Hashtable data = (Hashtable)json["data"];
+                                Hashtable info = null;
+                                if (!data.ContainsKey("viewedPersonaInfo") || (info = (Hashtable)data["viewedPersonaInfo"]) == null)
                                 {
                                     aPlayer.player_clanTag = String.Empty;
                                     Log.Debug(() => "Could not find BF4 clan tag for " + aPlayer.player_name, 4);
                                 }
                                 else
                                 {
-                                    aPlayer.player_clanTag = tag;
-                                    Log.Debug(() => "Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
+                                    String tag = String.Empty;
+                                    if (!info.ContainsKey("tag") || String.IsNullOrEmpty(tag = (String)info["tag"]))
+                                    {
+                                        aPlayer.player_clanTag = String.Empty;
+                                        Log.Debug(() => "Could not find BF4 clan tag for " + aPlayer.player_name, 4);
+                                    }
+                                    else
+                                    {
+                                        aPlayer.player_clanTag = tag;
+                                        Log.Debug(() => "Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
+                                    }
+                                }
+                                Hashtable overview = null;
+                                if (!data.ContainsKey("overviewStats") || (overview = (Hashtable)data["overviewStats"]) == null)
+                                {
+                                    Log.Error("Could not find overview statistics for " + aPlayer.player_name);
+                                }
+                                else
+                                {
+                                    if (!overview.ContainsKey("scorePerMinute"))
+                                    {
+                                        Log.Error("Could not find BF4 SPM for " + aPlayer.player_name);
+                                    }
+                                    else
+                                    {
+                                        aPlayer.BL_SPM = Int32.Parse(overview["scorePerMinute"].ToString());
+                                    }
+                                    if (!overview.ContainsKey("kdRatio"))
+                                    {
+                                        Log.Error("Could not find BF4 KDR for " + aPlayer.player_name);
+                                    }
+                                    else
+                                    {
+                                        aPlayer.BL_KDR = Double.Parse(overview["kdRatio"].ToString());
+                                    }
+                                    if (!overview.ContainsKey("killsPerMinute"))
+                                    {
+                                        Log.Error("Could not find BF4 KPM for " + aPlayer.player_name);
+                                    }
+                                    else
+                                    {
+                                        aPlayer.BL_KPM = Double.Parse(overview["killsPerMinute"].ToString());
+                                    }
                                 }
                             }
-                            Hashtable overview = null;
-                            if (!data.ContainsKey("overviewStats") || (overview = (Hashtable)data["overviewStats"]) == null)
+                            else if (overviewResponse.Contains("errorpage"))
                             {
-                                Log.Error("Could not find overview statistics for " + aPlayer.player_name);
-                            }
-                            else
-                            {
-                                if (!overview.ContainsKey("scorePerMinute"))
-                                {
-                                    Log.Error("Could not find BF4 SPM for " + aPlayer.player_name);
-                                }
-                                else
-                                {
-                                    aPlayer.BL_SPM = Int32.Parse(overview["scorePerMinute"].ToString());
-                                }
-                                if (!overview.ContainsKey("kdRatio"))
-                                {
-                                    Log.Error("Could not find BF4 KDR for " + aPlayer.player_name);
-                                }
-                                else
-                                {
-                                    aPlayer.BL_KDR = Double.Parse(overview["kdRatio"].ToString());
-                                }
-                                if (!overview.ContainsKey("killsPerMinute"))
-                                {
-                                    Log.Error("Could not find BF4 KPM for " + aPlayer.player_name);
-                                }
-                                else
-                                {
-                                    aPlayer.BL_KPM = Double.Parse(overview["killsPerMinute"].ToString());
-                                }
+                                Log.Warn("Battlelog returning errors, waiting 30 seconds.");
+                                _LastBattlelogAction = UtcNow().AddSeconds(30);
+                                _LastBattlelogIssue = UtcNow();
+                                return true;
                             }
                         }
                         catch (Exception e)
@@ -45266,22 +45276,32 @@ namespace PRoConEvents
                             DoBattlelogWait();
                             String overviewResponse = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawdetailedstatspopulate/" + aPlayer.player_battlelog_personaID + "/1/?cacherand=" + Environment.TickCount);
                             Hashtable json = (Hashtable)JSON.JsonDecode(overviewResponse);
-                            Hashtable data = (Hashtable)json["data"];
-                            Hashtable overviewStatsTable = null;
-                            if (data.ContainsKey("generalStats") && (overviewStatsTable = (Hashtable)data["generalStats"]) != null)
+                            if (json.ContainsKey("data"))
                             {
-                                stats.Skill = Int64.Parse(overviewStatsTable["skill"].ToString());
-                                stats.Revives = Int64.Parse(overviewStatsTable["revives"].ToString());
-                                stats.Rank = Int64.Parse(overviewStatsTable["rank"].ToString());
-                                stats.Kills = Int64.Parse(overviewStatsTable["kills"].ToString());
-                                stats.Accuracy = (Double)overviewStatsTable["accuracy"];
-                                stats.Shots = Int64.Parse(overviewStatsTable["shotsFired"].ToString());
-                                stats.Score = Int64.Parse(overviewStatsTable["score"].ToString());
-                                stats.Hits = Int64.Parse(overviewStatsTable["shotsHit"].ToString());
-                                stats.Rank = Int64.Parse(overviewStatsTable["rank"].ToString());
-                                stats.Heals = Int64.Parse(overviewStatsTable["heals"].ToString());
-                                stats.Deaths = Int64.Parse(overviewStatsTable["deaths"].ToString());
-                                stats.Headshots = Int64.Parse(overviewStatsTable["headshots"].ToString());
+                                Hashtable data = (Hashtable)json["data"];
+                                Hashtable overviewStatsTable = null;
+                                if (data.ContainsKey("generalStats") && (overviewStatsTable = (Hashtable)data["generalStats"]) != null)
+                                {
+                                    stats.Skill = Int64.Parse(overviewStatsTable["skill"].ToString());
+                                    stats.Revives = Int64.Parse(overviewStatsTable["revives"].ToString());
+                                    stats.Rank = Int64.Parse(overviewStatsTable["rank"].ToString());
+                                    stats.Kills = Int64.Parse(overviewStatsTable["kills"].ToString());
+                                    stats.Accuracy = (Double)overviewStatsTable["accuracy"];
+                                    stats.Shots = Int64.Parse(overviewStatsTable["shotsFired"].ToString());
+                                    stats.Score = Int64.Parse(overviewStatsTable["score"].ToString());
+                                    stats.Hits = Int64.Parse(overviewStatsTable["shotsHit"].ToString());
+                                    stats.Rank = Int64.Parse(overviewStatsTable["rank"].ToString());
+                                    stats.Heals = Int64.Parse(overviewStatsTable["heals"].ToString());
+                                    stats.Deaths = Int64.Parse(overviewStatsTable["deaths"].ToString());
+                                    stats.Headshots = Int64.Parse(overviewStatsTable["headshots"].ToString());
+                                }
+                            }
+                            else if (overviewResponse.Contains("errorpage"))
+                            {
+                                Log.Warn("Battlelog returning errors, waiting 30 seconds.");
+                                _LastBattlelogAction = UtcNow().AddSeconds(30);
+                                _LastBattlelogIssue = UtcNow();
+                                return true;
                             }
                         }
 
@@ -45289,7 +45309,6 @@ namespace PRoConEvents
                         DoBattlelogWait();
                         String response = ClientDownloadTimer(client, "http://battlelog.battlefield.com/bf4/warsawWeaponsPopulateStats/" + aPlayer.player_battlelog_personaID + "/1/stats/");
                         Hashtable responseData = (Hashtable)JSON.JsonDecode(response);
-
                         if (responseData.ContainsKey("type") && (String)responseData["type"] == "success" && responseData.ContainsKey("message") && (String)responseData["message"] == "OK" && responseData.ContainsKey("data"))
                         {
                             Hashtable statsData = (Hashtable)responseData["data"];
