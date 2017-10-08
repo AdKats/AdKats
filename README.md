@@ -119,6 +119,10 @@
         Email addresses can be added to every user, and once enabled they will receive emails for player reports and admin calls.
     </li>
     <li>
+        <b>TeamSpeak and Discord Integration.</b>
+        AdKats can be connected to teamspeak or discord to apply perks and monitoring to players in VOIP.
+    </li>
+    <li>
         <b>Fuzzy Player Name Completion.</b>
         Fully completes partial or misspelled player names. 
         I've been consistently able to find almost any player only a few characters from their name. 
@@ -2479,15 +2483,6 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
 </table>
-<h3>Other Commands</h3>
-<table>
-    <tr>
-        <td><b>Command</b></td>
-        <td><b>Default Text</b></td>
-        <td><b>Params</b></td>
-        <td><b>Description</b></td>
-    </tr>
-</table>
 <HR>
 <p>
     <a name=webrequests />
@@ -3111,7 +3106,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     To bypass any whitelist (aside from the admin whitelist), simply add [whitelistbypass] to the start of any spambot message to make it always display that message.
     You can also add any map or mode combination to the start of a spambot message to make it specific to that map/mode combination. 
     The mode or map needs to be the exact name as displayed in the procon maplist tab.
-    Examples are below.
+    Examples are below:
     <ul>
         <li>
             Operation Metro 2014/Conquest Large/This is my first message which shows on conquest metro only.
@@ -3129,6 +3124,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
             This is my fifth message which shows on every map and mode.
         </li>
     </ul>
+</p>
+<p>
+    Setting List
 </p>
 <ul>
     <li><b>'SpamBot Enable'</b> - 
@@ -3368,7 +3366,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <p>
     You can add any map or mode combination to the start of a rule to make it specific to that map/mode combination. 
     The mode or map needs to be the exact name as displayed in the procon maplist tab.
-    Examples are below.
+    Examples are below:
     <ul>
         <li>
             Operation Metro 2014/Conquest Large/This is my first rule which shows on conquest metro only.
@@ -3386,6 +3384,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
             This is my fifth rule which shows on every map and mode.
         </li>
     </ul>
+</p>
+<p>
+    Setting List
 </p>
 <ul>
     <li><b>'Rule Print Delay'</b> - 
