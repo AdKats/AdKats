@@ -2984,22 +2984,22 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <h3>A16. Orchestration Settings:</h3>
 <ul>
     <li><b>'Feed MULTIBalancer Whitelist'</b> - 
-        When enabled, the adkats_specialplayers table (group: whitelist_multibalancer) is used to feed MULTIBalancer's player whitelist.
+        When enabled, the multibalancer whitelist special player group is used to feed MULTIBalancer's player whitelist.
     </li>
     <li><b>'Automatic MULTIBalancer Whitelist for Admins'</b> - 
         When enabled, all admins in your User List will be given whitelist from balance in MULTIBalancer.
     </li>
     <li><b>'Feed MULTIBalancer Even Dispersion List'</b> - 
-        When enabled, the adkats_specialplayers table (group: blacklist_dispersion) is used to feed MULTIBalancer's even dispersion list.
+        When enabled, the dispersion blacklist special player group is used to feed MULTIBalancer's even dispersion list.
     </li>
     <li><b>'Feed TeamKillTracker Whitelist'</b> - 
-        When enabled, the TeamKillTracker whitelist will include all players in the TeamKillTracker whitelist special player group.
+        When enabled, the TeamKillTracker whitelist special player group is used to feed TeamKillTracker's player whitelist.
     </li>
     <li><b>'Automatic TeamKillTracker Whitelist for Admins'</b> - 
         When enabled, all admins in your User List will be given an automatic TeamKillTracker whitelist.
     </li>
     <li><b>'Feed Server Reserved Slots'</b> - 
-        When enabled, players in the reserved slot special player group will be assigned a reserved slot. 
+        When enabled, players in the reserved slot special player group will be given a reserved slot. 
         Any modifications of the reserved slot list outside of Adkats will be erased.
     </li>
     <li><b>'Automatic Reserved Slot for Admins'</b> - 
@@ -3009,7 +3009,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         When enabled, all admins in your User List will be given a VIP kick whitelist.
     </li>
     <li><b>'Feed Server Spectator List'</b> - 
-        When enabled, the servers spectator list will include all AdKats user's soldiers.
+        When enabled, the server's spectator list will include all players given the spectator whitelist special player group.
     </li>
     <li><b>'Automatic Spectator Slot for Admins'</b> - 
         When enabled, all admins in your User List will be given a spectator slot.
@@ -3034,7 +3034,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </p>
     </li>
     <li><b>'Post Stat Logger Chat Manually'</b> - 
-        Sometimes stat logger chat upload glitches and stops, this overrides that posting and uploads all chat to the database manually.
+        Sometimes stat logger chat upload glitches and stops, this overrides that posting and uploads all chat to the database through the AdKats script instead.
     </li>
     <li><b>'Post Server Chat Spam'</b> - 
         Whether to include server spam messages when posting stat logger chat manually.
@@ -3057,6 +3057,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 </ul>
 <h3>A18. Internal Hacker-Checker Settings:</h3>
 <ul>
+    <li><b>'Use LIVE Anti Cheat System'</b> - 
+        The LIVE anti-cheak system looks at active statistics and between round statistics to bolster the abilities of the anti-cheat script. The only downside to this is that it issues more requests to battlelog.
+    </li>
     <li><b>'HackerChecker: DPS Checker: Ban Message'</b> - 
         Message prefix to use when banning for damage mod.
     </li>
@@ -3082,21 +3085,43 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </li>
 </ul>
 <h3>A19. Server Rules Settings:</h3>
+<p>
+    You can add any map or mode combination to the start of a rule to make it specific to that map/mode combination. 
+    The mode or map needs to be the exact name as displayed in the procon maplist tab.
+    Examples are below.
+    <ul>
+        <li>
+            Operation Metro 2014/Conquest Large/This is my first rule which shows on conquest metro only.
+        </li>
+        <li>
+            Operation Locker/Rush/[whitelistbypass]This is my second rule which shows on locker rush only, and will bypass whitelist.
+        </li>
+        <li>
+            CTF/This is my third rule that shows on capture the flag, regardless of map.
+        </li>
+        <li>
+            Zavod 311/[whitelistbypass]This is my fourth rule which shows on zavod, regardless of game mode, and will bypass whitelist.
+        </li>
+        <li>
+            This is my fifth rule which shows on every map and mode.
+        </li>
+    </ul>
+</p>
 <ul>
     <li><b>'Rule Print Delay'</b> - 
-        Delay in seconds after the command is issued that commands start being sent to the player.
+        Delay in seconds after rules are requested that they start being sent to the player.
     </li>
     <li><b>'Rule Print Interval'</b> - 
-        Number of seconds between each rule being sent to the player.
+        Delay in seconds between each rule being sent to the player.
     </li>
     <li><b>'Server Rule List'</b> - 
-        List of rules for the server. Raw messages can be used here, or alternatively pre-message IDs.
+        List of rules for the server. Raw text can be used here, or alternatively pre-message IDs.
     </li>
     <li><b>'Server Rule Numbers'</b> - 
-        Whether to include the rule numbers at the beginning of each line during rule printing.
+        Whether to include rule numbers at the beginning of each line during rule printing.
     </li>
     <li><b>'Yell Server Rules'</b> - 
-        Whether to send rules in both yell and chat to players requesting them or being told them.
+        Whether to send rules in both yell and say to players.
     </li>
 </ul>
 <h3>B20. AFK Settings:</h3>
@@ -3107,10 +3132,10 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'AFK Ignore Chat'</b> - 
         Events are used to cancel AFK timeout for players. 
         When this is enabled, players just sitting in the spawn screen chatting will be kicked. 
-        They must play in order to stay in the server..
+        They must play in order to stay in the server.
     </li>
     <li><b>'AFK Auto-Kick Enable'</b> - 
-        Whether to automatically kick using the trigger time. When disabled, the afk command must be used for kicking afk players.
+        Whether to automatically kick or not. When disabled the afk command must be used for kicking afk players.
     </li>
     <li><b>'AFK Trigger Minutes'</b> - 
         The number of minutes a player can do nothing before being considered AFK.
@@ -3130,7 +3155,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Ping Enforcer Enable'</b> - 
         Whether to enable the Ping Enforcer.
     </li>
-    <li><b>'Current Pint Limit (Display)'</b> - 
+    <li><b>'Current Ping Limit (Display)'</b> - 
         The current ping limit based on all the settings below, showing the formula for how it was calculated.
     </li>
     <li><b>'Ping Moving Average Duration sec'</b> - 
@@ -3172,16 +3197,20 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         Whether to kick players for having missing ping.
     </li>
     <li><b>'Attempt Manual Ping when Missing'</b> - 
-        If the server does not provide the player a ping, attempt to fetch their ping manually from the Procon instance.
+        If the server does not provide the player a ping, attempt to fetch their ping manually using the Procon instance.
     </li>
     <li><b>'Ping Kick Ignore User List'</b> - 
         Whether to ignore all users on the user list.
     </li>
     <li><b>'Ping Kick Ignore Roles'</b> - 
-        List the role keys that will be ignored.
+        List the role keys that will be ignored. e.g. full_admin, guest_default.
     </li>
     <li><b>'Ping Kick Message Prefix'</b> - 
         Custom message to be displayed in ping kicks.
+    </li>
+    <li><b>'Display Ping Enforcer Messages In Procon Chat'</b> - 
+        Used to enable/disable the display of ping warning messages in the procon chat tab. 
+        Kicks for ping are still displayed when this is disabled, but messages for ping spikes and ping being over the limit are not displayed.
     </li>
 </ul>
 <h3>B22. Commander Manager Settings:</h3>
@@ -3246,11 +3275,14 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Auto-Surrender Use Optimal Values for Locker Conquest'</b> - 
         If you are running Operation Locker on Conquest, use this setting, it will issue auto-surrender when a baserape happens and the weak team cannot recover.
     </li>
+    <li><b>'Auto-Surrender Minimum Ticket Count'</b> - 
+        If either team is below this ticket count, auto-surrender will not fire.
+    </li>
+    <li><b>'Auto-Surrender Maximum Ticket Count'</b> - 
+        If either team is above this ticket count, auto-surrender will not fire.
+    </li>
     <li><b>'Auto-Surrender Minimum Ticket Gap'</b> - 
         The minimum difference in ticket counts between teams for auto-surrender to fire.
-    </li>
-    <li><b>'Auto-Surrender Use Adjusted Ticket Rates'</b> - 
-        Adjusted ticket rates are designed for modes where player spawns affect ticket count, like conquest and domination, it removes them from the equation leaving only flags affecting the ticket rates.
     </li>
     <li><b>'Auto-Surrender Losing Team Rate Window Max'</b> - 
         The losing team's ticket rate must not be greater than this value for auto-surrender to fire.
@@ -3273,15 +3305,64 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         Place %WinnerName% in the string for the name of the winning team.
     </li>
     <li><b>'Nuke Winning Team Instead of Surrendering Losing Team'</b> - 
-        When an auto-surrender would have been triggered on the losing team due to the settings above, instead, nuke the winning team. 
-        It will be common for 1-3 nukes to be issued within a few seconds of each other, to make sure all players both currently alive and about to spawn are dead.
-    </li>
-    <li><b>'Auto-Nuke Message'</b> - 
-        The message that will be sent to the server when an auto-nuke is fired.
-        Place %WinnerName% in the string for the name of the winning team being nuked.
+        When an auto-surrender would have been triggered on the losing team due to the settings above, instead, nuke the winning team.
     </li>
     <li><b>'Start Surrender Vote Instead of Surrendering Losing Team'</b> - 
         When an auto-surrender would have been triggered on the losing team due to the settings above, instead, simply start a surrender vote, with AutoAdmin giving 1 vote toward surrender.
+    </li>
+</ul>
+<h3>B25-2. Auto Settings:</h3>
+<ul>
+    <li><b>'Maximum Auto-Nukes Each Round'</b> - 
+        The maximum number of nukes that the auto-nuke system can fire before stopping.
+    </li>
+    <li><b>'Reset Auto-Nuke Trigger Count on Fire'</b> - 
+        When this is enabled, regardless of how many triggers have been fired toward the nuke the number is reset when the actual nuke is fired. 
+        Use this if you have many flags in your server which need to stabilize before getting good numbers for ticket loss again.
+    </li>
+    <li><b>'Switch to surrender after max nukes'</b> - 
+        Instead of completely stopping the script when the max number of nukes is reached, instead revert to using the auto-surrender script.
+    </li>
+    <li><b>'Minimum Seconds Between Nukes'</b> - 
+        The minimum number of seconds after a nuke is fired before another is able to fire.
+    </li>
+    <li><b>'Countdown Duration before a Nuke is fired'</b> - 
+        When an admin or the auto-nuke system issues a nuke on the server, this is the number of seconds warning that the server is given before the nuke is actually fired.
+    </li>
+    <li><b>'Fire Nuke Triggers if Winning Team up by X Tickets'</b> - 
+        An override to fire a nuke if there is too large of a ticket gap between the two teams. 
+    </li>
+    <li><b>'Announce Nuke Preparation to Players'</b> - 
+        Nuke preparation percentages are calculated in the background.
+        Use this setting to display the percentage progress toward firing the next nuke to all players in the server.
+    </li>
+    <li><b>'Allow Auto-Nuke to fire on losing teams'</b> - 
+        Normally the script completely blocks issuing of nukes on the losing team, this is by design. 
+        For the ambitious few however this setting is available to allow nukes on the losing team if they take over the map regardless.
+    </li>
+    <li><b>'Maximum Nuke Ticket Difference for Losing Team'</b> - 
+        If we are not nuking losing teams, this setting is how many tickets a team must be losing by before a nuke is issued on them.
+    </li>
+    <li><b>'Auto-Nuke High Pop Duration Seconds'</b> - 
+        The duration of a nuke when the server is in high population.
+        During this time the target team is held dead as the server counts down the number of seconds you define here.
+    </li>
+    <li><b>'Auto-Nuke Medium Pop Duration Seconds'</b> - 
+        Same as above but for when the server is in medium population.
+    </li>
+    <li><b>'Auto-Nuke Low Pop Duration Seconds'</b> - 
+        Same as above but for when the server is in low population.
+    </li>
+    <li><b>'Auto-Nuke Consecutive Duration Increase'</b> - 
+        If a team is clearly overpowered and keeps getting nuked, this setting will increase the number of seconds the nuke is fired for, with no upper limit.
+        For example, if you have this setting at 10 seconds, and a high population nuke is fired for 15 seconds, but this is the 3rd nuke to be fired against this team, the resulting nuke is 35 seconds long.
+    </li>
+    <li><b>'Auto-Nuke Duration Increase Minimum Ticket Difference'</b> - 
+        The minimum ticket difference betweent teams before the nuke duration is allowed to increase.
+    </li>
+    <li><b>'Auto-Nuke Message'</b> - 
+        The message that will be sent to the server when an auto-nuke is fired.
+        Place %WinnerName% in the message for the name of the winning team being nuked.
     </li>
 </ul>
 <h3>B26. Statistics Settings:</h3>
@@ -3289,50 +3370,12 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Post Map Benefit/Detriment Statistics'</b> - 
         Whether to post statistics on which maps are most beneficial/detrimental to the population of the server. Queries to extract meaning from this information can be aquired in the main AdKats forum thread.
     </li>
-    <li><b>'Post Win/Loss/Baserape statistics'</b> - 
-        Whether to post statistics on wins, losses, and baserape causing players. Requires auto-surrender to be enabled and configured, and only works as intended when not using the auto-nuke or auto-vote settings.
-    </li>
 </ul>
-<h3>B27. Player Monitor Settings:</h3>
+<h3>B27. Populator Monitor Settings - Thanks CMWGaming:</h3>
 <ul>
-    <li><b>'Monitor Baserape Causing Players'</b> - 
-        When enabled, players who cause baserape will be automatically monitored and can be acted on in setting section B27-1. 
-        Requires posting win/loss/baserape statistics.
-    </li>
     <li><b>'Monitor Populator Players - Thanks CMWGaming'</b> - 
-        When enabled, players who help populate servers can be automatically monitored and given perks in setting section B27-2.
+        When enabled, players who help populate servers can be automatically monitored and given perks.
     </li>
-    <li><b>'Monitor Teamspeak Players - Thanks CMWGaming'</b> - 
-        When enabled, the teamspeak player monitor settings will be displayed in setting section B27-3.
-    </li>
-    <li><b>'Monitor/Disperse Top Players'</b> - 
-        When enabled, the top player monitor settings will be displayed in setting section B27-4.
-        This is a new take on server balance, mainly to prevent stacking, it uses how often players place in top team positions to split and balance them and only affects top tier players if set up that way.
-        Built to work in tandem with MULTIBalancer.
-    </li>
-</ul>
-<h3>B27-1. Baserape Causing Player Monitor Settings:</h3>
-<ul>
-    <li><b>'Baserape Causing Players (Display)'</b> - 
-        Current display of baserape causing players using the below options.
-    </li>
-    <li><b>'Past Days to Monitor Baserape Causing Players'</b> - 
-        Past days worth of stats to be considered when calculating baserape causing players.
-    </li>
-    <li><b>'Count to Consider Baserape Causing'</b> - 
-        Number of baserapes contributed to in the considered duration in order to be considered baserape causing. 
-        Players must meet this stat, and either have a win/loss ratio over 1.25, or have more than 10% of their played matches end with them baseraping.
-    </li>
-    <li><b>'Automatic Dispersion for Baserape Causing Players'</b> - 
-        When enabled, players causing baserape are automatically included in the MULTIBalancer dispersion list.
-    </li>
-    <li><b>'Automatic Assist Trigger for Baserape Causing Players'</b> - 
-        When enabled, players causing baserape will be automatically sent to the weak team if auto-surrender begins its countdown. 
-        Number of auto-surrender triggers are automatically doubled if this case triggers.
-    </li>
-</ul>
-<h3>B27-2. Populator Monitor Settings - Thanks CMWGaming:</h3>
-<ul>
     <li><b>'Populator Players (Display)'</b> - 
         Current display of populator players using the below options.
     </li>
@@ -3364,10 +3407,13 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         When enabled, populators are given a whitelist in TeamKillTracker.
     </li>
 </ul>
-<h3>B27-3. Teamspeak Monitor Settings - Thanks CMWGaming:</h3>
+<h3>B28. Teamspeak Monitor Settings - Thanks CMWGaming:</h3>
 <ul>
+    <li><b>'Monitor Teamspeak Players - Thanks CMWGaming'</b> - 
+        When enabled, the teamspeak player monitor settings will be displayed.
+    </li>
     <li><b>'Teamspeak Players (Display)'</b> - 
-        Current display of teamspeak players using the below options.
+        Current display of online players who are matched to teamspeak users.
     </li>
     <li><b>'Enable Teamspeak Player Monitor'</b> - 
         When enabled, the below settings will be used to monitor players in the targeted teamspeak server.
@@ -3412,8 +3458,8 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Enable Teamspeak Player Perks'</b> - 
         Whether to give players in teamspeak any automatic perks.
     </li>
-    <li><b>'Teamspeak Player Perks - Reserved Slot'</b> - 
-        When enabled, teamspeak players are given reserved slots. (used to avoid agressive kicks as well).
+    <li><b>'Teamspeak Player Perks - VIP Kick Whitelist'</b> - 
+        When enabled, teamspeak players are given VIP Kick Whitelist.
     </li>
     <li><b>'Teamspeak Player Perks - Autobalance Whitelist'</b> - 
         When enabled, teamspeak players are given MULTIBalancer whitelist.
@@ -3425,16 +3471,88 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         When enabled, teamspeak players are given a whitelist in TeamKillTracker.
     </li>
 </ul>
-<h3>B27-4. Top Player Monitor Settings:</h3>
+<h3>B29. Discord Player Monitor Settings:</h3>
 <ul>
+    <li><b>'Monitor Discord Players'</b> - 
+        When enabled, the discord player monitor settings will be displayed.
+    </li>
+    <li><b>'[#] Discord Players (Display)'</b> - 
+        Current display of online players who are matched to discord members.
+    </li>
+    <li><b>'[#] Discord Channel Members (Display)'</b> - 
+        The full list of discord memebers in the list of monitored channels.
+    </li>
+    <li><b>'[#] Discord All Members (Display)'</b> - 
+        List of all members in the discord server.
+    </li>
+    <li><b>'Enable Discord Player Monitor'</b> - 
+        When enabled, the below settings will be used to monitor players in the targeted discord server.
+    </li>
+    <li><b>'Discord Server ID'</b> - 
+        The ID of the discord server to monitor. This value can be found in the widget.json URL for the server.
+    </li>
+    <li><b>'Discord Channel Names'</b> - 
+        The list of discord channels to monitor.
+    </li>
+    <li><b>'Require Voice in Discord to Issue Admin Commands'</b> - 
+        When this is enabled, a player must be recognized as being online in the discord server in order to issue admin commands. 
+        The current issue with this is the 5 minute update frequency from discord because procon with .net 3.5 doesn't have access to websockets.
+    </li>
+    <li><b>'Discord Player Join Announcement'</b> - 
+        Whether to announce players who join in both discord and the game.
+    </li>
+    <li><b>'Discord Player Join Message'</b> - 
+        Message to announce joining discord players with.
+    </li>
+    <li><b>'Enable Discord Player Perks'</b> - 
+        Whether to give players in discord any automatic perks.
+    </li>
+    <li><b>'Discord Player Perks - Reserved Slot'</b> - 
+        When enabled, discord players are given VIP Kick Whitelist.
+    </li>
+    <li><b>'Discord Player Perks - Autobalance Whitelist'</b> - 
+        When enabled, discord players are given MULTIBalancer whitelist.
+    </li>
+    <li><b>'Discord Player Perks - Ping Whitelist'</b> - 
+        When enabled, discord players are given whitelist from ping kicks.
+    </li>
+    <li><b>'Discord Player Perks - TeamKillTracker Whitelist'</b> - 
+        When enabled, discord players are given a whitelist in TeamKillTracker.
+    </li>
+    <li><b>'Debug Display Discord Members'</b> - 
+        Display console debug when relevant events happen.
+    </li>
+</ul>
+<h3>B30. Team Power Monitor:</h3>
+<ul>
+    <li><b>'Team Power Active Influence'</b> - 
+        How much players performance in the current round should be weighted against their overall statistics.
+        I've found the best value for this to be 35.
+    </li>
+    <li><b>'Team Power (Display)'</b> - 
+        The current power levels of each team and the percentage difference between them.
+    </li>
     <li><b>'Online Top Players (Display)'</b> - 
-        Current display of online top players using the below options.
+        The current list of active players in the server with their team assignments and power levels. 
+        A team key with a + after it means they are locked to that team.
+        A team -> team means they are assigned to the other team and waiting to be moved.
+        The first number following their name is the most important, the others are for debug.
+        Player power ranges from 7-35.
     </li>
-    <li><b>'Top Players (Display)'</b> - 
-        Current display of all top players using the below options.
+    <li><b>'Enable Team Power Scrambler'</b> - 
+        Completely expermental system, use with caution.
+        This system uses team power metrics to scramble teams based on their power levels, keeping squads together. 
+        Players are then locked to their assigned teams for the duration of the round unless they use assist or are moved by an admin.
+        I've noticed that this system does not work well for metro since the rounds are so volatile and people quit and join at such a high rate.
+        Should be more useful for TDM or conquest vehicles where the player turnover rate is lower during a round.
     </li>
-    <li><b>'Affected Top Players'</b> - 
-        How many players should be affected by this system.
+    <li><b>'Enable Team Power Join Reassignment'</b> - 
+        Using team power metrics this system will reassign newly joining players to the weak team.
+        If a 64 man server is nearly full and the weak team needs a lot of help it will allow up to a 4 player advantage for the weak team.
+    </li>
+    <li><b>'Enable Team Power Seeder Control'</b> - 
+        A basic seeder balancer using team power metrics and placements on the map. 
+        Seeders are evenly balanced between teams, and when there is an odd number of seeders the extra seeder is placed on the more powerful team.
     </li>
 </ul>
 <h3>D99. Debug Settings:</h3>
@@ -3445,15 +3563,16 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         Don't edit unless you really want to be spammed with console logs, it will also slow down the plugin when turned up.
     </li>
     <li><b>'Debug Soldier Name'</b> -
-        When this soldier issues commands in your server, the time for any command to complete is told in-game.
-        Duration is from the time you entered the message, until all aspects of the command have been completed.
+        When this soldier issues commands in your server the duration for any command to complete is told in-game.
+        Duration is from the time you entered the message until all aspects of the command have been completed.
+    </li>
+    <li><b>'Enforce Single Instance'</b> - 
+        Enabled by default, and should remain enabled in almost all cases. 
+        This makes sure that only one instance of AdKats is enabled at one time on a single server.
+        This may be disabled if you notice issues with /AdKatsInstanceCheck messages being logged in your external tools like RCONNET.
     </li>
     <li><b>'Disable Automatic Updates'</b> - 
         Disables automatic updates for the plugin. Should only be disabled if you've modified the plugin code manually.
-    </li>
-    <li><b>'Disable Version Tracking - Required For TEST Builds'</b> - 
-        Tracks version numbers for stable and TEST builds. 
-        Used to see how many servers are currently running certain versions of AdKats.
     </li>
     <li><b>'Command Entry'</b> -
         Enter commands here just like in game, mainly for debug purposes. 
