@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.348
+ * Version 6.9.0.349
  * 8-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.348</version_code>
+ * <version_code>6.9.0.349</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.348";
+        private const String PluginVersion = "6.9.0.349";
 
         public enum GameVersion
         {
@@ -2467,9 +2467,9 @@ namespace PRoConEvents
                             .OrderByDescending(item => item);
                         lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Online Top Players (Display)", typeof(String[]), onlineTopPlayerListing.ToArray()));
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
-                        // Ignore any exception thrown by the displays
+                        HandleException(new AException("Error building team power displays.", e));
                     }
                     lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
                     lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
@@ -9187,7 +9187,14 @@ namespace PRoConEvents
                         losingTeam = team1;
                     }
                     // If the mode is rush, the attackers are team 1, use that team for the extra seeder
-                    if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate() || (_serverInfo.InfoObject.GameMode.ToLower().Contains("rush")))
+                    Boolean isRush = false;
+                    if (_serverInfo != null &&
+                        _serverInfo.InfoObject != null &&
+                        !String.IsNullOrEmpty(_serverInfo.InfoObject.GameMode))
+                    {
+                        isRush = _serverInfo.InfoObject.GameMode.ToLower().Contains("rush");
+                    }
+                    if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate() || isRush)
                     {
                         //Team1 has more map than Team2
                         mapUpTeam = team1;
@@ -47789,7 +47796,7 @@ namespace PRoConEvents
                         target_name = "AdKats",
                         target_player = null,
                         source_name = "AdKats",
-                        record_message = aException.ToString(),
+                        record_message = PluginVersion + " " + aException.ToString(),
                         record_time = UtcNow()
                     };
                     //Process the record
