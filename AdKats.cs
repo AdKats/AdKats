@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.349
- * 8-OCT-2017
+ * Version 6.9.0.350
+ * 9-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.349</version_code>
+ * <version_code>6.9.0.350</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.349";
+        private const String PluginVersion = "6.9.0.350";
 
         public enum GameVersion
         {
@@ -2452,10 +2452,10 @@ namespace PRoConEvents
                             teamPower += "(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
                         }
                         lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power (Display)", typeof(String), teamPower));
-                        var onlineTopPlayers = _PlayerDictionary.Values.ToList()
+                        var onlinePlayers = _PlayerDictionary.Values.ToList()
                             .Where(aPlayer => aPlayer.GetPower(true) > 1);
-                        var onlineTopPlayerListing = onlineTopPlayers
-                            .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + "+) ") : ("(" + _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + ") ")) +
+                        var onlinePlayerListing = onlinePlayers
+                            .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (aPlayer.GetTeamKey() + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + "+) ") : ("(" + aPlayer.GetTeamKey() + ") ")) +
                                                "(" + aPlayer.GetPower(true, true, true).ToString("00") +
                                                "|" + aPlayer.GetPower(false, true, true).ToString("00") +
                                                "|" + aPlayer.GetPower(true, true, false).ToString("00") +
@@ -2464,8 +2464,9 @@ namespace PRoConEvents
                                                "|" + aPlayer.TopStats.TopCount +
                                                "|" + aPlayer.TopStats.RoundCount +
                                                ") " + aPlayer.GetVerboseName())
-                            .OrderByDescending(item => item);
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Online Top Players (Display)", typeof(String[]), onlineTopPlayerListing.ToArray()));
+                            .OrderByDescending(item => item)
+                            .ToArray();
+                        lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Player Power (Display)", typeof(String[]), onlinePlayerListing));
                     }
                     catch (Exception e)
                     {
@@ -47647,7 +47648,7 @@ namespace PRoConEvents
                 WriteConsole("^b^2SUCCESS^n^0: " + msg);
             }
 
-            public void Exception(String msg, Exception e, Int32 level)
+            public String Exception(String msg, Exception e, Int32 level)
             {
                 //Opening
                 string exceptionMessage = "^b^8EXCEPTION-" +//Plugin version
@@ -47683,6 +47684,7 @@ namespace PRoConEvents
                                     "[" + msg + "]" +//Exception string
                                     ((e != null) ? ("[" + e + "]") : (""));
                 WriteConsole(exceptionMessage);
+                return exceptionMessage;
             }
 
             public void Chat(String msg)
@@ -47782,7 +47784,7 @@ namespace PRoConEvents
             }
             else
             {
-                Log.Exception(aException.Message, aException.InternalException, 1);
+                var exceptionString = Log.Exception(aException.Message, aException.InternalException, 1);
                 if (_CommandKeyDictionary.ContainsKey("adkats_exception"))
                 {
                     //Create the Exception record
@@ -47796,7 +47798,7 @@ namespace PRoConEvents
                         target_name = "AdKats",
                         target_player = null,
                         source_name = "AdKats",
-                        record_message = PluginVersion + " " + aException.ToString(),
+                        record_message = exceptionString,
                         record_time = UtcNow()
                     };
                     //Process the record
@@ -49291,6 +49293,23 @@ namespace PRoConEvents
             public void Tell(String message, Boolean displayProconChat, Int32 spamCount)
             {
                 Plugin.PlayerTellMessage(player_name, message, displayProconChat, spamCount);
+            }
+
+            public String GetTeamKey()
+            {
+                String key = "Unknown";
+                if (fbpInfo != null)
+                {
+                    try
+                    {
+                        key = Plugin._teamDictionary[fbpInfo.TeamID].TeamKey;
+                    }
+                    catch (Exception e)
+                    {
+                        key = fbpInfo.TeamID.ToString();
+                    }
+                }
+                return key;
             }
 
             private Double maxScore = 30000.0;
