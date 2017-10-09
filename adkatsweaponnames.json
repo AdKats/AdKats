@@ -526,6 +526,10 @@
       "readable_short": "M320 HE",
       "readable_long": "M320 HE under AN-94"
     },
+    "U_AN94_M320_LVG_v1": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG under AN-94"
+    },
     "U_AR160": {
       "readable_short": "AR160",
       "readable_long": "AR-160 Assault Rifle"
