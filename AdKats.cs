@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.347
+ * Version 6.9.0.348
  * 8-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.347</version_code>
+ * <version_code>6.9.0.348</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.347";
+        private const String PluginVersion = "6.9.0.348";
 
         public enum GameVersion
         {
@@ -2432,38 +2432,45 @@ namespace PRoConEvents
                 if (IsActiveSettingSection(teamPowerSection))
                 {
                     lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power Active Influence", typeof(Double), _TeamPowerActiveInfluence));
-                    var onlineTopPlayers = _PlayerDictionary.Values.ToList()
-                        .Where(aPlayer => aPlayer.GetPower(true) > 1);
-                    var onlineTopPlayerListing = onlineTopPlayers
-                        .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + "+) ") : ("(" + _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + ") ")) +
-                                           "(" + aPlayer.GetPower(true, true, true).ToString("00") +
-                                           "|" + aPlayer.GetPower(false, true, true).ToString("00") +
-                                           "|" + aPlayer.GetPower(true, true, false).ToString("00") +
-                                           "|" + aPlayer.GetPower(true, false, true).ToString("00") +
-                                           "|" + aPlayer.GetPower(true, false, false).ToString("00") +
-                                           "|" + aPlayer.TopStats.TopCount +
-                                           "|" + aPlayer.TopStats.RoundCount +
-                                           ") " + aPlayer.GetVerboseName())
-                        .OrderByDescending(item => item);
-                    ATeam t1, t2;
-                    String teamPower = "Unknown";
-                    if (_roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2))
+                    try
                     {
-                        Double t1Power = t1.GetTeamPower();
-                        Double t2Power = t2.GetTeamPower();
-                        Double percDiff = Math.Abs(t1Power - t2Power) / ((t1Power + t2Power) / 2.0) * 100.0;
-                        if (t1Power > t2Power)
+                        ATeam t1, t2;
+                        String teamPower = "Unknown";
+                        if (_roundState != RoundState.Loaded && GetTeamByID(1, out t1) && GetTeamByID(2, out t2))
                         {
-                            teamPower += t1.GetTeamIDKey() + " up " + Math.Round(((t1Power - t2Power) / t2Power) * 100) + "% ";
+                            Double t1Power = t1.GetTeamPower();
+                            Double t2Power = t2.GetTeamPower();
+                            Double percDiff = Math.Abs(t1Power - t2Power) / ((t1Power + t2Power) / 2.0) * 100.0;
+                            if (t1Power > t2Power)
+                            {
+                                teamPower += t1.GetTeamIDKey() + " up " + Math.Round(((t1Power - t2Power) / t2Power) * 100) + "% ";
+                            }
+                            else
+                            {
+                                teamPower += t2.GetTeamIDKey() + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
+                            }
+                            teamPower += "(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
                         }
-                        else
-                        {
-                            teamPower += t2.GetTeamIDKey() + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
-                        }
-                        teamPower += "(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
+                        lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power (Display)", typeof(String), teamPower));
+                        var onlineTopPlayers = _PlayerDictionary.Values.ToList()
+                            .Where(aPlayer => aPlayer.GetPower(true) > 1);
+                        var onlineTopPlayerListing = onlineTopPlayers
+                            .Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.fbpInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + "+) ") : ("(" + _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey + ") ")) +
+                                               "(" + aPlayer.GetPower(true, true, true).ToString("00") +
+                                               "|" + aPlayer.GetPower(false, true, true).ToString("00") +
+                                               "|" + aPlayer.GetPower(true, true, false).ToString("00") +
+                                               "|" + aPlayer.GetPower(true, false, true).ToString("00") +
+                                               "|" + aPlayer.GetPower(true, false, false).ToString("00") +
+                                               "|" + aPlayer.TopStats.TopCount +
+                                               "|" + aPlayer.TopStats.RoundCount +
+                                               ") " + aPlayer.GetVerboseName())
+                            .OrderByDescending(item => item);
+                        lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Online Top Players (Display)", typeof(String[]), onlineTopPlayerListing.ToArray()));
                     }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power (Display)", typeof(String), teamPower));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Online Top Players (Display)", typeof(String[]), onlineTopPlayerListing.ToArray()));
+                    catch (Exception)
+                    {
+                        // Ignore any exception thrown by the displays
+                    }
                     lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
                     lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
                     lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Seeder Control", typeof(Boolean), _UseTeamPowerMonitorSeeders));
@@ -8621,7 +8628,11 @@ namespace PRoConEvents
             try
             {
                 //SpamBot - Every 500ms
-                var playerCount = _PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.player_type == PlayerType.Player);
+                var playerCount = 0;
+                if (_PlayerDictionary.Any())
+                {
+                    playerCount = _PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer != null && aPlayer.player_type == PlayerType.Player);
+                }
                 if (_pluginEnabled &&
                     _spamBotEnabled &&
                     _firstPlayerListComplete &&
@@ -8849,9 +8860,9 @@ namespace PRoConEvents
                     lock (_AssistAttemptQueue)
                     {
                         // There are, look at the first one without pulling it
-                        var assistRecord = _AssistAttemptQueue.Peek();
-                        if (assistRecord != null)
+                        if (_AssistAttemptQueue.Any())
                         {
+                            var assistRecord = _AssistAttemptQueue.Peek();
                             if (NowDuration(assistRecord.record_creationTime).TotalMinutes > 5.0)
                             {
                                 // If the record is more than 5 minutes old, get rid of it
@@ -9616,7 +9627,9 @@ namespace PRoConEvents
                                 }
 
                                 //Clean dead threads
-                                foreach (Int32 deadThreadID in _aliveThreads.Values.ToList().Where(thread => !thread.IsAlive).Select(thread => thread.ManagedThreadId))
+                                var threads = _aliveThreads.ToList();
+                                foreach (Int32 deadThreadID in threads.Where(threadPair => threadPair.Value == null || !threadPair.Value.IsAlive)
+                                                                      .Select(threadPair => threadPair.Value == null ? threadPair.Key : threadPair.Value.ManagedThreadId))
                                 {
                                     _aliveThreads.Remove(deadThreadID);
                                 }
@@ -15112,8 +15125,8 @@ namespace PRoConEvents
                                             //Create the probability String
                                             String probString = ((int)probability) + "-" + ((int)milli);
 
-                                            //If the player is already on the round cooker list, ban them
-                                            if (_RoundCookers.ContainsKey(cookerKill.victim.player_name) && _gameVersion == GameVersion.BF3)
+                                            //If the player is already on the round cooker list, punish them
+                                            if (_RoundCookers.ContainsKey(cookerKill.victim.player_name))
                                             {
                                                 //Create the punish record
                                                 ARecord record = new ARecord
@@ -15296,7 +15309,14 @@ namespace PRoConEvents
                                         weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removePrefix.Length));
 
                                         //Record to boost rep for victim
-                                        PlayerYellMessage(aKill.victim.player_name, aKill.killer.GetVerboseName() + " was punished for killing you with " + weapon);
+                                        if (_UseExperimentalTools && aKill.killer.IsLocked())
+                                        {
+                                            PlayerYellMessage(aKill.victim.player_name, aKill.killer.GetVerboseName() + " is currently locked from autoadmin actions for " + FormatTimeString(aKill.killer.GetLockRemaining(), 2) + ".");
+                                        }
+                                        else
+                                        {
+                                            PlayerYellMessage(aKill.victim.player_name, aKill.killer.GetVerboseName() + " was punished for killing you with " + weapon);
+                                        }
                                         ARecord repRecord = new ARecord
                                         {
                                             record_source = ARecord.Sources.InternalAutomated,
@@ -32313,8 +32333,10 @@ namespace PRoConEvents
                             if (_AvailableMapModes.Any())
                             {
                                 //Confirm that rule prefixes conform to the map/modes available
-                                var allMaps = _AvailableMapModes.Select(mapMode => mapMode.PublicLevelName).Distinct().ToArray();
-                                var allModes = _AvailableMapModes.Select(mapMode => mapMode.GameMode).Distinct().ToArray();
+                                var allMaps = _AvailableMapModes.Where(mapMode => !String.IsNullOrEmpty(mapMode.PublicLevelName))
+                                                                .Select(mapMode => mapMode.PublicLevelName).Distinct().ToArray();
+                                var allModes = _AvailableMapModes.Where(mapMode => !String.IsNullOrEmpty(mapMode.GameMode))
+                                                                 .Select(mapMode => mapMode.GameMode).Distinct().ToArray();
                                 var matchingMapMode = _AvailableMapModes.First(mapMode => mapMode.FileName == _serverInfo.InfoObject.Map &&
                                                                                           mapMode.PlayList == _serverInfo.InfoObject.GameMode);
                                 var serverMap = matchingMapMode.PublicLevelName;
