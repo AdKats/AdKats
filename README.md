@@ -3813,7 +3813,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Team Power (Display)'</b> - 
         The current power levels of each team and the percentage difference between them.
     </li>
-    <li><b>'Online Top Players (Display)'</b> - 
+    <li><b>'Player Power (Display)'</b> - 
         The current list of active players in the server with their team assignments and power levels. 
         A team key with a + after it means they are locked to that team.
         A team -> team means they are assigned to the other team and waiting to be moved.
