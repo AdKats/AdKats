@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.351
+ * Version 6.9.0.352
  * 9-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.351</version_code>
+ * <version_code>6.9.0.352</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.351";
+        private const String PluginVersion = "6.9.0.352";
 
         public enum GameVersion
         {
@@ -8248,7 +8248,7 @@ namespace PRoConEvents
                             String aliveThreads = "";
                             lock (_aliveThreads)
                             {
-                                foreach (Int32 deadThreadID in _aliveThreads.Values.Where(thread => !thread.IsAlive).Select(thread => thread.ManagedThreadId).ToList())
+                                foreach (Int32 deadThreadID in _aliveThreads.Values.ToList().Where(thread => !thread.IsAlive).Select(thread => thread.ManagedThreadId).ToList())
                                 {
                                     _aliveThreads.Remove(deadThreadID);
                                 }
@@ -8445,7 +8445,7 @@ namespace PRoConEvents
 
         private void FetchPluginDocumentation()
         {
-            if (_aliveThreads.Values.Any(aThread => aThread.Name == "DescFetching"))
+            if (_aliveThreads.Values.ToList().Any(aThread => aThread != null && aThread.Name == "DescFetching"))
             {
                 return;
             }
@@ -9690,6 +9690,14 @@ namespace PRoConEvents
 
                             RunAutoAssistMonitor();
 
+                            //Clean dead threads
+                            var threads = _aliveThreads.ToList();
+                            foreach (Int32 deadThreadID in threads.Where(threadPair => threadPair.Value == null || !threadPair.Value.IsAlive)
+                                                                  .Select(threadPair => threadPair.Value == null ? threadPair.Key : threadPair.Value.ManagedThreadId))
+                            {
+                                _aliveThreads.Remove(deadThreadID);
+                            }
+
                             //Batch very long keep alive - every 10 minutes
                             if (NowDuration(_LastVeryLongKeepAliveCheck).TotalMinutes > 10.0)
                             {
@@ -9735,14 +9743,6 @@ namespace PRoConEvents
                                 if (_useKeepAlive && !_pluginEnabled)
                                 {
                                     Enable();
-                                }
-
-                                //Clean dead threads
-                                var threads = _aliveThreads.ToList();
-                                foreach (Int32 deadThreadID in threads.Where(threadPair => threadPair.Value == null || !threadPair.Value.IsAlive)
-                                                                      .Select(threadPair => threadPair.Value == null ? threadPair.Key : threadPair.Value.ManagedThreadId))
-                                {
-                                    _aliveThreads.Remove(deadThreadID);
                                 }
 
                                 //Check for thread warning
@@ -10234,7 +10234,7 @@ namespace PRoConEvents
                     Thread.Sleep(500);
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride");
                     //Wait for proper team overrides to complete
-                    if (_aliveThreads.Values.All(thread => thread.Name != "TeamAssignmentConfirmation"))
+                    if (_aliveThreads.Values.ToList().All(thread => thread != null && thread.Name != "TeamAssignmentConfirmation"))
                     {
                         StartAndLogThread(new Thread(new ThreadStart(delegate
                         {
@@ -10279,7 +10279,7 @@ namespace PRoConEvents
                 if (_UseTeamPowerMonitorScrambler &&
                     _firstPlayerListComplete &&
                     _populationStatus != PopulationState.Low &&
-                    _aliveThreads.Values.All(thread => thread.Name != "TeamPowerMonitorAssignment"))
+                    _aliveThreads.Values.ToList().All(thread => thread != null && thread.Name != "TeamPowerMonitorAssignment"))
                 {
                     StartAndLogThread(new Thread(new ThreadStart(delegate
                     {
@@ -12527,7 +12527,7 @@ namespace PRoConEvents
                     LogThreadExit();
                 }));
 
-                if (_aliveThreads.Values.All(thread => thread.Name != "RoundTicketLogger"))
+                if (_aliveThreads.Values.ToList().All(thread => thread != null && thread.Name != "RoundTicketLogger"))
                 {
                     //Start the thread
                     StartAndLogThread(roundLoggerThread);
@@ -34552,7 +34552,7 @@ namespace PRoConEvents
             //Every 60 minutes feed stat logger settings
             if (_lastStatLoggerStatusUpdateTime.AddMinutes(60) < UtcNow())
             {
-                if (_aliveThreads.Values.Any(aThread => aThread.Name == "StatLoggerSettingsFeeder"))
+                if (_aliveThreads.Values.ToList().Any(aThread => aThread != null && aThread.Name == "StatLoggerSettingsFeeder"))
                 {
                     return;
                 }
@@ -34641,7 +34641,7 @@ namespace PRoConEvents
             {
                 if (_SettingUploadQueue.Count > 0)
                 {
-                    if (_aliveThreads.Values.ToList().Any(aThread => aThread.Name == "SettingUploader"))
+                    if (_aliveThreads.Values.ToList().Any(aThread => aThread != null && aThread.Name == "SettingUploader"))
                     {
                         return;
                     }
@@ -46031,7 +46031,7 @@ namespace PRoConEvents
         private void RunSQLUpdates(Boolean async)
         {
             Log.Debug(() => "Entering RunSQLUpdates", 7);
-            if (_aliveThreads.Values.Any(aThread => aThread.Name == "SQLUpdater"))
+            if (_aliveThreads.Values.ToList().Any(aThread => aThread != null && aThread.Name == "SQLUpdater"))
             {
                 return;
             }
@@ -47070,7 +47070,6 @@ namespace PRoConEvents
             lock (_aliveThreads)
             {
                 _aliveThreads.Remove(Thread.CurrentThread.ManagedThreadId);
-                //Log.Warn("THREAD DEBUG: Stopping [" + Thread.CurrentThread.ManagedThreadId + ":'" + Thread.CurrentThread.Name + "']. " + _aliveThreads.Count + " threads running.");
             }
         }
 
@@ -47083,7 +47082,6 @@ namespace PRoConEvents
                 {
                     _aliveThreads.Add(aThread.ManagedThreadId, aThread);
                     _threadMasterWaitHandle.WaitOne(100);
-                    //Log.Warn("THREAD DEBUG: Starting [" + aThread.ManagedThreadId + ":'" + aThread.Name + "']. " + _aliveThreads.Count + " threads running.");
                 }
             }
         }
@@ -47371,7 +47369,7 @@ namespace PRoConEvents
                     (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken)) ||
                     manual)
                 {
-                    if (_aliveThreads.Values.Any(aThread => aThread.Name == "PluginUpdater"))
+                    if (_aliveThreads.Values.ToList().Any(aThread => aThread != null && aThread.Name == "PluginUpdater"))
                     {
                         if (_pluginUpdateCaller != null)
                         {
