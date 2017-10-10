@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.352
+ * Version 6.9.0.353
  * 9-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.352</version_code>
+ * <version_code>6.9.0.353</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.352";
+        private const String PluginVersion = "6.9.0.353";
 
         public enum GameVersion
         {
@@ -28072,7 +28072,7 @@ namespace PRoConEvents
                     {
                         if (record.source_name == "PingEnforcer")
                         {
-                            AdminSayMessage(record.GetTargetNames() + " KICKED for ping. " + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping) + "ms Avg:" + Math.Round(record.target_player.player_ping_avg) + "ms") : ("[Missing]")));
+                            AdminSayMessage(record.GetTargetNames() + " KICKED for " + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping) + "ms ping. Avg:" + Math.Round(record.target_player.player_ping_avg) + "ms") : ("missing ping.")));
                         }
                         else if (record.source_name != "AFKManager" && record.source_name != "SpectatorManager")
                         {
@@ -47795,6 +47795,23 @@ namespace PRoConEvents
                 WriteChat(msg);
             }
 
+            public String FClear(String msg)
+            {
+                return msg.Replace("^b", "")
+                          .Replace("^n", "")
+                          .Replace("^i", "")
+                          .Replace("^0", "")
+                          .Replace("^1", "")
+                          .Replace("^2", "")
+                          .Replace("^3", "")
+                          .Replace("^4", "")
+                          .Replace("^5", "")
+                          .Replace("^6", "")
+                          .Replace("^7", "")
+                          .Replace("^8", "")
+                          .Replace("^9", "");
+            }
+
             public String FBold(String msg)
             {
                 return "^b" + msg + "^n";
@@ -47900,7 +47917,7 @@ namespace PRoConEvents
                         target_name = "AdKats",
                         target_player = null,
                         source_name = "AdKats",
-                        record_message = exceptionString,
+                        record_message = Log.FClear(exceptionString),
                         record_time = UtcNow()
                     };
                     //Process the record
