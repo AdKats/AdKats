@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.350
+ * Version 6.9.0.351
  * 9-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.350</version_code>
+ * <version_code>6.9.0.351</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.350";
+        private const String PluginVersion = "6.9.0.351";
 
         public enum GameVersion
         {
@@ -804,7 +804,6 @@ namespace PRoConEvents
         private TimeSpan _PollPrintInterval = TimeSpan.FromSeconds(30);
         private Int32 _PollMaxVotes = 18;
         private Int32 _PollMaxOptions = 5;
-        private Boolean _PollPrintWinning = true;
         private String[] _AvailablePolls = new String[] {
             "event"
         };
@@ -822,6 +821,8 @@ namespace PRoConEvents
         //Events
         private Boolean _EventWeeklyRepeat = false;
         private DayOfWeek _EventWeeklyDay = DayOfWeek.Saturday;
+        private Boolean _EventPollAutomatic = false;
+        private Boolean _eventPollYellWinningRule = true;
         private DateTime _EventDate = GetLocalEpochTime();
         private Double _EventHour = 0;
         private Int32 _EventTestRoundNumber = 999999;
@@ -1107,119 +1108,130 @@ namespace PRoConEvents
 
         public void BuildUnreadySettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (!_settingsLocked)
                 {
                     if (_useKeepAlive)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("0") + t + "Auto-Enable/Keep-Alive", typeof(Boolean), true));
+                        buildList.Add(new CPluginVariable(GetSettingSection("0") + t + "Auto-Enable/Keep-Alive", typeof(Boolean), true));
                     }
 
-                    lstReturn.Add(new CPluginVariable("Complete these settings before enabling.", typeof(String), "Once enabled, more settings will appear."));
+                    buildList.Add(new CPluginVariable("Complete these settings before enabling.", typeof(String), "Once enabled, more settings will appear."));
                     //SQL Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Hostname", typeof(String), _mySqlHostname));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Port", typeof(String), _mySqlPort));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Database", typeof(String), _mySqlSchemaName));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Username", typeof(String), _mySqlUsername));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Password", typeof(String), _mySqlPassword));
+                    buildList.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Hostname", typeof(String), _mySqlHostname));
+                    buildList.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Port", typeof(String), _mySqlPort));
+                    buildList.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Database", typeof(String), _mySqlSchemaName));
+                    buildList.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Username", typeof(String), _mySqlUsername));
+                    buildList.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Password", typeof(String), _mySqlPassword));
                 }
                 //Debugging Settings
-                lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug level", typeof(Int32), Log.DebugLevel));
+                buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug level", typeof(Int32), Log.DebugLevel));
                 //Database Timing
                 if (_dbTimingChecked && !_dbTimingValid)
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("D98") + t + "Override Timing Confirmation", typeof(Boolean), _timingValidOverride));
+                    buildList.Add(new CPluginVariable(GetSettingSection("D98") + t + "Override Timing Confirmation", typeof(Boolean), _timingValidOverride));
                 }
+
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building unready setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("0") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("0") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildReadyLockedSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
-                lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Server ID (Display)", typeof(int), _serverInfo.ServerID));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Server IP (Display)", typeof(String), _serverInfo.ServerIP));
+                buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server ID (Display)", typeof(int), _serverInfo.ServerID));
+                buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server IP (Display)", typeof(String), _serverInfo.ServerIP));
                 if (_UseBanEnforcer)
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "NAME Ban Count", typeof(int), _NameBanCount));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "GUID Ban Count", typeof(int), _GUIDBanCount));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "IP Ban Count", typeof(int), _IPBanCount));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "Ban Search", typeof(String), ""));
-                    lstReturn.AddRange(_BanEnforcerSearchResults.Select(aBan => new CPluginVariable(GetSettingSection("A13-3") + t + "BAN" + aBan.ban_id + s + aBan.ban_record.target_player.player_name + s + aBan.ban_record.source_name + s + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "NAME Ban Count", typeof(int), _NameBanCount));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "GUID Ban Count", typeof(int), _GUIDBanCount));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "IP Ban Count", typeof(int), _IPBanCount));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "Ban Search", typeof(String), ""));
+                    buildList.AddRange(_BanEnforcerSearchResults.Select(aBan => new CPluginVariable(GetSettingSection("A13-3") + t + "BAN" + aBan.ban_id + s + aBan.ban_record.target_player.player_name + s + aBan.ban_record.source_name + s + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
                 }
-                lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug level", typeof(int), Log.DebugLevel));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug Soldier Name", typeof(String), _debugSoldierName));
+                buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug level", typeof(int), Log.DebugLevel));
+                buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug Soldier Name", typeof(String), _debugSoldierName));
+
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building ready locked setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildServerSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("1"))
                 {
                     //Server Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Setting Import", typeof(String), _serverInfo.ServerID));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Server ID (Display)", typeof(Int32), _serverInfo.ServerID));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Server IP (Display)", typeof(String), _serverInfo.ServerIP));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Server Game (Display)", typeof(String), _gameVersion.ToString()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "High Population Value", typeof(Int32), _highPopulationPlayerCount));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Server Restart When Empty", typeof(Boolean), _automaticServerRestart));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Setting Import", typeof(String), _serverInfo.ServerID));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server ID (Display)", typeof(Int32), _serverInfo.ServerID));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server IP (Display)", typeof(String), _serverInfo.ServerIP));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server Game (Display)", typeof(String), _gameVersion.ToString()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "High Population Value", typeof(Int32), _highPopulationPlayerCount));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Server Restart When Empty", typeof(Boolean), _automaticServerRestart));
                     if (_automaticServerRestart)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Restart Minimum Uptime Hours", typeof(Int32), _automaticServerRestartMinHours));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Procon Reboot When Server Reboots", typeof(Boolean), _automaticServerRestartProcon));
+                        buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Restart Minimum Uptime Hours", typeof(Int32), _automaticServerRestartMinHours));
+                        buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Procon Reboot When Server Reboots", typeof(Boolean), _automaticServerRestartProcon));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building server setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildSQLSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("2"))
                 {
                     //SQL Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Hostname", typeof(String), _mySqlHostname));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Port", typeof(String), _mySqlPort));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Database", typeof(String), _mySqlSchemaName));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Username", typeof(String), _mySqlUsername));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Password", typeof(String), _mySqlPassword));
+                    buildList.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Hostname", typeof(String), _mySqlHostname));
+                    buildList.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Port", typeof(String), _mySqlPort));
+                    buildList.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Database", typeof(String), _mySqlSchemaName));
+                    buildList.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Username", typeof(String), _mySqlUsername));
+                    buildList.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Password", typeof(String), _mySqlPassword));
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building sql setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildUserSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("3"))
                 {
                     //User Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("3") + t + "Add User", typeof(String), ""));
+                    buildList.Add(new CPluginVariable(GetSettingSection("3") + t + "Add User", typeof(String), ""));
                     if (_userCache.Count > 0)
                     {
                         //Sort access list by access level, then by id
@@ -1248,18 +1260,18 @@ namespace PRoConEvents
                             String userPrefix = GetSettingSection("3") + t + "USR" + user.user_id + s + user.user_name + s;
                             if (_UseEmail)
                             {
-                                lstReturn.Add(new CPluginVariable(userPrefix + "User Email", typeof(String), user.user_email));
+                                buildList.Add(new CPluginVariable(userPrefix + "User Email", typeof(String), user.user_email));
                             }
-                            lstReturn.Add(new CPluginVariable(userPrefix + "User Expiration", typeof(String), user.user_expiration.ToShortDateString()));
-                            lstReturn.Add(new CPluginVariable(userPrefix + "User Notes", typeof(String), user.user_notes));
+                            buildList.Add(new CPluginVariable(userPrefix + "User Expiration", typeof(String), user.user_expiration.ToShortDateString()));
+                            buildList.Add(new CPluginVariable(userPrefix + "User Notes", typeof(String), user.user_notes));
                             //Do not display phone input until that operation is available for use
                             //lstReturn.Add(new CPluginVariable(userPrefix + "User Phone", typeof(String), user.user_phone));
-                            lstReturn.Add(new CPluginVariable(userPrefix + "User Role", roleEnum, user.user_role.role_name));
-                            lstReturn.Add(new CPluginVariable(userPrefix + "Delete User?", typeof(String), ""));
-                            lstReturn.Add(new CPluginVariable(userPrefix + "Add Soldier?", typeof(String), ""));
+                            buildList.Add(new CPluginVariable(userPrefix + "User Role", roleEnum, user.user_role.role_name));
+                            buildList.Add(new CPluginVariable(userPrefix + "Delete User?", typeof(String), ""));
+                            buildList.Add(new CPluginVariable(userPrefix + "Add Soldier?", typeof(String), ""));
                             String soldierPrefix = userPrefix + "Soldiers" + s;
 
-                            lstReturn.AddRange(user.soldierDictionary.Values.Select(aPlayer =>
+                            buildList.AddRange(user.soldierDictionary.Values.Select(aPlayer =>
                                 new CPluginVariable(soldierPrefix + aPlayer.player_id + s +
                                     (_gameIDDictionary.ContainsKey(aPlayer.game_id) ? (_gameIDDictionary[aPlayer.game_id].ToString()) : ("INVALID GAME ID [" + aPlayer.game_id + "]")) + s +
                                     aPlayer.player_name + s + "Delete Soldier?", typeof(String), "")));
@@ -1269,24 +1281,26 @@ namespace PRoConEvents
                     {
                         if (_firstUserListComplete)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("3") + t + "No Users in User List", typeof(String), "Add Users with 'Add User'."));
+                            buildList.Add(new CPluginVariable(GetSettingSection("3") + t + "No Users in User List", typeof(String), "Add Users with 'Add User'."));
                         }
                         else
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("3") + t + "Please Wait, Fetching User List.", typeof(String), "Please Wait, Fetching User List."));
+                            buildList.Add(new CPluginVariable(GetSettingSection("3") + t + "Please Wait, Fetching User List.", typeof(String), "Please Wait, Fetching User List."));
                         }
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building user setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("3") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("3") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildSpecialPlayerSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("3-2"))
@@ -1330,25 +1344,27 @@ namespace PRoConEvents
                             if (groupList.Any())
                             {
                                 anyList = true;
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("3-2") + t + "[" + groupList.Count + "] " + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
+                                buildList.Add(new CPluginVariable(GetSettingSection("3-2") + t + "[" + groupList.Count + "] " + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
                             }
                         }
                         if (!anyList)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("3-2") + t + "All Groups Empty", typeof(String), "All Groups Empty"));
+                            buildList.Add(new CPluginVariable(GetSettingSection("3-2") + t + "All Groups Empty", typeof(String), "All Groups Empty"));
                         }
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building special player setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("3-2") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("3-2") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildVerboseSpecialPlayerSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("3-3"))
@@ -1383,31 +1399,33 @@ namespace PRoConEvents
                             if (groupList.Any())
                             {
                                 anyVerbostList = true;
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("3-3") + t + "[" + groupList.Count + "] Verbose " + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
+                                buildList.Add(new CPluginVariable(GetSettingSection("3-3") + t + "[" + groupList.Count + "] Verbose " + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
                             }
                         }
                         if (!anyVerbostList)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("3-3") + t + "All Verbose Groups Empty", typeof(String), "All Verbose Groups Empty"));
+                            buildList.Add(new CPluginVariable(GetSettingSection("3-3") + t + "All Verbose Groups Empty", typeof(String), "All Verbose Groups Empty"));
                         }
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building verbose special player setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("3-3") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("3-3") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildRoleSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("4"))
                 {
                     //Role Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("4") + t + "Add Role", typeof(String), ""));
+                    buildList.Add(new CPluginVariable(GetSettingSection("4") + t + "Add Role", typeof(String), ""));
                     var useCache = NowDuration(_RoleCommandCacheUpdate).TotalMinutes < 5 &&
                                    _RoleCommandCache != null &&
                                    NowDuration(_RoleCommandCacheUpdateBufferStart) > _RoleCommandCacheUpdateBufferDuration;
@@ -1448,12 +1466,12 @@ namespace PRoConEvents
                                             // We've just generated a new display string, add it to the cache
                                             _RoleCommandCache[key] = display;
                                         }
-                                        lstReturn.Add(new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
+                                        buildList.Add(new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
                                     }
                                     //Do not display the delete option for default guest
                                     if (aRole.role_key != "guest_default")
                                     {
-                                        lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof(String), ""));
+                                        buildList.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof(String), ""));
                                     }
                                 }
                             }
@@ -1461,19 +1479,21 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("4") + t + "Role List Empty", typeof(String), "No valid roles found in database."));
+                        buildList.Add(new CPluginVariable(GetSettingSection("4") + t + "Role List Empty", typeof(String), "No valid roles found in database."));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building role setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("4") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("4") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildRoleGroupSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("4-2"))
@@ -1489,7 +1509,7 @@ namespace PRoConEvents
                                 {
                                     Random random = new Random();
                                     String rolePrefix = GetSettingSection("4-2") + t + "RLE" + aRole.role_id + s + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + s;
-                                    lstReturn.AddRange(from aGroup in _specialPlayerGroupKeyDictionary.Values
+                                    buildList.AddRange(from aGroup in _specialPlayerGroupKeyDictionary.Values
                                                        let allowed =
                                                         aRole.RoleSetGroups.ContainsKey(aGroup.group_key) ||
                                                         (aGroup.group_key == "slot_reserved" && _FeedServerReservedSlots && _FeedServerReservedSlots_Admins && RoleIsAdmin(aRole)) ||
@@ -1505,44 +1525,48 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("4-2") + t + "Role List Empty", typeof(String), "No valid roles found in database."));
+                        buildList.Add(new CPluginVariable(GetSettingSection("4-2") + t + "Role List Empty", typeof(String), "No valid roles found in database."));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building role group setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("4-2") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("4-2") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildCommandSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("5"))
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Minimum Required Reason Length", typeof(int), _RequiredReasonLength));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Minimum Report Handle Seconds", typeof(int), _MinimumReportHandleSeconds));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Minimum Minutes Into Round To Use Assist", typeof(int), _minimumAssistMinutes));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Countdown Duration before a Nuke is fired", typeof(int), _NukeCountdownDurationSeconds));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Bypass all command confirmation -DO NOT USE-", typeof(Boolean), _bypassCommandConfirmation));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "External plugin player commands", typeof(String[]), _ExternalPlayerCommands.ToArray()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "External plugin admin commands", typeof(String[]), _ExternalAdminCommands.ToArray()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Command Target Whitelist Commands", typeof(String[]), _CommandTargetWhitelistCommands.ToArray()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Minimum Required Reason Length", typeof(int), _RequiredReasonLength));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Minimum Report Handle Seconds", typeof(int), _MinimumReportHandleSeconds));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Minimum Minutes Into Round To Use Assist", typeof(int), _minimumAssistMinutes));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Countdown Duration before a Nuke is fired", typeof(int), _NukeCountdownDurationSeconds));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Bypass all command confirmation -DO NOT USE-", typeof(Boolean), _bypassCommandConfirmation));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "External plugin player commands", typeof(String[]), _ExternalPlayerCommands.ToArray()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "External plugin admin commands", typeof(String[]), _ExternalAdminCommands.ToArray()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Command Target Whitelist Commands", typeof(String[]), _CommandTargetWhitelistCommands.ToArray()));
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building command setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("5") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildCommandListSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("6"))
@@ -1557,15 +1581,15 @@ namespace PRoConEvents
                                 if (command.command_active != ACommand.CommandActive.Invisible)
                                 {
                                     String commandPrefix = GetSettingSection("6") + t + "CDE" + command.command_id + s + command.command_name + s;
-                                    lstReturn.Add(new CPluginVariable(commandPrefix + "Active", "enum.commandActiveEnum(Active|Disabled)", command.command_active.ToString()));
+                                    buildList.Add(new CPluginVariable(commandPrefix + "Active", "enum.commandActiveEnum(Active|Disabled)", command.command_active.ToString()));
                                     if (command.command_active != ACommand.CommandActive.Disabled)
                                     {
                                         if (command.command_logging != ACommand.CommandLogging.Mandatory && command.command_logging != ACommand.CommandLogging.Unable)
                                         {
-                                            lstReturn.Add(new CPluginVariable(commandPrefix + "Logging", "enum.commandLoggingEnum(Log|Ignore)", command.command_logging.ToString()));
+                                            buildList.Add(new CPluginVariable(commandPrefix + "Logging", "enum.commandLoggingEnum(Log|Ignore)", command.command_logging.ToString()));
                                         }
-                                        lstReturn.Add(new CPluginVariable(commandPrefix + "Text", typeof(String), command.command_text));
-                                        lstReturn.Add(new CPluginVariable(commandPrefix + "Access Method", CreateEnumString(typeof(ACommand.CommandAccess)), command.command_access.ToString()));
+                                        buildList.Add(new CPluginVariable(commandPrefix + "Text", typeof(String), command.command_text));
+                                        buildList.Add(new CPluginVariable(commandPrefix + "Access Method", CreateEnumString(typeof(ACommand.CommandAccess)), command.command_access.ToString()));
                                     }
                                 }
                             }
@@ -1573,313 +1597,335 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("6") + t + "Command List Empty", typeof(String), "No valid commands found in database."));
+                        buildList.Add(new CPluginVariable(GetSettingSection("6") + t + "Command List Empty", typeof(String), "No valid commands found in database."));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building command list setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("6") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("6") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildPunishmentSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("7"))
                 {
                     //Punishment Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "Punishment Hierarchy", typeof(String[]), _PunishmentHierarchy));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "Automatic Forgives", typeof(Boolean), _AutomaticForgives));
+                    buildList.Add(new CPluginVariable(GetSettingSection("7") + t + "Punishment Hierarchy", typeof(String[]), _PunishmentHierarchy));
+                    buildList.Add(new CPluginVariable(GetSettingSection("7") + t + "Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
+                    buildList.Add(new CPluginVariable(GetSettingSection("7") + t + "Automatic Forgives", typeof(Boolean), _AutomaticForgives));
                     if (_AutomaticForgives)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "Automatic Forgive Days Since Punished", typeof(Int32), _AutomaticForgiveLastPunishDays));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "Automatic Forgive Days Since Forgiven", typeof(Int32), _AutomaticForgiveLastForgiveDays));
+                        buildList.Add(new CPluginVariable(GetSettingSection("7") + t + "Automatic Forgive Days Since Punished", typeof(Int32), _AutomaticForgiveLastPunishDays));
+                        buildList.Add(new CPluginVariable(GetSettingSection("7") + t + "Automatic Forgive Days Since Forgiven", typeof(Int32), _AutomaticForgiveLastForgiveDays));
                     }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "Use IRO Punishment", typeof(Boolean), _IROActive));
+                    buildList.Add(new CPluginVariable(GetSettingSection("7") + t + "Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
+                    buildList.Add(new CPluginVariable(GetSettingSection("7") + t + "Use IRO Punishment", typeof(Boolean), _IROActive));
                     if (_IROActive)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "IRO Timeout Minutes", typeof(Int32), _IROTimeout));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "IRO Punishment Overrides Low Pop", typeof(Boolean), _IROOverridesLowPop));
+                        buildList.Add(new CPluginVariable(GetSettingSection("7") + t + "IRO Timeout Minutes", typeof(Int32), _IROTimeout));
+                        buildList.Add(new CPluginVariable(GetSettingSection("7") + t + "IRO Punishment Overrides Low Pop", typeof(Boolean), _IROOverridesLowPop));
                         if (_IROOverridesLowPop)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "IRO Punishment Infractions Required to Override", typeof(Int32), _IROOverridesLowPopInfractions));
+                            buildList.Add(new CPluginVariable(GetSettingSection("7") + t + "IRO Punishment Infractions Required to Override", typeof(Int32), _IROOverridesLowPopInfractions));
                         }
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building punishment setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("7") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildEmailSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("8"))
                 {
                     //Email Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("8") + t + "Send Emails", typeof(Boolean), _UseEmail));
+                    buildList.Add(new CPluginVariable(GetSettingSection("8") + t + "Send Emails", typeof(Boolean), _UseEmail));
                     if (_UseEmail)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + t + "Use SSL?", typeof(Boolean), _EmailHandler.UseSSL));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + t + "SMTP-Server address", typeof(String), _EmailHandler.SMTPServer));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + t + "SMTP-Server port", typeof(int), _EmailHandler.SMTPPort));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + t + "Sender address", typeof(String), _EmailHandler.SenderEmail));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + t + "SMTP-Server username", typeof(String), _EmailHandler.SMTPUser));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + t + "SMTP-Server password", typeof(String), _EmailHandler.SMTPPassword));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + t + "Custom HTML Addition", typeof(String), _EmailHandler.CustomHTMLAddition));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + t + "Extra Recipient Email Addresses", typeof(String[]), _EmailHandler.RecipientEmails.ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + t + "Only Send Report Emails When Admins Offline", typeof(Boolean), _EmailReportsOnlyWhenAdminless));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8") + t + "Use SSL?", typeof(Boolean), _EmailHandler.UseSSL));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8") + t + "SMTP-Server address", typeof(String), _EmailHandler.SMTPServer));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8") + t + "SMTP-Server port", typeof(int), _EmailHandler.SMTPPort));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8") + t + "Sender address", typeof(String), _EmailHandler.SenderEmail));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8") + t + "SMTP-Server username", typeof(String), _EmailHandler.SMTPUser));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8") + t + "SMTP-Server password", typeof(String), _EmailHandler.SMTPPassword));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8") + t + "Custom HTML Addition", typeof(String), _EmailHandler.CustomHTMLAddition));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8") + t + "Extra Recipient Email Addresses", typeof(String[]), _EmailHandler.RecipientEmails.ToArray()));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8") + t + "Only Send Report Emails When Admins Offline", typeof(Boolean), _EmailReportsOnlyWhenAdminless));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building email setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("8") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("8") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildPushbulletSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("8-2"))
                 {
                     //PushBullet Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + t + "Send PushBullet Reports", typeof(Boolean), _UsePushBullet));
+                    buildList.Add(new CPluginVariable(GetSettingSection("8-2") + t + "Send PushBullet Reports", typeof(Boolean), _UsePushBullet));
                     if (_UsePushBullet)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + t + "PushBullet Access Token", typeof(String), _PushBulletHandler.AccessToken));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + t + "PushBullet Note Target", "enum.pushBulletTargetEnum(Private|Channel)", _PushBulletHandler.DefaultTarget.ToString()));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8-2") + t + "PushBullet Access Token", typeof(String), _PushBulletHandler.AccessToken));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8-2") + t + "PushBullet Note Target", "enum.pushBulletTargetEnum(Private|Channel)", _PushBulletHandler.DefaultTarget.ToString()));
                         if (_PushBulletHandler.DefaultTarget == PushBulletHandler.Target.Channel)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + t + "PushBullet Channel Tag", typeof(String), _PushBulletHandler.DefaultChannelTag));
+                            buildList.Add(new CPluginVariable(GetSettingSection("8-2") + t + "PushBullet Channel Tag", typeof(String), _PushBulletHandler.DefaultChannelTag));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + t + "Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8-2") + t + "Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building pushbullet setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildTeamswapSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("9"))
                 {
                     //TeamSwap Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("9") + t + "Ticket Window High", typeof(int), _TeamSwapTicketWindowHigh));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("9") + t + "Ticket Window Low", typeof(int), _TeamSwapTicketWindowLow));
+                    buildList.Add(new CPluginVariable(GetSettingSection("9") + t + "Ticket Window High", typeof(int), _TeamSwapTicketWindowHigh));
+                    buildList.Add(new CPluginVariable(GetSettingSection("9") + t + "Ticket Window Low", typeof(int), _TeamSwapTicketWindowLow));
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building teamswap setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("9") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("9") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildAASettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A10"))
                 {
                     //Admin Assistant Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + t + "Enable Admin Assistants", typeof(Boolean), _EnableAdminAssistants));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A10") + t + "Enable Admin Assistants", typeof(Boolean), _EnableAdminAssistants));
                     if (_EnableAdminAssistants)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + t + "Minimum Confirmed Reports Per Month", typeof(int), _MinimumRequiredMonthlyReports));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + t + "Enable Admin Assistant Perk", typeof(Boolean), _EnableAdminAssistantPerk));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + t + "Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A10") + t + "Minimum Confirmed Reports Per Month", typeof(int), _MinimumRequiredMonthlyReports));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A10") + t + "Enable Admin Assistant Perk", typeof(Boolean), _EnableAdminAssistantPerk));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A10") + t + "Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
                         if (_UseAAReportAutoHandler)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + t + "Auto-Report-Handler Strings", typeof(String[]), _AutoReportHandleStrings));
+                            buildList.Add(new CPluginVariable(GetSettingSection("A10") + t + "Auto-Report-Handler Strings", typeof(String[]), _AutoReportHandleStrings));
                         }
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building AA setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildMuteSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A11"))
                 {
                     //Muting Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + t + "On-Player-Muted Message", typeof(String), _MutedPlayerMuteMessage));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + t + "On-Player-Killed Message", typeof(String), _MutedPlayerKillMessage));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + t + "On-Player-Kicked Message", typeof(String), _MutedPlayerKickMessage));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + t + "# Chances to give player before kicking", typeof(int), _MutedPlayerChances));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + t + "Ignore commands for mute enforcement", typeof(Boolean), _MutedPlayerIgnoreCommands));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A11") + t + "On-Player-Muted Message", typeof(String), _MutedPlayerMuteMessage));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A11") + t + "On-Player-Killed Message", typeof(String), _MutedPlayerKillMessage));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A11") + t + "On-Player-Kicked Message", typeof(String), _MutedPlayerKickMessage));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A11") + t + "# Chances to give player before kicking", typeof(int), _MutedPlayerChances));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A11") + t + "Ignore commands for mute enforcement", typeof(Boolean), _MutedPlayerIgnoreCommands));
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building mute setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildMessagingSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A12"))
                 {
                     //Message Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display Admin Name in Action Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display Targeted Player Left Notification", typeof(Boolean), _ShowTargetedPlayerLeftNotification));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display Ticket Rates in Procon Chat", typeof(Boolean), _DisplayTicketRatesInProconChat));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display Admin Name in Action Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display Targeted Player Left Notification", typeof(Boolean), _ShowTargetedPlayerLeftNotification));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Display Ticket Rates in Procon Chat", typeof(Boolean), _DisplayTicketRatesInProconChat));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
                     if (_InformReportedPlayers)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Player Inform Exclusion Strings", typeof(String[]), _PlayerInformExclusionStrings));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Player Inform Exclusion Strings", typeof(String[]), _PlayerInformExclusionStrings));
                     }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Inform reputable players of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Inform admins of admin joins", typeof(Boolean), _InformAdminsOfAdminJoins));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Yell display time seconds", typeof(Int32), _YellDuration));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Pre-Message List", typeof(String[]), _PreMessageList.ToArray()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Inform reputable players of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Inform admins of admin joins", typeof(Boolean), _InformAdminsOfAdminJoins));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Yell display time seconds", typeof(Int32), _YellDuration));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Pre-Message List", typeof(String[]), _PreMessageList.ToArray()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
                     if (_UseFirstSpawnMessage)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "First spawn message text", typeof(String), _FirstSpawnMessage));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use First Spawn Reputation and Infraction Message", typeof(Boolean), _useFirstSpawnRepMessage));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "First spawn message text", typeof(String), _FirstSpawnMessage));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use First Spawn Reputation and Infraction Message", typeof(Boolean), _useFirstSpawnRepMessage));
                     }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use Perk Expiration Notification", typeof(Boolean), _UsePerkExpirationNotify));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Use Perk Expiration Notification", typeof(Boolean), _UsePerkExpirationNotify));
                     if (_UsePerkExpirationNotify)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Perk Expiration Notify Days Remaining", typeof(Int32), _PerkExpirationNotifyDays));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A12") + t + "Perk Expiration Notify Days Remaining", typeof(Int32), _PerkExpirationNotifyDays));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building messaging setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildSpambotSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A12-2"))
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Enable", typeof(Boolean), _spamBotEnabled));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Say List", typeof(String[]), _spamBotSayList.ToArray()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Say Delay Seconds", typeof(Int32), _spamBotSayDelaySeconds));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Yell List", typeof(String[]), _spamBotYellList.ToArray()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Yell Delay Seconds", typeof(Int32), _spamBotYellDelaySeconds));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Tell List", typeof(String[]), _spamBotTellList.ToArray()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Tell Delay Seconds", typeof(Int32), _spamBotTellDelaySeconds));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdminsAndWhitelist));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Enable", typeof(Boolean), _spamBotEnabled));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Say List", typeof(String[]), _spamBotSayList.ToArray()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Say Delay Seconds", typeof(Int32), _spamBotSayDelaySeconds));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Yell List", typeof(String[]), _spamBotYellList.ToArray()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Yell Delay Seconds", typeof(Int32), _spamBotYellDelaySeconds));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Tell List", typeof(String[]), _spamBotTellList.ToArray()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "SpamBot Tell Delay Seconds", typeof(Int32), _spamBotTellDelaySeconds));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdminsAndWhitelist));
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building spambot setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildBattlecrySettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A12-3"))
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Player Battlecry Volume", "enum.battlecryVolumeEnum(Disabled|Say|Yell|Tell)", _battlecryVolume.ToString()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Player Battlecry Max Length", typeof(Int32), _battlecryMaxLength));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Player Battlecry Denied Words", typeof(String[]), _battlecryDeniedWords));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Player Battlecry Volume", "enum.battlecryVolumeEnum(Disabled|Say|Yell|Tell)", _battlecryVolume.ToString()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Player Battlecry Max Length", typeof(Int32), _battlecryMaxLength));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Player Battlecry Denied Words", typeof(String[]), _battlecryDeniedWords));
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building battlecry setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A12-3") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildAllCapsSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A12-4"))
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "Use All Caps Limiter", typeof(Boolean), _UseAllCapsLimiter));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "Use All Caps Limiter", typeof(Boolean), _UseAllCapsLimiter));
                     if (_UseAllCapsLimiter)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Only Limit Specified Players", typeof(Boolean), _AllCapsLimiterSpecifiedPlayersOnly));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Character Percentage", typeof(Int32), _AllCapsLimterPercentage));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Minimum Characters", typeof(Int32), _AllCapsLimterMinimumCharacters));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Warn Threshold", typeof(Int32), _AllCapsLimiterWarnThreshold));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Kill Threshold", typeof(Int32), _AllCapsLimiterKillThreshold));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Kick Threshold", typeof(Int32), _AllCapsLimiterKickThreshold));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Only Limit Specified Players", typeof(Boolean), _AllCapsLimiterSpecifiedPlayersOnly));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Character Percentage", typeof(Int32), _AllCapsLimterPercentage));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Minimum Characters", typeof(Int32), _AllCapsLimterMinimumCharacters));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Warn Threshold", typeof(Int32), _AllCapsLimiterWarnThreshold));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Kill Threshold", typeof(Int32), _AllCapsLimiterKillThreshold));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "All Caps Limiter Kick Threshold", typeof(Int32), _AllCapsLimiterKickThreshold));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building all-caps setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A12-4") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildBanSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A13"))
                 {
                     //Ban Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A13") + t + "Use Additional Ban Message", typeof(Boolean), _UseBanAppend));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A13") + t + "Use Additional Ban Message", typeof(Boolean), _UseBanAppend));
                     if (_UseBanAppend)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13") + t + "Additional Ban Message", typeof(String), _BanAppend));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A13") + t + "Additional Ban Message", typeof(String), _BanAppend));
                     }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A13") + t + "Procon Ban Admin Name", typeof(String), _CBanAdminName));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A13") + t + "Procon Ban Admin Name", typeof(String), _CBanAdminName));
                 }
 
                 if (IsActiveSettingSection("A13-2"))
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Use Ban Enforcer", typeof(Boolean), _UseBanEnforcer));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Use Ban Enforcer", typeof(Boolean), _UseBanEnforcer));
                     if (_UseBanEnforcer)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by GUID", typeof(Boolean), _DefaultEnforceGUID));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by IP", typeof(Boolean), _DefaultEnforceIP));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by GUID", typeof(Boolean), _DefaultEnforceGUID));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by IP", typeof(Boolean), _DefaultEnforceIP));
 
                         //Metabans Settings
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Use Metabans?", typeof(bool), _useMetabans));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Use Metabans?", typeof(bool), _useMetabans));
                         if (_useMetabans)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Metabans Username", typeof(String), _metabansUsername));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Metabans API Key", typeof(String), _metabansAPIKey));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Metabans Filter Strings", typeof(String[]), _metabansFilterStrings));
+                            buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Metabans Username", typeof(String), _metabansUsername));
+                            buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Metabans API Key", typeof(String), _metabansAPIKey));
+                            buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Metabans Filter Strings", typeof(String[]), _metabansFilterStrings));
                         }
                     }
                 }
@@ -1888,550 +1934,586 @@ namespace PRoConEvents
                 {
                     if (_UseBanEnforcer)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "NAME Ban Count", typeof(int), _NameBanCount));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "GUID Ban Count", typeof(int), _GUIDBanCount));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "IP Ban Count", typeof(int), _IPBanCount));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "Ban Search", typeof(String), ""));
-                        lstReturn.AddRange(_BanEnforcerSearchResults.Select(aBan => new CPluginVariable(GetSettingSection("A13-3") + t + "BAN" + aBan.ban_id + s + aBan.ban_record.target_player.player_name + s + aBan.ban_record.source_name + s + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "NAME Ban Count", typeof(int), _NameBanCount));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "GUID Ban Count", typeof(int), _GUIDBanCount));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "IP Ban Count", typeof(int), _IPBanCount));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "Ban Search", typeof(String), ""));
+                        buildList.AddRange(_BanEnforcerSearchResults.Select(aBan => new CPluginVariable(GetSettingSection("A13-3") + t + "BAN" + aBan.ban_id + s + aBan.ban_record.target_player.player_name + s + aBan.ban_record.source_name + s + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building ban setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A13") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A13") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildExternalCommandSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A14"))
                 {
                     //External Command Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A14") + t + "AdkatsLRT Extension Token", typeof(String), _AdKatsLRTExtensionToken));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A14") + t + "AdkatsLRT Extension Token", typeof(String), _AdKatsLRTExtensionToken));
                     if (!_UseBanEnforcer)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A14") + t + "Fetch Actions from Database", typeof(Boolean), _fetchActionsFromDb));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A14") + t + "Fetch Actions from Database", typeof(Boolean), _fetchActionsFromDb));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building external command setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A14") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A14") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildVOIPSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A15"))
                 {
                     //VOIP
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A15") + t + "Server VOIP Address", typeof(String), _ServerVoipAddress));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A15") + t + "Server VOIP Address", typeof(String), _ServerVoipAddress));
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building VOIP setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A15") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A15") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildOrchestrationSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A16"))
                 {
                     //MULTIBalancer
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed MULTIBalancer Whitelist", typeof(Boolean), _FeedMultiBalancerWhitelist));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed MULTIBalancer Whitelist", typeof(Boolean), _FeedMultiBalancerWhitelist));
                     if (_FeedMultiBalancerWhitelist)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic MULTIBalancer Whitelist for Admins", typeof(Boolean), _FeedMultiBalancerWhitelist_Admins));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic MULTIBalancer Whitelist for Admins", typeof(Boolean), _FeedMultiBalancerWhitelist_Admins));
                     }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed MULTIBalancer Even Dispersion List", typeof(Boolean), _FeedMultiBalancerDisperseList));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed MULTIBalancer Even Dispersion List", typeof(Boolean), _FeedMultiBalancerDisperseList));
                     //TeamKillTracker
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed TeamKillTracker Whitelist", typeof(Boolean), _FeedTeamKillTrackerWhitelist));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed TeamKillTracker Whitelist", typeof(Boolean), _FeedTeamKillTrackerWhitelist));
                     if (_FeedTeamKillTrackerWhitelist)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic TeamKillTracker Whitelist for Admins", typeof(Boolean), _FeedTeamKillTrackerWhitelist_Admins));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic TeamKillTracker Whitelist for Admins", typeof(Boolean), _FeedTeamKillTrackerWhitelist_Admins));
                     }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed Server Reserved Slots", typeof(Boolean), _FeedServerReservedSlots));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed Server Reserved Slots", typeof(Boolean), _FeedServerReservedSlots));
                     if (_FeedServerReservedSlots)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic VIP Kick Whitelist for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins_VIPKickWhitelist));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic VIP Kick Whitelist for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins_VIPKickWhitelist));
                     }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
                     if (_FeedServerSpectatorList)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic Spectator Slot for Admins", typeof(Boolean), _FeedServerSpectatorList_Admins));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic Spectator Slot for Admins", typeof(Boolean), _FeedServerSpectatorList_Admins));
                     }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
                     if (_PostStatLoggerChatManually)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
                     }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Banned Tags", typeof(String[]), _BannedTags));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Banned Tags", typeof(String[]), _BannedTags));
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building orchestration setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildRoundSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A17"))
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A17") + t + "Round Timer: Enable", typeof(Boolean), _useRoundTimer));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A17") + t + "Round Timer: Enable", typeof(Boolean), _useRoundTimer));
                     if (_useRoundTimer)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A17") + t + "Round Timer: Round Duration Minutes", typeof(Double), _maxRoundTimeMinutes));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A17") + t + "Round Timer: Round Duration Minutes", typeof(Double), _maxRoundTimeMinutes));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building round setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A17") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A17") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildFactionSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A17-2") && _gameVersion == GameVersion.BF4)
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Enable", typeof(Boolean), _factionRandomizerEnable));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Restriction", "enum.factionRandomizerRestriction2Enum(NoRestriction|NeverSameFaction|AlwaysSameFaction|AlwaysSwapUSvsRU|AlwaysSwapUSvsCN|AlwaysSwapRUvsCN|AlwaysBothUS|AlwaysBothRU|AlwaysBothCN|AlwaysUSvsX|AlwaysRUvsX|AlwaysCNvsX|NeverUSvsX|NeverRUvsX|NeverCNvsX)", _factionRandomizerRestriction.ToString()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Allow Repeat Team Selections", typeof(Boolean), _factionRandomizerAllowRepeatSelection));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Enable", typeof(Boolean), _factionRandomizerEnable));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Restriction", "enum.factionRandomizerRestriction2Enum(NoRestriction|NeverSameFaction|AlwaysSameFaction|AlwaysSwapUSvsRU|AlwaysSwapUSvsCN|AlwaysSwapRUvsCN|AlwaysBothUS|AlwaysBothRU|AlwaysBothCN|AlwaysUSvsX|AlwaysRUvsX|AlwaysCNvsX|NeverUSvsX|NeverRUvsX|NeverCNvsX)", _factionRandomizerRestriction.ToString()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Allow Repeat Team Selections", typeof(Boolean), _factionRandomizerAllowRepeatSelection));
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building faction setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildAntiCheatSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A18"))
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + t + "Use LIVE Anti Cheat System", typeof(Boolean), _useAntiCheatLIVESystem));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + t + "DPS Checker: Ban Message", typeof(String), _AntiCheatDPSBanMessage));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + t + "HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A18") + t + "Use LIVE Anti Cheat System", typeof(Boolean), _useAntiCheatLIVESystem));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A18") + t + "DPS Checker: Ban Message", typeof(String), _AntiCheatDPSBanMessage));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A18") + t + "HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
                     if (_UseHskChecker)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + t + "HSK Checker: Trigger Level", typeof(Double), _HskTriggerLevel));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + t + "HSK Checker: Ban Message", typeof(String), _AntiCheatHSKBanMessage));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A18") + t + "HSK Checker: Trigger Level", typeof(Double), _HskTriggerLevel));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A18") + t + "HSK Checker: Ban Message", typeof(String), _AntiCheatHSKBanMessage));
                     }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + t + "KPM Checker: Enable", typeof(Boolean), _UseKpmChecker));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A18") + t + "KPM Checker: Enable", typeof(Boolean), _UseKpmChecker));
                     if (_UseKpmChecker)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + t + "KPM Checker: Trigger Level", typeof(Double), _KpmTriggerLevel));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + t + "KPM Checker: Ban Message", typeof(String), _AntiCheatKPMBanMessage));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A18") + t + "KPM Checker: Trigger Level", typeof(Double), _KpmTriggerLevel));
+                        buildList.Add(new CPluginVariable(GetSettingSection("A18") + t + "KPM Checker: Ban Message", typeof(String), _AntiCheatKPMBanMessage));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building anticheat setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildRuleSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("A19"))
                 {
                     //Server rules settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + t + "Rule Print Delay", typeof(Double), _ServerRulesDelay));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + t + "Rule Print Interval", typeof(Double), _ServerRulesInterval));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + t + "Server Rule List", typeof(String[]), _ServerRulesList));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + t + "Server Rule Numbers", typeof(Boolean), _ServerRulesNumbers));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + t + "Yell Server Rules", typeof(Boolean), _ServerRulesYell));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A19") + t + "Rule Print Delay", typeof(Double), _ServerRulesDelay));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A19") + t + "Rule Print Interval", typeof(Double), _ServerRulesInterval));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A19") + t + "Server Rule List", typeof(String[]), _ServerRulesList));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A19") + t + "Server Rule Numbers", typeof(Boolean), _ServerRulesNumbers));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A19") + t + "Yell Server Rules", typeof(Boolean), _ServerRulesYell));
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building rule setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildAFKSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("B20"))
                 {
                     //AFK manager settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK System Enable", typeof(Boolean), _AFKManagerEnable));
+                    buildList.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK System Enable", typeof(Boolean), _AFKManagerEnable));
                     if (_AFKManagerEnable)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK Trigger Minutes", typeof(Double), _AFKTriggerDurationMinutes));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK Minimum Players", typeof(Int32), _AFKTriggerMinimumPlayers));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK Ignore User List", typeof(Boolean), _AFKIgnoreUserList));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK Trigger Minutes", typeof(Double), _AFKTriggerDurationMinutes));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK Minimum Players", typeof(Int32), _AFKTriggerMinimumPlayers));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK Ignore User List", typeof(Boolean), _AFKIgnoreUserList));
                         if (!_AFKIgnoreUserList)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK Ignore Roles", typeof(String[]), _AFKIgnoreRoles));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B20") + t + "AFK Ignore Roles", typeof(String[]), _AFKIgnoreRoles));
                         }
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building AFK setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildPingSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("B21"))
                 {
                     //Ping enforcer settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Enforcer Enable", typeof(Boolean), _pingEnforcerEnable));
+                    buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Enforcer Enable", typeof(Boolean), _pingEnforcerEnable));
                     if (_pingEnforcerEnable)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Current Ping Limit (Display)", typeof(String), GetPingLimitStatus()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Low Population Trigger ms", typeof(Double), _pingEnforcerLowTriggerMS));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Low Population Time Modifier", typeof(String[]), _pingEnforcerLowTimeModifier.Select(x => x.ToString()).ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Medium Population Trigger ms", typeof(Double), _pingEnforcerMedTriggerMS));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Medium Population Time Modifier", typeof(String[]), _pingEnforcerMedTimeModifier.Select(x => x.ToString()).ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick High Population Trigger ms", typeof(Double), _pingEnforcerHighTriggerMS));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick High Population Time Modifier", typeof(String[]), _pingEnforcerHighTimeModifier.Select(x => x.ToString()).ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Full Population Trigger ms", typeof(Double), _pingEnforcerFullTriggerMS));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Full Population Time Modifier", typeof(String[]), _pingEnforcerFullTimeModifier.Select(x => x.ToString()).ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Minimum Players", typeof(Int32), _pingEnforcerTriggerMinimumPlayers));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Current Ping Limit (Display)", typeof(String), GetPingLimitStatus()));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Low Population Trigger ms", typeof(Double), _pingEnforcerLowTriggerMS));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Low Population Time Modifier", typeof(String[]), _pingEnforcerLowTimeModifier.Select(x => x.ToString()).ToArray()));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Medium Population Trigger ms", typeof(Double), _pingEnforcerMedTriggerMS));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Medium Population Time Modifier", typeof(String[]), _pingEnforcerMedTimeModifier.Select(x => x.ToString()).ToArray()));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick High Population Trigger ms", typeof(Double), _pingEnforcerHighTriggerMS));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick High Population Time Modifier", typeof(String[]), _pingEnforcerHighTimeModifier.Select(x => x.ToString()).ToArray()));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Full Population Trigger ms", typeof(Double), _pingEnforcerFullTriggerMS));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Full Population Time Modifier", typeof(String[]), _pingEnforcerFullTimeModifier.Select(x => x.ToString()).ToArray()));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Minimum Players", typeof(Int32), _pingEnforcerTriggerMinimumPlayers));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
                         if (_pingEnforcerKickMissingPings)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Ignore User List", typeof(Boolean), _pingEnforcerIgnoreUserList));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Ignore User List", typeof(Boolean), _pingEnforcerIgnoreUserList));
                         if (!_pingEnforcerIgnoreUserList)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Ignore Roles", typeof(String[]), _pingEnforcerIgnoreRoles));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Ignore Roles", typeof(String[]), _pingEnforcerIgnoreRoles));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Message Prefix", typeof(String), _pingEnforcerMessagePrefix));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Display Ping Enforcer Messages In Procon Chat", typeof(Boolean), _pingEnforcerDisplayProconChat));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Ping Kick Message Prefix", typeof(String), _pingEnforcerMessagePrefix));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B21") + t + "Display Ping Enforcer Messages In Procon Chat", typeof(Boolean), _pingEnforcerDisplayProconChat));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building ping setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildCommanderSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("B22"))
                 {
                     //Commander manager settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B22") + t + "Commander Manager Enable", typeof(Boolean), _CMDRManagerEnable));
+                    buildList.Add(new CPluginVariable(GetSettingSection("B22") + t + "Commander Manager Enable", typeof(Boolean), _CMDRManagerEnable));
                     if (_CMDRManagerEnable)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B22") + t + "Minimum Players to Allow Commanders", typeof(Int32), _CMDRMinimumPlayers));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B22") + t + "Minimum Players to Allow Commanders", typeof(Int32), _CMDRMinimumPlayers));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building commander setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("B22") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("B22") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildPlayerLockingSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("B23"))
                 {
                     //Player locking settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B23") + t + "Player Lock Manual Duration Minutes", typeof(Double), _playerLockingManualDuration));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B23") + t + "Automatically Lock Players on Admin Action", typeof(Boolean), _playerLockingAutomaticLock));
+                    buildList.Add(new CPluginVariable(GetSettingSection("B23") + t + "Player Lock Manual Duration Minutes", typeof(Double), _playerLockingManualDuration));
+                    buildList.Add(new CPluginVariable(GetSettingSection("B23") + t + "Automatically Lock Players on Admin Action", typeof(Boolean), _playerLockingAutomaticLock));
                     if (_playerLockingAutomaticLock)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B23") + t + "Player Lock Automatic Duration Minutes", typeof(Double), _playerLockingAutomaticDuration));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B23") + t + "Player Lock Automatic Duration Minutes", typeof(Double), _playerLockingAutomaticDuration));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building player locking setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("B23") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("B23") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildSurrenderSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("B24"))
                 {
                     //Surrender Vote settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + t + "Surrender Vote Enable", typeof(Boolean), _surrenderVoteEnable));
+                    buildList.Add(new CPluginVariable(GetSettingSection("B24") + t + "Surrender Vote Enable", typeof(Boolean), _surrenderVoteEnable));
                     if (_surrenderVoteEnable)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + t + "Percentage Votes Needed for Surrender", typeof(Double), _surrenderVoteMinimumPlayerPercentage));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + t + "Minimum Player Count to Enable Surrender", typeof(Int32), _surrenderVoteMinimumPlayerCount));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + t + "Minimum Ticket Gap to Surrender", typeof(Int32), _surrenderVoteMinimumTicketGap));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + t + "Enable Required Ticket Rate Gap to Surrender", typeof(Boolean), _surrenderVoteTicketRateGapEnable));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B24") + t + "Percentage Votes Needed for Surrender", typeof(Double), _surrenderVoteMinimumPlayerPercentage));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B24") + t + "Minimum Player Count to Enable Surrender", typeof(Int32), _surrenderVoteMinimumPlayerCount));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B24") + t + "Minimum Ticket Gap to Surrender", typeof(Int32), _surrenderVoteMinimumTicketGap));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B24") + t + "Enable Required Ticket Rate Gap to Surrender", typeof(Boolean), _surrenderVoteTicketRateGapEnable));
                         if (_surrenderVoteTicketRateGapEnable)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + t + "Minimum Ticket Rate Gap to Surrender", typeof(Double), _surrenderVoteMinimumTicketRateGap));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B24") + t + "Minimum Ticket Rate Gap to Surrender", typeof(Double), _surrenderVoteMinimumTicketRateGap));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + t + "Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B24") + t + "Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
                         if (_surrenderVoteTimeoutEnable)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + t + "Surrender Vote Timeout Minutes", typeof(Double), _surrenderVoteTimeoutMinutes));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B24") + t + "Surrender Vote Timeout Minutes", typeof(Double), _surrenderVoteTimeoutMinutes));
                         }
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building surrender setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildAutoSurrenderSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("B25") || IsActiveSettingSection("B25-2"))
                 {
                     //Auto-Surrender Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
+                    buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
                     if (_surrenderAutoEnable)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Minimum Ticket Count", typeof(Int32), _surrenderAutoMinimumTicketCount));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Maximum Ticket Count", typeof(Int32), _surrenderAutoMaximumTicketCount));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Minimum Ticket Count", typeof(Int32), _surrenderAutoMinimumTicketCount));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Maximum Ticket Count", typeof(Int32), _surrenderAutoMaximumTicketCount));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                         if (!_surrenderAutoUseMetroValues && !_surrenderAutoUseLockerValues)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Reset Trigger Count on Cancel", typeof(Boolean), _surrenderAutoResetTriggerCountOnCancel));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Minimum Players", typeof(Int32), _surrenderAutoMinimumPlayers));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeInstead));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Reset Trigger Count on Cancel", typeof(Boolean), _surrenderAutoResetTriggerCountOnCancel));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Minimum Players", typeof(Int32), _surrenderAutoMinimumPlayers));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeInstead));
                         if (_surrenderAutoNukeInstead)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Maximum Auto-Nukes Each Round", typeof(Int32), _surrenderAutoMaxNukesEachRound));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Reset Auto-Nuke Trigger Count on Fire", typeof(Boolean), _surrenderAutoResetTriggerCountOnFire));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Switch to surrender after max nukes", typeof(Boolean), _surrenderAutoNukeResolveAfterMax));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Minimum Seconds Between Nukes", typeof(Int32), _surrenderAutoNukeMinBetween));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Countdown Duration before a Nuke is fired", typeof(Int32), _NukeCountdownDurationSeconds));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Fire Nuke Triggers if Winning Team up by X Tickets", typeof(Int32), _NukeWinningTeamUpTicketCount));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Announce Nuke Preparation to Players", typeof(Boolean), _surrenderAutoAnnounceNukePrep));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Allow Auto-Nuke to fire on losing teams", typeof(Boolean), _surrenderAutoNukeLosingTeams));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Maximum Auto-Nukes Each Round", typeof(Int32), _surrenderAutoMaxNukesEachRound));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Reset Auto-Nuke Trigger Count on Fire", typeof(Boolean), _surrenderAutoResetTriggerCountOnFire));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Switch to surrender after max nukes", typeof(Boolean), _surrenderAutoNukeResolveAfterMax));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Minimum Seconds Between Nukes", typeof(Int32), _surrenderAutoNukeMinBetween));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Countdown Duration before a Nuke is fired", typeof(Int32), _NukeCountdownDurationSeconds));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Fire Nuke Triggers if Winning Team up by X Tickets", typeof(Int32), _NukeWinningTeamUpTicketCount));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Announce Nuke Preparation to Players", typeof(Boolean), _surrenderAutoAnnounceNukePrep));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Allow Auto-Nuke to fire on losing teams", typeof(Boolean), _surrenderAutoNukeLosingTeams));
                             if (_surrenderAutoNukeLosingTeams)
                             {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Maximum Nuke Ticket Difference for Losing Team", typeof(Int32), _surrenderAutoNukeLosingMaxDiff));
+                                buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Maximum Nuke Ticket Difference for Losing Team", typeof(Int32), _surrenderAutoNukeLosingMaxDiff));
                             }
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke High Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationHigh));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Medium Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationMed));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Low Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationLow));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Consecutive Duration Increase", typeof(Int32), _surrenderAutoNukeDurationIncrease));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Duration Increase Minimum Ticket Difference", typeof(Int32), _surrenderAutoNukeDurationIncreaseTicketDiff));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke High Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationHigh));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Medium Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationMed));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Low Pop Duration Seconds", typeof(Int32), _surrenderAutoNukeDurationLow));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Consecutive Duration Increase", typeof(Int32), _surrenderAutoNukeDurationIncrease));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Duration Increase Minimum Ticket Difference", typeof(Int32), _surrenderAutoNukeDurationIncreaseTicketDiff));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
+                        buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
                         if (!_surrenderAutoTriggerVote)
                         {
                             if (!_surrenderAutoNukeInstead)
                             {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
+                                buildList.Add(new CPluginVariable(GetSettingSection("B25") + t + "Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
                             }
                             else
                             {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
+                                buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
                             }
                         }
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building autosurrender setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildStatisticsSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
                 if (IsActiveSettingSection("B26"))
                 {
                     //Statistics Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B26") + t + "Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
+                    buildList.Add(new CPluginVariable(GetSettingSection("B26") + t + "Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building statistics setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("B26") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("B26") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildPopulatorSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             var popMonitorSection = "B27";
             try
             {
                 if (IsActiveSettingSection(popMonitorSection))
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Monitor Populator Players - Thanks CMWGaming", typeof(Boolean), _PopulatorMonitor));
+                    buildList.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Monitor Populator Players - Thanks CMWGaming", typeof(Boolean), _PopulatorMonitor));
                     if (_PopulatorMonitor)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "[" + _populatorPlayers.Count() + "] Populator Players (Display)", typeof(String[]), _populatorPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Monitor Specified Populators Only", typeof(Boolean), _PopulatorUseSpecifiedPopulatorsOnly));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Monitor Populators of This Server Only", typeof(Boolean), _PopulatorPopulatingThisServerOnly));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Count to Consider Populator Past Week", typeof(Int32), _PopulatorMinimumPopulationCountPastWeek));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Count to Consider Populator Past 2 Weeks", typeof(Int32), _PopulatorMinimumPopulationCountPast2Weeks));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Enable Populator Perks", typeof(Boolean), _PopulatorPerksEnable));
+                        buildList.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "[" + _populatorPlayers.Count() + "] Populator Players (Display)", typeof(String[]), _populatorPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                        buildList.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Monitor Specified Populators Only", typeof(Boolean), _PopulatorUseSpecifiedPopulatorsOnly));
+                        buildList.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Monitor Populators of This Server Only", typeof(Boolean), _PopulatorPopulatingThisServerOnly));
+                        buildList.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Count to Consider Populator Past Week", typeof(Int32), _PopulatorMinimumPopulationCountPastWeek));
+                        buildList.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Count to Consider Populator Past 2 Weeks", typeof(Int32), _PopulatorMinimumPopulationCountPast2Weeks));
+                        buildList.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Enable Populator Perks", typeof(Boolean), _PopulatorPerksEnable));
                         if (_PopulatorPerksEnable)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Populator Perks - Reserved Slot", typeof(Boolean), _PopulatorPerksReservedSlot));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Populator Perks - Autobalance Whitelist", typeof(Boolean), _PopulatorPerksBalanceWhitelist));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Populator Perks - Ping Whitelist", typeof(Boolean), _PopulatorPerksPingWhitelist));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Populator Perks - TeamKillTracker Whitelist", typeof(Boolean), _PopulatorPerksTeamKillTrackerWhitelist));
+                            buildList.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Populator Perks - Reserved Slot", typeof(Boolean), _PopulatorPerksReservedSlot));
+                            buildList.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Populator Perks - Autobalance Whitelist", typeof(Boolean), _PopulatorPerksBalanceWhitelist));
+                            buildList.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Populator Perks - Ping Whitelist", typeof(Boolean), _PopulatorPerksPingWhitelist));
+                            buildList.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Populator Perks - TeamKillTracker Whitelist", typeof(Boolean), _PopulatorPerksTeamKillTrackerWhitelist));
                         }
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building populator setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection(popMonitorSection) + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildTeamspeakSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             var tsMonitorSection = "B28";
             try
             {
                 if (IsActiveSettingSection(tsMonitorSection))
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Monitor Teamspeak Players - Thanks CMWGaming", typeof(Boolean), _TeamspeakPlayerMonitorView));
+                    buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Monitor Teamspeak Players - Thanks CMWGaming", typeof(Boolean), _TeamspeakPlayerMonitorView));
                     if (_TeamspeakPlayerMonitorView)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "[" + _TeamspeakPlayers.Count() + "] Teamspeak Players (Display)", typeof(String[]), _TeamspeakPlayers.Values.Select(aPlayer => aPlayer.player_name + " (" + aPlayer.TSClientObject.TsName + ")").ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server IP", typeof(String), _TeamspeakManager.Ts3ServerIp));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Port", typeof(Int32), _TeamspeakManager.Ts3ServerPort));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Port", typeof(Int32), _TeamspeakManager.Ts3QueryPort));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Username", typeof(String), _TeamspeakManager.Ts3QueryUsername));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Password", typeof(String), _TeamspeakManager.Ts3QueryPassword));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Nickname", typeof(String), _TeamspeakManager.Ts3QueryNickname));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Main Channel Name", typeof(String), _TeamspeakManager.Ts3MainChannelName));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Secondary Channel Names", typeof(String[]), _TeamspeakManager.Ts3SubChannelNames));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Debug Display Teamspeak Clients", typeof(Boolean), _TeamspeakManager.DebugClients));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "TeamSpeak Player Join Announcement", "enum.tsAnnounceEnum(Disabled|Say|Yell|Tell)", _TeamspeakManager.JoinDisplay.ToString()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "TeamSpeak Player Join Message", typeof(String), _TeamspeakManager.JoinDisplayMessage));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "TeamSpeak Player Update Seconds", typeof(Int32), _TeamspeakManager.UpdateIntervalSeconds));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Enable Teamspeak Player Perks", typeof(Boolean), _TeamspeakPlayerPerksEnable));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "[" + _TeamspeakPlayers.Count() + "] Teamspeak Players (Display)", typeof(String[]), _TeamspeakPlayers.Values.Select(aPlayer => aPlayer.player_name + " (" + aPlayer.TSClientObject.TsName + ")").ToArray()));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server IP", typeof(String), _TeamspeakManager.Ts3ServerIp));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Port", typeof(Int32), _TeamspeakManager.Ts3ServerPort));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Port", typeof(Int32), _TeamspeakManager.Ts3QueryPort));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Username", typeof(String), _TeamspeakManager.Ts3QueryUsername));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Password", typeof(String), _TeamspeakManager.Ts3QueryPassword));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Server Query Nickname", typeof(String), _TeamspeakManager.Ts3QueryNickname));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Main Channel Name", typeof(String), _TeamspeakManager.Ts3MainChannelName));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Secondary Channel Names", typeof(String[]), _TeamspeakManager.Ts3SubChannelNames));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Debug Display Teamspeak Clients", typeof(Boolean), _TeamspeakManager.DebugClients));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "TeamSpeak Player Join Announcement", "enum.tsAnnounceEnum(Disabled|Say|Yell|Tell)", _TeamspeakManager.JoinDisplay.ToString()));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "TeamSpeak Player Join Message", typeof(String), _TeamspeakManager.JoinDisplayMessage));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "TeamSpeak Player Update Seconds", typeof(Int32), _TeamspeakManager.UpdateIntervalSeconds));
+                        buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Enable Teamspeak Player Perks", typeof(Boolean), _TeamspeakPlayerPerksEnable));
                         if (_TeamspeakPlayerPerksEnable)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Player Perks - VIP Kick Whitelist", typeof(Boolean), _TeamspeakPlayerPerksVIPKickWhitelist));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Player Perks - Autobalance Whitelist", typeof(Boolean), _TeamspeakPlayerPerksBalanceWhitelist));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Player Perks - Ping Whitelist", typeof(Boolean), _TeamspeakPlayerPerksPingWhitelist));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
+                            buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Player Perks - VIP Kick Whitelist", typeof(Boolean), _TeamspeakPlayerPerksVIPKickWhitelist));
+                            buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Player Perks - Autobalance Whitelist", typeof(Boolean), _TeamspeakPlayerPerksBalanceWhitelist));
+                            buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Player Perks - Ping Whitelist", typeof(Boolean), _TeamspeakPlayerPerksPingWhitelist));
+                            buildList.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
                         }
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building teamspeak setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection(tsMonitorSection) + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildDiscordSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             var discordMonitorSection = "B29";
             try
             {
                 if (IsActiveSettingSection(discordMonitorSection))
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Monitor Discord Players", typeof(Boolean), _DiscordPlayerMonitorView));
+                    buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Monitor Discord Players", typeof(Boolean), _DiscordPlayerMonitorView));
                     if (_DiscordPlayerMonitorView)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _DiscordPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _DiscordPlayers.Values.OrderBy(aPlayer => aPlayer.DiscordObject.Channel.Name).Select(aPlayer => aPlayer.player_name + " [" + aPlayer.DiscordObject.Name + "] (" + aPlayer.DiscordObject.Channel.Name + ") " + (String.IsNullOrEmpty(aPlayer.player_discord_id) ? "[Name]" : "[ID]")).ToArray()));
+                        buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _DiscordPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _DiscordPlayers.Values.OrderBy(aPlayer => aPlayer.DiscordObject.Channel.Name).Select(aPlayer => aPlayer.player_name + " [" + aPlayer.DiscordObject.Name + "] (" + aPlayer.DiscordObject.Channel.Name + ") " + (String.IsNullOrEmpty(aPlayer.player_discord_id) ? "[Name]" : "[ID]")).ToArray()));
                         var discordMembers = _DiscordManager.GetMembers(false, true, true);
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord Channel Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => aMember.Channel.Name).Select(aMember => aMember.Name + " (" + aMember.Channel.Name + ")").ToArray()));
+                        buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord Channel Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => aMember.Channel.Name).Select(aMember => aMember.Name + " (" + aMember.Channel.Name + ")").ToArray()));
                         discordMembers = _DiscordManager.GetMembers(false, false, false);
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord All Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => (aMember.Channel != null ? aMember.Channel.Name : "_NO VOICE_")).Select(aMember => aMember.Name + " (" + (aMember.Channel != null ? aMember.Channel.Name : "_NO VOICE_") + ")").ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Enable Discord Player Monitor", typeof(Boolean), _DiscordPlayerMonitorEnable));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Server ID", typeof(String), _DiscordManager.ServerID));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Channel Names", typeof(String[]), _DiscordManager.ChannelNames));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Require Voice in Discord to Issue Admin Commands", typeof(Boolean), _DiscordPlayerRequireVoiceForAdmin));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Join Announcement", "enum.tsAnnounceEnum(Disabled|Say|Yell|Tell)", _DiscordManager.JoinDisplay.ToString()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Join Message", typeof(String), _DiscordManager.JoinMessage));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Enable Discord Player Perks", typeof(Boolean), _DiscordPlayerPerksEnable));
+                        buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord All Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => (aMember.Channel != null ? aMember.Channel.Name : "_NO VOICE_")).Select(aMember => aMember.Name + " (" + (aMember.Channel != null ? aMember.Channel.Name : "_NO VOICE_") + ")").ToArray()));
+                        buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Enable Discord Player Monitor", typeof(Boolean), _DiscordPlayerMonitorEnable));
+                        buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Server ID", typeof(String), _DiscordManager.ServerID));
+                        buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Channel Names", typeof(String[]), _DiscordManager.ChannelNames));
+                        buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Require Voice in Discord to Issue Admin Commands", typeof(Boolean), _DiscordPlayerRequireVoiceForAdmin));
+                        buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Join Announcement", "enum.tsAnnounceEnum(Disabled|Say|Yell|Tell)", _DiscordManager.JoinDisplay.ToString()));
+                        buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Join Message", typeof(String), _DiscordManager.JoinMessage));
+                        buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Enable Discord Player Perks", typeof(Boolean), _DiscordPlayerPerksEnable));
                         if (_DiscordPlayerPerksEnable)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Perks - VIP Kick Whitelist", typeof(Boolean), _DiscordPlayerPerksVIPKickWhitelist));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Perks - Autobalance Whitelist", typeof(Boolean), _DiscordPlayerPerksBalanceWhitelist));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Perks - Ping Whitelist", typeof(Boolean), _DiscordPlayerPerksPingWhitelist));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _DiscordPlayerPerksTeamKillTrackerWhitelist));
+                            buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Perks - VIP Kick Whitelist", typeof(Boolean), _DiscordPlayerPerksVIPKickWhitelist));
+                            buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Perks - Autobalance Whitelist", typeof(Boolean), _DiscordPlayerPerksBalanceWhitelist));
+                            buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Perks - Ping Whitelist", typeof(Boolean), _DiscordPlayerPerksPingWhitelist));
+                            buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Discord Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _DiscordPlayerPerksTeamKillTrackerWhitelist));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Debug Display Discord Members", typeof(Boolean), _DiscordManager.DebugMembers));
+                        buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Debug Display Discord Members", typeof(Boolean), _DiscordManager.DebugMembers));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building discord setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildTeamPowerSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             var teamPowerSection = "B30";
             try
             {
                 if (IsActiveSettingSection(teamPowerSection))
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power Active Influence", typeof(Double), _TeamPowerActiveInfluence));
+                    buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power Active Influence", typeof(Double), _TeamPowerActiveInfluence));
                     try
                     {
                         ATeam t1, t2;
@@ -2451,7 +2533,7 @@ namespace PRoConEvents
                             }
                             teamPower += "(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power (Display)", typeof(String), teamPower));
+                        buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power (Display)", typeof(String), teamPower));
                         var onlinePlayers = _PlayerDictionary.Values.ToList()
                             .Where(aPlayer => aPlayer.GetPower(true) > 1);
                         var onlinePlayerListing = onlinePlayers
@@ -2466,139 +2548,149 @@ namespace PRoConEvents
                                                ") " + aPlayer.GetVerboseName())
                             .OrderByDescending(item => item)
                             .ToArray();
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Player Power (Display)", typeof(String[]), onlinePlayerListing));
+                        buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Player Power (Display)", typeof(String[]), onlinePlayerListing));
                     }
                     catch (Exception e)
                     {
                         HandleException(new AException("Error building team power displays.", e));
                     }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Seeder Control", typeof(Boolean), _UseTeamPowerMonitorSeeders));
+                    buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
+                    buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
+                    buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Seeder Control", typeof(Boolean), _UseTeamPowerMonitorSeeders));
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building team power setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildDebugSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
-                lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug level", typeof(int), Log.DebugLevel));
+                buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug level", typeof(int), Log.DebugLevel));
                 if (IsActiveSettingSection("D99"))
                 {
                     //Debug settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug Soldier Name", typeof(String), _debugSoldierName));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Enforce Single Instance", typeof(Boolean), _enforceSingleInstance));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Command Entry", typeof(String), ""));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Client Download URL Entry", typeof(String), ""));
+                    buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug Soldier Name", typeof(String), _debugSoldierName));
+                    buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Enforce Single Instance", typeof(Boolean), _enforceSingleInstance));
+                    buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
+                    buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Command Entry", typeof(String), ""));
+                    buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Client Download URL Entry", typeof(String), ""));
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building debug setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildExperimentalSettings(List<CPluginVariable> lstReturn)
         {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
+            var ex = "X99";
             try
             {
-                if (IsActiveSettingSection("X99"))
+                if (IsActiveSettingSection(ex))
                 {
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use Experimental Tools", typeof(Boolean), _UseExperimentalTools));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ex) + t + "Use Experimental Tools", typeof(Boolean), _UseExperimentalTools));
                     if (_UseExperimentalTools)
                     {
                         if (_ShowQuerySettings)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Send Query", typeof(String), ""));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Send Non-Query", typeof(String), ""));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ex) + t + "Send Query", typeof(String), ""));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ex) + t + "Send Non-Query", typeof(String), ""));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ex) + t + "Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
                         if (_UseWeaponLimiter)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "NO EXPLOSIVES Weapon String", typeof(String), _WeaponLimiterString));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ex) + t + "NO EXPLOSIVES Weapon String", typeof(String), _WeaponLimiterString));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ex) + t + "NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Print Current Winning Poll Option", typeof(Boolean), _PollPrintWinning));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ex) + t + "Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building experimental setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection(ex) + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
         public void BuildEventSettings(List<CPluginVariable> lstReturn)
         {
-            var sY99 = "Y99";
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
+            var ex = "X99";
+            var ev = "Y99";
             try
             {
-                if (IsActiveSettingSection("X99") || IsActiveSettingSection(sY99))
+                if (IsActiveSettingSection(ex) || IsActiveSettingSection(ev))
                 {
                     if (_UseExperimentalTools)
                     {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + t + "Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Automatically Poll Server For Event Options", typeof(Boolean), _EventPollAutomatic));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Yell Current Winning Rule Option", typeof(Boolean), _eventPollYellWinningRule));
 
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Round Settings" + t + "Event Duration Rounds", typeof(Int32), _EventRoundOptions.Count()));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Duration Rounds", typeof(Int32), _EventRoundOptions.Count()));
                         for (int roundNumber = 0; roundNumber < _EventRoundOptions.Count(); roundNumber++)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundOptions[roundNumber].getModeRuleDisplay()));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundOptions[roundNumber].getModeRuleDisplay()));
                         }
 
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
                         if (_EventWeeklyRepeat)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Day", "enum.weekdays(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)", _EventWeeklyDay.ToString()));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Day", "enum.weekdays(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)", _EventWeeklyDay.ToString()));
                         }
                         else
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Date", typeof(String), _EventDate.ToShortDateString()));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Date", typeof(String), _EventDate.ToShortDateString()));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Hour in 24 format", typeof(Double), _EventHour));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Is it daylight savings?", typeof(String), DateTime.Now.IsDaylightSavingTime() ? "Yes, currently daylight savings." : "No, not daylight savings."));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [2] Schedule Settings" + t + "Event Announce Day Difference", typeof(Double), _EventAnnounceDayDifference));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Hour in 24 format", typeof(Double), _EventHour));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Is it daylight savings?", typeof(String), DateTime.Now.IsDaylightSavingTime() ? "Yes, currently daylight savings." : "No, not daylight savings."));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Announce Day Difference", typeof(Double), _EventAnnounceDayDifference));
 
                         if (_EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString())
                         {
                             var eventDate = _EventDate.AddHours(_EventHour);
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [3] Schedule Display" + t + "Processed Time Of Event (display)", typeof(String), eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString() + " (" + FormatTimeString(eventDate - DateTime.Now, 3) + ")"));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [3] Schedule Display" + t + "Current Round Number (display)", typeof(String), String.Format("{0:n0}", _roundID)));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [3] Schedule Display" + t + "Estimated Event Round Number (display)", typeof(String), String.Format("{0:n0}", FetchEstimatedEventRoundNumber())));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [3] Schedule Display" + t + "Concrete Event Round Number (display)", typeof(String), _CurrentEventRoundNumber == 999999 ? "Undecided." : String.Format("{0:n0}", _CurrentEventRoundNumber)));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Processed Time Of Event (display)", typeof(String), eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString() + " (" + FormatTimeString(eventDate - DateTime.Now, 3) + ")"));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Current Round Number (display)", typeof(String), String.Format("{0:n0}", _roundID)));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Estimated Event Round Number (display)", typeof(String), String.Format("{0:n0}", FetchEstimatedEventRoundNumber())));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Concrete Event Round Number (display)", typeof(String), _CurrentEventRoundNumber == 999999 ? "Undecided." : String.Format("{0:n0}", _CurrentEventRoundNumber)));
                         }
 
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Poll Settings" + t + "Poll Option Count", typeof(Int32), _EventRoundPollOptions.Count()));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Option Count", typeof(Int32), _EventRoundPollOptions.Count()));
                         for (int optionNumber = 0; optionNumber < _EventRoundPollOptions.Count(); optionNumber++)
                         {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [4] Poll Settings" + t + "Event Poll Option " + (optionNumber + 1), _EventRoundOptionsEnum, _EventRoundPollOptions[optionNumber].getModeRuleDisplay()));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Event Poll Option " + (optionNumber + 1), _EventRoundOptionsEnum, _EventRoundPollOptions[optionNumber].getModeRuleDisplay()));
                         }
 
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Settings" + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Settings" + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Settings" + t + "Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Settings" + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
 
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Display" + t + "Processed Base Server Name (display)", typeof(String), ProcessEventServerName(_eventBaseServerName, false, false)));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Display" + t + "Processed Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventCountdownServerName, false, false)));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Display" + t + "Processed Concrete Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventConcreteCountdownServerName, false, true)));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + " [5] Name Display" + t + "Processed Active Server Name (display)", typeof(String), ProcessEventServerName(_eventActiveServerName, true, true)));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Base Server Name (display)", typeof(String), ProcessEventServerName(_eventBaseServerName, false, false)));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventCountdownServerName, false, false)));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Concrete Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventConcreteCountdownServerName, false, true)));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Active Server Name (display)", typeof(String), ProcessEventServerName(_eventActiveServerName, true, true)));
                     }
                 }
+                lstReturn.AddRange(buildList);
             }
             catch (Exception e)
             {
                 HandleException(new AException("Error building event setting section.", e));
-                lstReturn.Add(new CPluginVariable(GetSettingSection(sY99) + t + "Failed to render setting section.", typeof(String), ""));
+                lstReturn.Add(new CPluginVariable(GetSettingSection(ev) + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
@@ -5647,14 +5739,24 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Print Current Winning Poll Option").Success)
+                else if (Regex.Match(strVariable, @"Automatically Poll Server For Event Options").Success)
+                {
+                    Boolean eventPollAutomatic = Boolean.Parse(strValue);
+                    if (eventPollAutomatic != _EventPollAutomatic)
+                    {
+                        _EventPollAutomatic = eventPollAutomatic;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Automatically Poll Server For Event Options", typeof(Boolean), _EventPollAutomatic));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Yell Current Winning Rule Option").Success)
                 {
                     Boolean PollPrintWinning = Boolean.Parse(strValue);
-                    if (PollPrintWinning != _PollPrintWinning)
+                    if (PollPrintWinning != _eventPollYellWinningRule)
                     {
-                        _PollPrintWinning = PollPrintWinning;
+                        _eventPollYellWinningRule = PollPrintWinning;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Print Current Winning Poll Option", typeof(Boolean), _PollPrintWinning));
+                        QueueSettingForUpload(new CPluginVariable(@"Yell Current Winning Rule Option", typeof(Boolean), _eventPollYellWinningRule));
                     }
                 }
                 else if (strVariable == "Weekly Events")
@@ -9136,7 +9238,8 @@ namespace PRoConEvents
                     this.ExecuteCommand("procon.protected.send", "vars.serverName", ProcessEventServerName(serverName, false, false));
 
                     // EVENT AUTOMATIC POLLING
-                    if (!_EventRoundPolled &&
+                    if (_EventPollAutomatic &&
+                        !_EventRoundPolled &&
                         // Don't auto-poll after 20 event rounds, just in case nobody votes to end it
                         _EventRoundOptions.Count() < 20 &&
                         _roundState == RoundState.Playing &&
@@ -33458,7 +33561,7 @@ namespace PRoConEvents
                                 if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
                                 {
                                     // Print the poll
-                                    _ActivePoll.PrintPoll(_PollPrintWinning);
+                                    _ActivePoll.PrintPoll(_eventPollYellWinningRule);
                                 }
 
                                 _threadMasterWaitHandle.WaitOne(100);
@@ -35712,7 +35815,8 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
-                QueueSettingForUpload(new CPluginVariable(@"Print Current Winning Poll Option", typeof(Boolean), _PollPrintWinning));
+                QueueSettingForUpload(new CPluginVariable(@"Automatically Poll Server For Event Options", typeof(Boolean), _EventPollAutomatic));
+                QueueSettingForUpload(new CPluginVariable(@"Yell Current Winning Rule Option", typeof(Boolean), _eventPollYellWinningRule));
                 QueueSettingForUpload(new CPluginVariable(@"Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
                 QueueSettingForUpload(new CPluginVariable(@"Event Day", typeof(String), _EventWeeklyDay.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
