@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.355
+ * Version 6.9.0.356
  * 10-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.355</version_code>
+ * <version_code>6.9.0.356</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.355";
+        private const String PluginVersion = "6.9.0.356";
 
         public enum GameVersion
         {
@@ -39553,6 +39553,7 @@ namespace PRoConEvents
         {
             //Locals
             var powerPercentageThreshold = 18.0;
+            var roundMinutes = Math.Round(_serverInfo.GetRoundElapsedTime().TotalMinutes, 1);
 
             //Team Info Check
             ATeam team1, team2;
@@ -39637,7 +39638,7 @@ namespace PRoConEvents
             }
             if (map != null && map.MapFileName == "XP0_Metro" && enemyTeam == team1)
             {
-                if (_serverInfo.GetRoundElapsedTime().TotalMinutes < 10)
+                if (roundMinutes < 15)
                 {
                     powerPercentageThreshold = 0;
                 }
@@ -39713,11 +39714,16 @@ namespace PRoConEvents
                         }
                     }
                 }
-                if (!auto)
+                if (!auto && _UseExperimentalTools)
                 {
                     InfoOrRespond(debugRecord,
-                    "Old Diff " + Math.Round(oldPercDiff, 1) + " | " +
-                    "New Diff " + Math.Round(newPercDiff, 1) + "");
+                    "Old Diff: " + Math.Round(oldPercDiff, 1) + " | " +
+                    "New Diff: " + Math.Round(newPercDiff, 1) + "");
+                    InfoOrRespond(debugRecord,
+                    "Threshold: " + powerPercentageThreshold + " | " +
+                    "Over: " + powerDifferencePercOverThreshold + " | " +
+                    "Map: " + enemyHasMoreMap + " | " +
+                    "Time: " + roundMinutes);
                     InfoOrRespond(debugRecord,
                         "Old " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(oldFriendlyPower) + ")/" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(oldEnemyPower) + ") | " +
                         "New " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(newFriendlyPower) + ")/" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(newEnemyPower) + ")");
