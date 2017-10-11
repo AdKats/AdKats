@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.356
+ * Version 6.9.0.357
  * 10-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.356</version_code>
+ * <version_code>6.9.0.357</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.356";
+        private const String PluginVersion = "6.9.0.357";
 
         public enum GameVersion
         {
@@ -2525,11 +2525,11 @@ namespace PRoConEvents
                             Double percDiff = Math.Abs(t1Power - t2Power) / ((t1Power + t2Power) / 2.0) * 100.0;
                             if (t1Power > t2Power)
                             {
-                                teamPower += t1.GetTeamIDKey() + " up " + Math.Round(((t1Power - t2Power) / t2Power) * 100) + "% ";
+                                teamPower = t1.GetTeamIDKey() + " up " + Math.Round(((t1Power - t2Power) / t2Power) * 100) + "% ";
                             }
                             else
                             {
-                                teamPower += t2.GetTeamIDKey() + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
+                                teamPower = t2.GetTeamIDKey() + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
                             }
                             teamPower += "(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
                         }
@@ -46847,7 +46847,7 @@ namespace PRoConEvents
                     var startTime = UtcNow();
                     while (NowDuration(startTime).TotalSeconds < kickDuration)
                     {
-                        PlayerTellMessage(playerName, "KICKED from server: " + message, false, 1);
+                        PlayerTellMessage(playerName, "KICKED for " + message, false, 1);
                         Thread.Sleep(500);
                     }
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
@@ -46892,7 +46892,7 @@ namespace PRoConEvents
                     var startTime = UtcNow();
                     while (NowDuration(startTime).TotalSeconds < kickDuration)
                     {
-                        PlayerTellMessage(playerName, "BANNED from server: " + message, false, 1);
+                        PlayerTellMessage(playerName, "BANNED for " + message, false, 1);
                         Thread.Sleep(500);
                     }
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
