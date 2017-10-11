@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.354
+ * Version 6.9.0.355
  * 10-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.354</version_code>
+ * <version_code>6.9.0.355</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.354";
+        private const String PluginVersion = "6.9.0.355";
 
         public enum GameVersion
         {
@@ -39631,8 +39631,17 @@ namespace PRoConEvents
             var newFriendlyPower = friendlyTeam.GetTeamPower(aPlayer, null);
             var newEnemyPower = enemyTeam.GetTeamPower(null, aPlayer);
             var map = _serverInfo.GetMap();
+            if (enemyTeam == mapUpTeam)
+            {
+                powerPercentageThreshold = 0;
+            }
             if (map != null && map.MapFileName == "XP0_Metro" && enemyTeam == team1)
             {
+                if (_serverInfo.GetRoundElapsedTime().TotalMinutes < 10)
+                {
+                    powerPercentageThreshold = 0;
+                }
+
                 // If this is metro, overstate the power of the lower team slightly
                 // The upper team needs a slight stat boost over normal
                 if (enemyTeam == mapUpTeam)
