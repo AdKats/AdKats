@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.353
- * 9-OCT-2017
+ * Version 6.9.0.354
+ * 10-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.353</version_code>
+ * <version_code>6.9.0.354</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.353";
+        private const String PluginVersion = "6.9.0.354";
 
         public enum GameVersion
         {
@@ -13048,10 +13048,12 @@ namespace PRoConEvents
                                                 }
                                             }
                                             //How often the message should be displayed
-                                            else if (_surrenderAutoTriggerCountCurrent == 1 ||
+                                            else if ((_surrenderAutoTriggerCountCurrent == 1 ||
                                                      _surrenderAutoTriggerCountCurrent % 3 == 0 ||
                                                      (config_action == AutoSurrenderAction.Nuke && neededPlayers <= 10) ||
-                                                     _surrenderAutoTriggerVote)
+                                                     _surrenderAutoTriggerVote) 
+                                                     // Only show the nuke messages for rounds of 4 or more players
+                                                     && playerCount >= 4)
                                             {
                                                 if (_surrenderAutoTriggerCountCurrent < config_triggers_min)
                                                 {
