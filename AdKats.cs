@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.357
- * 10-OCT-2017
+ * Version 6.9.0.358
+ * 11-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.357</version_code>
+ * <version_code>6.9.0.358</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.357";
+        private const String PluginVersion = "6.9.0.358";
 
         public enum GameVersion
         {
@@ -492,6 +492,7 @@ namespace PRoConEvents
         private String _BanAppend = "Appeal at your_site.com";
         private Boolean _UseBanEnforcer;
         private Boolean _UseBanEnforcerPreviousState;
+        private Boolean _BanEnforcerBF4LenientKick = false;
         private List<ABan> _BanEnforcerSearchResults = new List<ABan>();
         private Boolean _BansQueuing;
         private String _CBanAdminName = "BanEnforcer";
@@ -1915,6 +1916,7 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Use Ban Enforcer", typeof(Boolean), _UseBanEnforcer));
                     if (_UseBanEnforcer)
                     {
+                        buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Ban Enforcer BF4 Lenient Kick", typeof(Boolean), _BanEnforcerBF4LenientKick));
                         buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
                         buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by GUID", typeof(Boolean), _DefaultEnforceGUID));
                         buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by IP", typeof(Boolean), _DefaultEnforceIP));
@@ -6263,6 +6265,16 @@ namespace PRoConEvents
                             _fetchActionsFromDb = true;
                             _DbCommunicationWaitHandle.Set();
                         }
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Ban Enforcer BF4 Lenient Kick").Success)
+                {
+                    Boolean lenientKick = Boolean.Parse(strValue);
+                    if (_BanEnforcerBF4LenientKick != lenientKick)
+                    {
+                        _BanEnforcerBF4LenientKick = lenientKick;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Ban Enforcer BF4 Lenient Kick", typeof(Boolean), _BanEnforcerBF4LenientKick));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Enforce New Bans by NAME").Success)
@@ -11428,6 +11440,7 @@ namespace PRoConEvents
                                     aPlayer.player_new = false;
                                     aPlayer.player_server = null;
                                     aPlayer.player_spawnedOnce = false;
+                                    aPlayer.player_chatOnce = false;
                                     aPlayer.LiveKills.Clear();
                                     aPlayer.ClearPingEntries();
                                     DequeuePlayer(aPlayer);
@@ -11958,6 +11971,7 @@ namespace PRoConEvents
                                         aPlayer.player_new = false;
                                         aPlayer.player_server = null;
                                         aPlayer.player_spawnedOnce = false;
+                                        aPlayer.player_chatOnce = false;
                                         aPlayer.ClearPingEntries();
                                         aPlayer.LiveKills.Clear();
                                         DequeuePlayer(aPlayer);
@@ -16321,7 +16335,9 @@ namespace PRoConEvents
                 lock (_baseSpecialPlayerCache)
                 {
                     List<ASpecialPlayer> matchingSpecialPlayers = new List<ASpecialPlayer>();
-                    matchingSpecialPlayers.AddRange(_baseSpecialPlayerCache.Values.Where(asPlayer => asPlayer.player_group != null && asPlayer.player_group.group_key == specialPlayerGroup));
+                    matchingSpecialPlayers.AddRange(_baseSpecialPlayerCache.Values.Where(asPlayer => 
+                        asPlayer.player_group != null && 
+                        asPlayer.player_group.group_key == specialPlayerGroup));
                     return matchingSpecialPlayers;
                 }
             }
@@ -16341,7 +16357,9 @@ namespace PRoConEvents
                 lock (_baseSpecialPlayerCache)
                 {
                     List<ASpecialPlayer> matchingSpecialPlayers = new List<ASpecialPlayer>();
-                    matchingSpecialPlayers.AddRange(_verboseSpecialPlayerCache.Values.Where(asPlayer => asPlayer.player_group != null && asPlayer.player_group.group_key == specialPlayerGroup));
+                    matchingSpecialPlayers.AddRange(_verboseSpecialPlayerCache.Values.Where(asPlayer => 
+                        asPlayer.player_group != null && 
+                        asPlayer.player_group.group_key == specialPlayerGroup));
                     return matchingSpecialPlayers;
                 }
             }
@@ -16361,13 +16379,9 @@ namespace PRoConEvents
                 lock (_baseSpecialPlayerCache)
                 {
                     List<ASpecialPlayer> matchingSpecialPlayers = new List<ASpecialPlayer>();
-                    matchingSpecialPlayers.AddRange(_baseSpecialPlayerCache.Values.Where(
-                        asPlayer => asPlayer.player_group != null &&
-                                    asPlayer.player_object != null &&
-                                    (asPlayer.player_object.player_id == aPlayer.player_id ||
-                                     asPlayer.player_identifier == aPlayer.player_name ||
-                                     asPlayer.player_identifier == aPlayer.player_guid ||
-                                     asPlayer.player_identifier == aPlayer.player_ip)));
+                    matchingSpecialPlayers.AddRange(_baseSpecialPlayerCache.Values.Where(asPlayer =>
+                        asPlayer != null &&
+                        asPlayer.IsMatchingPlayer(aPlayer)));
                     return matchingSpecialPlayers;
                 }
             }
@@ -16387,13 +16401,9 @@ namespace PRoConEvents
                 lock (_baseSpecialPlayerCache)
                 {
                     List<ASpecialPlayer> matchingSpecialPlayers = new List<ASpecialPlayer>();
-                    matchingSpecialPlayers.AddRange(_verboseSpecialPlayerCache.Values.Where(
-                        asPlayer => asPlayer.player_group != null &&
-                                    asPlayer.player_object != null &&
-                                    (asPlayer.player_object.player_id == aPlayer.player_id ||
-                                     asPlayer.player_identifier == aPlayer.player_name ||
-                                     asPlayer.player_identifier == aPlayer.player_guid ||
-                                     asPlayer.player_identifier == aPlayer.player_ip)));
+                    matchingSpecialPlayers.AddRange(_verboseSpecialPlayerCache.Values.Where(asPlayer =>
+                        asPlayer != null &&
+                        asPlayer.IsMatchingPlayer(aPlayer)));
                     return matchingSpecialPlayers;
                 }
             }
@@ -16413,7 +16423,9 @@ namespace PRoConEvents
                 lock (_baseSpecialPlayerCache)
                 {
                     List<ASpecialPlayer> matchingSpecialPlayers = new List<ASpecialPlayer>();
-                    matchingSpecialPlayers.AddRange(_baseSpecialPlayerCache.Values.Where(asPlayer => asPlayer.player_group != null && asPlayer.player_group.group_key == specialPlayerGroup && asPlayer.player_object != null && (asPlayer.player_object.player_id == aPlayer.player_id || asPlayer.player_identifier == aPlayer.player_name || asPlayer.player_identifier == aPlayer.player_guid || asPlayer.player_identifier == aPlayer.player_ip)));
+                    matchingSpecialPlayers.AddRange(_baseSpecialPlayerCache.Values.Where(asPlayer =>
+                        asPlayer != null &&
+                        asPlayer.IsMatchingPlayerOfGroup(aPlayer, specialPlayerGroup)));
                     return matchingSpecialPlayers;
                 }
             }
@@ -16430,10 +16442,13 @@ namespace PRoConEvents
             Log.Debug(() => "Entering GetMatchingVerboseASPlayersOfGroup", 8);
             try
             {
+                // Locking on the base cache is used for both base and verbose caches
                 lock (_baseSpecialPlayerCache)
                 {
                     List<ASpecialPlayer> matchingSpecialPlayers = new List<ASpecialPlayer>();
-                    matchingSpecialPlayers.AddRange(_verboseSpecialPlayerCache.Values.Where(asPlayer => asPlayer.player_group != null && asPlayer.player_group.group_key == specialPlayerGroup && asPlayer.player_object != null && (asPlayer.player_object.player_id == aPlayer.player_id || asPlayer.player_identifier == aPlayer.player_name || asPlayer.player_identifier == aPlayer.player_guid || asPlayer.player_identifier == aPlayer.player_ip)));
+                    matchingSpecialPlayers.AddRange(_verboseSpecialPlayerCache.Values.Where(asPlayer => 
+                        asPlayer != null && 
+                        asPlayer.IsMatchingPlayerOfGroup(aPlayer, specialPlayerGroup)));
                     return matchingSpecialPlayers;
                 }
             }
@@ -17368,6 +17383,7 @@ namespace PRoConEvents
                         chatMessage.SubsetTeamID = aPlayer.fbpInfo.TeamID;
                         chatMessage.SubsetSquadID = aPlayer.fbpInfo.SquadID;
                     }
+                    aPlayer.player_chatOnce = true;
                 }
                 HandleChat(chatMessage);
             }
@@ -35845,6 +35861,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Additional Ban Message", typeof(String), _BanAppend));
                 QueueSettingForUpload(new CPluginVariable(@"Procon Ban Admin Name", typeof(String), _CBanAdminName));
                 QueueSettingForUpload(new CPluginVariable(@"Use Ban Enforcer", typeof(Boolean), _UseBanEnforcer));
+                QueueSettingForUpload(new CPluginVariable(@"Ban Enforcer BF4 Lenient Kick", typeof(Boolean), _BanEnforcerBF4LenientKick));
                 QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
                 QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by GUID", typeof(Boolean), _DefaultEnforceGUID));
                 QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by IP", typeof(Boolean), _DefaultEnforceIP));
@@ -42742,7 +42759,7 @@ namespace PRoConEvents
                                         DateTime playerExpiration = reader.GetDateTime("player_expiration"); //7
 
                                         //Build new Special Player Object
-                                        asPlayer = new ASpecialPlayer();
+                                        asPlayer = new ASpecialPlayer(this);
                                         asPlayer.specialplayer_id = specialPlayerID;
                                         asPlayer.player_group = _specialPlayerGroupKeyDictionary[playerGroup];
                                         if (playerID > 0)
@@ -42823,7 +42840,7 @@ namespace PRoConEvents
                                 {
                                     if (!tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))
                                     {
-                                        tempASPlayers.Add(new ASpecialPlayer()
+                                        tempASPlayers.Add(new ASpecialPlayer(this)
                                         {
                                             player_game = (int)_serverInfo.GameID,
                                             player_server = (int)_serverInfo.ServerID,
@@ -42845,7 +42862,7 @@ namespace PRoConEvents
                                     {
                                         foreach (APlayer aPlayer in FetchAdminSoldiers().Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                         {
-                                            tempASPlayers.Add(new ASpecialPlayer()
+                                            tempASPlayers.Add(new ASpecialPlayer(this)
                                             {
                                                 player_game = (int)_serverInfo.GameID,
                                                 player_server = (int)_serverInfo.ServerID,
@@ -42866,7 +42883,7 @@ namespace PRoConEvents
                                                 asp.player_object != null &&
                                                 asp.player_object.player_id == aPlayer.player_id)))
                                         {
-                                            tempASPlayers.Add(new ASpecialPlayer()
+                                            tempASPlayers.Add(new ASpecialPlayer(this)
                                             {
                                                 player_game = (int)_serverInfo.GameID,
                                                 player_server = (int)_serverInfo.ServerID,
@@ -42885,7 +42902,7 @@ namespace PRoConEvents
                                         {
                                             foreach (APlayer aPlayer in _TeamspeakPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
-                                                tempASPlayers.Add(new ASpecialPlayer()
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -42905,7 +42922,7 @@ namespace PRoConEvents
                                         {
                                             foreach (APlayer aPlayer in _DiscordPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
-                                                tempASPlayers.Add(new ASpecialPlayer()
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -42926,7 +42943,7 @@ namespace PRoConEvents
                                         {
                                             foreach (APlayer aPlayer in _populatorPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
-                                                tempASPlayers.Add(new ASpecialPlayer()
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -42946,7 +42963,7 @@ namespace PRoConEvents
                                     {
                                         foreach (APlayer aPlayer in FetchAdminSoldiers().Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                         {
-                                            tempASPlayers.Add(new ASpecialPlayer()
+                                            tempASPlayers.Add(new ASpecialPlayer(this)
                                             {
                                                 player_game = (int)_serverInfo.GameID,
                                                 player_server = (int)_serverInfo.ServerID,
@@ -42965,7 +42982,7 @@ namespace PRoConEvents
                                     {
                                         foreach (APlayer aPlayer in FetchAdminSoldiers().Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                         {
-                                            tempASPlayers.Add(new ASpecialPlayer()
+                                            tempASPlayers.Add(new ASpecialPlayer(this)
                                             {
                                                 player_game = (int)_serverInfo.GameID,
                                                 player_server = (int)_serverInfo.ServerID,
@@ -42984,7 +43001,7 @@ namespace PRoConEvents
                                         {
                                             foreach (APlayer aPlayer in _populatorPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
-                                                tempASPlayers.Add(new ASpecialPlayer()
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -43003,7 +43020,7 @@ namespace PRoConEvents
                                         {
                                             foreach (APlayer aPlayer in _TeamspeakPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
-                                                tempASPlayers.Add(new ASpecialPlayer()
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -43022,7 +43039,7 @@ namespace PRoConEvents
                                         {
                                             foreach (APlayer aPlayer in _DiscordPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
-                                                tempASPlayers.Add(new ASpecialPlayer()
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -43042,7 +43059,7 @@ namespace PRoConEvents
                                     {
                                         foreach (APlayer aPlayer in FetchAdminSoldiers().Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                         {
-                                            tempASPlayers.Add(new ASpecialPlayer()
+                                            tempASPlayers.Add(new ASpecialPlayer(this)
                                             {
                                                 player_game = (int)_serverInfo.GameID,
                                                 player_server = (int)_serverInfo.ServerID,
@@ -43061,7 +43078,7 @@ namespace PRoConEvents
                                         {
                                             foreach (APlayer aPlayer in _populatorPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
-                                                tempASPlayers.Add(new ASpecialPlayer()
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -43080,7 +43097,7 @@ namespace PRoConEvents
                                         {
                                             foreach (APlayer aPlayer in _TeamspeakPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
-                                                tempASPlayers.Add(new ASpecialPlayer()
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -43099,7 +43116,7 @@ namespace PRoConEvents
                                         {
                                             foreach (APlayer aPlayer in _DiscordPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
-                                                tempASPlayers.Add(new ASpecialPlayer()
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -43121,7 +43138,7 @@ namespace PRoConEvents
                                         {
                                             foreach (APlayer aPlayer in _populatorPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
-                                                tempASPlayers.Add(new ASpecialPlayer()
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -43140,7 +43157,7 @@ namespace PRoConEvents
                                         {
                                             foreach (APlayer aPlayer in _TeamspeakPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
-                                                tempASPlayers.Add(new ASpecialPlayer()
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -43159,7 +43176,7 @@ namespace PRoConEvents
                                         {
                                             foreach (APlayer aPlayer in _DiscordPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
-                                                tempASPlayers.Add(new ASpecialPlayer()
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
                                                     player_game = (int)_serverInfo.GameID,
                                                     player_server = (int)_serverInfo.ServerID,
@@ -46860,48 +46877,37 @@ namespace PRoConEvents
             }
         }
 
-        public void BanKickPlayerMessage(APlayer player, String message)
+        public void BanKickPlayerMessage(APlayer aPlayer, String message)
         {
-            var kickDuration = 0;
-            if (_gameVersion == GameVersion.BF4)
+            ExecuteCommand("procon.protected.send", "admin.killPlayer", aPlayer.player_name);
+            if (_gameVersion == GameVersion.BF4 && _BanEnforcerBF4LenientKick)
             {
-                kickDuration = 30;
-                if (player.player_spawnedOnce)
+                var kickDuration = 30;
+                var wasSpawned = false;
+                if (aPlayer.player_spawnedOnce)
                 {
+                    wasSpawned = true;
                     kickDuration = 6;
                 }
-            }
-            BanKickPlayerMessage(player.player_name, message, kickDuration);
-        }
-
-        public void BanKickPlayerMessage(String playerName, String message, Int32 kickDuration)
-        {
-            APlayer aPlayer;
-            _PlayerDictionary.TryGetValue(playerName, out aPlayer);
-            if (aPlayer != null && aPlayer.BanEnforceCount >= 3)
-            {
-                kickDuration = 0;
-            }
-            ExecuteCommand("procon.protected.send", "admin.killPlayer", playerName);
-            if (kickDuration > 0)
-            {
                 // Cannot just ban the player, they don't see the ban message
                 StartAndLogThread(new Thread(new ThreadStart(delegate
                 {
                     Thread.CurrentThread.Name = "BanKickPlayerMessage";
                     var startTime = UtcNow();
-                    while (NowDuration(startTime).TotalSeconds < kickDuration)
+                    while (NowDuration(startTime).TotalSeconds < kickDuration &&
+                           // If the player was active, or if the player is new and not spawned, continue spamming
+                           (wasSpawned || (!aPlayer.player_spawnedOnce && !aPlayer.player_chatOnce)))
                     {
-                        PlayerTellMessage(playerName, "BANNED for " + message, false, 1);
+                        PlayerTellMessage(aPlayer.player_name, "BANNED for " + message, false, 1);
                         Thread.Sleep(500);
                     }
-                    ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
+                    ExecuteCommand("procon.protected.send", "admin.kickPlayer", aPlayer.player_name, message);
                     LogThreadExit();
                 })));
             }
             else
             {
-                ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
+                ExecuteCommand("procon.protected.send", "admin.kickPlayer", aPlayer.player_name, message);
             }
         }
 
@@ -48589,18 +48595,26 @@ namespace PRoConEvents
         {
             Int32 upperCount = 0;
             Int32 totalCount = 0;
-            foreach (var character in input.ToCharArray())
+            try
             {
-                if (char.IsLetter(character))
+                foreach (var character in input.ToCharArray())
                 {
-                    totalCount++;
-                    if (char.IsUpper(character))
+                    if (char.IsLetter(character))
                     {
-                        upperCount++;
+                        totalCount++;
+                        if (char.IsUpper(character))
+                        {
+                            upperCount++;
+                        }
                     }
                 }
+                return (Int32)Math.Round((Double)upperCount / (Double)totalCount * 100.0);
             }
-            return (Int32)Math.Round((Double)upperCount / (Double)totalCount * 100.0);
+            catch (Exception e)
+            {
+                HandleException(new AException("Error getting string upper percentage.", e));
+            }
+            return 0;
         }
 
         private void FetchIPLocation(APlayer aPlayer)
@@ -49335,6 +49349,7 @@ namespace PRoConEvents
             public AServer player_server = null;
             public TimeSpan player_serverplaytime = TimeSpan.FromSeconds(0);
             public Boolean player_spawnedOnce = false;
+            public Boolean player_chatOnce = false;
             public Boolean player_spawnedRound = false;
             public PlayerType player_type = PlayerType.Player;
             public Boolean BLInfoStored = false;
@@ -49999,6 +50014,8 @@ namespace PRoConEvents
 
         public class ASpecialPlayer
         {
+            private readonly AdKats Plugin;
+
             public Int64 specialplayer_id;
             public Int32? player_game = null;
             public ASpecialGroup player_group = null;
@@ -50008,6 +50025,56 @@ namespace PRoConEvents
             public DateTime player_effective;
             public DateTime player_expiration;
             public String tempCreationType;
+
+            public ASpecialPlayer(AdKats plugin)
+            {
+                Plugin = plugin;
+            }
+
+            public Boolean IsMatchingPlayer(APlayer aPlayer)
+            {
+                try
+                {
+                    if (player_group != null &&
+                        aPlayer != null &&
+                        player_object != null &&
+                        (player_object.player_id == aPlayer.player_id ||
+                         player_identifier == aPlayer.player_name ||
+                         player_identifier == aPlayer.player_guid ||
+                         player_identifier == aPlayer.player_ip))
+                    {
+                        return true;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Plugin.HandleException(new AException("Error checking APlayer match with ASPlayer.", e));
+                }
+                return false;
+            }
+
+            public Boolean IsMatchingPlayerOfGroup(APlayer aPlayer, String specialPlayerGroup)
+            {
+                try
+                {
+                    if (player_group != null &&
+                        player_group.group_key == specialPlayerGroup &&
+                        aPlayer != null &&
+                        player_object != null &&
+                        (player_object.player_id == aPlayer.player_id ||
+                         player_identifier == aPlayer.player_name ||
+                         player_identifier == aPlayer.player_guid ||
+                         player_identifier == aPlayer.player_ip))
+                    {
+                        return true;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Plugin.HandleException(new AException("Error checking APlayer/Group match with ASPlayer.", e));
+                }
+                return false;
+            }
         }
 
         public class ATeam
