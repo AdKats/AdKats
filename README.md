@@ -3210,6 +3210,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Use Ban Enforcer'</b> - 
         Whether to use the internal AdKats Ban Enforcer.
     </li>
+    <li><b>'Ban Enforcer BF4 Lenient Kick'</b> - 
+        On BF4 a lot of players use DICE's new in-game server browser. The bad part of this is that nobody can see kick or ban reasons, they aren't displayed on the game UI. This setting allows the ban enforcer to spam a player with say and yell messages before they are ejected from the server so they know why they were banned. This comes with the side effect that people joining back after being banned may have a few seconds to use the chat window before they are ejected again. After 2 re-join attempts the lenient kick is automatically removed though, so people who take advantage of this should be handled regardless. Despite the handling, this setting is opt-in instead of opt-out.
+    </li>
     <li><b>'Enforce New Bans by NAME'</b> - 
         Whether to use a player's name to ban them. (Insecure, players can change their names)
     </li>
