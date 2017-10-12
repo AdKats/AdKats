@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.359
+ * Version 6.9.0.360
  * 11-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.359</version_code>
+ * <version_code>6.9.0.360</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.359";
+        private const String PluginVersion = "6.9.0.360";
 
         public enum GameVersion
         {
@@ -46893,6 +46893,10 @@ namespace PRoConEvents
                 {
                     wasSpawned = true;
                     kickDuration = 6;
+                }
+                if (aPlayer.BanEnforceCount > 2)
+                {
+                    kickDuration = 0;
                 }
                 // Cannot just ban the player, they don't see the ban message
                 StartAndLogThread(new Thread(new ThreadStart(delegate
