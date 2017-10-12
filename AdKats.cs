@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.358
+ * Version 6.9.0.359
  * 11-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.358</version_code>
+ * <version_code>6.9.0.359</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.358";
+        private const String PluginVersion = "6.9.0.359";
 
         public enum GameVersion
         {
@@ -39648,12 +39648,17 @@ namespace PRoConEvents
             var oldEnemyPower = enemyTeam.GetTeamPower();
             var newFriendlyPower = friendlyTeam.GetTeamPower(aPlayer, null);
             var newEnemyPower = enemyTeam.GetTeamPower(null, aPlayer);
-            var map = _serverInfo.GetMap();
             if (enemyTeam == mapUpTeam)
             {
                 powerPercentageThreshold = 0;
             }
-            if (map != null && map.MapFileName == "XP0_Metro" && enemyTeam == team1)
+            var map = _serverInfo.GetMap();
+            if (map != null && _UseExperimentalTools)
+            {
+                Log.Info("Map: " + map.MapFileName);
+                Log.Info("Map2: " + _serverInfo.InfoObject.Map);
+            }
+            if (map != null && map.MapFileName == "XP0_Metro" && enemyTeam.TeamID == 1)
             {
                 if (roundMinutes < 15)
                 {
@@ -39742,8 +39747,8 @@ namespace PRoConEvents
                     "Map: " + enemyHasMoreMap + " | " +
                     "Time: " + roundMinutes);
                     InfoOrRespond(debugRecord,
-                        "Old " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(oldFriendlyPower) + ")/" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(oldEnemyPower) + ") | " +
-                        "New " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(newFriendlyPower) + ")/" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(newEnemyPower) + ")");
+                        "Old " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(oldFriendlyPower) + "):" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(oldEnemyPower) + ") | " +
+                        "New " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(newFriendlyPower) + "):" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(newEnemyPower) + ")");
                 }
             }
             if (!canAssist)
