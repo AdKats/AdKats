@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.367
+ * Version 6.9.0.368
  * 13-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.367</version_code>
+ * <version_code>6.9.0.368</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.367";
+        private const String PluginVersion = "6.9.0.368";
 
         public enum GameVersion
         {
@@ -805,7 +805,6 @@ namespace PRoConEvents
         private TimeSpan _PollMaxDuration = TimeSpan.FromMinutes(4);
         private TimeSpan _PollPrintInterval = TimeSpan.FromSeconds(30);
         private Int32 _PollMaxVotes = 18;
-        private Int32 _PollMaxOptions = 5;
         private String[] _AvailablePolls = new String[] {
             "event"
         };
@@ -832,6 +831,7 @@ namespace PRoConEvents
         private Int32 _CurrentEventRoundNumber = 999999;
         private List<AEventOption> _EventRoundOptions = new List<AEventOption>();
         private Boolean _EventRoundPolled = false;
+        private Int32 _EventPollMaxOptions = 4;
         private Int32 _EventRoundAutoPollsMax = 10;
         private TimeSpan _EventRoundAutoVoteDuration = TimeSpan.FromMinutes(2.5);
         private List<AEventOption> _EventRoundPollOptions = new List<AEventOption>();
@@ -2696,7 +2696,8 @@ namespace PRoConEvents
                             buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Concrete Event Round Number (display)", typeof(String), _CurrentEventRoundNumber == 999999 ? "Undecided." : String.Format("{0:n0}", _CurrentEventRoundNumber)));
                         }
 
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Option Count", typeof(Int32), _EventRoundPollOptions.Count()));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Max Option Count", typeof(Int32), _EventPollMaxOptions));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Mode Rule Combination Count", typeof(Int32), _EventRoundPollOptions.Count()));
                         for (int optionNumber = 0; optionNumber < _EventRoundPollOptions.Count(); optionNumber++)
                         {
                             buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Event Poll Option " + (optionNumber + 1), _EventRoundOptionsEnum, _EventRoundPollOptions[optionNumber].getModeRuleDisplay()));
@@ -5884,6 +5885,24 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Event Hour in 24 format", typeof(Double), _EventHour));
                     }
                 }
+                else if (Regex.Match(strVariable, @"Poll Max Option Count").Success)
+                {
+                    Int32 EventPollMaxOptions = Int32.Parse(strValue);
+                    if (EventPollMaxOptions != _EventPollMaxOptions)
+                    {
+                        if (EventPollMaxOptions < 1)
+                        {
+                            EventPollMaxOptions = 1;
+                        }
+                        if (EventPollMaxOptions > 6)
+                        {
+                            EventPollMaxOptions = 6;
+                        }
+                        _EventPollMaxOptions = EventPollMaxOptions;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Poll Max Option Count", typeof(Double), _EventPollMaxOptions));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Event Test Round Number").Success)
                 {
                     Int32 roundNumber = Int32.Parse(strValue);
@@ -5991,7 +6010,7 @@ namespace PRoConEvents
                     }
                     QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
                 }
-                else if (Regex.Match(strVariable, @"Poll Option Count").Success)
+                else if (Regex.Match(strVariable, @"Poll Mode Rule Combination Count").Success)
                 {
                     Int32 optionCount = Int32.Parse(strValue);
                     if (optionCount != _EventRoundPollOptions.Count())
@@ -33622,7 +33641,7 @@ namespace PRoConEvents
                             }
                             foreach (var option in availableRuleOptions)
                             {
-                                if (_ActivePoll.Options.Count() >= _PollMaxOptions)
+                                if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
                                 {
                                     break;
                                 }
@@ -33684,32 +33703,14 @@ namespace PRoConEvents
                                                                 .ToList();
                                     // Get the available mode options for the chosen rule
                                     var availableModeOptions = _EventRoundPollOptions
-                                                                .Where(option => option.Rule == chosenRule &&
-                                                                                 !existingEventModes.Contains(option.Mode))
-                                                                .Select(option => option.Mode)
-                                                                .Distinct()
-                                                                .OrderBy(option => rng.Next())
-                                                                .ToList();
-                                    if (availableModeOptions.Count() <= 3)
-                                    {
-                                        // They used almost all the modes during this event
-                                        // Just give them everything
-                                        foreach (var option in _EventRoundPollOptions
                                                                 .Where(option => option.Rule == chosenRule)
                                                                 .Select(option => option.Mode)
                                                                 .Distinct()
                                                                 .OrderBy(option => rng.Next())
-                                                                .ToList())
-                                        {
-                                            if (!availableModeOptions.Contains(option))
-                                            {
-                                                availableModeOptions.Add(option);
-                                            }
-                                        }
-                                    }
+                                                                .ToList();
                                     foreach (var option in availableModeOptions)
                                     {
-                                        if (_ActivePoll.Options.Count() >= _PollMaxOptions)
+                                        if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
                                         {
                                             break;
                                         }
@@ -35909,6 +35910,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Boolean), _EventTestRoundNumber));
                 QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Double), _EventAnnounceDayDifference));
                 QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                QueueSettingForUpload(new CPluginVariable(@"Poll Max Option Count", typeof(Double), _EventPollMaxOptions));
                 QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Base Server Name", typeof(String), _eventBaseServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Countdown Server Name", typeof(String), _eventCountdownServerName));
