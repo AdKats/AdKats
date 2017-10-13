@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.368
+ * Version 6.9.0.369
  * 13-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.368</version_code>
+ * <version_code>6.9.0.369</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.368";
+        private const String PluginVersion = "6.9.0.369";
 
         public enum GameVersion
         {
@@ -19823,6 +19823,17 @@ namespace PRoConEvents
                 record.server_id = _serverInfo.ServerID;
                 record.record_time = UtcNow();
 
+                // Modify the command message if they are voting in a poll
+                Int32 resultVote;
+                if (_ActivePoll != null && Int32.TryParse(commandString, out resultVote))
+                {
+                    // They entered a format consistent with the xVoteMap voting method. !2, /2, etc
+                    // Reformat the text so AdKats understands it as the vote command
+                    commandString = GetCommandByKey("poll_vote").command_text;
+                    // Set the parameter for the vote command to the number they entered
+                    remainingMessage = resultVote.ToString();
+                }
+
                 //GATE 1: Add Command
                 ACommand commandType = null;
                 if (_CommandTextDictionary.TryGetValue(commandString, out commandType) && commandType.command_active == ACommand.CommandActive.Active)
@@ -33610,7 +33621,7 @@ namespace PRoConEvents
                             // This poll has two stages. Choosing the rules and choosing the mode.
                             AEventOption.RuleCode chosenRule;
                             AEventOption.ModeCode chosenMode;
-                            _ActivePoll.Title = "Choose event rules with !vote #";
+                            _ActivePoll.Title = "Choose event rules with !#";
                             // Get the available rule options
                             var existingEventRules = _EventRoundOptions
                                                         .Select(option => option.Rule)
@@ -49250,7 +49261,7 @@ namespace PRoConEvents
                 List<String> optionStrings = new List<String>();
                 foreach (var option in Options)
                 {
-                    optionStrings.Add(option.Key + ". " + option.Value.Key + " [" + Votes.Count(vote => vote.Value == option.Key) + "]");
+                    optionStrings.Add("!" + option.Key + " " + option.Value.Key + " [" + Votes.Count(vote => vote.Value == option.Key) + "]");
                 }
                 List<String> optionLines = new List<String>();
                 String currentLine = String.Empty;
