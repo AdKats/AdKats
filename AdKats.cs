@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.362
- * 12-OCT-2017
+ * Version 6.9.0.363
+ * 13-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.362</version_code>
+ * <version_code>6.9.0.363</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.362";
+        private const String PluginVersion = "6.9.0.363";
 
         public enum GameVersion
         {
@@ -1511,15 +1511,17 @@ namespace PRoConEvents
                                     Random random = new Random();
                                     String rolePrefix = GetSettingSection("4-2") + t + "RLE" + aRole.role_id + s + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + s;
                                     buildList.AddRange(from aGroup in _specialPlayerGroupKeyDictionary.Values
-                                                       let allowed =
-                                                        aRole.RoleSetGroups.ContainsKey(aGroup.group_key) ||
+                                                       let allowed = aRole.RoleSetGroups.ContainsKey(aGroup.group_key)
+                                                       let required = 
                                                         (aGroup.group_key == "slot_reserved" && _FeedServerReservedSlots && _FeedServerReservedSlots_Admins && RoleIsAdmin(aRole)) ||
                                                         (aGroup.group_key == "slot_spectator" && _FeedServerSpectatorList && _FeedServerSpectatorList_Admins && RoleIsAdmin(aRole)) ||
                                                         (aGroup.group_key == "whitelist_multibalancer" && _FeedMultiBalancerWhitelist && _FeedMultiBalancerWhitelist_Admins && RoleIsAdmin(aRole)) ||
                                                         (aGroup.group_key == "whitelist_teamkill" && _FeedTeamKillTrackerWhitelist && _FeedTeamKillTrackerWhitelist_Admins && RoleIsAdmin(aRole)) ||
                                                         (aGroup.group_key == "whitelist_spambot" && _spamBotExcludeAdminsAndWhitelist && RoleIsAdmin(aRole))
+                                                       let blocked = (aGroup.group_key == "whitelist_adminassistant" && RoleIsAdmin(aRole))
+                                                       let enumString = blocked ? "enum.roleSetGroupEnum_blocked(Blocked Based On Other Settings)" : (required ? "enum.roleSetGroupEnum_required(Required Based On Other Settings)" : "enum.roleSetGroupEnum(Assign|Ignore)")
                                                        let display = rolePrefix + "GPE" + aGroup.group_id + s + aGroup.group_name
-                                                       select new CPluginVariable(display, "enum.roleSetGroupEnum(Assign|Ignore)", allowed ? ("Assign") : ("Ignore")));
+                                                       select new CPluginVariable(display, enumString, blocked ? "Blocked Based On Other Settings" : (required ? "Required Based On Other Settings" : (allowed ? ("Assign") : ("Ignore")))));
                                 }
                             }
                         }
@@ -6798,6 +6800,9 @@ namespace PRoConEvents
                                         }
                                         QueueRoleForUpload(aRole);
                                         break;
+                                    case "Required Based On Other Settings":
+                                    case "Blocked Based On Other Settings":
+                                        return;
                                     default:
                                         Log.Error("Unknown setting when changing role group assignment.");
                                         return;
@@ -42425,7 +42430,17 @@ namespace PRoConEvents
                                         }
                                         if (!aRole.RoleSetGroups.ContainsKey(aGroup.group_key))
                                         {
-                                            aRole.RoleSetGroups.Add(aGroup.group_key, aGroup);
+                                            if (aGroup.group_key == "whitelist_adminassistant" && 
+                                                RoleIsAdmin(aRole))
+                                            {
+                                                // This role is not allowed for admins
+                                                Log.Warn("Removing Admin Assistant Whitelist from " + aRole.role_name + ", that role is an admin role and thus cannot use the admin assistant whitelist.");
+                                                uploadRequired = true;
+                                            }
+                                            else
+                                            {
+                                                aRole.RoleSetGroups.Add(aGroup.group_key, aGroup);
+                                            }
                                         }
                                     }
                                     KeyValuePair<Int64, HashSet<String>> element = currentRoleElement;
