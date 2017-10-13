@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.366
+ * Version 6.9.0.367
  * 13-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.366</version_code>
+ * <version_code>6.9.0.367</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.366";
+        private const String PluginVersion = "6.9.0.367";
 
         public enum GameVersion
         {
@@ -32920,9 +32920,9 @@ namespace PRoConEvents
                         Thread.CurrentThread.Name = "CommandPrinter";
 
                         List<string> fullCommandList = new List<String>();
-                        foreach (ACommand aCommand in _CommandIDDictionary.Values)
+                        foreach (ACommand aCommand in _CommandIDDictionary.Values.ToList().Where(dCommand => dCommand.command_active == ACommand.CommandActive.Active))
                         {
-                            if ((record.target_player == null && aCommand.command_active == ACommand.CommandActive.Active) || HasAccess(record.target_player, aCommand))
+                            if (record.target_player == null || HasAccess(record.target_player, aCommand))
                             {
                                 fullCommandList.Add("!" + aCommand.command_text);
                             }
