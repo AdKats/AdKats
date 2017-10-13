@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.363
+ * Version 6.9.0.364
  * 13-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.363</version_code>
+ * <version_code>6.9.0.364</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.363";
+        private const String PluginVersion = "6.9.0.364";
 
         public enum GameVersion
         {
@@ -6800,8 +6800,8 @@ namespace PRoConEvents
                                         }
                                         QueueRoleForUpload(aRole);
                                         break;
-                                    case "Required Based On Other Settings":
-                                    case "Blocked Based On Other Settings":
+                                    case "required based on other settings":
+                                    case "blocked based on other settings":
                                         return;
                                     default:
                                         Log.Error("Unknown setting when changing role group assignment.");
@@ -42434,7 +42434,7 @@ namespace PRoConEvents
                                                 RoleIsAdmin(aRole))
                                             {
                                                 // This role is not allowed for admins
-                                                Log.Warn("Removing Admin Assistant Whitelist from " + aRole.role_name + ", that role is an admin role and thus cannot use the admin assistant whitelist.");
+                                                Log.Warn("Removing " + aGroup.group_name + " from " + aRole.role_name + ". That role is an admin role and cannot use " + aGroup.group_name + ".");
                                                 uploadRequired = true;
                                             }
                                             else
