@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.361
+ * Version 6.9.0.362
  * 12-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.361</version_code>
+ * <version_code>6.9.0.362</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.361";
+        private const String PluginVersion = "6.9.0.362";
 
         public enum GameVersion
         {
@@ -52119,10 +52119,10 @@ namespace PRoConEvents
                                     validChannels.Add(ID);
                                     if (!Channels.TryGetValue(ID, out builtChannel))
                                     {
-                                        Channels[ID] = new DiscordChannel()
-                                        {
+                                        builtChannel = new DiscordChannel() {
                                             ID = ID
                                         };
+                                        Channels[ID] = builtChannel;
                                     }
                                     builtChannel.Name = (String)channel["name"];
                                     builtChannel.Position = Int32.Parse(channel["position"].ToString());
