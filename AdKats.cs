@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.369
+ * Version 6.9.0.370
  * 13-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.369</version_code>
+ * <version_code>6.9.0.370</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.369";
+        private const String PluginVersion = "6.9.0.370";
 
         public enum GameVersion
         {
@@ -18266,7 +18266,16 @@ namespace PRoConEvents
                                 if (splitConfirmCommand.Length < 1 ||
                                     !_CommandTextDictionary.ContainsKey(splitConfirmCommand[0].ToLower()))
                                 {
-                                    isCommand = false;
+                                    Int32 resultVote;
+                                    if (_ActivePoll != null && 
+                                        Int32.TryParse(splitConfirmCommand[0].ToLower(), out resultVote))
+                                    {
+                                        Log.Debug(() => "Poll is active and command is numeric " + resultVote + ", allowing non-standard command.", 4);
+                                    }
+                                    else
+                                    {
+                                        isCommand = false;
+                                    }
                                 }
                             }
 
@@ -19825,7 +19834,8 @@ namespace PRoConEvents
 
                 // Modify the command message if they are voting in a poll
                 Int32 resultVote;
-                if (_ActivePoll != null && Int32.TryParse(commandString, out resultVote))
+                if (_ActivePoll != null && 
+                    Int32.TryParse(commandString, out resultVote))
                 {
                     // They entered a format consistent with the xVoteMap voting method. !2, /2, etc
                     // Reformat the text so AdKats understands it as the vote command
