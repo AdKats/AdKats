@@ -740,4 +740,221 @@ Added small improvements to fuzzy player match response text.</li>
 <ul>
     <li><b>No upgrade SQL required.</b></li>
 </ul>
+<h4>6.8.0.0 (16-AUG-2015)</h4>
+<b>Enhancements</b><br/>
+<ul>
+	<li>Added a setting section selector for more easy traversal of the numerous plugin settings.</li>
+	<li>Hacker-checker now takes soldier health of hardcore servers into account.</li>
+	<li>With hacker-checker enabled at the end of each round all players are re-queued for stat checks, so if the round previously played caused any triggers they will be caught.</li>
+	<li>Added LIVE system to the hacker checker, denoting actions taken based on a single round of play.</li>
+	<li>Added catch for the 'Magic Bullet' hack to the LIVE system.</li>
+	<li>Added catch for damage mods to the LIVE system, players using a damage mod in any round should be banned at round end.</li>
+	<li>Hacker-checker no longer looks at only the top 15 weapons a player uses.</li>
+	<li>Optimized all interaction and connections with Battlelog.</li>
+	<li>Added option to the ping enforcer for modifying ping limit based on time of day.</li>
+	<li>Added display of current ping limit based on all settings, showing the formula for how it was calculated.</li>
+	<li>'Attempt manual ping when missing' is now disabled by default as this can cause performance issues for some layers.</li>
+	<li>Added monitoring and dispersion option for top players in the server, a new take on server balance specifically focused on solving stacking issues before they start.</li>
+	<li>Added option to ban players based on a set of banned clan tags.</li>
+	<li>TeamSpeak player monitor now has an option to announce those joining both teamspeak and the game.</li>
+	<li>To get around the issue where battlefield servers can only have 15 whitelisted spectators if the special player list 'spectator slot' has any players all others without a slot will be kicked from spectator; A manual way of getting the server spectator slot list to operate as it should.</li>
+	<li>Added whitelist bypass option to the spambot. Add [whitelistbypass] to the beginning of any spambot message and it will be sent to all players, ignoring the whitelist.</li>
+	<li>Spambot messages displayed in procon chat are now denoted with a bold 'SpamBot' prefix.</li>
+	<li>Players are now thanked publicly when the assist command or auto-assist moves them to the weak team.</li>
+	<li>Temp-ban command can now be issued on offline players.</li>
+	<li>Perma-ban command can now be issued on offline players.</li>
+	<li>Future perma-ban command can now be issued on offline players.</li>
+	<li>Punish command can now be issued on offline players.</li>
+	<li>Forgive command can now be issued on offline players.</li>
+	<li>Player info command can now be issued on offline players.</li>
+	<li>Player chat command can now be issued on offline players.</li>
+	<li>Player log command can now be issued on offline players.</li>
+	<li>Optimized communication between LRT and the main AdKats plugin.</li>
+	<li>Optimized handling of database disconnection and critical state.</li>
+	<li>Removed unnecessary calls to setting refresh to reduce procon client lag.</li>
+	<li>Split fetching of player battlelog player info and battlelog player stats to speed up plugin start.</li>
+	<li>Added warning message if the plugin is having issues connecting to battlelog.</li>
+	<li>Updated reputation command to include infraction point information, and, if auto-forgives are enabled, when the player's next auto-forgive will fire.</li>
+	<li>Populating servers from low pop status through high pop status now gives +10 base reputation.</li>
+	<li>Added option to yell server rules.</li>
+</ul>
+<b>New Commands</b><br/>
+<ul>
+	<li>Added feedback command for players to give server feedback.</li>
+	<li>Added isadmin command for players to check if a player is an admin.</li>
+</ul>
+<b>Changes</b><br/>
+<ul>
+	<li>Hacker-checker DPS section is now hardcode enabled and all settings aside from ban message are automated.</li>
+	<li>Wait duration between battlelog requests increased from 1 second to 3 seconds.</li>
+	<li>Increased hacker-checker KPM check's minimum kill count from 100 kills to 200 kills.</li>
+	<li>Players can no-longer report themselves.</li>
+	<li>Assist command is now blocked from usage until 2 minutes into any round.</li>
+	<li>Assist command is now blocked from usage when teams are within 60 tickets of each other.</li>
+	<li>Player say command chat access now required to be AnyHidden.</li>
+	<li>Player yell command chat access now required to be AnyHidden.</li>
+	<li>Player tell command chat access now required to be AnyHidden.</li>
+	<li>Player find command chat access now required to be AnyHidden.</li>
+	<li>Increased specific timeout of permaban and future permaban commands from 30 to 90 seconds.</li>
+	<li>Plugin now automatically updates to the latest test version if user is running any outdated test version.</li>
+	<li>Added 10 minute specific timeout to self kill command.</li>
+	<li>Auto-surrender default resolve message changed from 'Auto-Resolving Baserape Round' to 'Auto-Resolving Round'.</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+	<li>Assigning/unassigning role groups could cause a role to deny all of its commands.</li>
+	<li>Invalid punishment hierarchy values could have been added, only to be rejected when the punish was issued.</li>
+	<li>The metabans plugin could have been disabled while running ban enforcer with metabans integration enabled.</li>
+	<li>Metabans API key/Username changes database side were not propagated to the metabans plugin.</li>
+	<li>Blank spambot messages could have been added to the system.</li>
+	<li>Round state sometimes failed to reset when disabling then enabling the plugin.</li>
+	<li>Plugin version numbers with more than one digit per section caused update issues.</li>
+	<li>Spambot messages and ticket rate messages were displayed when the server was empty.</li>
+	<li>TeamSpeak users were sometimes incorrectly mapped to players in game due to name similarity.</li>
+	<li>Players locked to a specific team could clear the lock by leaving then rejoining the server.</li>
+	<li>Teamswap failed to move players properly from team 1 (US usually) to team 2 (RU usually) if team 1 was completely full.</li>
+	<li>Round IDs for exteneded round stats were sometimes incorrectly calculated.</li>
+	<li>Extended round stats could sometimes post during invalid round state, filling the log with countless duplicate records.</li>
+	<li>Hacker-checker queue could call actions on players in the wrong order.</li>
+	<li>Command locks on a player could block actions by the entity who locked them.</li>
+	<li>Countdown command did not work correctly with some team sets.</li>
+	<li>When banning a player with ban enforcer enabled the kick could sometimes fail.</li>
+	<li>Modifying special player lists could cause excessive refreshing of the user list.</li>
+	<li>Optimized plugin shutdown, some processes failing to finish could slow it down before.</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
+<h4>7.0.0.0 (14-OCT-2017)</h4>
+<b>Enhancements</b><br/>
+<ul>
+	<li>When a player is kicked for VIP, the plugin is sometimes able to tell admins who was kicked. DICE's event for this is unreliable, but when it works properly, the plugin will tell admins about the VIP kick.</li>
+	<li>Added automatic server restart options. When the server is empty (aside from seeder accounts), and the server uptime is greater than a configured number of hours, the server is automatically rebooted. You also have the option to do an automatic procon shutdown when this happens. If you have procon configured to automatically reboot when a crash/shutdown occurs this will effectively reboot your procon layer and the server at the same time.</li>
+	<li>Increased performance of the anti-cheat scripts. AdKats now stores player’s battlelog persona IDs in the database, so fetching their info from battlelog is faster and requires fewer requests.</li>
+	<li>Decreased startup time of the loadout enforcer when paired with AdKats. Battlelog information needs to be fetched for every player before anti-cheat requests begin now.</li>
+	<li>Commands that are classified as admin commands (commands that when enabled will make a role be considered admin), show up in the list with [ADMIN] next to them. Commands that are causing a role to be considered admin will have a '<---' next to the command, so it's easy to find those commands in the list.</li>
+	<li>In addition to the "IRO Overrides Low Population" setting i've added a setting for minimum infractions before it overrides. With this setting a player will need at least that many infractions against them before IRO will override low population.</li>
+	<li>Added a setting to disable the display of all ping enforcer messages in the procon chat tab. Messages for players kicked for ping are still displayed.</li>
+	<li>The "Top Player Monitor" has been completely gutted and rebuilt. This section is now called the "Team Power Monitor" and shows the estimated power of each team in your server. You have options to use join reassignment based on team power and seeder balancing. The other sections of this system are either nonfunctional or experimental, and I would advise caution when using them. The scrambler might be good for your server, but it locks players to their assigned teams which means it's not good for volatile maps like metro.</li>
+	<li>Added discord integration with the same options as the existing teamspeak integration. The only unfortunate side being that I can only update discord information (online players) every 5 minutes. This is because Procon is still on .NET 3.5 and doesn't have access to websockets.</li>
+	<li>Admins can now bypass the spambot whitelist for certain messages by adding [whitelistbypass] to the start of the message. Useful for important/time-sensitive announcements.</li>
+	<li>Added an all-caps chat limiter, with a bunch of settings for how a message is considered all-caps. Also added a new group so you can have only specific players targeted by this script.</li>
+	<li>Completely redesigned the assist command for use with the team power monitor.</li>
+	<li>Players that use the /assist command are now automatically queued for 5 minutes if their assist request fails. This is so players wanting to assist don't need to keep executing the command to see if they are allowed. After 5 minutes their assist request is automatically cancelled.</li>
+	<li>A setting for the minimum number of minutes into a round before the /assist command becomes available has been added.</li>
+	<li>Updated the assist messages to include a player's current calculated power.</li>
+	<li>Added an option to disable the enforcement of single instances of AdKats on a server. This is for people who have issues with the /AdKatsInstanceCheck messages being stored in external systems. These messages are used by AdKats to make sure that one and only one instance is running on a server at a time, since it can cause undesirable results to have multiple instances running at the same time.</li>
+	<li>Added a ban filter option for posting to metabans, so you can choose which bans are sent to the service.</li>
+	<li>Add integration for PushBullet in the same manner that AdKats uses email integration.</li>
+	<li>The nuke command can now accept team IDs in addition to team keys. This is mainly for people who run servers with the same faction as both teams and were previously unable to nuke team “2”.</li>
+	<li>The server shutdown command now provides a 5 second countdown before rebooting the server.</li>
+	<li>Moved the auto-nuke settings into its own setting section so it’s easier to configure.</li>
+	<li>Added minimum and maximum ticket counts for the auto-surrender/auto-nuke so you can limit when it can activate during a round.</li>
+	<li>The auto-nuke script is now able to issue timed nukes on players. This means a nuke is able to hold the target team's player dead for a specified amount of time, making the nuke more effective. I've also added options to increase the nuke duration as the number of times a team is nuked increases.</li>
+	<li>Added options to reset the auto-nuke trigger counts when a nuke is fired, this way the script has time to reset after a nuked team loses a lot of flags.</li>
+	<li>Added option for minimum duration between nukes to the auto-nuke script so you can configure how often it can fire.</li>
+	<li>Added option to make nukes fire based on ticket difference instead of flags, so you can configure teams which have had the map for a long time to be pushed back regardless.</li>
+	<li>Added option to configure how many nukes can fire during a round.</li>
+	<li>Added option to switch back to auto-surrender after a certain number of nukes are fired and the team is still having trouble.</li>
+	<li>Added an optional countdown before an auto-nuke is actually fired, giving players a chance to realize what's about to happen.</li>
+	<li>Added option to notify players of perks that are expiring soon. Included the new /perks command so they can see what perks they have. Included a setting for how long before their perks expire to notify them.</li>
+	<li>Added the "Battlecry" system. This section lets you allow players have a message sent to the server when they first spawn in, an announcement of their arrival. Options are available to change how "loud" the messages are and who is able to access their usage. You can also configure a list of banned words in the battlecry, and a max length on the battlecry.</li>
+	<li>Added a BF4 faction randomizer so you can have random faction assignments in your server. There are many options for how the randomness should be handled.</li>
+	<li>Split the 'Inform reputable players and admins of admin joins' into two separate settings, one for reputable players, and one for admins.</li>
+	<li>Updated all the procon chat messages AdKats posts to be color coded for different operations. Added tags for some things like the spambot so its messages can be picked out of the tab easily.</li>
+	<li>Messages in your rules and spambot can now be map/mode specific. Simply by adding a prefix to the messages and rules you can make them appear only on those maps or modes. Great for mixed mode servers.</li>
+	<li>AdKats now monitors player clan tag changes, keeps a history of them, and notifies admins of changes. Tag history is also included in the player info command.</li>
+	<li>Added domination to the list of modes where flag estimations are shown in the ticket rate messages.</li>
+	<li>Added estimated winner and win time to the ticket rate messages.</li>
+	<li>In BF4 since the in-game menu does not tell players why they were kicked or banned anymore, so AdKats now spams the kicked or banned player for a few seconds before they are booted to make sure they know why it happened.</li>
+	<li>Improved some of the integrations with the loadout enforcer plugin. Specifically for report actions and manual loadout fetching.</li>
+	<li>Added %map_name% and %mode_name% options to the email handler for reports.</li>
+	<li>Improved the player info command to show actual hour count the player has in the server, in addition to the calculated weeks/days/hours string.</li>
+	<li>Cleaned up quite a few messages which were unnecessarily long.</li>
+	<li>Added more robust monitoring of player listing and server info triggers, making sure AdKats doesn’t oversaturate procon or the server with requests.</li>
+	<li>Fortified exception handling in a lot of areas.</li>
+	<li>Average AdKats startup durations are stored for the last 15 reboots, and displayed in the startup message when it fully completes.</li>
+	<li>Estimated time until the plugin is finished starting up are now displayed to players attempting to issue commands during the startup phase. Once startup has completed they are notified and thanked for their patience.</li>
+</ul>
+<b>New Commands</b><br/>
+<ul>
+	<li>server_nuke_winning - Added a winning-nuke command, which is only able to nuke the currently winning and map dominant team. Helps to avoid human error when manually issuing nukes.</li>
+	<li>player_ping - You can now fetch any player’s current ping and average ping with the fetch ping command.</li>
+	<li>player_forceping - Admins can now force AdKats to issue manual pings on specific players using the force ping command. These players will be manually pinged by the layer instead of relying on the server provided info on their ping.</li>
+	<li>player_debugassist - The debug assist command was added mainly for my own purposes, so i can see if a player would be allowed to assist without actually having them do it. But it could be useful to some people.</li>
+	<li>player_perks - Players are now able to fetch their current list of perks with the player perks command. This command can also be targeted at a player to fetch that player’s perks.</li>
+	<li>player_loadout - You can now fetch a player’s current loadout if you’re running the loadout enforcer, using the loadout command.</li>
+	<li>player_loadout_force - Players loadouts can now be manually forced up to trigger level enforcement if you’re running the loadout enforcer, with the force loadout command.</li>
+	<li>self_battlecry - Players can set their own battlecry using the battlecry command.</li>
+	<li>player_battlecry - Admins can use the player battlecry command to set other player’s current battle cries.</li>
+	<li>player_discordlink - Admins can link an active player in the server with a member in the discord server by ID using the discord link command.</li>
+	<li>player_blacklistallcaps - Admins can make specific players fall under enforcement of the all caps chat limiter using the all caps blacklist command.</li>
+	<li>player_blacklistallcaps_remove - Admins can remove players from the all caps blacklist specific enforcement using the remove all caps blacklist command.</li>
+</ul>
+<b>Changes</b><br/>
+<ul>
+	<li>Reserved slot feed for *online* admins has been renamed to match what it actually does, add a VIP kick whitelist.</li>
+	<li>Weapon code posting to the centralized weapon code display has been removed since all weapon codes for the supported games are known now.</li>
+	<li>Everything that was previously named "Hacker-Checker" is now named "Anti-Cheat". The command /hcwhitelist is also renamed to /acwhitelist to go along with this change.</li>
+	<li>Players in teamspeak/discord are now automatically whitelisted from spambot messages.</li>
+	<li>Automatic forgives for clean play no longer require positive reputation.</li>
+	<li>Changed a lot of messages around the plugin which used a team’s name/key to also include the team ID in the message in the format ID/Key.</li>
+	<li>The ‘time on server’ section of the player info command no longer says ‘+ current session’. The current session time is simply added to the base and displayed now.</li>
+	<li>The mark command is no longer used to force player loadouts, there is a separate command for that now. The mark command is now only used to mark a player for leave notifications.</li>
+	<li>Removed the concept of 'adjusted' ticket rates from the UI. The rates shown to you for flag based modes are now by default the adjusted rates, normal rates are shown for non-map modes.</li>
+	<li>Added a block against negative values in the minimum surrender/auto-nuke ticket gap setting.</li>
+	<li>Added block against people adding a minimum ticket rate window value greater than the maximum ticket rate window value, and vice-versa. The values will now automatically swap when the user attempts this.</li>
+	<li>Records in the extended round stats table older than 60 days are now automatically purged.</li>
+	<li>First join/first spawn messages are now blocked when the plugin is recently started. This is to make sure that players are not spammed when you reboot the plugin during an active round.</li>
+	<li>Player leave notifications are no longer given based on private say/yell/tell messages through AdKats, all other action commands still result in a notification.</li>
+	<li>Kicks against yourself are no longer announced to the server.</li>
+	<li>Ticket rates in procon chat are now only displayed during an active round where ticket counts have changed, before they would still display during the pre-round phase.</li>
+	<li>Forgiving players into negative infraction point values is now blocked.</li>
+	<li>Replaced all mentions of @command in the plugin with !command.</li>
+	<li>Issuing the kill command on a player will now announce that action to the server like other actions do.</li>
+	<li>Removed messages about global timing fetch errors.</li>
+	<li>Removed the restrictions on player names which were in place for BF3. Now most characters can be used in player names. The unfortunate side of this is those characters still cause issue fetching from battlelog.</li>
+	<li>Changed population success notification to be a tell instead of a say.</li>
+	<li>The players ColColonCleaner and PhirePhrey are automatically added to reserved slots for any server running AdKats.</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+	<li>Fixed an issue where players could end up being infinitely queued for anti-cheat checks if their battlelog info was unavailable.</li>
+	<li>Fixed an issue where players would not get updated battlelog information after the first fetch was complete, specifically on new rounds.</li>
+	<li>Fixed an issue where players could end up being infinitely queued for IP info fetches if the server failed to respond, or if they left the server before it did.</li>
+	<li>Fixed an issue where errors were thrown because some player’s battlelog information exceeded the size of 32 bit integers, increased the size of those variables.</li>
+	<li>Fixed the DPS ban messages to contain the proper code 4 prefix.</li>
+	<li>Fixed the KPM ban messages to contain the proper code 5 prefix.</li>
+	<li>Fixed an issue where modifying a role's authorized commands would shoot you back to the top of the setting list. Basically now it waits a while before modifying the tags on those settings in the procon view.</li>
+	<li>Fixed an issue where allowing commands from muted players would allow them to simply place a command prefix in front of the message and it wouldn’t act on them. Now it confirms that the command is valid and exists.</li>
+	<li>Assist command timeout had incorrect calculations due to the duration of the command. This has been fixed.</li>
+	<li>Fixed an issue where sometimes players could spawn while a nuke is happening and remain alive.</li>
+	<li>Fixed some of the message formatting sent by the active round reports command.</li>
+	<li>Fixed an issue where surrender voting included spectators/commanders in the required player count calculation to surrender.</li>
+	<li>Fixed an issue where the populator monitor would not fetch updated populator players immediately when that section was enabled, it would have to wait for the next user list update (5 minute interval).</li>
+	<li>Fixed chat spam during off hours caused by the spambot, making sure that those messages are only visible in the chat tab when there are at least 5 players in the server.</li>
+	<li>Fixed issue where AFK player monitor would count all players (commanders/spectators) instead of just the active round players.</li>
+	<li>Fixed an issue where AdKats and some auto-balancer plugins could fight over where a player should be if an admin moved them. AdKats would never give up the fight for control of the player and that resulted in an infinite loop of swapping the player between teams. AdKats now gives up the fight if a players has 8 or more moves in 5 seconds.</li>
+	<li>Fixed an issue where a player who was previously assigned a team leaving the server would delete their assigned team, allowing them to join back and switch to their original team. AdKats now remembers their assigned team when the leave and rejoin during a single round.</li>
+	<li>Fixed an issue where using section 4-2 to add command target whitelist to a role would have no effect.</li>
+	<li>Fixed an issue where players were able to use the join command on themselves to get a free admin kill. They were also able to use this on a current squadmate for the same reason. These are now blocked.</li>
+	<li>Blocked usage of the join/pull commands from spectator and commander player types.</li>
+	<li>Fixed an issue where ‘previous’ bans could end up being imported into the plugin. The bans wouldn’t be issued again but it caused unnecessary processor work.</li>
+	<li>Fixed an issue where a player could be added to multiple users at the same time.</li>
+	<li>Fixed player fetch performance in several scenarios. Sometimes a player which was already loaded was still fetched from the database again.</li>
+	<li>Fixed a bug where admin assistants who were considered ‘grandfathered’ would cause fetching issues.</li>
+	<li>Fixed an issue where the spectator slot feed would attempt to add more than 15 players to the list. For some reason DICE added a 15 player limit to the spectator slot list. When you have more than 15 approved spectators now it just manually monitors the list and keeps the official spectator list empty.</li>
+	<li>Fixed a few error possibilities coming from the ping enforcer.</li>
+	<li>Fixed an error where comparing command input with player names could crash.</li>
+	<li>Removed extra message spam caused by the private messaging system.</li>
+	<li>Removed extra message spam caused by player say/yell/tell commands issued by external plugins.</li>
+	<li>Fixed shutdown durations in some cases, making sure threads automatically exit when you shut down the plugin.</li>
+	<li>Fixed an issue where battlelog going offline would cause a lot of errors to be thrown by the plugin. Now the plugin will wait at 30 second intervals and show warnings if battlelog is offline.</li>
+	<li>Fixed an issue where the admin assistant whitelist could be given to admin roles in section 4-2. That whitelist is not supposed to be used for admin roles.</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
 </blockquote>
