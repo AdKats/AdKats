@@ -95,7 +95,7 @@
         Automated kick system based on player AFK time, with manual kick command. Customizable durations, and option to ignore chat messages counting toward active time.
     </li>
     <li>
-        <b>Internal SpamBot with Whitelist.</b>
+        <b>SpamBot with Whitelist.</b>
         SpamBot with options for simultaneous say, yell, and tell. 
         Customizable intervals between each type of message, and ability to whitelist players/admins from seeing spambot messages.
         Rules can also be made map and mode specific.
@@ -161,7 +161,7 @@
         For example, you can issue AdKats punish commands from Insane Limits or ProconRulz and have them logged against the player's profile like any other admin command.
     </li>
     <li>
-        <b>Internal Implementation of TeamSwap.</b>
+        <b>TeamSwap.</b>
         Queued move system for servers that are consistently full, players can be queued to move to full teams once a slot opens.
     </li>
     <li>
@@ -794,7 +794,7 @@
     sent to the appropriate plugins. Add entries to that table with a given server ID, plugin name, plugin setting name,
     and setting value. AdKats will send those settings to the target plugins every 5 minutes.
 </p>
-<h3>Internal AntiCheat System with Whitelist</h3>
+<h3>AntiCheat System with Whitelist</h3>
 <p>
     The AntiCheat System is a system for automatically catching and acting
     on players with suspicious or impossible statistics.
@@ -913,9 +913,9 @@
     subset of role keys.
     Spectators are immune to AFK kicks.
 </p>
-<h3>Internal SpamBot with Whitelist</h3>
+<h3>SpamBot with Whitelist</h3>
 <p>
-    The internal SpamBot is much akin to that found in other plugins, with a few added bells and whistles.
+    The SpamBot is much akin to that found in other plugins, with a few added bells and whistles.
     Automatic messages can be set in separate lists for say, yell, and tell options.
     Each list has its own interval that can be customized, the defaults being 300, 600, and 900 seconds, respectively.
 </p>
@@ -3208,7 +3208,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <h3>A13-2. Ban Enforcer Settings:</h3>
 <ul>
     <li><b>'Use Ban Enforcer'</b> - 
-        Whether to use the internal AdKats Ban Enforcer.
+        Whether to use the AdKats Ban Enforcer.
     </li>
     <li><b>'Ban Enforcer BF4 Lenient Kick'</b> - 
         On BF4 a lot of players use DICE's new in-game server browser. The bad part of this is that nobody can see kick or ban reasons, they aren't displayed on the game UI. This setting allows the ban enforcer to spam a player with say and yell messages before they are ejected from the server so they know why they were banned. This comes with the side effect that people joining back after being banned may have a few seconds to use the chat window before they are ejected again. After 2 re-join attempts the lenient kick is automatically removed though, so people who take advantage of this should be handled regardless. Despite the handling, this setting is opt-in instead of opt-out.
@@ -3336,7 +3336,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         Number of minutes that the round will last before the current winning team wins (Will only work correctly in conquest/domination at the moment).
     </li>
 </ul>
-<h3>A18. Internal AntiCheat Settings:</h3>
+<h3>A18. AntiCheat Settings:</h3>
 <ul>
     <li><b>'Use LIVE Anti Cheat System'</b> - 
         The LIVE AntiCheat system looks at active statistics and between round statistics to bolster the abilities of the AntiCheat script. The only downside to this is that it issues more requests to battlelog.
@@ -3840,6 +3840,25 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Enable Team Power Seeder Control'</b> - 
         A basic seeder balancer using team power metrics and placements on the map. 
         Seeders are evenly balanced between teams, and when there is an odd number of seeders the extra seeder is placed on the more powerful team.
+    </li>
+</ul>
+<h3>B31. Weapon Limiter Settings:</h3>
+<ul>
+    <li><b>'Use NO EXPLOSIVES Limiter'</b> - 
+        Whether to enable the internal no explosives limiter.
+    </li>
+    <li><b>'NO EXPLOSIVES Weapon String'</b> - 
+        List of weapon codes or partial weapon codes that will cause punishment for a no explosive server.
+    </li>
+    <li><b>'NO EXPLOSIVES Exception String'</b> - 
+        Any weapon code or partial weapon code previously matched by 'no explosive weapon string' but also matching this setting, will block action on that item.
+        Useful for weapons like the ones ending in SHG, which in BF4 is the dart variant of the M26/M320.
+    </li>
+    <li><b>'Use Grenade Cook Catcher'</b> - 
+        When the no explosives limiter is enabled, having this setting also enabled will cause AdKats to monitor for grenade cookers.
+        In battlefield when you kill someone who is holding or throwing a grenade, the grenade becomes yours.
+        Some players will take advantage of this to get other players acted on by autoadmins on no explosive servers.
+        This script works to mitigate that problem.
     </li>
 </ul>
 <h3>D99. Debug Settings:</h3>
