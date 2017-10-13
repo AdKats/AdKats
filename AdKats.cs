@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.364
+ * Version 6.9.0.365
  * 13-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.364</version_code>
+ * <version_code>6.9.0.365</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.364";
+        private const String PluginVersion = "6.9.0.365";
 
         public enum GameVersion
         {
@@ -673,6 +673,7 @@ namespace PRoConEvents
 
         //AntiCheat
         private Boolean _useAntiCheatLIVESystem = true;
+        private Boolean _AntiCheatLIVESystemActiveStats = false;
         private Boolean _UseHskChecker;
         private Boolean _UseKpmChecker;
         private Double _HskTriggerLevel = 60.0;
@@ -913,7 +914,8 @@ namespace PRoConEvents
             AddSettingSection("B27", "Populator Monitor Settings - Thanks CMWGaming");
             AddSettingSection("B28", "Teamspeak Player Monitor Settings - Thanks CMWGaming");
             AddSettingSection("B29", "Discord Player Monitor Settings");
-            AddSettingSection("B30", "Team Power Monitor");
+            AddSettingSection("C30", "Team Power Monitor");
+            AddSettingSection("C31", "Weapon Limiter Section");
             AddSettingSection("D98", "Database Timing Mismatch");
             AddSettingSection("D99", "Debugging");
             AddSettingSection("X99", "Experimental");
@@ -2095,6 +2097,10 @@ namespace PRoConEvents
                 if (IsActiveSettingSection("A18"))
                 {
                     buildList.Add(new CPluginVariable(GetSettingSection("A18") + t + "Use LIVE Anti Cheat System", typeof(Boolean), _useAntiCheatLIVESystem));
+                    if (_useAntiCheatLIVESystem)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection("A18") + t + "LIVE System Includes Mass Murder and Aimbot Checks", typeof(Boolean), _AntiCheatLIVESystemActiveStats));
+                    }
                     buildList.Add(new CPluginVariable(GetSettingSection("A18") + t + "DPS Checker: Ban Message", typeof(String), _AntiCheatDPSBanMessage));
                     buildList.Add(new CPluginVariable(GetSettingSection("A18") + t + "HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
                     if (_UseHskChecker)
@@ -2512,7 +2518,7 @@ namespace PRoConEvents
         public void BuildTeamPowerSettings(List<CPluginVariable> lstReturn)
         {
             List<CPluginVariable> buildList = new List<CPluginVariable>();
-            var teamPowerSection = "B30";
+            var teamPowerSection = "C30";
             try
             {
                 if (IsActiveSettingSection(teamPowerSection))
@@ -2571,6 +2577,31 @@ namespace PRoConEvents
             }
         }
 
+        public void BuildWeaponLimiterSettings(List<CPluginVariable> lstReturn)
+        {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
+            var weaponLimiterSection = "C31";
+            try
+            {
+                if (IsActiveSettingSection(weaponLimiterSection))
+                {
+                    buildList.Add(new CPluginVariable(GetSettingSection(weaponLimiterSection) + t + "Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
+                    if (_UseWeaponLimiter)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(weaponLimiterSection) + t + "NO EXPLOSIVES Weapon String", typeof(String), _WeaponLimiterString));
+                        buildList.Add(new CPluginVariable(GetSettingSection(weaponLimiterSection) + t + "NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
+                        buildList.Add(new CPluginVariable(GetSettingSection(weaponLimiterSection) + t + "Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
+                    }
+                }
+                lstReturn.AddRange(buildList);
+            }
+            catch (Exception e)
+            {
+                HandleException(new AException("Error building weapon limiter section.", e));
+                lstReturn.Add(new CPluginVariable(GetSettingSection(weaponLimiterSection) + t + "Failed to build setting section.", typeof(String), ""));
+            }
+        }
+
         public void BuildDebugSettings(List<CPluginVariable> lstReturn)
         {
             List<CPluginVariable> buildList = new List<CPluginVariable>();
@@ -2611,13 +2642,6 @@ namespace PRoConEvents
                             buildList.Add(new CPluginVariable(GetSettingSection(ex) + t + "Send Query", typeof(String), ""));
                             buildList.Add(new CPluginVariable(GetSettingSection(ex) + t + "Send Non-Query", typeof(String), ""));
                         }
-                        buildList.Add(new CPluginVariable(GetSettingSection(ex) + t + "Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
-                        if (_UseWeaponLimiter)
-                        {
-                            buildList.Add(new CPluginVariable(GetSettingSection(ex) + t + "NO EXPLOSIVES Weapon String", typeof(String), _WeaponLimiterString));
-                            buildList.Add(new CPluginVariable(GetSettingSection(ex) + t + "NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
-                        }
-                        buildList.Add(new CPluginVariable(GetSettingSection(ex) + t + "Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                     }
                 }
                 lstReturn.AddRange(buildList);
@@ -5458,12 +5482,9 @@ namespace PRoConEvents
                         else
                         {
                             Log.Info("Experimental tools disabled.");
-                            _UseWeaponLimiter = false;
-                            _UseGrenadeCookCatcher = false;
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Experimental Tools", typeof(Boolean), _UseExperimentalTools));
-                        QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Round Timer: Enable").Success)
@@ -5611,16 +5632,16 @@ namespace PRoConEvents
                     if (useLimiter != _UseWeaponLimiter)
                     {
                         _UseWeaponLimiter = useLimiter;
-                        if (_UseWeaponLimiter)
+                        if (_threadsReady)
                         {
-                            if (_threadsReady)
+                            if (_UseWeaponLimiter)
                             {
                                 Log.Info("Internal NO EXPLOSIVES punish limit activated.");
                             }
-                        }
-                        else
-                        {
-                            Log.Info("Internal NO EXPLOSIVES punish limit disabled.");
+                            else
+                            {
+                                Log.Info("Internal NO EXPLOSIVES punish limit disabled.");
+                            }
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
@@ -6059,19 +6080,29 @@ namespace PRoConEvents
                     if (useLIVESystem != _useAntiCheatLIVESystem)
                     {
                         _useAntiCheatLIVESystem = useLIVESystem;
-                        if (_useAntiCheatLIVESystem)
+                        if (_threadsReady)
                         {
-                            if (_threadsReady)
+                            if (_useAntiCheatLIVESystem)
                             {
                                 Log.Info("AntiCheat now using the LIVE System.");
                             }
-                        }
-                        else
-                        {
-                            Log.Info("AntiCheat LIVE system disabled. This should ONLY be disabled if you are seeing 'Issue connecting to Battlelog' warnings.");
+                            else
+                            {
+                                Log.Info("AntiCheat LIVE system disabled. This should ONLY be disabled if you are seeing 'Issue connecting to Battlelog' warnings.");
+                            }
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use LIVE Anti Cheat System", typeof(Boolean), _useAntiCheatLIVESystem));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"LIVE System Includes Mass Murder and Aimbot Checks").Success)
+                {
+                    Boolean AntiCheatLIVESystemActiveStats = Boolean.Parse(strValue);
+                    if (AntiCheatLIVESystemActiveStats != _AntiCheatLIVESystemActiveStats)
+                    {
+                        _AntiCheatLIVESystemActiveStats = AntiCheatLIVESystemActiveStats;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"LIVE System Includes Mass Murder and Aimbot Checks", typeof(Boolean), _AntiCheatLIVESystemActiveStats));
                     }
                 }
                 else if (Regex.Match(strVariable, @"DPS Checker: Ban Message").Success)
@@ -8748,11 +8779,7 @@ namespace PRoConEvents
             try
             {
                 //SpamBot - Every 500ms
-                var playerCount = 0;
-                if (_PlayerDictionary.Any())
-                {
-                    playerCount = _PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer != null && aPlayer.player_type == PlayerType.Player);
-                }
+                var playerCount = GetPlayerCount();
                 if (_pluginEnabled &&
                     _spamBotEnabled &&
                     _firstPlayerListComplete &&
@@ -9045,10 +9072,7 @@ namespace PRoConEvents
                     {
                         restart = false;
                     }
-                    Int32 count = _PlayerDictionary.Values.ToList().Count(aPlayer =>
-                                    aPlayer.player_type == PlayerType.Player &&
-                                    NowDuration(aPlayer.lastAction).TotalMinutes < 30);
-                    if (restart && count > 1)
+                    if (restart && GetPlayerCount() >= 1)
                     {
                         restart = false;
                     }
@@ -9187,7 +9211,7 @@ namespace PRoConEvents
                         {
                             PlayerSayMessage(_debugSoldierName, message);
                         }
-                        else if (_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) > 5)
+                        else if (GetPlayerCount() > 5)
                         {
                             ProconChatWrite(Log.FBold(message));
                         }
@@ -9573,7 +9597,7 @@ namespace PRoConEvents
             try
             {
                 //Perform AFK processing
-                if (_AFKManagerEnable && _AFKAutoKickEnable && (_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) > _AFKTriggerMinimumPlayers))
+                if (_AFKManagerEnable && _AFKAutoKickEnable && GetPlayerCount() > _AFKTriggerMinimumPlayers)
                 {
                     //Double list conversion
                     List<APlayer> afkPlayers = _PlayerDictionary.Values.ToList().Where(aPlayer => (UtcNow() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes && aPlayer.player_type != PlayerType.Spectator && !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) - _AFKTriggerMinimumPlayers).ToList();
@@ -10612,8 +10636,8 @@ namespace PRoConEvents
                             }
 
                             // Build the move queue such that we don't try to move to a full team
-                            var currentTeam1Count = _PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.fbpInfo.TeamID == team1.TeamID && aPlayer.player_type == PlayerType.Player);
-                            var currentTeam2Count = _PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.fbpInfo.TeamID == team2.TeamID && aPlayer.player_type == PlayerType.Player);
+                            var currentTeam1Count = GetPlayerCount(true, true, true, 1);
+                            var currentTeam2Count = GetPlayerCount(true, true, true, 2);
                             var moveList = new Queue<AMove>();
                             while (movesToTeam1.Any() || movesToTeam2.Any())
                             {
@@ -10988,13 +11012,12 @@ namespace PRoConEvents
                             }
                         }
                     }
-                    var playerCount = _PlayerDictionary.Values.ToList().Count(dPlayer => dPlayer.player_type == PlayerType.Player);
                     if (_UseTeamPowerMonitorReassign &&
                         _firstPlayerListComplete &&
                         oldTeam.TeamKey == "Neutral" &&
                         _roundState == RoundState.Playing &&
                         aPlayer.RequiredTeam == null &&
-                        playerCount > 15 &&
+                        GetPlayerCount() > 15 &&
                         (aPlayer.GetPower(true) > 8 || aPlayer.fbpInfo.Rank > 25))
                     {
                         var startTime = UtcNow();
@@ -11573,7 +11596,7 @@ namespace PRoConEvents
                                                 !_pingEnforcerIgnoreRoles.Contains(aPlayer.player_role.role_key) &&
                                                 !(_pingEnforcerIgnoreUserList &&
                                                   FetchAllUserSoldiers().Any(sPlayer => sPlayer.player_guid == aPlayer.player_guid)) &&
-                                                _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) > _pingEnforcerTriggerMinimumPlayers)
+                                                GetPlayerCount() > _pingEnforcerTriggerMinimumPlayers)
                                             {
                                                 Double currentTriggerMS = GetPingLimit();
                                                 //Warn players of limit and spikes
@@ -11605,7 +11628,10 @@ namespace PRoConEvents
                                         {
                                             aPlayer.ClearPingEntries();
                                         }
-                                        if (_CMDRManagerEnable && _firstPlayerListComplete && (aPlayer.player_type == PlayerType.CommanderPC || aPlayer.player_type == PlayerType.CommanderMobile) && _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) < (0.75 * _CMDRMinimumPlayers))
+                                        if (_CMDRManagerEnable && 
+                                            _firstPlayerListComplete &&
+                                            (aPlayer.player_type == PlayerType.CommanderPC || aPlayer.player_type == PlayerType.CommanderMobile) &&
+                                            GetPlayerCount() < (0.75 * _CMDRMinimumPlayers))
                                         {
                                             ARecord record = new ARecord
                                             {
@@ -11883,7 +11909,10 @@ namespace PRoConEvents
                                             QueuePlayerForAntiCheatCheck(aPlayer);
                                         }
                                     }
-                                    if (_CMDRManagerEnable && _firstPlayerListComplete && (aPlayer.player_type == PlayerType.CommanderPC || aPlayer.player_type == PlayerType.CommanderMobile) && _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) < _CMDRMinimumPlayers)
+                                    if (_CMDRManagerEnable && 
+                                        _firstPlayerListComplete && 
+                                        (aPlayer.player_type == PlayerType.CommanderPC || aPlayer.player_type == PlayerType.CommanderMobile) &&
+                                        GetPlayerCount() < _CMDRMinimumPlayers)
                                     {
                                         ARecord record = new ARecord
                                         {
@@ -11926,11 +11955,11 @@ namespace PRoConEvents
                                 ATeam team1, team2;
                                 if (GetTeamByID(1, out team1))
                                 {
-                                    team1.UpdatePlayerCount(_PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.fbpInfo.TeamID == 1 && aPlayer.player_type == PlayerType.Player));
+                                    team1.UpdatePlayerCount(GetPlayerCount(true, true, true, 1));
                                 }
                                 if (GetTeamByID(2, out team2))
                                 {
-                                    team2.UpdatePlayerCount(_PlayerDictionary.Values.ToList().Count(aPlayer => aPlayer.fbpInfo.TeamID == 2 && aPlayer.player_type == PlayerType.Player));
+                                    team2.UpdatePlayerCount(GetPlayerCount(true, true, true, 2));
                                 }
                                 //Make sure the player dictionary is clean of any straglers
                                 Int32 straglerCount = 0;
@@ -12032,7 +12061,7 @@ namespace PRoConEvents
 
                             if (_firstPlayerListComplete)
                             {
-                                Int32 playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
+                                Int32 playerCount = GetPlayerCount();
                                 if (playerCount < _lowPopulationPlayerCount)
                                 {
                                     switch (_populationStatus)
@@ -12062,7 +12091,8 @@ namespace PRoConEvents
                                     {
                                         _populationPopulatingPlayers.Clear();
                                         _populationPopulating = true;
-                                        foreach (APlayer popPlayer in _PlayerDictionary.Values.Where(player => player.player_type == PlayerType.Player).ToList())
+                                        foreach (APlayer popPlayer in _PlayerDictionary.Values.ToList().Where(player => player.player_type == PlayerType.Player &&
+                                                                                                                        NowDuration(player.lastAction).TotalMinutes < 20).ToList())
                                         {
                                             _populationPopulatingPlayers[popPlayer.player_name] = popPlayer;
                                         }
@@ -12455,7 +12485,7 @@ namespace PRoConEvents
                             }
                             ATeam team1 = _teamDictionary[1];
                             ATeam team2 = _teamDictionary[2];
-                            if (_roundState == RoundState.Ended || !_pluginEnabled || _PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) <= 2)
+                            if (_roundState == RoundState.Ended || !_pluginEnabled || GetPlayerCount() <= 1)
                             {
                                 break;
                             }
@@ -12650,7 +12680,7 @@ namespace PRoConEvents
                             }
                             if (_DisplayTicketRatesInProconChat &&
                                 _roundState == RoundState.Playing &&
-                                _PlayerDictionary.Any() &&
+                                GetPlayerCount() >= 4 &&
                                 team1.TeamTicketCount != _startingTicketCount &&
                                 team2.TeamTicketCount != _startingTicketCount)
                             {
@@ -12933,7 +12963,7 @@ namespace PRoConEvents
                                         config_triggers_min = 5;
                                     }
 
-                                    int playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
+                                    int playerCount = GetPlayerCount();
                                     int neededPlayers = Math.Max(_surrenderAutoMinimumPlayers - playerCount, 0);
                                     var ticketGap = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount);
 
@@ -14967,14 +14997,17 @@ namespace PRoConEvents
                 //Add the kill
                 aKill.killer.LiveKills.Add(aKill);
 
-                if ((_serverInfo.ServerName.Contains("FPSG")) && _serverInfo.ServerType != "OFFICIAL")
+                if (_useAntiCheatLIVESystem && 
+                    _AntiCheatLIVESystemActiveStats &&
+                    _serverInfo.ServerType != "OFFICIAL" && 
+                    !PlayerProtected(aKill.killer))
                 {
                     //KPM check
                     Int32 lowCountRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
                     int lowCountBan =
                         ((_gameVersion == GameVersion.BF3) ? (25) : (20)) -
                         ((aKill.killer.fbpInfo.Rank <= 15) ? (6) : (0));
-                    if (lowCountRecent >= lowCountBan && !PlayerProtected(aKill.killer))
+                    if (lowCountRecent >= lowCountBan)
                     {
                         QueueRecordForProcessing(new ARecord
                         {
@@ -14994,7 +15027,7 @@ namespace PRoConEvents
                     int highCountBan =
                         ((_gameVersion == GameVersion.BF3) ? (40) : (32)) -
                         ((aKill.killer.fbpInfo.Rank <= 15) ? (8) : (0));
-                    if (highCountRecent >= highCountBan && !PlayerProtected(aKill.killer))
+                    if (highCountRecent >= highCountBan)
                     {
                         QueueRecordForProcessing(new ARecord
                         {
@@ -15012,9 +15045,9 @@ namespace PRoConEvents
                     }
 
                     //HSK Check
-                    Int32 lowKillCount = 20;
+                    Int32 lowKillCount = 22;
                     Double lowKillTriggerHSKP = 90;
-                    Int32 highKillCount = 45;
+                    Int32 highKillCount = 47;
                     Double highKillTriggerHSKP = 80;
                     if (_serverInfo.InfoObject.Map == "XP0_Metro" ||
                         _serverInfo.InfoObject.Map == "MP_Prison")
@@ -15041,7 +15074,7 @@ namespace PRoConEvents
                         {
                             actionMessage = _AntiCheatHSKBanMessage + " [LIVE][6-H-" + countAll + "-" + Math.Round(highKillHSKP) + "]";
                         }
-                        if (!String.IsNullOrEmpty(actionMessage) && !PlayerProtected(aKill.killer))
+                        if (!String.IsNullOrEmpty(actionMessage))
                         {
                             //Create ban record
                             QueueRecordForProcessing(new ARecord
@@ -15059,10 +15092,8 @@ namespace PRoConEvents
                             return;
                         }
                         if (highKillHSKP >= 75 &&
-                            !aKill.killer.TargetedRecords.Any(aRecord =>
-                                aRecord.record_message.Contains("non-sniper HSKP") &&
-                                (UtcNow() - aRecord.record_time).TotalMinutes <= 30) &&
-                            !PlayerProtected(aKill.killer))
+                            !aKill.killer.TargetedRecords.Any(aRecord => aRecord.record_message.Contains("non-sniper HSKP") &&
+                                                                         (UtcNow() - aRecord.record_time).TotalMinutes <= 30))
                         {
                             //Create report record
                             QueueRecordForProcessing(new ARecord
@@ -15442,7 +15473,7 @@ namespace PRoConEvents
                                         weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removePrefix.Length));
 
                                         //Record to boost rep for victim
-                                        if (_UseExperimentalTools && aKill.killer.IsLocked())
+                                        if (aKill.killer.IsLocked())
                                         {
                                             PlayerYellMessage(aKill.victim.player_name, aKill.killer.GetVerboseName() + " is currently locked from autoadmin actions for " + FormatTimeString(aKill.killer.GetLockRemaining(), 2) + ".");
                                         }
@@ -17379,7 +17410,8 @@ namespace PRoConEvents
                     Subset = AChatMessage.ChatSubset.Global,
                     Hidden = message.Trim().StartsWith("/"),
                     SubsetTeamID = -1,
-                    SubsetSquadID = -1
+                    SubsetSquadID = -1,
+                    Timestamp = UtcNow()
                 };
                 APlayer aPlayer;
                 if (_PlayerDictionary.TryGetValue(speaker, out aPlayer))
@@ -17412,7 +17444,8 @@ namespace PRoConEvents
                     Subset = AChatMessage.ChatSubset.Team,
                     Hidden = message.Trim().StartsWith("/"),
                     SubsetTeamID = teamId,
-                    SubsetSquadID = -1
+                    SubsetSquadID = -1,
+                    Timestamp = UtcNow()
                 };
                 APlayer aPlayer;
                 if (_PlayerDictionary.TryGetValue(speaker, out aPlayer))
@@ -17443,7 +17476,8 @@ namespace PRoConEvents
                     Subset = AChatMessage.ChatSubset.Squad,
                     Hidden = message.Trim().StartsWith("/"),
                     SubsetTeamID = teamId,
-                    SubsetSquadID = squadId
+                    SubsetSquadID = squadId,
+                    Timestamp = UtcNow()
                 };
                 HandleChat(chatMessage);
             }
@@ -19117,7 +19151,7 @@ namespace PRoConEvents
                                 }
                                 if (!_surrenderVoteActive)
                                 {
-                                    Int32 playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
+                                    Int32 playerCount = GetPlayerCount();
                                     if (playerCount < _surrenderVoteMinimumPlayerCount)
                                     {
                                         SendMessageToSource(record, _surrenderVoteMinimumPlayerCount + " players needed to start Surrender Vote. Current: " + playerCount);
@@ -19669,7 +19703,7 @@ namespace PRoConEvents
                                         record_source = ARecord.Sources.ServerCommand,
                                         record_access = ARecord.AccessMethod.HiddenExternal,
                                         source_name = "ProconAdmin",
-                                        record_time = UtcNow()
+                                        record_time = commandMessage.Timestamp
                                     };
                                 }
                                 else
@@ -19678,7 +19712,7 @@ namespace PRoConEvents
                                     {
                                         record_source = ARecord.Sources.InGame,
                                         source_name = commandMessage.Speaker,
-                                        record_time = UtcNow()
+                                        record_time = commandMessage.Timestamp
                                     };
                                     //Assign access method
                                     if (commandMessage.Hidden)
@@ -23559,7 +23593,10 @@ namespace PRoConEvents
                                         switch (targetSubset)
                                         {
                                             case "squad":
-                                                if (record.source_player == null || !record.source_player.player_online || !_PlayerDictionary.ContainsKey(record.source_player.player_name) || record.source_player.player_type == PlayerType.Spectator)
+                                                if (record.source_player == null || 
+                                                    !record.source_player.player_online || 
+                                                    !_PlayerDictionary.ContainsKey(record.source_player.player_name) || 
+                                                    record.source_player.player_type == PlayerType.Spectator)
                                                 {
                                                     SendMessageToSource(record, "Must be a player to use squad option. Unable to submit.");
                                                     FinalizeRecord(record);
@@ -23568,7 +23605,10 @@ namespace PRoConEvents
                                                 record.target_name = "Squad";
                                                 break;
                                             case "team":
-                                                if (record.source_player == null || !record.source_player.player_online || !_PlayerDictionary.ContainsKey(record.source_player.player_name) || record.source_player.player_type == PlayerType.Spectator)
+                                                if (record.source_player == null || 
+                                                    !record.source_player.player_online || 
+                                                    !_PlayerDictionary.ContainsKey(record.source_player.player_name) || 
+                                                    record.source_player.player_type == PlayerType.Spectator)
                                                 {
                                                     SendMessageToSource(record, "Must be a player to use team option. Unable to submit.");
                                                     FinalizeRecord(record);
@@ -23637,13 +23677,6 @@ namespace PRoConEvents
                             FinalizeRecord(record);
                             return;
                         }
-
-                        /*if ((_playerDictionary.Count + 1) >= _serverInfo.MaxPlayerCount)
-                        {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed without an open slot in the server to move players.");
-                            FinalizeRecord(record);
-                            return;
-                        }*/
 
                         record.target_name = "Everyone";
                         record.record_message = "TeamSwap All Players";
@@ -26216,7 +26249,7 @@ namespace PRoConEvents
                             if (_surrenderVoteList.Remove(record.source_name))
                             {
                                 SendMessageToSource(record, "Your vote has been removed!");
-                                Int32 requiredVotes = (Int32)((_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                                Int32 requiredVotes = (Int32)((GetPlayerCount() / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                                 OnlineAdminSayMessage(record.GetSourceName() + " removed their surrender vote.");
                                 AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use !" + GetCommandByKey("self_surrender").command_text + ", !" + GetCommandByKey("self_votenext").command_text + ", or !" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
@@ -28465,10 +28498,10 @@ namespace PRoConEvents
                         record.record_message += pointMessage;
                     }
 
-                    Boolean isLowPop = _OnlyKillOnLowPop && (_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) < _highPopulationPlayerCount);
+                    Boolean isLowPop = _OnlyKillOnLowPop && (GetPlayerCount() < _highPopulationPlayerCount);
                     Boolean iroOverride = record.isIRO && _IROOverridesLowPop && points >= _IROOverridesLowPopInfractions;
 
-                    Log.Debug(() => "Server low population: " + isLowPop + " (" + _PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) + " <? " + _highPopulationPlayerCount + ") | Override: " + iroOverride, 5);
+                    Log.Debug(() => "Server low population: " + isLowPop + " (" + GetPlayerCount() + " <? " + _highPopulationPlayerCount + ") | Override: " + iroOverride, 5);
 
                     //Call correct action
                     if (action == "repwarn")
@@ -32681,7 +32714,7 @@ namespace PRoConEvents
                 }
                 if (!_surrenderVoteActive)
                 {
-                    Int32 playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
+                    Int32 playerCount = GetPlayerCount();
                     if (playerCount < _surrenderVoteMinimumPlayerCount)
                     {
                         SendMessageToSource(record, _surrenderVoteMinimumPlayerCount + " players needed to start Surrender Vote. Current: " + playerCount);
@@ -32739,7 +32772,7 @@ namespace PRoConEvents
                 _nosurrenderVoteList.Remove(record.source_name);
                 //Add the vote
                 _surrenderVoteList.Add(record.source_name);
-                Int32 requiredVotes = (Int32)((_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                Int32 requiredVotes = (Int32)((GetPlayerCount() / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 if (voteCount >= requiredVotes)
                 {
@@ -32857,7 +32890,7 @@ namespace PRoConEvents
                 _surrenderVoteList.Remove(record.source_name);
                 //Add the vote
                 _nosurrenderVoteList.Add(record.source_name);
-                Int32 requiredVotes = (Int32)((_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                Int32 requiredVotes = (Int32)((GetPlayerCount() / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 SendMessageToSource(record, "You voted against ending the round!");
                 AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use !" + GetCommandByKey("self_surrender").command_text + ", !" + GetCommandByKey("self_votenext").command_text + ", or !" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
@@ -34120,9 +34153,11 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                if (_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) < _AFKTriggerMinimumPlayers)
+                if (GetPlayerCount() < _AFKTriggerMinimumPlayers)
                 {
                     SendMessageToSource(record, "Server contains less than " + _AFKTriggerMinimumPlayers + ", unable to kick AFK players.");
+                    FinalizeRecord(record);
+                    return;
                 }
                 List<APlayer> afkPlayers = _PlayerDictionary.Values.Where(aPlayer => (UtcNow() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes && aPlayer.player_type != PlayerType.Spectator && !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Values.Count(aPlayer => aPlayer.player_type == PlayerType.Player) - _AFKTriggerMinimumPlayers).ToList();
                 if (_AFKIgnoreUserList)
@@ -35880,6 +35915,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Active Server Name", typeof(String), _eventActiveServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Use LIVE Anti Cheat System", typeof(Boolean), _useAntiCheatLIVESystem));
+                QueueSettingForUpload(new CPluginVariable(@"LIVE System Includes Mass Murder and Aimbot Checks", typeof(Boolean), _AntiCheatLIVESystemActiveStats));
                 QueueSettingForUpload(new CPluginVariable(@"DPS Checker: Ban Message", typeof(String), _AntiCheatDPSBanMessage));
                 QueueSettingForUpload(new CPluginVariable(@"HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
                 QueueSettingForUpload(new CPluginVariable(@"HSK Checker: Trigger Level", typeof(Double), _HskTriggerLevel));
@@ -39711,8 +39747,8 @@ namespace PRoConEvents
                     newEnemyPower *= 1.1;
                 }
             }
-            var newFriendlyCount = _PlayerDictionary.Values.ToList().Count(dPlayer => dPlayer.fbpInfo.TeamID == friendlyTeam.TeamID && dPlayer.player_type == PlayerType.Player) - 1;
-            var newEnemyCount = _PlayerDictionary.Values.ToList().Count(dPlayer => dPlayer.fbpInfo.TeamID == enemyTeam.TeamID && dPlayer.player_type == PlayerType.Player) + 1;
+            var newFriendlyCount = GetPlayerCount(true, true, true, friendlyTeam.TeamID) - 1;
+            var newEnemyCount = GetPlayerCount(true, true, true, enemyTeam.TeamID) + 1;
             // Weed out bad assumptions
             // like a team being more powerful without someone on it
             newFriendlyPower = Math.Min(oldFriendlyPower, newFriendlyPower);
@@ -46823,7 +46859,7 @@ namespace PRoConEvents
             Int32 modifier = 0;
             Int32 hour = 0;
             String population = "Unknown";
-            if (_PlayerDictionary.Any() && _PlayerDictionary.Values.ToList().Count(player => player.player_type == PlayerType.Player) >= _serverInfo.InfoObject.MaxPlayerCount - 1)
+            if (GetPlayerCount() >= _serverInfo.InfoObject.MaxPlayerCount - 1)
             {
                 baseTrigger = (Int32)_pingEnforcerFullTriggerMS;
                 hour = DateTime.Now.Hour;
@@ -46861,7 +46897,7 @@ namespace PRoConEvents
         private Double GetPingLimit()
         {
             Double currentTriggerMS = 1000;
-            if (_PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) >= _serverInfo.InfoObject.MaxPlayerCount - 1)
+            if (GetPlayerCount() >= _serverInfo.InfoObject.MaxPlayerCount - 1)
             {
                 currentTriggerMS = _pingEnforcerFullTriggerMS + _pingEnforcerFullTimeModifier[DateTime.Now.Hour];
             }
@@ -46961,6 +46997,8 @@ namespace PRoConEvents
                 ExecuteCommand("procon.protected.send", "admin.kickPlayer", aPlayer.player_name, message);
             }
         }
+
+        // HELPERS
 
         // Credit Jon Skeet
         public static DateTime GetNextWeekday(DateTime start, DayOfWeek day)
@@ -47103,6 +47141,43 @@ namespace PRoConEvents
                 }
             }
             return d[n, m];
+        }
+
+        private Int32 GetPlayerCount()
+        {
+            return GetPlayerCount(true, true, true, null);
+        }
+
+        private Int32 GetPlayerCount(Boolean excludeCommanders, Boolean excludeSpectators, Boolean excludeSeeders, Int32? TeamID)
+        {
+            try
+            {
+                var players = _PlayerDictionary.Values.ToList().Where(aPlayer => aPlayer != null);
+                if (excludeCommanders)
+                {
+                    players = players.Where(aPlayer => aPlayer.player_type != PlayerType.CommanderMobile && 
+                                                       aPlayer.player_type != PlayerType.CommanderPC);
+                }
+                if (excludeSpectators)
+                {
+                    players = players.Where(aPlayer => aPlayer.player_type != PlayerType.Spectator);
+                }
+                if (excludeSeeders)
+                {
+                    players = players.Where(aPlayer => NowDuration(aPlayer.lastAction).TotalMinutes < 20);
+                }
+                if (TeamID != null)
+                {
+                    players = players.Where(aPlayer => aPlayer.fbpInfo != null && 
+                                                       aPlayer.fbpInfo.TeamID == TeamID);
+                }
+                return players.Count();
+            }
+            catch (Exception e)
+            {
+                HandleException(new AException("Error while fetching player count.", e));
+            }
+            return 0;
         }
 
         //parses single word or number parameters out of a String until param count is reached
@@ -50035,6 +50110,7 @@ namespace PRoConEvents
             public Boolean Hidden;
             public Int32 SubsetTeamID;
             public Int32 SubsetSquadID;
+            public DateTime Timestamp;
         }
 
         public class ARole
