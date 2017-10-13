@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.360
- * 11-OCT-2017
+ * Version 6.9.0.361
+ * 12-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.360</version_code>
+ * <version_code>6.9.0.361</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.360";
+        private const String PluginVersion = "6.9.0.361";
 
         public enum GameVersion
         {
@@ -9005,7 +9005,7 @@ namespace PRoConEvents
             }
         }
 
-        private void RunStatPurgeMonitor()
+        private void RunPurgeMonitor()
         {
             try
             {
@@ -9014,11 +9014,12 @@ namespace PRoConEvents
                     _firstPlayerListComplete)
                 {
                     PurgeExtendedRoundStats();
+                    PurgeOutdatedExceptions();
                 }
             }
             catch (Exception e)
             {
-                HandleException(new AException("Error running stat purge monitor.", e));
+                HandleException(new AException("Error running purge monitor.", e));
             }
         }
 
@@ -9714,7 +9715,7 @@ namespace PRoConEvents
                             if (NowDuration(_LastVeryLongKeepAliveCheck).TotalMinutes > 10.0)
                             {
 
-                                RunStatPurgeMonitor();
+                                RunPurgeMonitor();
 
                                 RunAutomaticRestartMonitor();
 
@@ -31525,6 +31526,32 @@ namespace PRoConEvents
             Log.Debug(() => "Exiting PurgeExtendedRoundStats", 6);
         }
 
+        public void PurgeOutdatedExceptions()
+        {
+            Log.Debug(() => "Entering PurgeOutdatedExceptions", 6);
+            try
+            {
+                //Purge all extended round stats older than 60 days
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"delete from adkats_records_debug where record_time < '2017-10-12'";
+                        Int32 affectedRows = SafeExecuteNonQuery(command);
+                        if (affectedRows > 0)
+                        {
+                            Log.Debug(() => "Purged " + affectedRows + " debug records older than current stable version.", 5);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AException("Error while purging outdated exceptions.", e));
+            }
+            Log.Debug(() => "Exiting PurgeOutdatedExceptions", 6);
+        }
+
         public void RestartLevel(ARecord record)
         {
             Log.Debug(() => "Entering restartLevel", 6);
@@ -52092,9 +52119,10 @@ namespace PRoConEvents
                                     validChannels.Add(ID);
                                     if (!Channels.TryGetValue(ID, out builtChannel))
                                     {
-                                        builtChannel = new DiscordChannel();
-                                        builtChannel.ID = ID;
-                                        Channels[builtChannel.ID] = builtChannel;
+                                        Channels[ID] = new DiscordChannel()
+                                        {
+                                            ID = ID
+                                        };
                                     }
                                     builtChannel.Name = (String)channel["name"];
                                     builtChannel.Position = Int32.Parse(channel["position"].ToString());
@@ -52270,7 +52298,7 @@ namespace PRoConEvents
                                     }
                                 }
                                 //Remove all old channels
-                                List<String> removeMemberIDs = Members.Keys.Where(ID => !validMembers.Contains(ID) && !String.IsNullOrEmpty(ID)).ToList();
+                                List<String> removeMemberIDs = Members.Keys.ToList().Where(ID => !String.IsNullOrEmpty(ID) && !validMembers.Contains(ID)).ToList();
                                 foreach (String removeID in removeMemberIDs)
                                 {
                                     Members.Remove(removeID);
