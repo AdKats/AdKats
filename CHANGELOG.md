@@ -953,6 +953,7 @@ Added small improvements to fuzzy player match response text.</li>
 	<li>Fixed shutdown durations in some cases, making sure threads automatically exit when you shut down the plugin.</li>
 	<li>Fixed an issue where battlelog going offline would cause a lot of errors to be thrown by the plugin. Now the plugin will wait at 30 second intervals and show warnings if battlelog is offline.</li>
 	<li>Fixed an issue where the admin assistant whitelist could be given to admin roles in section 4-2. That whitelist is not supposed to be used for admin roles.</li>
+	<li>Fixed an issue where the !help command would return commands which were supposed to be background commands.</li>
 </ul>
 <b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
 <ul>
