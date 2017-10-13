@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.370
+ * Version 6.9.0.371
  * 13-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.370</version_code>
+ * <version_code>6.9.0.371</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.370";
+        private const String PluginVersion = "6.9.0.371";
 
         public enum GameVersion
         {
@@ -901,7 +901,7 @@ namespace PRoConEvents
             AddSettingSection("A16", "Orchestration Settings");
             AddSettingSection("A17", "Round Settings");
             AddSettingSection("A17-2", "Round Faction Randomizer Settings - Thanks FPSG");
-            AddSettingSection("A18", "Internal AntiCheat Settings");
+            AddSettingSection("A18", "AntiCheat Settings");
             AddSettingSection("A19", "Server Rules Settings");
             AddSettingSection("B20", "AFK Settings");
             AddSettingSection("B21", "Ping Enforcer Settings");
@@ -915,7 +915,7 @@ namespace PRoConEvents
             AddSettingSection("B28", "Teamspeak Player Monitor Settings - Thanks CMWGaming");
             AddSettingSection("B29", "Discord Player Monitor Settings");
             AddSettingSection("C30", "Team Power Monitor");
-            AddSettingSection("C31", "Weapon Limiter Section");
+            AddSettingSection("C31", "Weapon Limiter Settings");
             AddSettingSection("D98", "Database Timing Mismatch");
             AddSettingSection("D99", "Debugging");
             AddSettingSection("X99", "Experimental");
@@ -2836,6 +2836,8 @@ namespace PRoConEvents
                     BuildDiscordSettings(lstReturn);
 
                     BuildTeamPowerSettings(lstReturn);
+
+                    BuildWeaponLimiterSettings(lstReturn);
 
                     BuildDebugSettings(lstReturn);
 
@@ -5504,12 +5506,12 @@ namespace PRoConEvents
                         {
                             if (_threadsReady)
                             {
-                                Log.Info("Internal Round Timer activated, will enable on next round.");
+                                Log.Info("Round Timer activated, will enable on next round.");
                             }
                         }
                         else
                         {
-                            Log.Info("Internal Round Timer disabled.");
+                            Log.Info("Round Timer disabled.");
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof(Boolean), _useRoundTimer));
@@ -5637,11 +5639,11 @@ namespace PRoConEvents
                         {
                             if (_UseWeaponLimiter)
                             {
-                                Log.Info("Internal NO EXPLOSIVES punish limit activated.");
+                                Log.Info("NO EXPLOSIVES punish limit activated.");
                             }
                             else
                             {
-                                Log.Info("Internal NO EXPLOSIVES punish limit disabled.");
+                                Log.Info("NO EXPLOSIVES punish limit disabled.");
                             }
                         }
                         //Once setting has been changed, upload the change to database
@@ -5754,12 +5756,12 @@ namespace PRoConEvents
                         {
                             if (_threadsReady)
                             {
-                                Log.Info("Internal Grenade Cook Catcher activated.");
+                                Log.Info("Grenade Cook Catcher activated.");
                             }
                         }
                         else
                         {
-                            Log.Info("Internal Grenade Cook Catcher disabled.");
+                            Log.Info("Grenade Cook Catcher disabled.");
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
@@ -6143,12 +6145,12 @@ namespace PRoConEvents
                         {
                             if (_threadsReady)
                             {
-                                Log.Info("Internal Aimbot Checker activated.");
+                                Log.Info("Aimbot Checker activated.");
                             }
                         }
                         else
                         {
-                            Log.Info("Internal Aimbot Checker disabled.");
+                            Log.Info("Aimbot Checker disabled.");
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
@@ -6196,12 +6198,12 @@ namespace PRoConEvents
                         {
                             if (_threadsReady)
                             {
-                                Log.Info("Internal KPM Checker activated.");
+                                Log.Info("KPM Checker activated.");
                             }
                         }
                         else
                         {
-                            Log.Info("Internal KPM Checker disabled.");
+                            Log.Info("KPM Checker disabled.");
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"KPM Checker: Enable", typeof(Boolean), _UseKpmChecker));
@@ -7453,12 +7455,12 @@ namespace PRoConEvents
                         {
                             if (_threadsReady)
                             {
-                                Log.Info("Internal Automatic Report Handler activated.");
+                                Log.Info("Automatic Report Handler activated.");
                             }
                         }
                         else
                         {
-                            Log.Info("Internal Automatic Report Handler disabled.");
+                            Log.Info("Automatic Report Handler disabled.");
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
@@ -8683,7 +8685,7 @@ namespace PRoConEvents
                         Log.Warn(MBUsed + "MB estimated memory used.");
                         QueueRecordForProcessing(new ARecord
                         {
-                            record_source = ARecord.Sources.InternalAutomated,
+                            record_source = ARecord.Sources.Automated,
                             server_id = _serverInfo.ServerID,
                             command_type = GetCommandByKey("plugin_restart"),
                             command_numeric = 0,
@@ -9099,7 +9101,7 @@ namespace PRoConEvents
                     {
                         QueueRecordForProcessing(new ARecord
                         {
-                            record_source = ARecord.Sources.InternalAutomated,
+                            record_source = ARecord.Sources.Automated,
                             server_id = _serverInfo.ServerID,
                             command_type = GetCommandByKey("server_shutdown"),
                             target_name = "Server",
@@ -9186,7 +9188,7 @@ namespace PRoConEvents
                     //Create report record
                     QueueRecordForProcessing(new ARecord
                     {
-                        record_source = ARecord.Sources.InternalAutomated,
+                        record_source = ARecord.Sources.Automated,
                         server_id = _serverInfo.ServerID,
                         command_type = GetCommandByKey("player_report"),
                         command_numeric = 0,
@@ -9315,7 +9317,7 @@ namespace PRoConEvents
                         }
                         QueueRecordForProcessing(new ARecord
                         {
-                            record_source = ARecord.Sources.InternalAutomated,
+                            record_source = ARecord.Sources.Automated,
                             server_id = _serverInfo.ServerID,
                             command_type = GetCommandByKey("poll_trigger"),
                             command_numeric = 0,
@@ -9384,7 +9386,7 @@ namespace PRoConEvents
                         {
                             var assistRecord = new ARecord
                             {
-                                record_source = ARecord.Sources.InternalAutomated,
+                                record_source = ARecord.Sources.Automated,
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("self_assist"),
                                 command_action = GetCommandByKey("self_assist_unconfirmed"),
@@ -9635,7 +9637,7 @@ namespace PRoConEvents
                         Log.Debug(() => "Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
                         ARecord record = new ARecord
                         {
-                            record_source = ARecord.Sources.InternalAutomated,
+                            record_source = ARecord.Sources.Automated,
                             server_id = _serverInfo.ServerID,
                             command_type = GetCommandByKey("player_kick"),
                             command_numeric = 0,
@@ -11457,7 +11459,7 @@ namespace PRoConEvents
                                         {
                                             QueueRecordForProcessing(new ARecord
                                             {
-                                                record_source = ARecord.Sources.InternalAutomated,
+                                                record_source = ARecord.Sources.Automated,
                                                 server_id = partner.player_server.ServerID,
                                                 record_orchestrate = true,
                                                 command_type = GetCommandByKey("player_pm_cancel"),
@@ -11654,7 +11656,7 @@ namespace PRoConEvents
                                         {
                                             ARecord record = new ARecord
                                             {
-                                                record_source = ARecord.Sources.InternalAutomated,
+                                                record_source = ARecord.Sources.Automated,
                                                 server_id = _serverInfo.ServerID,
                                                 command_type = GetCommandByKey("player_kick"),
                                                 command_numeric = 0,
@@ -11684,7 +11686,7 @@ namespace PRoConEvents
                                                 aPlayer.player_name = playerInfo.SoldierName;
                                                 ARecord record = new ARecord
                                                 {
-                                                    record_source = ARecord.Sources.InternalAutomated,
+                                                    record_source = ARecord.Sources.Automated,
                                                     server_id = _serverInfo.ServerID,
                                                     command_type = GetCommandByKey("player_changename"),
                                                     command_numeric = 0,
@@ -11838,7 +11840,7 @@ namespace PRoConEvents
                                             {
                                                 ARecord record = new ARecord
                                                 {
-                                                    record_source = ARecord.Sources.InternalAutomated,
+                                                    record_source = ARecord.Sources.Automated,
                                                     server_id = _serverInfo.ServerID,
                                                     command_type = GetCommandByKey("player_kick"),
                                                     command_numeric = 0,
@@ -11856,7 +11858,7 @@ namespace PRoConEvents
                                             {
                                                 ARecord record = new ARecord
                                                 {
-                                                    record_source = ARecord.Sources.InternalAutomated,
+                                                    record_source = ARecord.Sources.Automated,
                                                     server_id = _serverInfo.ServerID,
                                                     command_type = GetCommandByKey("player_kick"),
                                                     command_numeric = 0,
@@ -11935,7 +11937,7 @@ namespace PRoConEvents
                                     {
                                         ARecord record = new ARecord
                                         {
-                                            record_source = ARecord.Sources.InternalAutomated,
+                                            record_source = ARecord.Sources.Automated,
                                             server_id = _serverInfo.ServerID,
                                             command_type = GetCommandByKey("player_kick"),
                                             command_numeric = 0,
@@ -11998,7 +12000,7 @@ namespace PRoConEvents
                                             {
                                                 QueueRecordForProcessing(new ARecord
                                                 {
-                                                    record_source = ARecord.Sources.InternalAutomated,
+                                                    record_source = ARecord.Sources.Automated,
                                                     server_id = partner.player_server.ServerID,
                                                     record_orchestrate = true,
                                                     command_type = GetCommandByKey("player_pm_cancel"),
@@ -12044,7 +12046,7 @@ namespace PRoConEvents
                                 {
                                     ARecord record = new ARecord
                                     {
-                                        record_source = ARecord.Sources.InternalAutomated,
+                                        record_source = ARecord.Sources.Automated,
                                         isDebug = true,
                                         server_id = _serverInfo.ServerID,
                                         command_type = GetCommandByKey("player_calladmin"),
@@ -12170,7 +12172,7 @@ namespace PRoConEvents
                                         {
                                             QueueRecordForProcessing(new ARecord
                                             {
-                                                record_source = ARecord.Sources.InternalAutomated,
+                                                record_source = ARecord.Sources.Automated,
                                                 server_id = _serverInfo.ServerID,
                                                 command_type = GetCommandByKey("player_population_success"),
                                                 command_numeric = 0,
@@ -12194,7 +12196,7 @@ namespace PRoConEvents
                         {
                             ARecord record = new ARecord
                             {
-                                record_source = ARecord.Sources.InternalAutomated,
+                                record_source = ARecord.Sources.Automated,
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("player_kick"),
                                 command_numeric = 0,
@@ -12304,7 +12306,7 @@ namespace PRoConEvents
                             Log.Debug(() => aPlayer.GetVerboseName() + " changed their IP from " + aPlayer.player_ip + " to " + player_ip + ". Updating the database.", 2);
                             ARecord record = new ARecord
                             {
-                                record_source = ARecord.Sources.InternalAutomated,
+                                record_source = ARecord.Sources.Automated,
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("player_changeip"),
                                 command_numeric = 0,
@@ -13180,7 +13182,7 @@ namespace PRoConEvents
                                                     _PlayersAutoAssistedThisRound = true;
                                                     QueueRecordForProcessing(new ARecord
                                                     {
-                                                        record_source = ARecord.Sources.InternalAutomated,
+                                                        record_source = ARecord.Sources.Automated,
                                                         server_id = _serverInfo.ServerID,
                                                         command_type = GetCommandByKey("self_assist"),
                                                         command_action = GetCommandByKey("self_assist_unconfirmed"),
@@ -13265,7 +13267,7 @@ namespace PRoConEvents
                                             string autoNukeMessage = _surrenderAutoNukeMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
                                             QueueRecordForProcessing(new ARecord
                                             {
-                                                record_source = ARecord.Sources.InternalAutomated,
+                                                record_source = ARecord.Sources.Automated,
                                                 server_id = _serverInfo.ServerID,
                                                 command_type = GetCommandByKey("server_nuke"),
                                                 command_numeric = baserapingTeam.TeamID,
@@ -13279,7 +13281,7 @@ namespace PRoConEvents
                                         {
                                             QueueRecordForProcessing(new ARecord
                                             {
-                                                record_source = ARecord.Sources.InternalAutomated,
+                                                record_source = ARecord.Sources.Automated,
                                                 server_id = _serverInfo.ServerID,
                                                 command_type = GetCommandByKey("self_votenext"),
                                                 command_numeric = 0,
@@ -13308,7 +13310,7 @@ namespace PRoConEvents
                                                     _threadMasterWaitHandle.WaitOne(1000 * _YellDuration);
                                                     ARecord repRecord = new ARecord
                                                     {
-                                                        record_source = ARecord.Sources.InternalAutomated,
+                                                        record_source = ARecord.Sources.Automated,
                                                         server_id = _serverInfo.ServerID,
                                                         command_type = GetCommandByKey("round_end"),
                                                         command_numeric = baserapingTeam.TeamID,
@@ -14842,7 +14844,7 @@ namespace PRoConEvents
                         {
                             QueueRecordForProcessing(new ARecord
                             {
-                                record_source = ARecord.Sources.InternalAutomated,
+                                record_source = ARecord.Sources.Automated,
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("player_kill"),
                                 command_numeric = _roundID,
@@ -14861,7 +14863,7 @@ namespace PRoConEvents
                         {
                             QueueRecordForProcessing(new ARecord
                             {
-                                record_source = ARecord.Sources.InternalAutomated,
+                                record_source = ARecord.Sources.Automated,
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("player_kill"),
                                 command_numeric = _roundID,
@@ -14889,7 +14891,7 @@ namespace PRoConEvents
                                 {
                                     QueueRecordForProcessing(new ARecord
                                     {
-                                        record_source = ARecord.Sources.InternalAutomated,
+                                        record_source = ARecord.Sources.Automated,
                                         server_id = _serverInfo.ServerID,
                                         command_type = GetCommandByKey("player_kill"),
                                         command_numeric = _roundID,
@@ -14910,7 +14912,7 @@ namespace PRoConEvents
                                 {
                                     QueueRecordForProcessing(new ARecord
                                     {
-                                        record_source = ARecord.Sources.InternalAutomated,
+                                        record_source = ARecord.Sources.Automated,
                                         server_id = _serverInfo.ServerID,
                                         command_type = GetCommandByKey("player_kill"),
                                         command_numeric = _roundID,
@@ -15030,7 +15032,7 @@ namespace PRoConEvents
                     {
                         QueueRecordForProcessing(new ARecord
                         {
-                            record_source = ARecord.Sources.InternalAutomated,
+                            record_source = ARecord.Sources.Automated,
                             server_id = _serverInfo.ServerID,
                             command_type = GetCommandByKey("player_ban_perm"),
                             command_numeric = 0,
@@ -15050,7 +15052,7 @@ namespace PRoConEvents
                     {
                         QueueRecordForProcessing(new ARecord
                         {
-                            record_source = ARecord.Sources.InternalAutomated,
+                            record_source = ARecord.Sources.Automated,
                             server_id = _serverInfo.ServerID,
                             command_type = GetCommandByKey("player_ban_perm"),
                             command_numeric = 0,
@@ -15098,7 +15100,7 @@ namespace PRoConEvents
                             //Create ban record
                             QueueRecordForProcessing(new ARecord
                             {
-                                record_source = ARecord.Sources.InternalAutomated,
+                                record_source = ARecord.Sources.Automated,
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("player_ban_perm"),
                                 command_numeric = 0,
@@ -15117,7 +15119,7 @@ namespace PRoConEvents
                             //Create report record
                             QueueRecordForProcessing(new ARecord
                             {
-                                record_source = ARecord.Sources.InternalAutomated,
+                                record_source = ARecord.Sources.Automated,
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("player_report"),
                                 command_numeric = 0,
@@ -15169,7 +15171,7 @@ namespace PRoConEvents
                     {
                         QueueRecordForProcessing(new ARecord
                         {
-                            record_source = ARecord.Sources.InternalAutomated,
+                            record_source = ARecord.Sources.Automated,
                             server_id = _serverInfo.ServerID,
                             command_type = GetCommandByKey("player_ban_perm"),
                             command_numeric = 0,
@@ -15208,7 +15210,7 @@ namespace PRoConEvents
                     {
                         QueueRecordForProcessing(new ARecord
                         {
-                            record_source = ARecord.Sources.InternalAutomated,
+                            record_source = ARecord.Sources.Automated,
                             server_id = _serverInfo.ServerID,
                             command_type = GetCommandByKey("player_ban_perm"),
                             command_numeric = 0,
@@ -15314,7 +15316,7 @@ namespace PRoConEvents
                                                 //Create the punish record
                                                 ARecord record = new ARecord
                                                 {
-                                                    record_source = ARecord.Sources.InternalAutomated,
+                                                    record_source = ARecord.Sources.Automated,
                                                     server_id = _serverInfo.ServerID,
                                                     command_type = GetCommandByKey("player_punish"),
                                                     command_numeric = 0,
@@ -15356,7 +15358,7 @@ namespace PRoConEvents
                                         //Create the ban record
                                         ARecord record = new ARecord
                                         {
-                                            record_source = ARecord.Sources.InternalAutomated,
+                                            record_source = ARecord.Sources.Automated,
                                             server_id = _serverInfo.ServerID,
                                             command_type = GetCommandByKey("player_punish"),
                                             command_numeric = 0,
@@ -15382,7 +15384,7 @@ namespace PRoConEvents
                                             //Create the report record
                                             ARecord record = new ARecord
                                             {
-                                                record_source = ARecord.Sources.InternalAutomated,
+                                                record_source = ARecord.Sources.Automated,
                                                 server_id = _serverInfo.ServerID,
                                                 command_type = GetCommandByKey("player_report"),
                                                 command_numeric = 0,
@@ -15403,7 +15405,7 @@ namespace PRoConEvents
                                             //Create the report record
                                             ARecord record = new ARecord
                                             {
-                                                record_source = ARecord.Sources.InternalAutomated,
+                                                record_source = ARecord.Sources.Automated,
                                                 server_id = _serverInfo.ServerID,
                                                 command_type = GetCommandByKey("player_report"),
                                                 command_numeric = 0,
@@ -15450,7 +15452,7 @@ namespace PRoConEvents
                                 }
                                 QueueRecordForProcessing(new ARecord
                                 {
-                                    record_source = ARecord.Sources.InternalAutomated,
+                                    record_source = ARecord.Sources.Automated,
                                     server_id = _serverInfo.ServerID,
                                     command_type = aCommand,
                                     command_numeric = _roundID,
@@ -15502,7 +15504,7 @@ namespace PRoConEvents
                                         }
                                         ARecord repRecord = new ARecord
                                         {
-                                            record_source = ARecord.Sources.InternalAutomated,
+                                            record_source = ARecord.Sources.Automated,
                                             server_id = _serverInfo.ServerID,
                                             command_type = GetCommandByKey("player_repboost"),
                                             command_numeric = 0,
@@ -15519,7 +15521,7 @@ namespace PRoConEvents
                                             //Create the punish record
                                             ARecord record = new ARecord
                                             {
-                                                record_source = ARecord.Sources.InternalAutomated,
+                                                record_source = ARecord.Sources.Automated,
                                                 server_id = _serverInfo.ServerID,
                                                 command_type = GetCommandByKey("player_punish"),
                                                 command_numeric = 0,
@@ -15846,7 +15848,7 @@ namespace PRoConEvents
                     {
                         QueueRecordForProcessing(new ARecord
                         {
-                            record_source = ARecord.Sources.InternalAutomated,
+                            record_source = ARecord.Sources.Automated,
                             server_id = _serverInfo.ServerID,
                             command_type = GetCommandByKey("player_forgive"),
                             command_numeric = 0,
@@ -16185,7 +16187,7 @@ namespace PRoConEvents
                                         //Found specific ban
                                         QueueRecordForProcessing(new ARecord
                                         {
-                                            record_source = ARecord.Sources.InternalAutomated,
+                                            record_source = ARecord.Sources.Automated,
                                             source_name = "BanEnforcer",
                                             isIRO = false,
                                             server_id = _serverInfo.ServerID,
@@ -16211,7 +16213,7 @@ namespace PRoConEvents
                                             //Queue record for upload
                                             QueueRecordForProcessing(new ARecord
                                             {
-                                                record_source = ARecord.Sources.InternalAutomated,
+                                                record_source = ARecord.Sources.Automated,
                                                 source_name = "BanEnforcer",
                                                 isIRO = false,
                                                 server_id = _serverInfo.ServerID,
@@ -16785,7 +16787,7 @@ namespace PRoConEvents
                                     Log.Warn(String.Join(", ", aPlayer.LiveKills.Select(aKill => aKill.weaponCode).ToArray()));
                                     QueueRecordForProcessing(new ARecord
                                     {
-                                        record_source = ARecord.Sources.InternalAutomated,
+                                        record_source = ARecord.Sources.Automated,
                                         server_id = _serverInfo.ServerID,
                                         command_type = GetCommandByKey("player_ban_perm"),
                                         command_numeric = 0,
@@ -16956,7 +16958,7 @@ namespace PRoConEvents
                                                     //Create the ban record
                                                     QueueRecordForProcessing(new ARecord
                                                     {
-                                                        record_source = ARecord.Sources.InternalAutomated,
+                                                        record_source = ARecord.Sources.Automated,
                                                         server_id = _serverInfo.ServerID,
                                                         command_type = GetCommandByKey("player_ban_perm"),
                                                         command_numeric = 0,
@@ -17052,7 +17054,7 @@ namespace PRoConEvents
                                         //Create the ban record
                                         ARecord record = new ARecord
                                         {
-                                            record_source = ARecord.Sources.InternalAutomated,
+                                            record_source = ARecord.Sources.Automated,
                                             server_id = _serverInfo.ServerID,
                                             command_type = GetCommandByKey("player_ban_perm"),
                                             command_numeric = 0,
@@ -17086,7 +17088,7 @@ namespace PRoConEvents
                             //Create the ban record
                             ARecord record = new ARecord
                             {
-                                record_source = ARecord.Sources.InternalAutomated,
+                                record_source = ARecord.Sources.Automated,
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("player_ban_perm"),
                                 command_numeric = 0,
@@ -17240,7 +17242,7 @@ namespace PRoConEvents
                                         //Create the ban record
                                         ARecord record = new ARecord
                                         {
-                                            record_source = ARecord.Sources.InternalAutomated,
+                                            record_source = ARecord.Sources.Automated,
                                             server_id = _serverInfo.ServerID,
                                             command_type = GetCommandByKey("player_ban_perm"),
                                             command_numeric = 0,
@@ -17274,7 +17276,7 @@ namespace PRoConEvents
                             //Create the ban record
                             ARecord record = new ARecord
                             {
-                                record_source = ARecord.Sources.InternalAutomated,
+                                record_source = ARecord.Sources.Automated,
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("player_ban_perm"),
                                 command_numeric = 0,
@@ -17393,7 +17395,7 @@ namespace PRoConEvents
                         //Create the ban record
                         ARecord record = new ARecord
                         {
-                            record_source = ARecord.Sources.InternalAutomated,
+                            record_source = ARecord.Sources.Automated,
                             server_id = _serverInfo.ServerID,
                             command_type = GetCommandByKey("player_ban_perm"),
                             command_numeric = 0,
@@ -17561,7 +17563,7 @@ namespace PRoConEvents
                     case ARecord.Sources.Database:
                         //Do nothing, no way to communicate to source when database
                         break;
-                    case ARecord.Sources.InternalAutomated:
+                    case ARecord.Sources.Automated:
                         //Do nothing, no source to communicate with
                         break;
                     case ARecord.Sources.ExternalPlugin:
@@ -18360,7 +18362,7 @@ namespace PRoConEvents
                                             //Create record
                                             ARecord record = new ARecord();
                                             record.record_time = UtcNow();
-                                            record.record_source = ARecord.Sources.InternalAutomated;
+                                            record.record_source = ARecord.Sources.Automated;
                                             record.server_id = _serverInfo.ServerID;
                                             record.source_name = "PlayerMuteSystem";
                                             _PlayerDictionary.TryGetValue(messageObject.Speaker, out record.target_player);
@@ -18408,7 +18410,7 @@ namespace PRoConEvents
                                             //Kick
                                             QueueRecordForProcessing(new ARecord
                                             {
-                                                record_source = ARecord.Sources.InternalAutomated,
+                                                record_source = ARecord.Sources.Automated,
                                                 server_id = _serverInfo.ServerID,
                                                 command_type = GetCommandByKey("player_kick"),
                                                 command_numeric = 0,
@@ -18424,7 +18426,7 @@ namespace PRoConEvents
                                             //Kill
                                             QueueRecordForProcessing(new ARecord
                                             {
-                                                record_source = ARecord.Sources.InternalAutomated,
+                                                record_source = ARecord.Sources.Automated,
                                                 server_id = _serverInfo.ServerID,
                                                 command_type = GetCommandByKey("player_kill"),
                                                 command_numeric = 0,
@@ -18440,7 +18442,7 @@ namespace PRoConEvents
                                             //Warn
                                             QueueRecordForProcessing(new ARecord
                                             {
-                                                record_source = ARecord.Sources.InternalAutomated,
+                                                record_source = ARecord.Sources.Automated,
                                                 server_id = _serverInfo.ServerID,
                                                 command_type = GetCommandByKey("player_warn"),
                                                 command_numeric = 0,
@@ -19034,7 +19036,7 @@ namespace PRoConEvents
                                         SendMessageToSource(record, "Do not have report wars. If this is urgent please contact an admin in teamspeak; @ts for the address.");
                                         QueueRecordForProcessing(new ARecord
                                         {
-                                            record_source = ARecord.Sources.InternalAutomated,
+                                            record_source = ARecord.Sources.Automated,
                                             server_id = _serverInfo.ServerID,
                                             command_type = GetCommandByKey("player_log"),
                                             command_numeric = 0,
@@ -19059,7 +19061,7 @@ namespace PRoConEvents
                                         SendMessageToSource(record, "You already reported " + record.target_player.GetVerboseName() + ". If this is urgent please contact an admin in teamspeak; @ts for the address.");
                                         QueueRecordForProcessing(new ARecord
                                         {
-                                            record_source = ARecord.Sources.InternalAutomated,
+                                            record_source = ARecord.Sources.Automated,
                                             server_id = _serverInfo.ServerID,
                                             command_type = GetCommandByKey("player_log"),
                                             command_numeric = 0,
@@ -19083,7 +19085,7 @@ namespace PRoConEvents
                                         SendMessageToSource(record, record.target_player.GetVerboseName() + " has already been reported. If this is urgent please contact an admin in teamspeak; @ts for the address.");
                                         QueueRecordForProcessing(new ARecord
                                         {
-                                            record_source = ARecord.Sources.InternalAutomated,
+                                            record_source = ARecord.Sources.Automated,
                                             server_id = _serverInfo.ServerID,
                                             command_type = GetCommandByKey("player_log"),
                                             command_numeric = 0,
@@ -26349,7 +26351,7 @@ namespace PRoConEvents
                 {
                     SendMessageToSource(record, "Duration: " + ((int)UtcNow().Subtract(_commandStartTime).TotalMilliseconds) + "ms");
                 }
-                if (record.record_source == ARecord.Sources.InGame || record.record_source == ARecord.Sources.InternalAutomated)
+                if (record.record_source == ARecord.Sources.InGame || record.record_source == ARecord.Sources.Automated)
                 {
                     Log.Debug(() => "In-Game/Automated " + record.command_action.command_key + " record took " + Math.Round((DateTime.UtcNow - record.record_creationTime).TotalMilliseconds) + "ms to complete actions.", 3);
                 }
@@ -27191,7 +27193,7 @@ namespace PRoConEvents
                             {
                                 ARecord record = new ARecord
                                 {
-                                    record_source = ARecord.Sources.InternalAutomated,
+                                    record_source = ARecord.Sources.Automated,
                                     server_id = _serverInfo.ServerID,
                                     command_type = GetCommandByKey("player_changetag"),
                                     command_numeric = 0,
@@ -28047,7 +28049,7 @@ namespace PRoConEvents
                 else
                 {
                     if (record.record_source != ARecord.Sources.InGame &&
-                        record.record_source != ARecord.Sources.InternalAutomated &&
+                        record.record_source != ARecord.Sources.Automated &&
                         record.record_source != ARecord.Sources.ServerCommand)
                     {
                         SendMessageToSource(record, "You WARNED " + record.GetTargetNames() + " for " + record.record_message);
@@ -29600,7 +29602,7 @@ namespace PRoConEvents
                 {
                     QueueRecordForProcessing(new ARecord
                     {
-                        record_source = ARecord.Sources.InternalAutomated,
+                        record_source = ARecord.Sources.Automated,
                         server_id = _serverInfo.ServerID,
                         command_type = GetCommandByKey("player_kick"),
                         command_numeric = 0,
@@ -31090,7 +31092,7 @@ namespace PRoConEvents
                         _RoundMutedPlayers.Add(record.target_player.player_name, 0);
                         AdminSayMessage(record.GetTargetNames() + " has been muted for this round.");
                         if (record.record_source != ARecord.Sources.InGame &&
-                            record.record_source != ARecord.Sources.InternalAutomated &&
+                            record.record_source != ARecord.Sources.Automated &&
                             record.record_source != ARecord.Sources.ServerCommand)
                         {
                             SendMessageToSource(record, record.GetTargetNames() + " has been muted for this round.");
@@ -31342,7 +31344,7 @@ namespace PRoConEvents
                     //Custom record to boost rep for reporting from spectator mode
                     ARecord repRecord = new ARecord
                     {
-                        record_source = ARecord.Sources.InternalAutomated,
+                        record_source = ARecord.Sources.Automated,
                         server_id = _serverInfo.ServerID,
                         command_type = GetCommandByKey("player_repboost"),
                         command_numeric = 0,
@@ -31546,7 +31548,7 @@ namespace PRoConEvents
                             //Get target information
                             ARecord aRecord = new ARecord
                             {
-                                record_source = ARecord.Sources.InternalAutomated,
+                                record_source = ARecord.Sources.Automated,
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("player_punish"),
                                 command_numeric = 0,
@@ -32078,7 +32080,7 @@ namespace PRoConEvents
                     {
                         QueueRecordForProcessing(new ARecord
                         {
-                            record_source = ARecord.Sources.InternalAutomated,
+                            record_source = ARecord.Sources.Automated,
                             server_id = oldPartner.player_server.ServerID,
                             record_orchestrate = true,
                             command_type = GetCommandByKey("player_pm_cancel"),
@@ -32106,7 +32108,7 @@ namespace PRoConEvents
                     //Player is external, have that instance handle the needed actions
                     QueueRecordForProcessing(new ARecord
                     {
-                        record_source = ARecord.Sources.InternalAutomated,
+                        record_source = ARecord.Sources.Automated,
                         server_id = partner.player_server.ServerID,
                         record_orchestrate = true,
                         command_type = GetCommandByKey("player_pm_start"),
@@ -32151,7 +32153,7 @@ namespace PRoConEvents
                             {
                                 QueueRecordForProcessing(new ARecord
                                 {
-                                    record_source = ARecord.Sources.InternalAutomated,
+                                    record_source = ARecord.Sources.Automated,
                                     server_id = oldPartner.player_server.ServerID,
                                     record_orchestrate = true,
                                     command_type = GetCommandByKey("player_pm_cancel"),
@@ -32208,7 +32210,7 @@ namespace PRoConEvents
                 {
                     QueueRecordForProcessing(new ARecord
                     {
-                        record_source = ARecord.Sources.InternalAutomated,
+                        record_source = ARecord.Sources.Automated,
                         server_id = partner.player_server.ServerID,
                         record_orchestrate = true,
                         command_type = GetCommandByKey("player_pm_transmit"),
@@ -32285,7 +32287,7 @@ namespace PRoConEvents
                         {
                             QueueRecordForProcessing(new ARecord
                             {
-                                record_source = ARecord.Sources.InternalAutomated,
+                                record_source = ARecord.Sources.Automated,
                                 server_id = oldPartner.player_server.ServerID,
                                 record_orchestrate = true,
                                 command_type = GetCommandByKey("player_pm_cancel"),
@@ -32374,7 +32376,7 @@ namespace PRoConEvents
                     {
                         QueueRecordForProcessing(new ARecord
                         {
-                            record_source = ARecord.Sources.InternalAutomated,
+                            record_source = ARecord.Sources.Automated,
                             server_id = sender.player_server.ServerID,
                             record_orchestrate = true,
                             command_type = GetCommandByKey("player_pm_cancel"),
@@ -32835,7 +32837,7 @@ namespace PRoConEvents
                                 _threadMasterWaitHandle.WaitOne(7000);
                                 ARecord repRecord = new ARecord
                                 {
-                                    record_source = ARecord.Sources.InternalAutomated,
+                                    record_source = ARecord.Sources.Automated,
                                     server_id = _serverInfo.ServerID,
                                     command_type = GetCommandByKey("round_end"),
                                     command_numeric = winningTeam.TeamID,
@@ -34199,7 +34201,7 @@ namespace PRoConEvents
                         Log.Debug(() => "Kicking " + aPlayer.GetVerboseName() + " for being AFK " + afkTime + ".", 3);
                         ARecord kickRecord = new ARecord
                         {
-                            record_source = ARecord.Sources.InternalAutomated,
+                            record_source = ARecord.Sources.Automated,
                             server_id = _serverInfo.ServerID,
                             command_type = GetCommandByKey("player_kick"),
                             command_numeric = 0,
@@ -35154,7 +35156,7 @@ namespace PRoConEvents
                         //Create the record
                         ARecord record = new ARecord();
                         record.record_time = UtcNow();
-                        record.record_source = ARecord.Sources.InternalAutomated;
+                        record.record_source = ARecord.Sources.Automated;
                         //Permabans and Temp bans longer than 1 year will be defaulted to permaban
                         switch (cBan.BanLength.Subset)
                         {
@@ -39199,7 +39201,7 @@ namespace PRoConEvents
                                 aPlayer.player_name = playerName;
                                 ARecord record = new ARecord
                                 {
-                                    record_source = ARecord.Sources.InternalAutomated,
+                                    record_source = ARecord.Sources.Automated,
                                     server_id = _serverInfo.ServerID,
                                     command_type = GetCommandByKey("player_changename"),
                                     command_numeric = 0,
@@ -40152,7 +40154,7 @@ namespace PRoConEvents
                                 {
                                     ARecord record = new ARecord
                                     {
-                                        record_source = ARecord.Sources.InternalAutomated,
+                                        record_source = ARecord.Sources.Automated,
                                         server_id = _serverInfo.ServerID,
                                         command_type = GetCommandByKey("player_unban"),
                                         command_numeric = 0,
@@ -40338,7 +40340,7 @@ namespace PRoConEvents
                                 {
                                     aBan.ban_record = new ARecord
                                     {
-                                        record_source = ARecord.Sources.InternalAutomated,
+                                        record_source = ARecord.Sources.Automated,
                                         isDebug = false,
                                         target_player = FetchPlayer(false, true, false, null, aBan.player_id, null, null, null, null),
                                         source_name = "AdKats",
@@ -40617,7 +40619,7 @@ namespace PRoConEvents
                     //Fetch the player
                     record.target_player = FetchPlayer(true, true, false, null, -1, bbmBan.soldiername, bbmBan.eaguid, null, null);
 
-                    record.record_source = ARecord.Sources.InternalAutomated;
+                    record.record_source = ARecord.Sources.Automated;
                     if (bbmBan.ban_length == "permanent")
                     {
                         Log.Debug(() => "Ban is permanent", 4);
@@ -45347,7 +45349,7 @@ namespace PRoConEvents
                 //Create the ban record
                 QueueRecordForProcessing(new ARecord
                 {
-                    record_source = ARecord.Sources.InternalAutomated,
+                    record_source = ARecord.Sources.Automated,
                     server_id = _serverInfo.ServerID,
                     command_type = GetCommandByKey("player_ban_perm"),
                     command_numeric = 0,
@@ -48091,7 +48093,7 @@ namespace PRoConEvents
                     //Create the Exception record
                     ARecord record = new ARecord
                     {
-                        record_source = ARecord.Sources.InternalAutomated,
+                        record_source = ARecord.Sources.Automated,
                         isDebug = true,
                         server_id = _serverInfo.ServerID,
                         command_type = GetCommandByKey("adkats_exception"),
@@ -48341,7 +48343,7 @@ namespace PRoConEvents
                                     //Create the Exception record
                                     ARecord record = new ARecord
                                     {
-                                        record_source = ARecord.Sources.InternalAutomated,
+                                        record_source = ARecord.Sources.Automated,
                                         isDebug = true,
                                         server_id = _serverInfo.ServerID,
                                         command_type = GetCommandByKey("adkats_exception"),
@@ -49980,7 +49982,7 @@ namespace PRoConEvents
             public enum Sources
             {
                 Default,
-                InternalAutomated,
+                Automated,
                 ExternalPlugin,
                 InGame,
                 Settings,
