@@ -3341,6 +3341,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Use LIVE Anti Cheat System'</b> - 
         The LIVE AntiCheat system looks at active statistics and between round statistics to bolster the abilities of the AntiCheat script. The only downside to this is that it issues more requests to battlelog.
     </li>
+    <li><b>'LIVE System Includes Mass Murder and Aimbot Checks'</b> - 
+        When this is enabled then the LIVe system will also act on players using active stats mid-round. Players are acted on if they kill a very large amount of people in a short period of time (standard mass-murder), or if they have an extremely high headshot/kill ratio with non-sniper weapons. The stats used here are leaps and bounds above normal, so they should only trigger for the most blatant hacks, however this is still disabled by default.
+    </li>
     <li><b>'AntiCheat: DPS Checker: Ban Message'</b> - 
         Message prefix to use when banning for damage mod.
     </li>
