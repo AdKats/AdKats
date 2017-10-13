@@ -917,6 +917,7 @@ Added small improvements to fuzzy player match response text.</li>
 	<li>Removed the restrictions on player names which were in place for BF3. Now most characters can be used in player names. The unfortunate side of this is those characters still cause issue fetching from battlelog.</li>
 	<li>Changed population success notification to be a tell instead of a say.</li>
 	<li>The players ColColonCleaner and PhirePhrey are automatically added to reserved slots for any server running AdKats.</li>
+	<li>IP-API communication errors are now changed to debug messages instead of error messages, since they are not crucial to the function of AdKats.</li>
 </ul>
 <b>Bugs Fixed</b><br/>
 <ul>
