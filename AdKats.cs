@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.365
+ * Version 6.9.0.366
  * 13-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.365</version_code>
+ * <version_code>6.9.0.366</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.365";
+        private const String PluginVersion = "6.9.0.366";
 
         public enum GameVersion
         {
@@ -46859,37 +46859,42 @@ namespace PRoConEvents
             Int32 modifier = 0;
             Int32 hour = 0;
             String population = "Unknown";
-            if (GetPlayerCount() >= _serverInfo.InfoObject.MaxPlayerCount - 1)
+            if (_pluginEnabled &&
+                _firstPlayerListComplete)
             {
-                baseTrigger = (Int32)_pingEnforcerFullTriggerMS;
-                hour = DateTime.Now.Hour;
-                modifier = _pingEnforcerFullTimeModifier[DateTime.Now.Hour];
-                finalTrigger = baseTrigger + modifier;
-                population = "Full";
-            }
-            else if (_populationStatus == PopulationState.High)
-            {
-                baseTrigger = (Int32)_pingEnforcerHighTriggerMS;
-                hour = DateTime.Now.Hour;
-                modifier = _pingEnforcerHighTimeModifier[DateTime.Now.Hour];
-                finalTrigger = baseTrigger + modifier;
-                population = "High";
-            }
-            else if (_populationStatus == PopulationState.Medium)
-            {
-                baseTrigger = (Int32)_pingEnforcerMedTriggerMS;
-                hour = DateTime.Now.Hour;
-                modifier = _pingEnforcerMedTimeModifier[DateTime.Now.Hour];
-                finalTrigger = baseTrigger + modifier;
-                population = "Medium";
-            }
-            else if (_populationStatus == PopulationState.Low)
-            {
-                baseTrigger = (Int32)_pingEnforcerLowTriggerMS;
-                hour = DateTime.Now.Hour;
-                modifier = _pingEnforcerLowTimeModifier[DateTime.Now.Hour];
-                finalTrigger = baseTrigger + modifier;
-                population = "Low";
+                if (_serverInfo != null &&
+                    GetPlayerCount() >= _serverInfo.InfoObject.MaxPlayerCount - 1)
+                {
+                    baseTrigger = (Int32)_pingEnforcerFullTriggerMS;
+                    hour = DateTime.Now.Hour;
+                    modifier = _pingEnforcerFullTimeModifier[DateTime.Now.Hour];
+                    finalTrigger = baseTrigger + modifier;
+                    population = "Full";
+                }
+                else if (_populationStatus == PopulationState.High)
+                {
+                    baseTrigger = (Int32)_pingEnforcerHighTriggerMS;
+                    hour = DateTime.Now.Hour;
+                    modifier = _pingEnforcerHighTimeModifier[DateTime.Now.Hour];
+                    finalTrigger = baseTrigger + modifier;
+                    population = "High";
+                }
+                else if (_populationStatus == PopulationState.Medium)
+                {
+                    baseTrigger = (Int32)_pingEnforcerMedTriggerMS;
+                    hour = DateTime.Now.Hour;
+                    modifier = _pingEnforcerMedTimeModifier[DateTime.Now.Hour];
+                    finalTrigger = baseTrigger + modifier;
+                    population = "Medium";
+                }
+                else if (_populationStatus == PopulationState.Low)
+                {
+                    baseTrigger = (Int32)_pingEnforcerLowTriggerMS;
+                    hour = DateTime.Now.Hour;
+                    modifier = _pingEnforcerLowTimeModifier[DateTime.Now.Hour];
+                    finalTrigger = baseTrigger + modifier;
+                    population = "Low";
+                }
             }
             return finalTrigger + "ms = " + baseTrigger + "ms [Pop: " + population + "] " + ((modifier >= 0) ? ("add ") : ("remove ")) + Math.Abs(modifier) + "ms [Hour: " + hour + "]";
         }
@@ -46897,21 +46902,26 @@ namespace PRoConEvents
         private Double GetPingLimit()
         {
             Double currentTriggerMS = 1000;
-            if (GetPlayerCount() >= _serverInfo.InfoObject.MaxPlayerCount - 1)
+            if (_pluginEnabled && 
+                _firstPlayerListComplete)
             {
-                currentTriggerMS = _pingEnforcerFullTriggerMS + _pingEnforcerFullTimeModifier[DateTime.Now.Hour];
-            }
-            else if (_populationStatus == PopulationState.High)
-            {
-                currentTriggerMS = _pingEnforcerHighTriggerMS + _pingEnforcerHighTimeModifier[DateTime.Now.Hour];
-            }
-            else if (_populationStatus == PopulationState.Medium)
-            {
-                currentTriggerMS = _pingEnforcerMedTriggerMS + _pingEnforcerMedTimeModifier[DateTime.Now.Hour];
-            }
-            else if (_populationStatus == PopulationState.Low)
-            {
-                currentTriggerMS = _pingEnforcerLowTriggerMS + _pingEnforcerLowTimeModifier[DateTime.Now.Hour];
+                if (_serverInfo != null &&
+                    GetPlayerCount() >= _serverInfo.InfoObject.MaxPlayerCount - 1)
+                {
+                    currentTriggerMS = _pingEnforcerFullTriggerMS + _pingEnforcerFullTimeModifier[DateTime.Now.Hour];
+                }
+                else if (_populationStatus == PopulationState.High)
+                {
+                    currentTriggerMS = _pingEnforcerHighTriggerMS + _pingEnforcerHighTimeModifier[DateTime.Now.Hour];
+                }
+                else if (_populationStatus == PopulationState.Medium)
+                {
+                    currentTriggerMS = _pingEnforcerMedTriggerMS + _pingEnforcerMedTimeModifier[DateTime.Now.Hour];
+                }
+                else if (_populationStatus == PopulationState.Low)
+                {
+                    currentTriggerMS = _pingEnforcerLowTriggerMS + _pingEnforcerLowTimeModifier[DateTime.Now.Hour];
+                }
             }
             return currentTriggerMS;
         }
