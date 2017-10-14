@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.371
+ * Version 6.9.0.372
  * 13-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.371</version_code>
+ * <version_code>6.9.0.372</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.371";
+        private const String PluginVersion = "6.9.0.372";
 
         public enum GameVersion
         {
@@ -633,6 +633,7 @@ namespace PRoConEvents
         private Boolean _UseTeamPowerMonitorSeeders = false;
         private Boolean _UseTeamPowerMonitorBalance = false;
         private Boolean _UseTeamPowerMonitorScrambler = false;
+        private Boolean _ScrambleRequiredTeamsRemoved = false;
         private Boolean _UseTeamPowerMonitorReassign = false;
         private Boolean currentStartingTeam1 = true;
         private Boolean _PlayersAutoAssistedThisRound = false;
@@ -9727,6 +9728,31 @@ namespace PRoConEvents
             }
         }
 
+        private void RunTeamPowerScramblerMonitor()
+        {
+            try
+            {
+                if (_UseTeamPowerMonitorScrambler &&
+                    _serverInfo != null &&
+                    !_ScrambleRequiredTeamsRemoved &&
+                    _roundState == RoundState.Playing &&
+                    _serverInfo.GetRoundElapsedTime().TotalMinutes > 2)
+                {
+                    // Clear all required teams/squads 2 minutes into the round so the regular balancer can take over
+                    foreach (APlayer aPlayer in _FetchedPlayers.Values.ToList().Where(aPlayer => aPlayer.RequiredTeam != null))
+                    {
+                        aPlayer.RequiredTeam = null;
+                        aPlayer.RequiredSquad = -1;
+                    }
+                    _ScrambleRequiredTeamsRemoved = true;
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AException("Error running team power scrambler monitor.", e));
+            }
+        }
+
         private void SetupStatusMonitor()
         {
             //Create a new thread to handle keep-alive
@@ -9752,6 +9778,8 @@ namespace PRoConEvents
                             RunSpambotMonitor();
 
                             RunAutoAssistMonitor();
+
+                            RunTeamPowerScramblerMonitor();
 
                             //Clean dead threads
                             var threads = _aliveThreads.ToList();
@@ -14095,6 +14123,7 @@ namespace PRoConEvents
                 _roundState = RoundState.Ended;
                 _EventRoundPolled = false;
                 _pingKicksThisRound = 0;
+                _ScrambleRequiredTeamsRemoved = false;
                 foreach (APlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null))
                 {
                     aPlayer.RequiredTeam = null;
