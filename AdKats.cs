@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.375
+ * Version 6.9.0.376
  * 15-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.375</version_code>
+ * <version_code>6.9.0.376</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.375";
+        private const String PluginVersion = "6.9.0.376";
 
         public enum GameVersion
         {
@@ -15207,7 +15207,7 @@ namespace PRoConEvents
                             target_name = aKill.killer.player_name,
                             target_player = aKill.killer,
                             source_name = "AutoAdmin",
-                            record_message = "Code 8-" + actedCode + ": Dispute Requested",
+                            record_message = "Code [8-" + actedCode + "]: Dispute Requested",
                             record_time = UtcNow()
                         });
                         return;
@@ -15246,7 +15246,7 @@ namespace PRoConEvents
                             target_name = aKill.killer.player_name,
                             target_player = aKill.killer,
                             source_name = "AutoAdmin",
-                            record_message = "Code 8-" + actedCode + ": Dispute Requested",
+                            record_message = "Code [8-" + actedCode + "]: Dispute Requested",
                             record_time = UtcNow()
                         });
                         return;
@@ -47690,7 +47690,7 @@ namespace PRoConEvents
                                 Log.Info("OS: " + Environment.OSVersion.Platform + " | " + Environment.OSVersion.Version + " | " + Environment.OSVersion.VersionString);
                                 Log.Info("DLLPath: " + dllPath);
                                 Log.Info("PluginPath: " + pluginPath);
-                                Log.Info("PluginPath2: " + Path.Combine(dllPath.Trim(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), pluginFileName));
+                                Log.Info("PluginPath2: " + Path.Combine(dllPath, pluginFileName));
                             }
                             CompilerResults compileResults = CompilePluginSource(pluginSource);
                             if (compileResults.Errors.HasErrors)
