@@ -802,7 +802,7 @@
 <p>
     The system uses battlelog for player stats, and is able to catch aimbots, damage mods, magic bullet, and other oddities.
 </p>
-<h4>DPS Checker</h4>
+<h4>DPS Checker [Code 4 Bans]</h4>
 <p>
     The damage per shot each player gets with their weapons is calculated from their battlelog stats, bans being issued
     if a player attains impossible damage.
@@ -814,7 +814,7 @@
     The LIVE mods for this section enable it to detect damage mods from round to round, regardless of overall stats.
     Players using a damage mod during a round should be banned automatically after round end.
 </p>
-<h4>HSK Checker</h4>
+<h4>HSK Checker [Code 5 Bans]</h4>
 <p>
     For this check only automatic weapons from specific categories are used in the calculation.
     This includes Sub Machine Guns, Assault Rifles, Carbines, and Machine Guns.
@@ -829,7 +829,7 @@
 <p>
     The LIVE mods for this section are not public yet.
 </p>
-<h4>KPM Checker</h4>
+<h4>KPM Checker [Code 6 Bans]</h4>
 <p>
     Be careful with this one, this is where a lot of legit competitive players reside.
     This check should only be used to request gameplay video of players to prove their play, then whitelist the player
@@ -840,6 +840,45 @@
     If that value is greater than your trigger level the ban is issued.
     After some research and testing the value used on our servers is the default, 5.0.
     200 kills with the weapon in question are required to trigger this check.
+</p>
+<h4>Special Weapons Checker [Code 8 Bans]</h4>
+<p>
+    Special weapons bans are issued when a player starts killing with weapons which are normally non-lethal. 3 kills with the given non-lethal item are required in a round to trigger the script.
+    <ul>
+        <li><b>'BF4 [8-1]'</b> - 
+            Portable Ammo Packs
+        </li>
+        <li><b>'BF4 [8-2]'</b> - 
+            Radio Beacons
+        </li>
+        <li><b>'BF4 [8-3]'</b> - 
+            SOFLAM Laser
+        </li>
+        <li><b>'BF4 [8-4]'</b> - 
+            Motion Sensor Throwables
+        </li>
+        <li><b>'BF4 [8-5]'</b> - 
+            Portable Med Packs
+        </li>
+        <li><b>'BF4 [8-6]'</b> - 
+            Med Bags
+        </li>
+        <li><b>'BF4 [8-7]'</b> - 
+            Ammo Bags
+        </li>
+        <li><b>'BF3 [8-1]'</b> - 
+            Ammo Bags
+        </li>
+        <li><b>'BF3 [8-2]'</b> - 
+            Radio Beacons
+        </li>
+        <li><b>'BF3 [8-3]'</b> - 
+            SOFLAM Laser
+        </li>
+        <li><b>'BF3 [8-4]'</b> - 
+            Med Bags
+        </li>
+    </ul>
 </p>
 <p>
     The LIVE mods for this section are not public yet.
