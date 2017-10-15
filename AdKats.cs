@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.374
+ * Version 6.9.0.375
  * 15-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.374</version_code>
+ * <version_code>6.9.0.375</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.374";
+        private const String PluginVersion = "6.9.0.375";
 
         public enum GameVersion
         {
@@ -47684,11 +47684,14 @@ namespace PRoConEvents
                                 Log.Info("Preparing test compile on updated plugin source.");
                             }
                             String pluginFileName = "AdKats.cs";
+                            String pluginPath = Path.Combine(dllPath.Trim(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), pluginFileName);
                             if (_UseExperimentalTools)
                             {
-                                Log.Info("OS: " + Environment.OSVersion.Platform + " | " + Environment.OSVersion.ServicePack + " | " + Environment.OSVersion.VersionString);
+                                Log.Info("OS: " + Environment.OSVersion.Platform + " | " + Environment.OSVersion.Version + " | " + Environment.OSVersion.VersionString);
+                                Log.Info("DLLPath: " + dllPath);
+                                Log.Info("PluginPath: " + pluginPath);
+                                Log.Info("PluginPath2: " + Path.Combine(dllPath.Trim(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), pluginFileName));
                             }
-                            String pluginPath = Path.Combine(dllPath.Trim(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), pluginFileName);
                             CompilerResults compileResults = CompilePluginSource(pluginSource);
                             if (compileResults.Errors.HasErrors)
                             {
