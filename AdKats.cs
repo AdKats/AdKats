@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.372
- * 13-OCT-2017
+ * Version 6.9.0.373
+ * 14-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.372</version_code>
+ * <version_code>6.9.0.373</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.372";
+        private const String PluginVersion = "6.9.0.373";
 
         public enum GameVersion
         {
@@ -833,7 +833,7 @@ namespace PRoConEvents
         private List<AEventOption> _EventRoundOptions = new List<AEventOption>();
         private Boolean _EventRoundPolled = false;
         private Int32 _EventPollMaxOptions = 4;
-        private Int32 _EventRoundAutoPollsMax = 10;
+        private Int32 _EventRoundAutoPollsMax = 9;
         private TimeSpan _EventRoundAutoVoteDuration = TimeSpan.FromMinutes(2.5);
         private List<AEventOption> _EventRoundPollOptions = new List<AEventOption>();
         private String _EventRoundOptionsEnum;
@@ -18298,7 +18298,8 @@ namespace PRoConEvents
                                     !_CommandTextDictionary.ContainsKey(splitConfirmCommand[0].ToLower()))
                                 {
                                     Int32 resultVote;
-                                    if (_ActivePoll != null && 
+                                    if (_ActivePoll != null &&
+                                        splitConfirmCommand.Length > 0 &&
                                         Int32.TryParse(splitConfirmCommand[0].ToLower(), out resultVote))
                                     {
                                         Log.Debug(() => "Poll is active and command is numeric " + resultVote + ", allowing non-standard command.", 4);
@@ -22917,7 +22918,7 @@ namespace PRoConEvents
 
                             if (record.record_source != ARecord.Sources.InGame)
                             {
-                                SendMessageToSource(record, "You can't vote in polls from outside the game.");
+                                // Do not inform here, simply ignore it
                                 FinalizeRecord(record);
                                 return;
                             }
