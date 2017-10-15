@@ -826,7 +826,7 @@ Added small improvements to fuzzy player match response text.</li>
 <ul>
     <li><b>No upgrade SQL required.</b></li>
 </ul>
-<h4>7.0.0.0 (14-OCT-2017)</h4>
+<h4>7.0.0.0 (15-OCT-2017)</h4>
 <b>Enhancements</b><br/>
 <ul>
 	<li>When a player is kicked for VIP, the plugin is sometimes able to tell admins who was kicked. DICE's event for this is unreliable, but when it works properly, the plugin will tell admins about the VIP kick.</li>

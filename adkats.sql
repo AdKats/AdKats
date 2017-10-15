@@ -1,5 +1,5 @@
 -- AdKats Database Setup Script
--- Version 6.8.1.0 (12/10/2015)
+-- Version 7.0.0.0 (2017-10-15)
 -- Daniel J. Gradinjan (ColColonCleaner)
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -97,6 +97,13 @@ CREATE TABLE `adkats_battlelog_players` (
   KEY `adkats_battlelog_players_user_id_index` (`user_id`),
   CONSTRAINT `adkats_battlelog_players_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Player Battlelog Info';
+
+DROP TABLE IF EXISTS `adkats_battlecries`;
+CREATE TABLE IF NOT EXISTS `adkats_battlecries`( 
+  `player_id` int(10) UNSIGNED NOT NULL,
+  `player_battlecry` varchar(300) COLLATE utf8_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`player_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Battlecries List';
 
 DROP TABLE IF EXISTS `adkats_bans`;
 CREATE TABLE IF NOT EXISTS `adkats_bans` (
@@ -249,6 +256,23 @@ REPLACE INTO `adkats_commands` VALUES(115, 'Active', 'player_blacklistautoassist
 REPLACE INTO `adkats_commands` VALUES(116, 'Active', 'player_blacklistautoassist_remove', 'Log', 'Remove Auto-Assist Blacklist', 'unauablacklist', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(117, 'Active', 'player_isadmin', 'Log', 'Fetch Admin Status', 'isadmin', FALSE, 'AnyHidden');
 REPLACE INTO `adkats_commands` VALUES(118, 'Active', 'self_feedback', 'Log', 'Give Server Feedback', 'feedback', FALSE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(119, 'Active', 'player_loadout', 'Log', 'Fetch Player Loadout', 'loadout', FALSE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(120, 'Active', 'player_loadout_force', 'Log', 'Force Player Loadout', 'floadout', TRUE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(121, 'Active', 'self_battlecry', 'Log', 'Set Own Battlecry', 'battlecry', FALSE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(122, 'Active', 'player_battlecry', 'Log', 'Set Player Battlecry', 'setbattlecry', TRUE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(123, 'Active', 'player_perks', 'Log', 'Fetch Player Perks', 'perks', FALSE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(124, 'Active', 'player_ping', 'Log', 'Fetch Player Ping', 'ping', FALSE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(125, 'Active', 'player_forceping', 'Log', 'Force Manual Player Ping', 'fping', TRUE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(126, 'Active', 'player_debugassist', 'Log', 'Debug Assist Losing Team', 'debugassist', FALSE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(127, 'Invisible', 'player_changetag', 'Mandatory', 'Player Changed Clan Tag', 'changetag', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(128, 'Active', 'player_discordlink', 'Log', 'Link Player to Discord Member', 'discordlink', TRUE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(129, 'Active', 'player_blacklistallcaps', 'Log', 'All-Caps Chat Blacklist', 'allcapsblacklist', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(130, 'Active', 'player_blacklistallcaps_remove', 'Log', 'Remove All-Caps Chat Blacklist', 'unallcapsblacklist', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(131, 'Active', 'poll_trigger', 'Log', 'Trigger Poll', 'poll', FALSE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(132, 'Active', 'poll_vote', 'Log', 'Vote In Poll', 'vote', FALSE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(133, 'Active', 'poll_cancel', 'Unable', 'Cancel Active Poll', 'pollcancel', FALSE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(134, 'Active', 'poll_complete', 'Unable', 'Complete Active Poll', 'pollcomplete', FALSE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(135, 'Active', 'server_nuke_winning', 'Log', 'Server Nuke Winning Team', 'wnuke', TRUE, 'Any');
 
 DROP TABLE IF EXISTS `adkats_infractions_global`;
 CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
@@ -704,3 +728,6 @@ ALTER TABLE `adkats_specialplayers`
   ADD CONSTRAINT `adkats_specialplayers_game_id` FOREIGN KEY (`player_game`) REFERENCES `tbl_games`(`GameID`) ON UPDATE NO ACTION ON DELETE CASCADE, 
   ADD CONSTRAINT `adkats_specialplayers_server_id` FOREIGN KEY (`player_server`) REFERENCES `tbl_server`(`ServerID`) ON UPDATE NO ACTION ON DELETE CASCADE, 
   ADD CONSTRAINT `adkats_specialplayers_player_id` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata`(`PlayerID`) ON UPDATE NO ACTION ON DELETE CASCADE;
+
+ALTER TABLE `adkats_battlecries` 
+  ADD CONSTRAINT `adkats_battlecries_player_id` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata`(`PlayerID`) ON UPDATE NO ACTION ON DELETE CASCADE;

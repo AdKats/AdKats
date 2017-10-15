@@ -1,4 +1,4 @@
-[//]: # "<latest_stable_release>6.9.0.0</latest_stable_release>"
+[//]: # "<latest_stable_release>7.0.0.0</latest_stable_release>"
 <p>
     <a name=adkats />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg" alt="AdKats Advanced In-Game Admin Tools">
@@ -13,7 +13,7 @@
 </p>
 <h2>Overview</h2>
 <p>
-    Admin Toolset with a plethora of features, Over 100 available in-game commands, and many customization options.
+    Admin Toolset with a plethora of features, over 100 available in-game commands, and many customization options.
     AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any setup.
     Includes a cross-server ban enforcer with advanced enforcement features, metabans support, global admin management, cross-server player messaging, and the BFAdminCP 2.0+ for web-based control has been released.
     Designed for groups with high-traffic servers and many admins, but will function just as well for small servers.
