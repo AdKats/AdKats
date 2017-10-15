@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.9.0.373
- * 14-OCT-2017
+ * Version 6.9.0.374
+ * 15-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>6.9.0.373</version_code>
+ * <version_code>6.9.0.374</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.9.0.373";
+        private const String PluginVersion = "6.9.0.374";
 
         public enum GameVersion
         {
@@ -47684,6 +47684,10 @@ namespace PRoConEvents
                                 Log.Info("Preparing test compile on updated plugin source.");
                             }
                             String pluginFileName = "AdKats.cs";
+                            if (_UseExperimentalTools)
+                            {
+                                Log.Info("OS: " + Environment.OSVersion.Platform + " | " + Environment.OSVersion.ServicePack + " | " + Environment.OSVersion.VersionString);
+                            }
                             String pluginPath = Path.Combine(dllPath.Trim(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), pluginFileName);
                             CompilerResults compileResults = CompilePluginSource(pluginSource);
                             if (compileResults.Errors.HasErrors)
