@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.2
+ * Version 7.0.0.3
  * 16-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.2</version_code>
+ * <version_code>7.0.0.3</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.2";
+        private const String PluginVersion = "7.0.0.3";
 
         public enum GameVersion
         {
@@ -43487,11 +43487,19 @@ namespace PRoConEvents
                 aPlayer.player_aa = false;
                 return;
             }
+            if (_UseExperimentalTools)
+            {
+                Log.Info(aPlayer.GetVerboseName() + " is not an admin when assigning player admin assistant.");
+            }
             List<ASpecialPlayer> matchingPlayers = GetMatchingVerboseASPlayersOfGroup("whitelist_adminassistant", aPlayer);
             if (matchingPlayers.Count > 0)
             {
                 aPlayer.player_aa_fetched = true;
                 aPlayer.player_aa = true;
+                if (_UseExperimentalTools)
+                {
+                    Log.Info(aPlayer.GetVerboseName() + " is an admin assistant by verbose listing.");
+                }
                 return;
             }
             if (_databaseConnectionCriticalState)
@@ -43533,6 +43541,10 @@ namespace PRoConEvents
                             if (reader.Read())
                             {
                                 aPlayer.player_aa = true;
+                                if (_UseExperimentalTools)
+                                {
+                                    Log.Info(aPlayer.GetVerboseName() + " is an admin assistant by query.");
+                                }
                             }
                             aPlayer.player_aa_fetched = true;
                             return;
