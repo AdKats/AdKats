@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.0
- * 15-OCT-2017
+ * Version 7.0.0.1
+ * 16-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.0</version_code>
+ * <version_code>7.0.0.1</version_code>
  */
 
 using System;
@@ -1057,7 +1057,7 @@ namespace PRoConEvents
 
         public String GetPluginWebsite()
         {
-            return "https://github.com/AdKats/";
+            return "github.com/AdKats/AdKats";
         }
 
         public String GetPluginDescription()
@@ -1459,7 +1459,7 @@ namespace PRoConEvents
                                         var allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key);
                                         var key = aRole.role_id + "-" + aCommand.command_id;
                                         String display;
-                                        if (useCache)
+                                        if (useCache && _RoleCommandCache.ContainsKey(key))
                                         {
                                             // Using the role command cache; fetch from the dictionary
                                             display = _RoleCommandCache[key];
@@ -15013,14 +15013,6 @@ namespace PRoConEvents
         {
             try
             {
-                // Move the player to their required team if needed
-                if (aKill.victim.RequiredTeam != null &&
-                    aKill.victim.RequiredTeam.TeamID != aKill.victim.fbpInfo.TeamID &&
-                    !PlayerIsAdmin(aKill.victim))
-                {
-                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aKill.victim.player_name, aKill.victim.RequiredTeam.TeamID + "", aKill.victim.fbpInfo.SquadID + "", "true");
-                }
-
                 aKill.victim.lastAction = UtcNow();
                 aKill.killer.lastAction = UtcNow();
 
@@ -46551,7 +46543,9 @@ namespace PRoConEvents
 
         public Boolean PlayerIsAdmin(APlayer aPlayer)
         {
-            return aPlayer != null && RoleIsAdmin(aPlayer.player_role);
+            return aPlayer != null && 
+                   aPlayer.player_role != null && 
+                   RoleIsAdmin(aPlayer.player_role);
         }
 
         public Boolean PlayerIsExternal(APlayer aPlayer)
@@ -46561,71 +46555,93 @@ namespace PRoConEvents
 
         public Boolean RoleIsAdmin(ARole aRole)
         {
-            if (aRole == null)
+            try
             {
-                Log.Error("role null in RoleIsAdmin");
-                return false;
+                if (aRole == null)
+                {
+                    Log.Error("role null in RoleIsAdmin");
+                    return false;
+                }
+                if (aRole.RoleAllowedCommands.Values.Any(command => command.command_playerInteraction))
+                {
+                    return true;
+                }
             }
-            if (aRole.RoleAllowedCommands.Values.Any(command => command.command_playerInteraction))
+            catch (Exception e)
             {
-                return true;
+                HandleException(new AException("Error fetching role admin status.", e));
             }
             return false;
         }
 
         public Boolean PlayerIsWinning(APlayer aPlayer)
         {
-            if (aPlayer.fbpInfo == null)
+            try
             {
-                return false;
-            }
-            //Team Info Check
-            ATeam team1, team2;
-            if (!GetTeamByID(1, out team1))
-            {
-                if (_roundState == RoundState.Playing)
+                if (aPlayer.fbpInfo == null)
                 {
-                    Log.Error("Teams not loaded when they should be.");
+                    return false;
                 }
-                return false;
-            }
-            if (!GetTeamByID(2, out team2))
-            {
-                if (_roundState == RoundState.Playing)
+                //Team Info Check
+                ATeam team1, team2;
+                if (!GetTeamByID(1, out team1))
                 {
-                    Log.Error("Teams not loaded when they should be.");
+                    if (_roundState == RoundState.Playing)
+                    {
+                        Log.Error("Teams not loaded when they should be.");
+                    }
+                    return false;
                 }
-                return false;
+                if (!GetTeamByID(2, out team2))
+                {
+                    if (_roundState == RoundState.Playing)
+                    {
+                        Log.Error("Teams not loaded when they should be.");
+                    }
+                    return false;
+                }
+                ATeam winningTeam, losingTeam;
+                if (team1.TeamTicketCount > team2.TeamTicketCount)
+                {
+                    winningTeam = team1;
+                    losingTeam = team2;
+                }
+                else
+                {
+                    winningTeam = team2;
+                    losingTeam = team1;
+                }
+                return aPlayer.fbpInfo.TeamID == winningTeam.TeamID;
             }
-            ATeam winningTeam, losingTeam;
-            if (team1.TeamTicketCount > team2.TeamTicketCount)
+            catch (Exception e)
             {
-                winningTeam = team1;
-                losingTeam = team2;
+                HandleException(new AException("Error fetching player winning status.", e));
             }
-            else
-            {
-                winningTeam = team2;
-                losingTeam = team1;
-            }
-            return aPlayer.fbpInfo.TeamID == winningTeam.TeamID;
+            return false;
         }
 
         public ACommand GetCommandByKey(String commandKey)
         {
             ACommand command = null;
-            if (String.IsNullOrEmpty(commandKey))
+            try
             {
-                HandleException(new AException("commandKey was null when fetching command"));
-                return command;
-            }
-            if (!_CommandKeyDictionary.TryGetValue(commandKey, out command))
-            {
-                _threadMasterWaitHandle.WaitOne(500);
+                if (String.IsNullOrEmpty(commandKey))
+                {
+                    HandleException(new AException("commandKey was null when fetching command"));
+                    return command;
+                }
                 if (!_CommandKeyDictionary.TryGetValue(commandKey, out command))
                 {
-                    HandleException(new AException("Unable to get command for key '" + commandKey + "'"));
+                    _threadMasterWaitHandle.WaitOne(500);
+                    if (!_CommandKeyDictionary.TryGetValue(commandKey, out command))
+                    {
+                        HandleException(new AException("Unable to get command for key '" + commandKey + "'"));
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AException("Error fetching command by key.", e));
             }
             return command;
         }
