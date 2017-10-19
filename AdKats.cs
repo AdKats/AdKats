@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.3
- * 16-OCT-2017
+ * Version 7.0.0.4
+ * 18-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.3</version_code>
+ * <version_code>7.0.0.4</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.3";
+        private const String PluginVersion = "7.0.0.4";
 
         public enum GameVersion
         {
@@ -12098,10 +12098,10 @@ namespace PRoConEvents
                             {
                                 FetchAllAccess(true);
                             }
-                            if (_PlayerRoleRefetch)
+                            if (_PlayerRoleRefetch || !_firstPlayerListComplete)
                             {
-                                //Update roles for all online players
-                                foreach (APlayer aPlayer in _PlayerDictionary.Values)
+                                //Update roles for all fetched players
+                                foreach (APlayer aPlayer in _FetchedPlayers.Values.ToList())
                                 {
                                     AssignPlayerRole(aPlayer);
                                 }
@@ -43472,6 +43472,12 @@ namespace PRoConEvents
         private void AssignPlayerAdminAssistant(APlayer aPlayer)
         {
             Log.Debug(() => "PlayerIsAdminAssistant starting!", 7);
+            if (!_firstUserListComplete)
+            {
+                // Completely bypass this on the first user listing
+                // Adminship is not loaded yet
+                return;
+            }
             if (!_EnableAdminAssistants)
             {
                 aPlayer.player_aa = false;
@@ -47712,13 +47718,14 @@ namespace PRoConEvents
                                 Log.Info("Preparing test compile on updated plugin source.");
                             }
                             String pluginFileName = "AdKats.cs";
-                            String pluginPath = Path.Combine(dllPath.Trim(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), pluginFileName);
-                            if (_UseExperimentalTools || manual)
+                            String pluginPath = null;
+                            if (Environment.OSVersion.Platform.ToString().ToLower().StartsWith("unix"))
                             {
-                                Log.Info("OS: " + Environment.OSVersion.Platform + " | " + Environment.OSVersion.Version + " | " + Environment.OSVersion.VersionString);
-                                Log.Info("DLLPath: " + dllPath);
-                                Log.Info("PluginPath: " + pluginPath);
-                                Log.Info("PluginPath2: " + Path.Combine(dllPath, pluginFileName));
+                                pluginPath = Path.Combine(dllPath, pluginFileName);
+                            }
+                            else
+                            {
+                                pluginPath = Path.Combine(dllPath.Trim(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), pluginFileName);
                             }
                             CompilerResults compileResults = CompilePluginSource(pluginSource);
                             if (compileResults.Errors.HasErrors)
