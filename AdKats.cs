@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.4
+ * Version 7.0.0.5
  * 18-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.4</version_code>
+ * <version_code>7.0.0.5</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.4";
+        private const String PluginVersion = "7.0.0.5";
 
         public enum GameVersion
         {
@@ -27935,12 +27935,12 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    AdminSayMessage(record.GetTargetNames() + " PUNISHED" + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                                    AdminSayMessage(record.GetTargetNames() + " PUNISHED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
                                 }
                             }
                             else if (record.source_name != "PlayerMuteSystem")
                             {
-                                AdminSayMessage(record.GetTargetNames() + " KILLED" + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                                AdminSayMessage(record.GetTargetNames() + " KILLED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
                             }
                             int seconds = (int)UtcNow().Subtract(record.target_player.lastDeath).TotalSeconds;
                             Log.Debug(() => "Killing player. Player last died " + seconds + " seconds ago.", 3);
@@ -27969,12 +27969,12 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        AdminSayMessage(record.GetTargetNames() + " PUNISHED" + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                                        AdminSayMessage(record.GetTargetNames() + " PUNISHED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
                                     }
                                 }
                                 else if (record.source_name != "PlayerMuteSystem")
                                 {
-                                    AdminSayMessage(record.GetTargetNames() + " KILLED" + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                                    AdminSayMessage(record.GetTargetNames() + " KILLED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
                                 }
                                 if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name))
                                 {
@@ -28076,7 +28076,7 @@ namespace PRoConEvents
                     {
                         SendMessageToSource(record, "You WARNED " + record.GetTargetNames() + " for " + record.record_message);
                     }
-                    AdminSayMessage(record.GetTargetNames() + " WARNED" + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                    AdminSayMessage(record.GetTargetNames() + " WARNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
                     PlayerTellMessage(record.target_name, "Warned for " + record.record_message, true, 3);
                 }
             }
@@ -28197,7 +28197,7 @@ namespace PRoConEvents
                         }
                         else if (record.source_name != "AFKManager" && record.source_name != "SpectatorManager")
                         {
-                            AdminSayMessage(record.GetTargetNames() + " was KICKED" + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                            AdminSayMessage(record.GetTargetNames() + " KICKED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
                         }
                     }
                     if (record.target_player.fbpInfo != null)
@@ -28290,7 +28290,7 @@ namespace PRoConEvents
                 }
                 if (record.target_name != record.source_name)
                 {
-                    AdminSayMessage(record.GetTargetNames() + " was BANNED" + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                    AdminSayMessage(record.GetTargetNames() + " BANNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
                 }
                 SendMessageToSource(record, "You TEMP BANNED " + record.GetTargetNames() + " for " + FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 3));
             }
@@ -28370,7 +28370,7 @@ namespace PRoConEvents
                 }
                 if (record.target_name != record.source_name)
                 {
-                    AdminSayMessage(record.GetTargetNames() + " was BANNED" + ((_ShowAdminNameInAnnouncement || record.source_name == "AutoAdmin") ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                    AdminSayMessage(record.GetTargetNames() + " BANNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
                 }
                 SendMessageToSource(record, "You PERMA BANNED " + record.GetTargetNames());
             }
@@ -43493,19 +43493,11 @@ namespace PRoConEvents
                 aPlayer.player_aa = false;
                 return;
             }
-            if (_UseExperimentalTools)
-            {
-                Log.Info(aPlayer.GetVerboseName() + " is not an admin when assigning player admin assistant.");
-            }
             List<ASpecialPlayer> matchingPlayers = GetMatchingVerboseASPlayersOfGroup("whitelist_adminassistant", aPlayer);
             if (matchingPlayers.Count > 0)
             {
                 aPlayer.player_aa_fetched = true;
                 aPlayer.player_aa = true;
-                if (_UseExperimentalTools)
-                {
-                    Log.Info(aPlayer.GetVerboseName() + " is an admin assistant by verbose listing.");
-                }
                 return;
             }
             if (_databaseConnectionCriticalState)
@@ -43547,10 +43539,6 @@ namespace PRoConEvents
                             if (reader.Read())
                             {
                                 aPlayer.player_aa = true;
-                                if (_UseExperimentalTools)
-                                {
-                                    Log.Info(aPlayer.GetVerboseName() + " is an admin assistant by query.");
-                                }
                             }
                             aPlayer.player_aa_fetched = true;
                             return;
