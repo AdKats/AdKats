@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.5
+ * Version 7.0.0.6
  * 18-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.5</version_code>
+ * <version_code>7.0.0.6</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.5";
+        private const String PluginVersion = "7.0.0.6";
 
         public enum GameVersion
         {
@@ -11029,10 +11029,6 @@ namespace PRoConEvents
                                     {
                                         PlayerSayMessage(_debugSoldierName, message);
                                     }
-                                    else
-                                    {
-                                        ProconChatWrite(Log.FBold(message));
-                                    }
                                 }
                                 PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch.");
                                 aPlayer.lastSwitchMessage = UtcNow();
@@ -11111,7 +11107,7 @@ namespace PRoConEvents
                                 if (team1 == mapUpTeam)
                                 {
                                     // If the lower team has the map, overstate its power even more
-                                    t1Power *= 1.35;
+                                    t1Power *= 1.4;
                                 }
                                 else
                                 {
@@ -11162,10 +11158,6 @@ namespace PRoConEvents
                                 if (_PlayerDictionary.ContainsKey(_debugSoldierName))
                                 {
                                     PlayerSayMessage(_debugSoldierName, message);
-                                }
-                                else
-                                {
-                                    ProconChatWrite(Log.FBold(message));
                                 }
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
                             }
@@ -27836,52 +27828,7 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                //Team Info Check
-                ATeam team1, team2;
-                if (!GetTeamByID(1, out team1))
-                {
-                    if (_roundState == RoundState.Playing)
-                    {
-                        Log.Error("Teams not loaded when they should be.");
-                    }
-                    return;
-                }
-                if (!GetTeamByID(2, out team2))
-                {
-                    if (_roundState == RoundState.Playing)
-                    {
-                        Log.Error("Teams not loaded when they should be.");
-                    }
-                    return;
-                }
-                ATeam winningTeam, losingTeam;
-                if (team1.TeamTicketCount > team2.TeamTicketCount)
-                {
-                    winningTeam = team1;
-                    losingTeam = team2;
-                }
-                else
-                {
-                    winningTeam = team2;
-                    losingTeam = team1;
-                }
-                ATeam friendlyTeam, enemyTeam;
-                if (record.target_player.fbpInfo.TeamID == team1.TeamID)
-                {
-                    friendlyTeam = team1;
-                    enemyTeam = team2;
-                }
-                else if (record.target_player.fbpInfo.TeamID == team2.TeamID)
-                {
-                    friendlyTeam = team2;
-                    enemyTeam = team1;
-                }
-                else
-                {
-                    SendMessageToSource(record, "Invalid teams when attempting to assist.");
-                    record.record_message += " [Rejected]";
-                    return;
-                }
+
                 if (record.source_name == record.target_name)
                 {
                     _roundAssists[record.target_player.player_name] = record;
@@ -39730,7 +39677,7 @@ namespace PRoConEvents
             }
             else
             {
-                InfoOrRespond(debugRecord, "Invalid teams when attempting to assist.");
+                InfoOrRespond(debugRecord, "Invalid teams when attempting to assist. Team ID was " + aPlayer.fbpInfo.TeamID + ".");
                 return false;
             }
             ATeam mapUpTeam, mapDownTeam;
