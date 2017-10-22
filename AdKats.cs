@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.8
- * 21-OCT-2017
+ * Version 7.0.0.9
+ * 22-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.8</version_code>
+ * <version_code>7.0.0.9</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.8";
+        private const String PluginVersion = "7.0.0.9";
 
         public enum GameVersion
         {
@@ -11632,7 +11632,6 @@ namespace PRoConEvents
                                             //Automatic ping kick
                                             if (_pingEnforcerEnable &&
                                                 aPlayer.player_type == PlayerType.Player &&
-                                                !EventActive() &&
                                                 !PlayerIsAdmin(aPlayer) &&
                                                 !GetMatchingVerboseASPlayersOfGroup("whitelist_ping", aPlayer).Any() &&
                                                 !_pingEnforcerIgnoreRoles.Contains(aPlayer.player_role.role_key) &&
