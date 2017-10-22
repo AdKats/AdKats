@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.6
- * 18-OCT-2017
+ * Version 7.0.0.7
+ * 21-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.6</version_code>
+ * <version_code>7.0.0.7</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.6";
+        private const String PluginVersion = "7.0.0.7";
 
         public enum GameVersion
         {
@@ -11059,6 +11059,7 @@ namespace PRoConEvents
                     }
                     if (_UseTeamPowerMonitorReassign &&
                         _firstPlayerListComplete &&
+                        _serverInfo.InfoObject != null &&
                         oldTeam.TeamKey == "Neutral" &&
                         _roundState == RoundState.Playing &&
                         aPlayer.RequiredTeam == null &&
@@ -11099,19 +11100,19 @@ namespace PRoConEvents
                             }
                             var t1Power = team1.GetTeamPower(null, aPlayer);
                             var t2Power = team2.GetTeamPower(null, aPlayer);
-                            var map = _serverInfo.GetMap();
-                            if (map != null && map.MapFileName == "XP0_Metro")
+                            
+                            if (_serverInfo.InfoObject.Map == "XP0_Metro")
                             {
                                 // If this is metro, overstate the power of the lower team slightly
                                 // The upper team needs a slight stat boost over normal
                                 if (team1 == mapUpTeam)
                                 {
                                     // If the lower team has the map, overstate its power even more
-                                    t1Power *= 1.4;
+                                    t1Power *= 1.3;
                                 }
                                 else
                                 {
-                                    t1Power *= 1.1;
+                                    t1Power *= 1.05;
                                 }
                             }
                             if (t1Power > t2Power)
@@ -39714,13 +39715,7 @@ namespace PRoConEvents
             {
                 powerPercentageThreshold = 0;
             }
-            var map = _serverInfo.GetMap();
-            if (map != null && _UseExperimentalTools)
-            {
-                Log.Info("Map: " + map.MapFileName);
-                Log.Info("Map2: " + _serverInfo.InfoObject.Map);
-            }
-            if (map != null && map.MapFileName == "XP0_Metro" && enemyTeam.TeamID == 1)
+            if (_serverInfo.InfoObject.Map == "XP0_Metro" && enemyTeam.TeamID == 1)
             {
                 if (roundMinutes < 15)
                 {
@@ -39732,13 +39727,13 @@ namespace PRoConEvents
                 if (enemyTeam == mapUpTeam)
                 {
                     // If the lower team has the map, overstate its power even more
-                    oldEnemyPower *= 1.35;
-                    newEnemyPower *= 1.35;
+                    oldEnemyPower *= 1.3;
+                    newEnemyPower *= 1.3;
                 }
                 else
                 {
-                    oldEnemyPower *= 1.1;
-                    newEnemyPower *= 1.1;
+                    oldEnemyPower *= 1.05;
+                    newEnemyPower *= 1.05;
                 }
             }
             var newFriendlyCount = GetPlayerCount(true, true, true, friendlyTeam.TeamID) - 1;
