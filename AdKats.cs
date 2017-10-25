@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.10
+ * Version 7.0.0.11
  * 24-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.10</version_code>
+ * <version_code>7.0.0.11</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.10";
+        private const String PluginVersion = "7.0.0.11";
 
         public enum GameVersion
         {
@@ -11158,9 +11158,9 @@ namespace PRoConEvents
                         // If it's not the early game, the server is populated, and the weak team is also losing, increase leniency to 4 players
                         if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 &&
                             weakTeam == losingTeam &&
-                            // Require both high population state, and 45 players (accounting for smaller servers)
+                            // Require both high population state, and 50 players (accounting for smaller servers)
                             _populationStatus == PopulationState.High &&
-                            weakCount + powerCount >= 45)
+                            weakCount + powerCount >= 50)
                         {
                             teamCountLeniency = 4;
                         }
@@ -47808,6 +47808,7 @@ namespace PRoConEvents
                                         Log.Success("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                         if (_UseExperimentalTools)
                                         {
+                                            _threadMasterWaitHandle.WaitOne(1000);
                                             Environment.Exit(2232);
                                         }
                                     }
@@ -47822,6 +47823,7 @@ namespace PRoConEvents
                                         Log.Success("Updated plugin file located at: " + pluginPath);
                                         if (_UseExperimentalTools)
                                         {
+                                            _threadMasterWaitHandle.WaitOne(1000);
                                             Environment.Exit(2232);
                                         }
                                     }
