@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.9
- * 22-OCT-2017
+ * Version 7.0.0.10
+ * 24-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.9</version_code>
+ * <version_code>7.0.0.10</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.9";
+        private const String PluginVersion = "7.0.0.10";
 
         public enum GameVersion
         {
@@ -635,6 +635,7 @@ namespace PRoConEvents
         private Boolean _UseTeamPowerMonitorScrambler = false;
         private Boolean _ScrambleRequiredTeamsRemoved = false;
         private Boolean _UseTeamPowerMonitorReassign = false;
+        private Boolean _UseTeamPowerMonitorUnswitcher = false;
         private Boolean currentStartingTeam1 = true;
         private Boolean _PlayersAutoAssistedThisRound = false;
         private Double _TeamPowerActiveInfluence = 35;
@@ -2567,6 +2568,7 @@ namespace PRoConEvents
                     }
                     buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
                     buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
+                    buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Unswitcher", typeof(Boolean), _UseTeamPowerMonitorUnswitcher));
                     buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Seeder Control", typeof(Boolean), _UseTeamPowerMonitorSeeders));
                 }
                 lstReturn.AddRange(buildList);
@@ -4629,7 +4631,7 @@ namespace PRoConEvents
                         {
                             if (_UseTeamPowerMonitorReassign)
                             {
-                                Log.Info("Team join reassignment is now being controlled by the team power monitor.");
+                                Log.Info("When players join the server and are over rank 15 they are now automatically placed on the weak team, unless that team would be up by 4 or more players.");
                             }
                             else
                             {
@@ -4638,6 +4640,31 @@ namespace PRoConEvents
                         }
                         //Upload change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Enable Team Power Unswitcher").Success)
+                {
+                    //Initial parse
+                    Boolean UseTeamPowerMonitorUnswitcher = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (UseTeamPowerMonitorUnswitcher != _UseTeamPowerMonitorUnswitcher)
+                    {
+                        //Assignment
+                        _UseTeamPowerMonitorUnswitcher = UseTeamPowerMonitorUnswitcher;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            if (_UseTeamPowerMonitorUnswitcher)
+                            {
+                                Log.Info("Based on the 'unswitcher' in MULTIBalancer, this system works based on team power and wont let players move to the more powerful team.");
+                            }
+                            else
+                            {
+                                Log.Info("Manual player movement is no longer being controlled by the team power monitor.");
+                            }
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Unswitcher", typeof(Boolean), _UseTeamPowerMonitorUnswitcher));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Enable Team Power Seeder Control").Success)
@@ -11057,110 +11084,133 @@ namespace PRoConEvents
                             }
                         }
                     }
-                    if (_UseTeamPowerMonitorReassign &&
-                        _firstPlayerListComplete &&
-                        _serverInfo.InfoObject != null &&
-                        oldTeam.TeamKey == "Neutral" &&
+                    ATeam team1, team2, winningTeam, losingTeam, powerTeam, weakTeam, mapUpTeam, mapDownTeam;
+                    if (_firstPlayerListComplete &&
                         _roundState == RoundState.Playing &&
                         aPlayer.RequiredTeam == null &&
                         GetPlayerCount() > 15 &&
-                        (aPlayer.GetPower(true) > 8 || aPlayer.fbpInfo.Rank > 25))
+                        GetTeamByID(1, out team1) && 
+                        GetTeamByID(2, out team2))
                     {
+                        // Wait for top stats
                         var startTime = UtcNow();
-                        while (_pluginEnabled && !aPlayer.TopStats.Fetched && NowDuration(startTime).TotalSeconds < 10)
+                        while (_pluginEnabled && 
+                               !aPlayer.TopStats.Fetched && 
+                               NowDuration(startTime).TotalSeconds < 10)
                         {
                             _threadMasterWaitHandle.WaitOne(200);
                         }
-                        if (!aPlayer.TopStats.Fetched)
+
+                        // set up the team variables
+                        if (team1.TeamTicketCount > team2.TeamTicketCount)
                         {
-                            Log.Error(aPlayer.player_name + " assigned without top stats fetched.");
+                            winningTeam = team1;
+                            losingTeam = team2;
                         }
-                        ATeam team1, team2, winningTeam, losingTeam, powerTeam, weakTeam, mapUpTeam, mapDownTeam;
-                        if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2))
+                        else
                         {
-                            if (team1.TeamTicketCount > team2.TeamTicketCount)
+                            winningTeam = team2;
+                            losingTeam = team1;
+                        }
+                        if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate())
+                        {
+                            mapUpTeam = team1;
+                            mapDownTeam = team2;
+                        }
+                        else
+                        {
+                            mapUpTeam = team2;
+                            mapDownTeam = team1;
+                        }
+                        var t1Power = team1.GetTeamPower(null, aPlayer);
+                        var t2Power = team2.GetTeamPower(null, aPlayer);
+
+                        if (_serverInfo.InfoObject.Map == "XP0_Metro")
+                        {
+                            // If this is metro, overstate the power of the lower team slightly
+                            // The upper team needs a slight stat boost over normal
+                            if (team1 == mapUpTeam)
                             {
-                                winningTeam = team1;
-                                losingTeam = team2;
+                                // If the lower team has the map, overstate its power even more
+                                t1Power *= 1.21;
                             }
                             else
                             {
-                                winningTeam = team2;
-                                losingTeam = team1;
+                                t1Power *= 1.0;
                             }
-                            if (team1.GetTicketDifferenceRate() > team2.GetTicketDifferenceRate())
+                        }
+                        if (t1Power > t2Power)
+                        {
+                            powerTeam = team1;
+                            weakTeam = team2;
+                        }
+                        else
+                        {
+                            powerTeam = team2;
+                            weakTeam = team1;
+                        }
+                        var players = _PlayerDictionary.Values.ToList();
+                        var weakCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
+                                                                 (dPlayer.fbpInfo.TeamID == weakTeam.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == weakTeam.TeamID)));
+                        var powerCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
+                                                                  dPlayer.fbpInfo.TeamID == powerTeam.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == powerTeam.TeamID));
+                        var teamCountLeniency = 1;
+                        // If it's not the early game, the server is populated, and the weak team is also losing, increase leniency to 4 players
+                        if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 &&
+                            weakTeam == losingTeam &&
+                            // Require both high population state, and 45 players (accounting for smaller servers)
+                            _populationStatus == PopulationState.High &&
+                            weakCount + powerCount >= 45)
+                        {
+                            teamCountLeniency = 4;
+                        }
+                        // Assume max team size of 32 unless otherwise provided
+                        var maxTeamPlayerCount = 32;
+                        if (_serverInfo.InfoObject != null &&
+                            _serverInfo.InfoObject.MaxPlayerCount != maxTeamPlayerCount)
+                        {
+                            maxTeamPlayerCount = _serverInfo.InfoObject.MaxPlayerCount / 2;
+                        }
+
+                        if (oldTeam.TeamKey == "Neutral")
+                        {
+                            // Do reassignment
+                            if ((aPlayer.GetPower(true) > 8 || aPlayer.fbpInfo.Rank > 15) &&
+                                _UseTeamPowerMonitorReassign)
                             {
-                                mapUpTeam = team1;
-                                mapDownTeam = team2;
-                            }
-                            else
-                            {
-                                mapUpTeam = team2;
-                                mapDownTeam = team1;
-                            }
-                            var t1Power = team1.GetTeamPower(null, aPlayer);
-                            var t2Power = team2.GetTeamPower(null, aPlayer);
-                            
-                            if (_serverInfo.InfoObject.Map == "XP0_Metro")
-                            {
-                                // If this is metro, overstate the power of the lower team slightly
-                                // The upper team needs a slight stat boost over normal
-                                if (team1 == mapUpTeam)
+                                if (!aPlayer.TopStats.Fetched)
                                 {
-                                    // If the lower team has the map, overstate its power even more
-                                    t1Power *= 1.2;
+                                    Log.Error(aPlayer.player_name + " assigned without top stats fetched.");
                                 }
-                                else
+
+                                if (weakCount - teamCountLeniency < powerCount &&
+                                    weakCount < maxTeamPlayerCount &&
+                                    weakTeam == mapDownTeam)
                                 {
-                                    t1Power *= 1.0;
+                                    aPlayer.RequiredTeam = weakTeam;
+                                }
+                                if (aPlayer.RequiredTeam != null)
+                                {
+                                    var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + aPlayer.RequiredTeam.GetTeamIDKey() + ".";
+                                    if (_PlayerDictionary.ContainsKey(_debugSoldierName))
+                                    {
+                                        PlayerSayMessage(_debugSoldierName, message);
+                                    }
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
                                 }
                             }
-                            if (t1Power > t2Power)
+                        }
+                        else if (_UseTeamPowerMonitorUnswitcher)
+                        {
+                            // Do unswitching
+                            if (newTeam == powerTeam)
                             {
-                                powerTeam = team1;
-                                weakTeam = team2;
-                            }
-                            else
-                            {
-                                powerTeam = team2;
-                                weakTeam = team1;
-                            }
-                            var players = _PlayerDictionary.Values.ToList();
-                            var weakCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
-                                                                     (dPlayer.fbpInfo.TeamID == weakTeam.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == weakTeam.TeamID)));
-                            var powerCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
-                                                                      dPlayer.fbpInfo.TeamID == powerTeam.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == powerTeam.TeamID));
-                            var teamCountLeniency = 1;
-                            // If it's not the early game, the server is populated, and the weak team is also losing, increase leniency to 4 players
-                            if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 &&
-                                weakTeam == losingTeam &&
-                                // Require both high population state, and 50 players (accounting for smaller servers)
-                                _populationStatus == PopulationState.High &&
-                                weakCount + powerCount >= 50)
-                            {
-                                teamCountLeniency = 4;
-                            }
-                            // Assume max team size of 32 unless otherwise provided
-                            var maxTeamPlayerCount = 32;
-                            if (_serverInfo.InfoObject != null &&
-                                _serverInfo.InfoObject.MaxPlayerCount != maxTeamPlayerCount)
-                            {
-                                maxTeamPlayerCount = _serverInfo.InfoObject.MaxPlayerCount / 2;
-                            }
-                            if (weakCount - teamCountLeniency < powerCount &&
-                                weakCount < maxTeamPlayerCount &&
-                                weakTeam == mapDownTeam)
-                            {
-                                aPlayer.RequiredTeam = weakTeam;
-                            }
-                            if (aPlayer.RequiredTeam != null)
-                            {
-                                var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + aPlayer.RequiredTeam.GetTeamIDKey() + ".";
+                                var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") unswitched back to " + weakTeam.GetTeamIDKey() + ".";
                                 if (_PlayerDictionary.ContainsKey(_debugSoldierName))
                                 {
                                     PlayerSayMessage(_debugSoldierName, message);
                                 }
-                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
+                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, weakTeam.TeamID + "", "0", "true");
                             }
                         }
                     }
@@ -18943,11 +18993,14 @@ namespace PRoConEvents
                     {
                         case "self_rules":
                             {
-                                if (record.source_name != record.target_name && record.target_player != null)
+                                if (record.source_name != record.target_name && 
+                                    record.target_player != null &&
+                                    record.source_player != null &&
+                                    !PlayerIsAdmin(record.source_player))
                                 {
                                     if (PlayerIsAdmin(record.target_player))
                                     {
-                                        SendMessageToSource(record, ((record.source_name.ToLower().Contains("pepsi")) ? ("Bad Pepsi. ") : ("")) + record.GetTargetNames() + " is an admin, they already know the rules.");
+                                        SendMessageToSource(record, record.GetTargetNames() + " is an admin, they already know the rules.");
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -35884,6 +35937,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Balancer", typeof(Boolean), _UseTeamPowerMonitorBalance));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
+                QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Unswitcher", typeof(Boolean), _UseTeamPowerMonitorUnswitcher));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Seeder Control", typeof(Boolean), _UseTeamPowerMonitorSeeders));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof(Boolean), _useRoundTimer));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof(Double), _maxRoundTimeMinutes));
