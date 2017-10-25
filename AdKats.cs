@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.12
- * 24-OCT-2017
+ * Version 7.0.0.13
+ * 25-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.12</version_code>
+ * <version_code>7.0.0.13</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.12";
+        private const String PluginVersion = "7.0.0.13";
 
         public enum GameVersion
         {
@@ -11148,7 +11148,7 @@ namespace PRoConEvents
                             }
                             else
                             {
-                                t1Power *= 1.0;
+                                t1Power *= 1.05;
                             }
                         }
                         if (t1Power > t2Power)
@@ -39792,13 +39792,13 @@ namespace PRoConEvents
                 if (enemyTeam == mapUpTeam)
                 {
                     // If the lower team has the map, overstate its power even more
-                    oldEnemyPower *= 1.2;
-                    newEnemyPower *= 1.2;
+                    oldEnemyPower *= 1.21;
+                    newEnemyPower *= 1.21;
                 }
                 else
                 {
-                    oldEnemyPower *= 1.0;
-                    newEnemyPower *= 1.0;
+                    oldEnemyPower *= 1.05;
+                    newEnemyPower *= 1.05;
                 }
             }
             var newFriendlyCount = GetPlayerCount(true, true, true, friendlyTeam.TeamID) - 1;
