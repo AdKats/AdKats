@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.11
+ * Version 7.0.0.12
  * 24-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.11</version_code>
+ * <version_code>7.0.0.12</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.11";
+        private const String PluginVersion = "7.0.0.12";
 
         public enum GameVersion
         {
@@ -4186,13 +4186,13 @@ namespace PRoConEvents
                     {
                         if (surrenderAutoNukeDuration < 0)
                         {
-                            Log.Error("Auto-nuke duration must be non-negative.");
+                            Log.Error("Auto-nuke high population duration must be non-negative.");
                             surrenderAutoNukeDuration = 0;
                         }
-                        if (surrenderAutoNukeDuration > 120)
+                        if (surrenderAutoNukeDuration > 60)
                         {
-                            Log.Error("Auto-nuke duration cannot be longer than 120 seconds.");
-                            surrenderAutoNukeDuration = 120;
+                            Log.Error("Auto-nuke high population duration cannot be longer than 60 seconds.");
+                            surrenderAutoNukeDuration = 60;
                         }
                         _surrenderAutoNukeDurationHigh = surrenderAutoNukeDuration;
                         //Once setting has been changed, upload the change to database
@@ -4206,13 +4206,13 @@ namespace PRoConEvents
                     {
                         if (surrenderAutoNukeDuration < 0)
                         {
-                            Log.Error("Auto-nuke duration must be non-negative.");
+                            Log.Error("Auto-nuke medium population duration must be non-negative.");
                             surrenderAutoNukeDuration = 0;
                         }
-                        if (surrenderAutoNukeDuration > 120)
+                        if (surrenderAutoNukeDuration > 45)
                         {
-                            Log.Error("Auto-nuke duration cannot be longer than 120 seconds.");
-                            surrenderAutoNukeDuration = 120;
+                            Log.Error("Auto-nuke medium population duration cannot be longer than 45 seconds.");
+                            surrenderAutoNukeDuration = 45;
                         }
                         _surrenderAutoNukeDurationMed = surrenderAutoNukeDuration;
                         //Once setting has been changed, upload the change to database
@@ -4226,13 +4226,13 @@ namespace PRoConEvents
                     {
                         if (surrenderAutoNukeDuration < 0)
                         {
-                            Log.Error("Auto-nuke duration must be non-negative.");
+                            Log.Error("Auto-nuke low population duration must be non-negative.");
                             surrenderAutoNukeDuration = 0;
                         }
-                        if (surrenderAutoNukeDuration > 120)
+                        if (surrenderAutoNukeDuration > 30)
                         {
-                            Log.Error("Auto-nuke duration cannot be longer than 120 seconds.");
-                            surrenderAutoNukeDuration = 120;
+                            Log.Error("Auto-nuke low population duration cannot be longer than 30 seconds.");
+                            surrenderAutoNukeDuration = 30;
                         }
                         _surrenderAutoNukeDurationLow = surrenderAutoNukeDuration;
                         //Once setting has been changed, upload the change to database
@@ -4249,10 +4249,10 @@ namespace PRoConEvents
                             Log.Error("Auto-nuke consecutive duration increase must be non-negative.");
                             surrenderAutoNukeDurationIncrease = 0;
                         }
-                        if (surrenderAutoNukeDurationIncrease > 60)
+                        if (surrenderAutoNukeDurationIncrease > 30)
                         {
-                            Log.Error("Auto-nuke duration cannot be longer than 60 seconds.");
-                            surrenderAutoNukeDurationIncrease = 60;
+                            Log.Error("Auto-nuke consecutive duration cannot be longer than 30 seconds.");
+                            surrenderAutoNukeDurationIncrease = 30;
                         }
                         _surrenderAutoNukeDurationIncrease = surrenderAutoNukeDurationIncrease;
                         //Once setting has been changed, upload the change to database
@@ -9708,14 +9708,26 @@ namespace PRoConEvents
                         switch (_populationStatus)
                         {
                             case PopulationState.High:
+                                if (_surrenderAutoNukeDurationHigh + durationIncrease > 60)
+                                {
+                                    durationIncrease = Math.Max(0, 60 - _surrenderAutoNukeDurationHigh);
+                                }
                                 _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationHigh + durationIncrease;
                                 nukeInfoMessage = "High population nuke: " + _surrenderAutoNukeDurationHigh + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
                                 break;
                             case PopulationState.Medium:
+                                if (_surrenderAutoNukeDurationMed + durationIncrease > 45)
+                                {
+                                    durationIncrease = Math.Max(0, 45 - _surrenderAutoNukeDurationMed);
+                                }
                                 _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationMed + durationIncrease;
                                 nukeInfoMessage = "Medium population nuke: " + _surrenderAutoNukeDurationMed + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
                                 break;
                             case PopulationState.Low:
+                                if (_surrenderAutoNukeDurationLow + durationIncrease > 30)
+                                {
+                                    durationIncrease = Math.Max(0, 30 - _surrenderAutoNukeDurationLow);
+                                }
                                 _nukeAutoSlayActiveDuration = _surrenderAutoNukeDurationLow + durationIncrease;
                                 nukeInfoMessage = "Low population nuke: " + _surrenderAutoNukeDurationLow + (durationIncrease > 0 ? " + " + durationIncrease : "") + " seconds.";
                                 break;
@@ -11158,9 +11170,9 @@ namespace PRoConEvents
                         // If it's not the early game, the server is populated, and the weak team is also losing, increase leniency to 4 players
                         if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 &&
                             weakTeam == losingTeam &&
-                            // Require both high population state, and 50 players (accounting for smaller servers)
+                            // Require both high population state, and 52 players (accounting for smaller servers)
                             _populationStatus == PopulationState.High &&
-                            weakCount + powerCount >= 50)
+                            weakCount + powerCount >= 52)
                         {
                             teamCountLeniency = 4;
                         }
