@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.14
+ * Version 7.0.0.15
  * 25-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.14</version_code>
+ * <version_code>7.0.0.15</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.14";
+        private const String PluginVersion = "7.0.0.15";
 
         public enum GameVersion
         {
@@ -20237,13 +20237,6 @@ namespace PRoConEvents
                                 return;
                             }
 
-                            if (_serverInfo.GetRoundElapsedTime().TotalMinutes < _minimumAssistMinutes)
-                            {
-                                SendMessageToSource(record, "Please wait at least " + _minimumAssistMinutes + " minutes into the round to use assist. [" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "]");
-                                FinalizeRecord(record);
-                                return;
-                            }
-
                             var assists = _roundAssists.Values;
                             if (assists.Any())
                             {
@@ -39817,7 +39810,13 @@ namespace PRoConEvents
             var oldPercDiff = Math.Abs(oldFriendlyPower - oldEnemyPower) / ((oldFriendlyPower + oldEnemyPower) / 2.0) * 100.0;
             Boolean enemyWinning = (aPlayer.fbpInfo.TeamID == losingTeam.TeamID);
             Boolean enemyHasMoreMap = enemyTeam.GetTicketDifferenceRate() > friendlyTeam.GetTicketDifferenceRate();
-            if (enemyWinning && enemyHasMoreMap)
+            
+            if (_serverInfo.GetRoundElapsedTime().TotalMinutes < _minimumAssistMinutes)
+            {
+                canAssist = false;
+                rejectionMessage += " assist off until " + _minimumAssistMinutes + " mins";
+            }
+            else if (enemyWinning && enemyHasMoreMap)
             {
                 canAssist = false;
                 rejectionMessage += "is already winning and strong";
