@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.13
+ * Version 7.0.0.14
  * 25-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.13</version_code>
+ * <version_code>7.0.0.14</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.13";
+        private const String PluginVersion = "7.0.0.14";
 
         public enum GameVersion
         {
@@ -11222,6 +11222,7 @@ namespace PRoConEvents
                                 {
                                     PlayerSayMessage(_debugSoldierName, message);
                                 }
+                                aPlayer.Say("Unswitched back to " + weakTeam.GetTeamIDKey() + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch.");
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, weakTeam.TeamID + "", "0", "true");
                             }
                         }
