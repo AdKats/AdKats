@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.16
- * 25-OCT-2017
+ * Version 7.0.0.17
+ * 26-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.16</version_code>
+ * <version_code>7.0.0.17</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.16";
+        private const String PluginVersion = "7.0.0.17";
 
         public enum GameVersion
         {
@@ -11005,18 +11005,24 @@ namespace PRoConEvents
                 {
                     APlayer aPlayer = _PlayerDictionary[soldierName];
                     // Add to the move list
+                    var moveLoop = false;
                     if (_roundState == RoundState.Playing)
                     {
                         aPlayer.TeamMoves.Add(UtcNow());
                         // Check if there were 8 or more moves in the last 5 seconds
                         var movesLast5 = aPlayer.TeamMoves.Count(time => time > UtcNow().AddSeconds(-5));
-                        if (aPlayer.RequiredTeam != null &&
-                            movesLast5 >= 8)
+                        if (movesLast5 >= 8)
                         {
-                            // The player is stuck in a move loop, remove their required squad and bow to whatever script/plugin is causing this
-                            aPlayer.RequiredTeam = null;
-                            Log.Warn(aPlayer.GetVerboseName() + " was stuck in a move loop. Removing their required team.");
-                            OnlineAdminSayMessage(aPlayer.GetVerboseName() + " was stuck in a move loop. Removing their required team.");
+                            // The player is stuck in a move loop, remove their required team and bow to whatever script/plugin is causing this
+                            moveLoop = true;
+                            var message = aPlayer.GetVerboseName() + " was stuck in a move loop.";
+                            if (aPlayer.RequiredTeam != null)
+                            {
+                                aPlayer.RequiredTeam = null;
+                                message += " Removing their required team.";
+                            }
+                            Log.Warn(message);
+                            OnlineAdminSayMessage(message);
                         }
                     }
                     ATeam newTeam;
@@ -11102,7 +11108,8 @@ namespace PRoConEvents
                         aPlayer.RequiredTeam == null &&
                         GetPlayerCount() > 15 &&
                         GetTeamByID(1, out team1) && 
-                        GetTeamByID(2, out team2))
+                        GetTeamByID(2, out team2) &&
+                        !moveLoop)
                     {
                         // Wait for top stats
                         var startTime = UtcNow();
