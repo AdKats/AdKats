@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.17
+ * Version 7.0.0.18
  * 26-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.17</version_code>
+ * <version_code>7.0.0.18</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.17";
+        private const String PluginVersion = "7.0.0.18";
 
         public enum GameVersion
         {
@@ -11005,7 +11005,8 @@ namespace PRoConEvents
                 {
                     APlayer aPlayer = _PlayerDictionary[soldierName];
                     // Add to the move list
-                    var moveLoop = false;
+                    Boolean moveAccepted = true;
+                    Boolean moveLoop = false;
                     if (_roundState == RoundState.Playing)
                     {
                         aPlayer.TeamMoves.Add(UtcNow());
@@ -11047,7 +11048,6 @@ namespace PRoConEvents
                         aPlayer.fbpInfo.SquadID = squadId;
                         return;
                     }
-                    Boolean updateTeamInfo = true;
                     if (aPlayer.RequiredTeam != null &&
                         aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey &&
                         (!PlayerIsAdmin(aPlayer) || !aPlayer.player_spawnedRound))
@@ -11078,28 +11078,9 @@ namespace PRoConEvents
                                 PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch.");
                                 aPlayer.lastSwitchMessage = UtcNow();
                             }
-                            updateTeamInfo = false;
+                            moveAccepted = false;
                             var squadName = aPlayer.RequiredSquad > 0 ? ASquad.Names[aPlayer.RequiredSquad] : ASquad.Names[1];
                             ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad > 0 ? aPlayer.RequiredSquad + "" : "1", "true");
-                        }
-                    }
-                    if (updateTeamInfo)
-                    {
-                        Int32 oldSquad = aPlayer.fbpInfo.SquadID;
-                        aPlayer.fbpInfo.TeamID = teamId;
-                    }
-                    //If the player is queued for automatic assist, remove them from the queue
-                    if (_AssistAttemptQueue.Any())
-                    {
-                        lock (_AssistAttemptQueue)
-                        {
-                            var matchingRecord = _AssistAttemptQueue.FirstOrDefault(assistRecord => assistRecord.target_player.player_id == aPlayer.player_id);
-                            if (matchingRecord != null)
-                            {
-                                //The player is queued, rebuild the queue without them in it
-                                SendMessageToSource(matchingRecord, "You moved teams manually. Automatic assist cancelled.");
-                                _AssistAttemptQueue = new Queue<ARecord>(_AssistAttemptQueue.Where(assistRecord => assistRecord != matchingRecord));
-                            }
                         }
                     }
                     ATeam team1, team2, winningTeam, losingTeam, powerTeam, weakTeam, mapUpTeam, mapDownTeam;
@@ -11109,6 +11090,7 @@ namespace PRoConEvents
                         GetPlayerCount() > 15 &&
                         GetTeamByID(1, out team1) && 
                         GetTeamByID(2, out team2) &&
+                        moveAccepted &&
                         !moveLoop)
                     {
                         // Wait for top stats
@@ -11215,6 +11197,7 @@ namespace PRoConEvents
                                     {
                                         PlayerSayMessage(_debugSoldierName, message);
                                     }
+                                    moveAccepted = false;
                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
                                 }
                             }
@@ -11230,7 +11213,28 @@ namespace PRoConEvents
                                     PlayerSayMessage(_debugSoldierName, message);
                                 }
                                 aPlayer.Say("Unswitched back to " + weakTeam.GetTeamIDKey() + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch.");
+                                moveAccepted = false;
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, weakTeam.TeamID + "", "0", "true");
+                            }
+                        }
+                    }
+                    if (moveAccepted)
+                    {
+                        // Update their player object's team ID
+                        aPlayer.fbpInfo.TeamID = teamId;
+
+                        //If the player is queued for automatic assist, remove them from the queue
+                        if (_AssistAttemptQueue.Any())
+                        {
+                            lock (_AssistAttemptQueue)
+                            {
+                                var matchingRecord = _AssistAttemptQueue.FirstOrDefault(assistRecord => assistRecord.target_player.player_id == aPlayer.player_id);
+                                if (matchingRecord != null)
+                                {
+                                    //The player is queued, rebuild the queue without them in it
+                                    SendMessageToSource(matchingRecord, "You moved teams manually. Automatic assist cancelled.");
+                                    _AssistAttemptQueue = new Queue<ARecord>(_AssistAttemptQueue.Where(assistRecord => assistRecord != matchingRecord));
+                                }
                             }
                         }
                     }
