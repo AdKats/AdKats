@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.15
+ * Version 7.0.0.16
  * 25-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.15</version_code>
+ * <version_code>7.0.0.16</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.15";
+        private const String PluginVersion = "7.0.0.16";
 
         public enum GameVersion
         {
@@ -39765,7 +39765,7 @@ namespace PRoConEvents
             Boolean ticketBypass = false;
             Double ticketBypassAmount = (_startingTicketCount > 0 ? (_startingTicketCount / 3.5) : 250);
 
-            rejectionMessage = "team ";
+            rejectionMessage = "";
             var oldFriendlyPower = friendlyTeam.GetTeamPower();
             var oldEnemyPower = enemyTeam.GetTeamPower();
             var newFriendlyPower = friendlyTeam.GetTeamPower(aPlayer, null);
@@ -39814,12 +39814,12 @@ namespace PRoConEvents
             if (_serverInfo.GetRoundElapsedTime().TotalMinutes < _minimumAssistMinutes)
             {
                 canAssist = false;
-                rejectionMessage += " assist off until " + _minimumAssistMinutes + " mins";
+                rejectionMessage += "assist disabled until " + _minimumAssistMinutes + " mins";
             }
             else if (enemyWinning && enemyHasMoreMap)
             {
                 canAssist = false;
-                rejectionMessage += "is already winning and strong";
+                rejectionMessage += "team already winning and strong";
             }
             else
             {
@@ -39832,7 +39832,7 @@ namespace PRoConEvents
                     newEnemyCount - 4 >= newFriendlyCount)
                 {
                     canAssist = false;
-                    rejectionMessage += "has too many players";
+                    rejectionMessage += "team has too many players";
                 }
                 // Check team power
                 if (canAssist)
@@ -39854,7 +39854,7 @@ namespace PRoConEvents
                             (powerDifferencePercOverThreshold || enemyHasMoreMap))
                         {
                             canAssist = false;
-                            rejectionMessage += "would be too strong";
+                            rejectionMessage += "team would be too strong";
                         }
                     }
                 }
