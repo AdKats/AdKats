@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.20
- * 26-OCT-2017
+ * Version 7.0.0.21
+ * 27-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.20</version_code>
+ * <version_code>7.0.0.21</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.20";
+        private const String PluginVersion = "7.0.0.21";
 
         public enum GameVersion
         {
@@ -11137,7 +11137,7 @@ namespace PRoConEvents
                             }
                             else
                             {
-                                t1Power *= 1.05;
+                                t1Power *= 1.08;
                             }
                         }
                         if (t1Power > t2Power)
@@ -39802,8 +39802,8 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    oldEnemyPower *= 1.05;
-                    newEnemyPower *= 1.05;
+                    oldEnemyPower *= 1.08;
+                    newEnemyPower *= 1.08;
                 }
             }
             var newFriendlyCount = GetPlayerCount(true, true, true, friendlyTeam.TeamID) - 1;
