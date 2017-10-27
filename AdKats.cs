@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.19
+ * Version 7.0.0.20
  * 26-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.19</version_code>
+ * <version_code>7.0.0.20</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.18";
+        private const String PluginVersion = "7.0.0.20";
 
         public enum GameVersion
         {
@@ -39787,7 +39787,7 @@ namespace PRoConEvents
             }
             if (_serverInfo.InfoObject.Map == "XP0_Metro" && enemyTeam.TeamID == 1)
             {
-                if (roundMinutes < 15)
+                if (roundMinutes < 20)
                 {
                     powerPercentageThreshold = 0;
                 }
@@ -39869,12 +39869,13 @@ namespace PRoConEvents
                         }
                     }
                 }
-                if (!auto && _UseExperimentalTools)
+                if ((!auto || canAssist) && _UseExperimentalTools)
                 {
                     InfoOrRespond(debugRecord,
                     "Old Diff: " + Math.Round(oldPercDiff, 1) + " | " +
                     "New Diff: " + Math.Round(newPercDiff, 1) + "");
                     InfoOrRespond(debugRecord,
+                    "Accept: " + canAssist + " | " +
                     "Threshold: " + powerPercentageThreshold + " | " +
                     "Over: " + powerDifferencePercOverThreshold + " | " +
                     "Map: " + enemyHasMoreMap + " | " +
