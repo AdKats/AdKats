@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.18
+ * Version 7.0.0.19
  * 26-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.18</version_code>
+ * <version_code>7.0.0.19</version_code>
  */
 
 using System;
@@ -31219,20 +31219,20 @@ namespace PRoConEvents
             {
                 record.record_action_executed = true;
                 //Unlock squad
-                SendMessageToSource(record, "Unlocking source squad for player entry.");
+                SendMessageToSource(record, "Unlocking your squad for entry.");
                 ExecuteCommand("procon.protected.send", "squad.private", record.source_player.fbpInfo.TeamID + "", record.source_player.fbpInfo.SquadID + "", "false");
                 _threadMasterWaitHandle.WaitOne(500);
                 //Move to specific squad
                 Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                 _MULTIBalancerUnswitcherDisabled = true;
-                ATeam targetTeam;
-                if (GetTeamByID(record.source_player.fbpInfo.TeamID, out targetTeam))
+                ATeam sourceTeam;
+                if (GetTeamByID(record.source_player.fbpInfo.TeamID, out sourceTeam))
                 {
-                    record.source_player.RequiredTeam = targetTeam;
+                    record.target_player.RequiredTeam = sourceTeam;
                     _LastPlayerMoveIssued = UtcNow();
-                    SendMessageToSource(record, "Attempting to pull " + record.GetTargetNames());
-                    ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_name, record.source_player.fbpInfo.TeamID + "", record.source_player.fbpInfo.SquadID + "", "true");
+                    SendMessageToSource(record, "Pulling " + record.GetTargetNames() + " to your squad.");
+                    ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_player.player_name, sourceTeam.TeamID + "", record.source_player.fbpInfo.SquadID + "", "true");
                 }
             }
             catch (Exception e)
