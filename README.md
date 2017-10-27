@@ -893,13 +893,13 @@
     The "most hacked" weapon (the one farthest above normal) is the one displayed in the ban reason using the
     following formats:<br/>
     Damage Mod Bans:<br/>
-    DPS Automatic Ban [WEAPONNAME-DPS-KILLS-HEADSHOTS]<br/>
+    DPS Automatic Ban [WEAPONNAME-DPS-KILLS-HEADSHOTS-HITS]<br/>
     LIVE Damage Mod Bans:<br/>
     DPS Automatic Ban [LIVE][WEAPONNAME-DPS-KILLS-HEADSHOTS-HITS]<br/>
     Aimbot Bans:<br/>
-    HSK Automatic Ban [WEAPONNAME-HSK-KILLS-HEADSHOTS]<br/>
+    HSK Automatic Ban [WEAPONNAME-HSK-KILLS-HEADSHOTS-HITS]<br/>
     KPM Bans:<br/>
-    KPM Automatic Ban [WEAPONNAME-KPM-KILLS-HEADSHOTS]
+    KPM Automatic Ban [WEAPONNAME-KPM-KILLS-HEADSHOTS-HITS]
     LIVE Magic Bullet:<br/>
     Magic Bullet [LIVE][7-KILLS-HITS]
 </p>
@@ -3875,6 +3875,10 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Enable Team Power Join Reassignment'</b> - 
         Using team power metrics this system will reassign newly joining players to the weak team.
         If a 64 man server is nearly full and the weak team needs a lot of help it will allow up to a 4 player advantage for the weak team.
+    </li>
+    <li><b>'Enable Team Power Unswitcher'</b> - 
+        Using team power metrics this system blocks players from moving themselves to the more powerful team.
+        Still allows players to move themselves to the weaker team.
     </li>
     <li><b>'Enable Team Power Seeder Control'</b> - 
         A basic seeder balancer using team power metrics and placements on the map. 
