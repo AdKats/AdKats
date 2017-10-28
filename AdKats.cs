@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.23
- * 27-OCT-2017
+ * Version 7.0.0.24
+ * 28-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.23</version_code>
+ * <version_code>7.0.0.24</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.23";
+        private const String PluginVersion = "7.0.0.24";
 
         public enum GameVersion
         {
@@ -11190,6 +11190,7 @@ namespace PRoConEvents
                                 {
                                     aPlayer.RequiredTeam = weakTeam;
                                 }
+
                                 if (aPlayer.RequiredTeam != null)
                                 {
                                     var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + aPlayer.RequiredTeam.GetTeamIDKey() + ".";
@@ -31191,10 +31192,10 @@ namespace PRoConEvents
                         ATeam targetTeam;
                         if (GetTeamByID(record.target_player.fbpInfo.TeamID, out targetTeam))
                         {
-                            record.target_player.RequiredTeam = targetTeam;
+                            record.source_player.RequiredTeam = targetTeam;
                             _LastPlayerMoveIssued = UtcNow();
                             SendMessageToSource(record, "Attempting to join " + record.GetTargetNames());
-                            ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_name, record.target_player.fbpInfo.TeamID + "", record.target_player.fbpInfo.SquadID + "", "true");
+                            ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_player.player_name, record.target_player.fbpInfo.TeamID + "", record.target_player.fbpInfo.SquadID + "", "true");
                         }
                     }
                 }
@@ -39833,43 +39834,40 @@ namespace PRoConEvents
                 canAssist = false;
                 rejectionMessage += "winning and strong";
             }
+            else if (newEnemyCount - 4 >= newFriendlyCount)
+            {
+                // Hard cap the number of players a team can have over another
+                canAssist = false;
+                rejectionMessage += "too many players";
+            }
             else
             {
                 var enemyMorePowerful = newEnemyPower > newFriendlyPower;
                 var powerDifferenceIncreased = newPowerDiff > oldPowerDiff;
                 var powerDifferencePercOverThreshold = newPercDiff > powerPercentageThreshold;
 
-                // Hard cap the number of players a team can have over another
-                if (canAssist &&
-                    newEnemyCount - 4 >= newFriendlyCount)
-                {
-                    canAssist = false;
-                    rejectionMessage += "too many players";
-                }
                 // Check team power
-                if (canAssist)
+                if (_previousRoundDuration.TotalSeconds > 0 &&
+                    _serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 &&
+                    Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > ticketBypassAmount &&
+                    enemyTeam == losingTeam)
                 {
-                    if (_previousRoundDuration.TotalSeconds > 0 &&
-                        _serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 &&
-                        Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > ticketBypassAmount &&
-                        enemyTeam == losingTeam)
+                    ticketBypass = true;
+                }
+                else
+                {
+                    if (// The new team would be absolutely more powerful than the current team
+                        enemyMorePowerful &&
+                        // The differenct in power between the teams would go up
+                        powerDifferenceIncreased &&
+                        // The difference in power would be over the threshold, or the enemy has more map
+                        (powerDifferencePercOverThreshold || enemyHasMoreMap))
                     {
-                        ticketBypass = true;
-                    }
-                    else
-                    {
-                        if (// The new team would be absolutely more powerful than the current team
-                            enemyMorePowerful &&
-                            // The differenct in power between the teams would go up
-                            powerDifferenceIncreased &&
-                            // The difference in power would be over the threshold, or the enemy has more map
-                            (powerDifferencePercOverThreshold || enemyHasMoreMap))
-                        {
-                            canAssist = false;
-                            rejectionMessage += "would be too strong";
-                        }
+                        canAssist = false;
+                        rejectionMessage += "would be too strong";
                     }
                 }
+
                 if ((!auto || canAssist) && _UseExperimentalTools)
                 {
                     InfoOrRespond(debugRecord,
