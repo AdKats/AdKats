@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.21
+ * Version 7.0.0.22
  * 27-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.21</version_code>
+ * <version_code>7.0.0.22</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.21";
+        private const String PluginVersion = "7.0.0.22";
 
         public enum GameVersion
         {
@@ -39825,12 +39825,13 @@ namespace PRoConEvents
             if (_serverInfo.GetRoundElapsedTime().TotalMinutes < _minimumAssistMinutes)
             {
                 canAssist = false;
-                rejectionMessage += "assist disabled until " + _minimumAssistMinutes + " mins";
+                var duration = TimeSpan.FromMinutes(_minimumAssistMinutes - _serverInfo.GetRoundElapsedTime().TotalMinutes);
+                rejectionMessage += "assist disabled (" + FormatTimeString(duration, 2) + ")";
             }
             else if (enemyWinning && enemyHasMoreMap)
             {
                 canAssist = false;
-                rejectionMessage += "team already winning and strong";
+                rejectionMessage += "winning and strong";
             }
             else
             {
@@ -39843,7 +39844,7 @@ namespace PRoConEvents
                     newEnemyCount - 4 >= newFriendlyCount)
                 {
                     canAssist = false;
-                    rejectionMessage += "team has too many players";
+                    rejectionMessage += "too many players";
                 }
                 // Check team power
                 if (canAssist)
@@ -39865,7 +39866,7 @@ namespace PRoConEvents
                             (powerDifferencePercOverThreshold || enemyHasMoreMap))
                         {
                             canAssist = false;
-                            rejectionMessage += "team would be too strong";
+                            rejectionMessage += "would be too strong";
                         }
                     }
                 }
