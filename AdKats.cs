@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.22
+ * Version 7.0.0.23
  * 27-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.22</version_code>
+ * <version_code>7.0.0.23</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.22";
+        private const String PluginVersion = "7.0.0.23";
 
         public enum GameVersion
         {
@@ -39826,7 +39826,7 @@ namespace PRoConEvents
             {
                 canAssist = false;
                 var duration = TimeSpan.FromMinutes(_minimumAssistMinutes - _serverInfo.GetRoundElapsedTime().TotalMinutes);
-                rejectionMessage += "assist disabled (" + FormatTimeString(duration, 2) + ")";
+                rejectionMessage += "assist off for " + FormatTimeString(duration, 2);
             }
             else if (enemyWinning && enemyHasMoreMap)
             {
@@ -39893,20 +39893,12 @@ namespace PRoConEvents
                     rejectionMessage = realRecord.GetSourceName() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.GetTeamIDKey() + " rejected (" + rejectionMessage + ").";
                     if (!auto)
                     {
-                        if (_UseExperimentalTools)
+                        rejectionMessage += " Queued #" + (_AssistAttemptQueue.Count() + 1) + " for 5min auto-assist.";
+                        lock (_AssistAttemptQueue)
                         {
-                            rejectionMessage += " Queued (#" + (_AssistAttemptQueue.Count() + 1) + ") for 5 minute auto-assist.";
-                            lock (_AssistAttemptQueue)
-                            {
-                                _AssistAttemptQueue.Enqueue(realRecord);
-                            }
-                            AdminSayMessage(rejectionMessage);
+                            _AssistAttemptQueue.Enqueue(realRecord);
                         }
-                        else
-                        {
-                            AdminSayMessage(rejectionMessage);
-                            FinalizeRecord(realRecord);
-                        }
+                        AdminSayMessage(rejectionMessage);
                     }
                 }
                 else if (debugRecord != null)
