@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.26
+ * Version 7.0.0.27
  * 28-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.26</version_code>
+ * <version_code>7.0.0.27</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.26";
+        private const String PluginVersion = "7.0.0.27";
 
         public enum GameVersion
         {
@@ -5845,6 +5845,7 @@ namespace PRoConEvents
                     {
                         _EventWeeklyRepeat = EventWeeklyRepeat;
                         _CurrentEventRoundNumber = 999999;
+                        QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
                         if (_EventWeeklyRepeat)
                         {
                             _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
@@ -5894,6 +5895,7 @@ namespace PRoConEvents
                     {
                         _EventWeeklyDay = update;
                         _CurrentEventRoundNumber = 999999;
+                        QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
                         if (_EventWeeklyRepeat)
                         {
                             _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
@@ -5915,6 +5917,7 @@ namespace PRoConEvents
                     {
                         _EventDate = eventDate;
                         _CurrentEventRoundNumber = 999999;
+                        QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                     }
@@ -5934,6 +5937,7 @@ namespace PRoConEvents
                         }
                         _EventHour = eventHour;
                         _CurrentEventRoundNumber = 999999;
+                        QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Event Hour in 24 format", typeof(Double), _EventHour));
                     }
@@ -5967,7 +5971,21 @@ namespace PRoConEvents
                         }
                         _EventTestRoundNumber = roundNumber;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Boolean), _EventTestRoundNumber));
+                        QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Event Current Round Number").Success)
+                {
+                    Int32 roundNumber = Int32.Parse(strValue);
+                    if (roundNumber != _CurrentEventRoundNumber)
+                    {
+                        if (roundNumber < 1)
+                        {
+                            roundNumber = 1;
+                        }
+                        _CurrentEventRoundNumber = roundNumber;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Event Announce Day Difference").Success)
@@ -9301,82 +9319,89 @@ namespace PRoConEvents
             try
             {
                 // EVENTS
-                if (_EventWeeklyRepeat)
+                if (_pluginEnabled &&
+                    _firstPlayerListComplete)
                 {
-                    _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
-                    if (GetEventRoundDateTime() < DateTime.Now)
+                    if (_EventWeeklyRepeat)
                     {
-                        // If the given event date is today, but is already in the past
-                        // reset it to the same day next week
-                        _EventDate = _EventDate.AddDays(7);
-                    }
-                    QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
-                }
-                if (_UseExperimentalTools && _EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString())
-                {
-                    var eventDate = GetEventRoundDateTime();
-                    if (DateTime.Now < eventDate && _CurrentEventRoundNumber == 999999)
-                    {
-                        // The event date is set, and in the future
-                        var estimateEventRoundNumber = FetchEstimatedEventRoundNumber();
-                        // At 3 rounds away, lock in the round number for the event
-                        if (Math.Abs(estimateEventRoundNumber - _roundID) <= 3)
+                        _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
+                        if (GetEventRoundDateTime() < DateTime.Now)
                         {
-                            _CurrentEventRoundNumber = estimateEventRoundNumber;
-                            UpdateSettingPage();
+                            // If the given event date is today, but is already in the past
+                            // reset it to the same day next week
+                            _EventDate = _EventDate.AddDays(7);
                         }
+                        QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                     }
-                    var serverName = "";
-                    // During the event
-                    if (EventActive())
+                    if (_UseExperimentalTools &&
+                        _EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString())
                     {
-                        serverName = _eventActiveServerName + " " + GetEventMessage(false);
-                    }
-                    // Immediately before the event
-                    else if (_CurrentEventRoundNumber != 999999 &&
-                             _CurrentEventRoundNumber > _roundID)
-                    {
-                        serverName = _eventConcreteCountdownServerName;
-                    }
-                    // Before the event
-                    else if (DateTime.Now < eventDate &&
-                             Math.Abs((eventDate - DateTime.Now).TotalDays) < _EventAnnounceDayDifference)
-                    {
-                        serverName = _eventCountdownServerName;
-                    }
-                    //After the event, and otherwise
-                    else
-                    {
-                        serverName = _eventBaseServerName;
-                    }
-                    this.ExecuteCommand("procon.protected.send", "vars.serverName", ProcessEventServerName(serverName, false, false));
+                        var eventDate = GetEventRoundDateTime();
+                        if (DateTime.Now < eventDate && 
+                            _CurrentEventRoundNumber == 999999)
+                        {
+                            // The event date is set, and in the future
+                            var estimateEventRoundNumber = FetchEstimatedEventRoundNumber();
+                            // At 3 rounds away, lock in the round number for the event
+                            if (Math.Abs(estimateEventRoundNumber - _roundID) <= 3)
+                            {
+                                _CurrentEventRoundNumber = estimateEventRoundNumber;
+                                QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
+                                UpdateSettingPage();
+                            }
+                        }
+                        var serverName = "";
+                        // During the event
+                        if (EventActive())
+                        {
+                            serverName = _eventActiveServerName + " " + GetEventMessage(false);
+                        }
+                        // Immediately before the event
+                        else if (_CurrentEventRoundNumber != 999999 &&
+                                 _CurrentEventRoundNumber > _roundID)
+                        {
+                            serverName = _eventConcreteCountdownServerName;
+                        }
+                        // Before the event
+                        else if (DateTime.Now < eventDate &&
+                                 Math.Abs((eventDate - DateTime.Now).TotalDays) < _EventAnnounceDayDifference)
+                        {
+                            serverName = _eventCountdownServerName;
+                        }
+                        //After the event, and otherwise
+                        else
+                        {
+                            serverName = _eventBaseServerName;
+                        }
+                        this.ExecuteCommand("procon.protected.send", "vars.serverName", ProcessEventServerName(serverName, false, false));
 
-                    // EVENT AUTOMATIC POLLING
-                    if (_EventPollAutomatic &&
-                        !_EventRoundPolled &&
-                        // Don't auto-poll after 20 event rounds, just in case nobody votes to end it
-                        _EventRoundOptions.Count() < 20 &&
-                        _roundState == RoundState.Playing &&
-                        _serverInfo.GetRoundElapsedTime() >= _EventRoundAutoVoteDuration &&
-                        _ActivePoll == null &&
-                        (_CurrentEventRoundNumber == _roundID + 1 || EventActive()))
-                    {
-                        var options = String.Empty;
-                        if (_CurrentEventRoundNumber == _roundID + 1)
+                        // EVENT AUTOMATIC POLLING
+                        if (_EventPollAutomatic &&
+                            !_EventRoundPolled &&
+                            // Don't auto-poll after 20 event rounds, just in case nobody votes to end it
+                            _EventRoundOptions.Count() < 20 &&
+                            _roundState == RoundState.Playing &&
+                            _serverInfo.GetRoundElapsedTime() >= _EventRoundAutoVoteDuration &&
+                            _ActivePoll == null &&
+                            (_CurrentEventRoundNumber == _roundID + 1 || EventActive()))
                         {
-                            options = "reset";
+                            var options = String.Empty;
+                            if (_CurrentEventRoundNumber == _roundID + 1)
+                            {
+                                options = "reset";
+                            }
+                            QueueRecordForProcessing(new ARecord
+                            {
+                                record_source = ARecord.Sources.Automated,
+                                server_id = _serverInfo.ServerID,
+                                command_type = GetCommandByKey("poll_trigger"),
+                                command_numeric = 0,
+                                target_name = "event",
+                                source_name = "EventAutoPolling",
+                                record_message = options,
+                                record_time = UtcNow()
+                            });
                         }
-                        QueueRecordForProcessing(new ARecord
-                        {
-                            record_source = ARecord.Sources.Automated,
-                            server_id = _serverInfo.ServerID,
-                            command_type = GetCommandByKey("poll_trigger"),
-                            command_numeric = 0,
-                            target_name = "event",
-                            source_name = "EventAutoPolling",
-                            record_message = options,
-                            record_time = UtcNow()
-                        });
                     }
                 }
             }
@@ -14030,6 +14055,7 @@ namespace PRoConEvents
                             //NORMAL ROUND
                             // Reset the current event number, as the event has ended.
                             _CurrentEventRoundNumber = 999999;
+                            QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
                             ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Admins", "False");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Reputable Players", "False");
@@ -14783,7 +14809,8 @@ namespace PRoConEvents
             try
             {
                 var roundID = nextRound ? _roundID + 1 : _roundID;
-                if (_CurrentEventRoundNumber == 999999 || _CurrentEventRoundNumber > roundID)
+                if (_CurrentEventRoundNumber == 999999 || 
+                    _CurrentEventRoundNumber > roundID)
                 {
                     Log.Error("Can't get active event round number, event not active for round " + roundID + ".");
                     return 999999;
@@ -35995,7 +36022,8 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Event Day", typeof(String), _EventWeeklyDay.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Hour in 24 format", typeof(Double), _EventHour));
-                QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Boolean), _EventTestRoundNumber));
+                QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
+                QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
                 QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Double), _EventAnnounceDayDifference));
                 QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
                 QueueSettingForUpload(new CPluginVariable(@"Poll Max Option Count", typeof(Double), _EventPollMaxOptions));
