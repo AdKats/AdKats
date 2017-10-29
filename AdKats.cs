@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.25
+ * Version 7.0.0.26
  * 28-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.25</version_code>
+ * <version_code>7.0.0.26</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.25";
+        private const String PluginVersion = "7.0.0.26";
 
         public enum GameVersion
         {
@@ -1187,6 +1187,7 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Setting Import", typeof(String), _serverInfo.ServerID));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server ID (Display)", typeof(Int32), _serverInfo.ServerID));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server IP (Display)", typeof(String), _serverInfo.ServerIP));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server Round (Display)", typeof(String), _roundID));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server Game (Display)", typeof(String), _gameVersion.ToString()));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "High Population Value", typeof(Int32), _highPopulationPlayerCount));
@@ -47844,7 +47845,7 @@ namespace PRoConEvents
                                         }
                                         //Patched version is newer than an already patched version
                                         Log.Success("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
-                                        if (_UseExperimentalTools)
+                                        if (_UseExperimentalTools && !EventActive())
                                         {
                                             _threadMasterWaitHandle.WaitOne(1000);
                                             Environment.Exit(2232);
@@ -47859,7 +47860,7 @@ namespace PRoConEvents
                                         //User not notified of patch yet
                                         Log.Success("Plugin updated to version " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                         Log.Success("Updated plugin file located at: " + pluginPath);
-                                        if (_UseExperimentalTools)
+                                        if (_UseExperimentalTools && !EventActive())
                                         {
                                             _threadMasterWaitHandle.WaitOne(1000);
                                             Environment.Exit(2232);
