@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.28
- * 28-OCT-2017
+ * Version 7.0.0.29
+ * 29-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.28</version_code>
+ * <version_code>7.0.0.29</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.28";
+        private const String PluginVersion = "7.0.0.29";
 
         public enum GameVersion
         {
@@ -3063,7 +3063,10 @@ namespace PRoConEvents
                         source_name = "SettingsAdmin",
                         record_time = UtcNow()
                     };
-                    CompleteRecordInformation(record, strValue);
+                    CompleteRecordInformation(record, new AChatMessage()
+                    {
+                        Message = strValue
+                    });
                 }
                 else if (Regex.Match(strVariable, @"Client Download URL Entry").Success)
                 {
@@ -19920,7 +19923,7 @@ namespace PRoConEvents
                                 }
 
                                 //Complete the record creation
-                                CompleteRecordInformation(record, commandMessage.Message);
+                                CompleteRecordInformation(record, commandMessage);
                             }
                         }
                         else
@@ -19956,12 +19959,12 @@ namespace PRoConEvents
         }
 
         //Before calling this, the record is initialized, and command_source/source_name are filled
-        public void CompleteRecordInformation(ARecord record, String message)
+        public void CompleteRecordInformation(ARecord record, AChatMessage message)
         {
             try
             {
                 //Initial split of command by whitespace
-                String[] splitMessage = message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                String[] splitMessage = message.Message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 if (splitMessage.Length < 1)
                 {
                     Log.Debug(() => "Completely blank command entered", 5);
@@ -19971,7 +19974,7 @@ namespace PRoConEvents
                 }
                 String commandString = splitMessage[0].ToLower();
                 Log.Debug(() => "Raw " + commandString, 6);
-                String remainingMessage = message.TrimStart(splitMessage[0].ToCharArray()).Trim();
+                String remainingMessage = message.Message.TrimStart(splitMessage[0].ToCharArray()).Trim();
 
                 record.server_id = _serverInfo.ServerID;
                 record.record_time = UtcNow();
@@ -20069,6 +20072,13 @@ namespace PRoConEvents
                         //Only tell the user they dont have access if the command is active
                         if (record.command_type.command_active == ACommand.CommandActive.Active)
                         {
+                            if (record.command_type.command_playerInteraction &&
+                                !PlayerIsAdmin(record.source_player) &&
+                                !message.Hidden &&
+                                message.Subset != AChatMessage.ChatSubset.Squad)
+                            {
+                                AdminSayMessage(record.source_player.GetVerboseName() + " is not an admin, they cannot use " + record.command_type.command_name + ".");
+                            }
                             var powerLevel = "";
                             if (PlayerIsAdmin(record.source_player))
                             {
