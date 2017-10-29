@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.24
+ * Version 7.0.0.25
  * 28-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.24</version_code>
+ * <version_code>7.0.0.25</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.24";
+        private const String PluginVersion = "7.0.0.25";
 
         public enum GameVersion
         {
@@ -834,7 +834,7 @@ namespace PRoConEvents
         private List<AEventOption> _EventRoundOptions = new List<AEventOption>();
         private Boolean _EventRoundPolled = false;
         private Int32 _EventPollMaxOptions = 4;
-        private Int32 _EventRoundAutoPollsMax = 9;
+        private Int32 _EventRoundAutoPollsMax = 7;
         private TimeSpan _EventRoundAutoVoteDuration = TimeSpan.FromMinutes(2.5);
         private List<AEventOption> _EventRoundPollOptions = new List<AEventOption>();
         private String _EventRoundOptionsEnum;
@@ -1155,6 +1155,7 @@ namespace PRoConEvents
             {
                 buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server ID (Display)", typeof(int), _serverInfo.ServerID));
                 buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server IP (Display)", typeof(String), _serverInfo.ServerIP));
+                buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server Round (Display)", typeof(String), _roundID));
                 if (_UseBanEnforcer)
                 {
                     buildList.Add(new CPluginVariable(GetSettingSection("A13-3") + t + "NAME Ban Count", typeof(int), _NameBanCount));
@@ -2669,6 +2670,10 @@ namespace PRoConEvents
                     {
                         buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
                         buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Automatically Poll Server For Event Options", typeof(Boolean), _EventPollAutomatic));
+                        if (_EventPollAutomatic)
+                        {
+                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Max Automatic Polls Per Event", typeof(Int32), _EventRoundAutoPollsMax));
+                        }
                         buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Yell Current Winning Rule Option", typeof(Boolean), _eventPollYellWinningRule));
 
                         buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Duration Rounds", typeof(Int32), _EventRoundOptions.Count()));
@@ -2698,7 +2703,6 @@ namespace PRoConEvents
                             buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Estimated Event Round Number (display)", typeof(String), String.Format("{0:n0}", FetchEstimatedEventRoundNumber())));
                             buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Concrete Event Round Number (display)", typeof(String), _CurrentEventRoundNumber == 999999 ? "Undecided." : String.Format("{0:n0}", _CurrentEventRoundNumber)));
                         }
-
                         buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Max Option Count", typeof(Int32), _EventPollMaxOptions));
                         buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Mode Rule Combination Count", typeof(Int32), _EventRoundPollOptions.Count()));
                         for (int optionNumber = 0; optionNumber < _EventRoundPollOptions.Count(); optionNumber++)
@@ -5803,6 +5807,24 @@ namespace PRoConEvents
                         _EventPollAutomatic = eventPollAutomatic;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Automatically Poll Server For Event Options", typeof(Boolean), _EventPollAutomatic));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Max Automatic Polls Per Event").Success)
+                {
+                    Int32 EventRoundAutoPollsMax = Int32.Parse(strValue);
+                    if (EventRoundAutoPollsMax != _EventRoundAutoPollsMax)
+                    {
+                        if (EventRoundAutoPollsMax < 1)
+                        {
+                            EventRoundAutoPollsMax = 1;
+                        }
+                        if (EventRoundAutoPollsMax > 20)
+                        {
+                            EventRoundAutoPollsMax = 20;
+                        }
+                        _EventRoundAutoPollsMax = EventRoundAutoPollsMax;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Max Automatic Polls Per Event", typeof(Double), _EventRoundAutoPollsMax));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Yell Current Winning Rule Option").Success)
@@ -35966,6 +35988,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                 QueueSettingForUpload(new CPluginVariable(@"Automatically Poll Server For Event Options", typeof(Boolean), _EventPollAutomatic));
+                QueueSettingForUpload(new CPluginVariable(@"Max Automatic Polls Per Event", typeof(Double), _EventRoundAutoPollsMax));
                 QueueSettingForUpload(new CPluginVariable(@"Yell Current Winning Rule Option", typeof(Boolean), _eventPollYellWinningRule));
                 QueueSettingForUpload(new CPluginVariable(@"Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
                 QueueSettingForUpload(new CPluginVariable(@"Event Day", typeof(String), _EventWeeklyDay.ToString()));
