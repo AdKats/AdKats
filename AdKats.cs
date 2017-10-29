@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.27
+ * Version 7.0.0.28
  * 28-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.27</version_code>
+ * <version_code>7.0.0.28</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.27";
+        private const String PluginVersion = "7.0.0.28";
 
         public enum GameVersion
         {
@@ -20069,7 +20069,12 @@ namespace PRoConEvents
                         //Only tell the user they dont have access if the command is active
                         if (record.command_type.command_active == ACommand.CommandActive.Active)
                         {
-                            SendMessageToSource(record, "Your role " + record.source_player.player_role.role_name + " (Power Level " + record.source_player.player_role.role_powerLevel + ") cannot use " + record.command_type.command_name + ".");
+                            var powerLevel = "";
+                            if (PlayerIsAdmin(record.source_player))
+                            {
+                                powerLevel = " (Power Level " + record.source_player.player_role.role_powerLevel + ")";
+                            }
+                            SendMessageToSource(record, "Your role " + record.source_player.player_role.role_name + powerLevel + " cannot use " + record.command_type.command_name + ".");
                         }
                         FinalizeRecord(record);
                         return;
