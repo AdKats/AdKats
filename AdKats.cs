@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.30
+ * Version 7.0.0.31
  * 30-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.30</version_code>
+ * <version_code>7.0.0.31</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.30";
+        private const String PluginVersion = "7.0.0.31";
 
         public enum GameVersion
         {
@@ -11186,9 +11186,9 @@ namespace PRoConEvents
                                 // If the lower team has the map, overstate its power even more
                                 t1Power *= 1.21;
                             }
-                            else
+                            else if (_populationStatus == PopulationState.High)
                             {
-                                t1Power *= 1.08;
+                                t1Power *= 1.075;
                             }
                         }
                         if (t1Power > t2Power)
