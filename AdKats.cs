@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.31
- * 30-OCT-2017
+ * Version 7.0.0.32
+ * 31-OCT-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.31</version_code>
+ * <version_code>7.0.0.32</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.31";
+        private const String PluginVersion = "7.0.0.32";
 
         public enum GameVersion
         {
@@ -11186,9 +11186,10 @@ namespace PRoConEvents
                                 // If the lower team has the map, overstate its power even more
                                 t1Power *= 1.21;
                             }
-                            else if (_populationStatus == PopulationState.High)
+                            else if (_populationStatus == PopulationState.High ||
+                                     _serverInfo.GetRoundElapsedTime().TotalMinutes <= 8)
                             {
-                                t1Power *= 1.075;
+                                t1Power *= 1.08;
                             }
                         }
                         if (t1Power > t2Power)
@@ -28291,7 +28292,15 @@ namespace PRoConEvents
                     {
                         SendMessageToSource(record, "You KICKED " + record.GetTargetNames() + " for " + record.record_message);
                     }
-                    KickPlayerMessage(record.target_player, kickReason);
+                    if (record.target_name != record.source_name)
+                    {
+                        KickPlayerMessage(record.target_player, kickReason);
+                    }
+                    else
+                    {
+                        // Don't have any delay if the kick is self targeted
+                        KickPlayerMessage(record.target_player.player_name, kickReason, 0);
+                    }
                 }
             }
             catch (Exception e)
@@ -28570,7 +28579,15 @@ namespace PRoConEvents
 
                 //Perform Actions
                 aBan.ban_record.target_player.BanEnforceCount++;
-                BanKickPlayerMessage(aBan.ban_record.target_player, generatedBanReason);
+                if (aBan.ban_record.target_name != aBan.ban_record.source_name)
+                {
+                    BanKickPlayerMessage(aBan.ban_record.target_player, generatedBanReason);
+                }
+                else
+                {
+                    // Don't have any delay if the ban is self targeted
+                    BanKickPlayerMessage(aBan.ban_record.target_player, generatedBanReason, 0);
+                }
                 if (_PlayerDictionary.ContainsKey(aBan.ban_record.target_player.player_name) && aBan.ban_startTime < UtcNow())
                 {
                     //Inform the server of the enforced ban
@@ -39868,10 +39885,11 @@ namespace PRoConEvents
                     oldEnemyPower *= 1.21;
                     newEnemyPower *= 1.21;
                 }
-                else if(_populationStatus == PopulationState.High)
+                else if(_populationStatus == PopulationState.High ||
+                        roundMinutes <= 8)
                 {
-                    oldEnemyPower *= 1.075;
-                    newEnemyPower *= 1.075;
+                    oldEnemyPower *= 1.08;
+                    newEnemyPower *= 1.08;
                 }
             }
             var newFriendlyCount = GetPlayerCount(true, true, true, friendlyTeam.TeamID) - 1;
@@ -47126,20 +47144,29 @@ namespace PRoConEvents
 
         public void BanKickPlayerMessage(APlayer aPlayer, String message)
         {
-            ExecuteCommand("procon.protected.send", "admin.killPlayer", aPlayer.player_name);
-            if (_gameVersion == GameVersion.BF4 && _BanEnforcerBF4LenientKick)
+            Int32 kickDuration = 0;
+            if (_gameVersion == GameVersion.BF4 &&
+                _BanEnforcerBF4LenientKick)
             {
-                var kickDuration = 30;
-                var wasSpawned = false;
+                kickDuration = 30;
                 if (aPlayer.player_spawnedOnce)
                 {
-                    wasSpawned = true;
                     kickDuration = 6;
                 }
                 if (aPlayer.BanEnforceCount > 2)
                 {
                     kickDuration = 0;
                 }
+            }
+            BanKickPlayerMessage(aPlayer, message, kickDuration);
+        }
+
+        public void BanKickPlayerMessage(APlayer aPlayer, String message, Int32 kickDuration)
+        {
+            ExecuteCommand("procon.protected.send", "admin.killPlayer", aPlayer.player_name);
+            if (kickDuration > 0)
+            {
+                var wasSpawned = aPlayer.player_spawnedOnce;
                 // Cannot just ban the player, they don't see the ban message
                 StartAndLogThread(new Thread(new ThreadStart(delegate
                 {
