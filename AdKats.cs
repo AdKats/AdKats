@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.34
+ * Version 7.0.0.35
  * 2-NOV-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.34</version_code>
+ * <version_code>7.0.0.35</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.34";
+        private const String PluginVersion = "7.0.0.35";
 
         public enum GameVersion
         {
@@ -11063,7 +11063,7 @@ namespace PRoConEvents
                         aPlayer.TeamMoves.Add(UtcNow());
                         // Check if there were 8 or more moves in the last 5 seconds
                         var movesLast5 = aPlayer.TeamMoves.Count(time => time > UtcNow().AddSeconds(-5));
-                        if (movesLast5 >= 8)
+                        if (movesLast5 >= 8 && NowDuration(aPlayer.JoinTime).TotalSeconds > 20)
                         {
                             // The player is stuck in a move loop, remove their required team and bow to whatever script/plugin is causing this
                             moveLoop = true;
