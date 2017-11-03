@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.33
+ * Version 7.0.0.34
  * 2-NOV-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.33</version_code>
+ * <version_code>7.0.0.34</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.33";
+        private const String PluginVersion = "7.0.0.34";
 
         public enum GameVersion
         {
@@ -11184,12 +11184,18 @@ namespace PRoConEvents
                             if (team1 == mapUpTeam)
                             {
                                 // If the lower team has the map, overstate its power even more
-                                t1Power *= 1.21;
+                                t1Power *= 1.22;
                             }
-                            else if (_populationStatus == PopulationState.High ||
-                                     _serverInfo.GetRoundElapsedTime().TotalMinutes <= 8)
+                            else
                             {
-                                t1Power *= 1.08;
+                                if (_serverInfo.GetRoundElapsedTime().TotalMinutes <= 10)
+                                {
+                                    t1Power *= 1.12;
+                                }
+                                else if (_populationStatus == PopulationState.High)
+                                {
+                                    t1Power *= 1.08;
+                                }
                             }
                         }
                         if (t1Power > t2Power)
@@ -39883,14 +39889,21 @@ namespace PRoConEvents
                 if (enemyTeam == mapUpTeam)
                 {
                     // If the lower team has the map, overstate its power even more
-                    oldEnemyPower *= 1.21;
-                    newEnemyPower *= 1.21;
+                    oldEnemyPower *= 1.22;
+                    newEnemyPower *= 1.22;
                 }
-                else if(_populationStatus == PopulationState.High ||
-                        roundMinutes <= 8)
+                else
                 {
-                    oldEnemyPower *= 1.08;
-                    newEnemyPower *= 1.08;
+                    if (_serverInfo.GetRoundElapsedTime().TotalMinutes <= 10)
+                    {
+                        oldEnemyPower *= 1.12;
+                        newEnemyPower *= 1.12;
+                    }
+                    else if (_populationStatus == PopulationState.High)
+                    {
+                        oldEnemyPower *= 1.08;
+                        newEnemyPower *= 1.08;
+                    }
                 }
             }
             var newFriendlyCount = GetPlayerCount(true, true, true, friendlyTeam.TeamID) - 1;
