@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.32
- * 31-OCT-2017
+ * Version 7.0.0.33
+ * 2-NOV-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.32</version_code>
+ * <version_code>7.0.0.33</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.32";
+        private const String PluginVersion = "7.0.0.33";
 
         public enum GameVersion
         {
@@ -39870,7 +39870,8 @@ namespace PRoConEvents
             {
                 powerPercentageThreshold = 0;
             }
-            if (_serverInfo.InfoObject.Map == "XP0_Metro" && enemyTeam.TeamID == 1)
+            var enemyMetro1 = _serverInfo.InfoObject.Map == "XP0_Metro" && enemyTeam.TeamID == 1;
+            if (enemyMetro1)
             {
                 if (roundMinutes < 20)
                 {
@@ -39950,6 +39951,16 @@ namespace PRoConEvents
                     {
                         canAssist = false;
                         rejectionMessage += "would be too strong";
+                    }
+
+                    // Special rejection for metro 1
+                    if (canAssist && 
+                        enemyMetro1 &&
+                        roundMinutes < 15 &&
+                        (enemyMorePowerful || enemyHasMoreMap))
+                    {
+                        canAssist = false;
+                        rejectionMessage += "1 would be too strong";
                     }
                 }
 
