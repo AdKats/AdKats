@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.38
+ * Version 7.0.0.39
  * 4-NOV-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.38</version_code>
+ * <version_code>7.0.0.39</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.38";
+        private const String PluginVersion = "7.0.0.39";
 
         public enum GameVersion
         {
@@ -11217,9 +11217,10 @@ namespace PRoConEvents
                         // If it's not the early game, the server is populated, and the weak team is also losing, increase leniency to 4 players
                         if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 &&
                             weakTeam == losingTeam &&
-                            // Require both high population state, and 52 players (accounting for smaller servers)
+                            // Require both high population state, and 26 or more players on each team (accounting for smaller servers)
                             _populationStatus == PopulationState.High &&
-                            weakCount + powerCount >= 52)
+                            weakCount >= 26 &&
+                            powerCount >= 26)
                         {
                             teamCountLeniency = 4;
                         }
