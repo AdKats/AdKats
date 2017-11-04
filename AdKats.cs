@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.37
+ * Version 7.0.0.38
  * 4-NOV-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.37</version_code>
+ * <version_code>7.0.0.38</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.37";
+        private const String PluginVersion = "7.0.0.38";
 
         public enum GameVersion
         {
@@ -11242,14 +11242,9 @@ namespace PRoConEvents
                                     Log.Error(aPlayer.player_name + " assigned without top stats fetched.");
                                 }
 
-                                if (weakCount - teamCountLeniency < powerCount &&
-                                    weakCount < maxTeamPlayerCount &&
-                                    weakTeam == mapDownTeam)
-                                {
-                                    aPlayer.RequiredTeam = weakTeam;
-                                }
-
-                                if (aPlayer.RequiredTeam != null)
+                                if (weakTeam == mapDownTeam &&
+                                    weakCount - teamCountLeniency < powerCount &&
+                                    weakCount < maxTeamPlayerCount)
                                 {
                                     var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + aPlayer.RequiredTeam.GetTeamIDKey() + ".";
                                     if (_PlayerDictionary.ContainsKey(_debugSoldierName))
@@ -14460,6 +14455,8 @@ namespace PRoConEvents
                     foreach (APlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null))
                     {
                         aPlayer.RequiredTeam = null;
+                        aPlayer.RequiredSquad = -1;
+                        aPlayer.player_spawnedRound = false;
                     }
                 }
             }
@@ -18899,6 +18896,7 @@ namespace PRoConEvents
                                             PlayerSayMessage(player.SoldierName, "Swapping you from team " + team1.TeamKey + " to team " + team2.TeamKey);
                                             if (dicPlayer != null)
                                             {
+                                                dicPlayer.RequiredTeam = team2;
                                                 ARecord assistRecord = dicPlayer.TargetedRecords.FirstOrDefault(record => record.command_type.command_key == "self_assist" && record.command_action.command_key == "self_assist_unconfirmed");
                                                 if (assistRecord != null)
                                                 {
@@ -18908,7 +18906,6 @@ namespace PRoConEvents
                                                 }
                                             }
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "2", "1", "true");
-                                            dicPlayer.RequiredTeam = team2;
                                             _LastPlayerMoveIssued = UtcNow();
                                             team2.TeamPlayerCount++;
                                             team1.TeamPlayerCount--;
