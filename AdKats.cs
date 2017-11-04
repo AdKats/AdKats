@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.36
+ * Version 7.0.0.37
  * 4-NOV-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.36</version_code>
+ * <version_code>7.0.0.37</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.36";
+        private const String PluginVersion = "7.0.0.37";
 
         public enum GameVersion
         {
@@ -23523,6 +23523,41 @@ namespace PRoConEvents
                             }
                         }
                         break;
+                    case "player_loadout_ignore":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != ARecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Loadout Ignoring Self";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false, false);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Loadout Ignoring Player";
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, false, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     case "player_log":
                         {
                             //Remove previous commands awaiting confirmation
@@ -27633,6 +27668,9 @@ namespace PRoConEvents
                         break;
                     case "player_loadout_force":
                         LoadoutForceTarget(record);
+                        break;
+                    case "player_loadout_ignore":
+                        LoadoutIgnoreTarget(record);
                         break;
                     case "player_ping":
                         PingFetchTarget(record);
@@ -34231,6 +34269,47 @@ namespace PRoConEvents
                 FinalizeRecord(record);
             }
             Log.Debug(() => "Exiting LoadoutForceTarget", 6);
+        }
+
+        public void LoadoutIgnoreTarget(ARecord record)
+        {
+            Log.Debug(() => "Entering LoadoutIgnoreTarget", 6);
+            try
+            {
+                if (record.target_player == null)
+                {
+                    Log.Error("Player null when ignoring loadout for player.");
+                    SendMessageToSource(record, "Error ignoring loadout for " + record.GetTargetNames() + ".");
+                    return;
+                }
+                if (!record.target_player.player_online)
+                {
+                    SendMessageToSource(record, record.GetTargetNames() + " is not online, loadout cannot be ignored.");
+                    return;
+                }
+                record.record_action_executed = true;
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled))
+                {
+                    ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable {
+                        {"caller_identity", "AdKats"},
+                        {"response_requested", false},
+                        {"player_name", record.target_player.player_name},
+                        {"loadoutCheck_reason", "ignored"}
+                    }));
+                    SendMessageToSource(record, record.GetTargetNames() + " is now temporarily ignored by the loadout enforcer.");
+                }
+                else
+                {
+                    SendMessageToSource(record, "AdKatsLRT not installed/integrated.");
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AException("Error while ignoring loadout for player.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting LoadoutIgnoreTarget", 6);
         }
 
         public void PingFetchTarget(ARecord record)
@@ -42109,6 +42188,11 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command server_nuke_winning", "INSERT INTO `adkats_commands` VALUES(135, 'Active', 'server_nuke_winning', 'Log', 'Server Nuke Winning Team', 'wnuke', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(136))
+                                {
+                                    SendNonQuery("Adding command player_loadout_ignore", "INSERT INTO `adkats_commands` VALUES(136, 'Active', 'player_loadout_ignore', 'Log', 'Ignore Player Loadout', 'iloadout', TRUE, 'AnyHidden')", true);
+                                    newCommands = true;
+                                }
                                 if (newCommands)
                                 {
                                     FetchCommands();
@@ -42264,6 +42348,7 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["poll_cancel"] = "Cancels the current active poll without running its completion action.";
             _CommandDescriptionDictionary["poll_complete"] = "Completes the current active poll and runs its action.";
             _CommandDescriptionDictionary["server_nuke_winning"] = "Kills all players on the winning team.";
+            _CommandDescriptionDictionary["player_loadout_ignore"] = "If AdKatsLRT is installed the targeted player is temporarily ignored for loadout enforcement.";
         }
 
         private void FillReadableMapModeDictionaries()
@@ -45071,6 +45156,7 @@ namespace PRoConEvents
                     tPlayer["player_reported"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin");
                     tPlayer["player_punished"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_punish");
                     tPlayer["player_loadout_forced"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_loadout_force");
+                    tPlayer["player_loadout_ignored"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_loadout_ignore");
                     if (aPlayer.LastPunishment != null)
                     {
                         tPlayer["player_lastPunishment"] = Math.Round((UtcNow() - aPlayer.LastPunishment.record_time).TotalSeconds);
