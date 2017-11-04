@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.39
+ * Version 7.0.0.40
  * 4-NOV-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.39</version_code>
+ * <version_code>7.0.0.40</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.39";
+        private const String PluginVersion = "7.0.0.40";
 
         public enum GameVersion
         {
@@ -11247,13 +11247,13 @@ namespace PRoConEvents
                                     weakCount - teamCountLeniency < powerCount &&
                                     weakCount < maxTeamPlayerCount)
                                 {
-                                    var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + aPlayer.RequiredTeam.GetTeamIDKey() + ".";
+                                    var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + weakTeam.GetTeamIDKey() + ".";
                                     if (_PlayerDictionary.ContainsKey(_debugSoldierName))
                                     {
                                         PlayerSayMessage(_debugSoldierName, message);
                                     }
                                     moveAccepted = false;
-                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, weakTeam.TeamID + "", "0", "true");
                                 }
                             }
                         }
