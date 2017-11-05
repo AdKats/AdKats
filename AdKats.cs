@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.42
- * 4-NOV-2017
+ * Version 7.0.0.43
+ * 5-NOV-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.42</version_code>
+ * <version_code>7.0.0.43</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.42";
+        private const String PluginVersion = "7.0.0.43";
 
         public enum GameVersion
         {
@@ -11191,7 +11191,7 @@ namespace PRoConEvents
                                 // If the lower team has the map, overstate its power even more
                                 t1Power *= 1.22;
                             }
-                            else
+                            else if (team1.TeamTicketCount + 500 > team2.TeamTicketCount)
                             {
                                 if (_serverInfo.GetRoundElapsedTime().TotalMinutes <= 10)
                                 {
@@ -39967,7 +39967,8 @@ namespace PRoConEvents
             }
             if (enemyMetro1)
             {
-                if (roundMinutes < 20)
+                if (roundMinutes < 20 && 
+                    team1.TeamTicketCount + 500 > team2.TeamTicketCount)
                 {
                     powerPercentageThreshold = 0;
                 }
@@ -39980,7 +39981,7 @@ namespace PRoConEvents
                     oldEnemyPower *= 1.22;
                     newEnemyPower *= 1.22;
                 }
-                else
+                else if (team1.TeamTicketCount + 500 > team2.TeamTicketCount)
                 {
                     if (_serverInfo.GetRoundElapsedTime().TotalMinutes <= 10)
                     {
