@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.40
+ * Version 7.0.0.41
  * 4-NOV-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.40</version_code>
+ * <version_code>7.0.0.41</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.40";
+        private const String PluginVersion = "7.0.0.41";
 
         public enum GameVersion
         {
@@ -11177,7 +11177,9 @@ namespace PRoConEvents
                         var t1Power = team1.GetTeamPower(null, aPlayer);
                         var t2Power = team2.GetTeamPower(null, aPlayer);
 
-                        if (_serverInfo.InfoObject.Map == "XP0_Metro")
+                        if (_serverInfo.InfoObject.Map == "XP0_Metro" &&
+                            _serverInfo.InfoObject.GameMode == "ConquestLarge0" && 
+                            !EventActive())
                         {
                             // If this is metro, overstate the power of the lower team slightly
                             // The upper team needs a slight stat boost over normal
@@ -39953,7 +39955,10 @@ namespace PRoConEvents
             {
                 powerPercentageThreshold = 0;
             }
-            var enemyMetro1 = _serverInfo.InfoObject.Map == "XP0_Metro" && enemyTeam.TeamID == 1;
+            var enemyMetro1 = _serverInfo.InfoObject.Map == "XP0_Metro" && 
+                              _serverInfo.InfoObject.GameMode == "ConquestLarge0" &&
+                              enemyTeam.TeamID == 1 && 
+                              !EventActive();
             if (enemyMetro1)
             {
                 if (roundMinutes < 20)
