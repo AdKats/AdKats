@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.43
- * 5-NOV-2017
+ * Version 7.0.0.44
+ * 6-NOV-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.43</version_code>
+ * <version_code>7.0.0.44</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.43";
+        private const String PluginVersion = "7.0.0.44";
 
         public enum GameVersion
         {
@@ -11186,10 +11186,18 @@ namespace PRoConEvents
                             }
                             // If this is metro, overstate the power of the lower team slightly
                             // The upper team needs a slight stat boost over normal
+                            var roundMinutes = _serverInfo.GetRoundElapsedTime().TotalMinutes;
                             if (team1 == mapUpTeam)
                             {
                                 // If the lower team has the map, overstate its power even more
-                                t1Power *= 1.22;
+                                if (roundMinutes < 10)
+                                {
+                                    t1Power *= 1.35;
+                                }
+                                else
+                                {
+                                    t1Power *= 1.22;
+                                }
                             }
                             else if (team1.TeamTicketCount + 500 > team2.TeamTicketCount)
                             {
@@ -39978,12 +39986,20 @@ namespace PRoConEvents
                 if (enemyTeam == mapUpTeam)
                 {
                     // If the lower team has the map, overstate its power even more
-                    oldEnemyPower *= 1.22;
-                    newEnemyPower *= 1.22;
+                    if (roundMinutes < 10)
+                    {
+                        oldEnemyPower *= 1.35;
+                        newEnemyPower *= 1.35;
+                    }
+                    else
+                    {
+                        oldEnemyPower *= 1.22;
+                        newEnemyPower *= 1.22;
+                    }
                 }
                 else if (team1.TeamTicketCount + 500 > team2.TeamTicketCount)
                 {
-                    if (_serverInfo.GetRoundElapsedTime().TotalMinutes <= 10)
+                    if (roundMinutes <= 10)
                     {
                         oldEnemyPower *= 1.12;
                         newEnemyPower *= 1.12;
