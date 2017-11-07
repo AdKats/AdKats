@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.45
+ * Version 7.0.0.46
  * 6-NOV-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.45</version_code>
+ * <version_code>7.0.0.46</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.45";
+        private const String PluginVersion = "7.0.0.46";
 
         public enum GameVersion
         {
@@ -11177,6 +11177,7 @@ namespace PRoConEvents
                         var t1Power = team1.GetTeamPower(null, aPlayer);
                         var t2Power = team2.GetTeamPower(null, aPlayer);
 
+                        var debugT1Power = t1Power;
                         if (_serverInfo.InfoObject.Map == "XP0_Metro" &&
                             _serverInfo.InfoObject.GameMode == "ConquestLarge0")
                         {
@@ -11207,6 +11208,10 @@ namespace PRoConEvents
                                     t1Power *= 1.08;
                                 }
                             }
+                        }
+                        if (_UseExperimentalTools)
+                        {
+                            Log.Info("T1: " + Math.Round(t1Power, 1) + " (" + Math.Round(debugT1Power, 1) + ")");
                         }
                         if (t1Power > t2Power)
                         {
@@ -39966,6 +39971,8 @@ namespace PRoConEvents
             var enemyMetro1 = _serverInfo.InfoObject.Map == "XP0_Metro" &&
                               _serverInfo.InfoObject.GameMode == "ConquestLarge0" && 
                               enemyTeam.TeamID == 1;
+            var debugOldPower = oldEnemyPower;
+            var debugNewPower = newEnemyPower;
             if (enemyMetro1)
             {
                 if (roundMinutes < 20 && 
@@ -40004,6 +40011,10 @@ namespace PRoConEvents
                         newEnemyPower *= 1.08;
                     }
                 }
+            }
+            if (_UseExperimentalTools)
+            {
+                Log.Info("Old: " + Math.Round(oldEnemyPower, 1) + " (" + Math.Round(debugOldPower, 1) + ") New: " + Math.Round(newEnemyPower, 1) + " (" + Math.Round(debugNewPower, 1) + ")");
             }
             var newFriendlyCount = GetPlayerCount(true, true, true, friendlyTeam.TeamID) - 1;
             var newEnemyCount = GetPlayerCount(true, true, true, enemyTeam.TeamID) + 1;
