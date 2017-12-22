@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.46
- * 6-NOV-2017
+ * Version 7.0.0.47
+ * 21-DEC-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.46</version_code>
+ * <version_code>7.0.0.47</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.46";
+        private const String PluginVersion = "7.0.0.47";
 
         public enum GameVersion
         {
@@ -40297,7 +40297,12 @@ namespace PRoConEvents
             //Make sure database connection active
             if (_databaseConnectionCriticalState)
             {
-                return null;
+                return aBanList;
+            }
+            if (player == null)
+            {
+                Log.Error("Player null when fetching player bans. Contact ColColonCleaner.");
+                return aBanList;
             }
             try
             {
@@ -40424,7 +40429,7 @@ namespace PRoConEvents
                             }
                             if (aBanList.Count > 1)
                             {
-                                Log.Warn("Multiple bans matched player information, linked accounts detected.");
+                                Log.Warn("Multiple bans matched player " + player.player_id + ". Linked accounts detected.");
                             }
                         }
                     }
