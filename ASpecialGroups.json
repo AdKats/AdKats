@@ -1,0 +1,99 @@
+{ 
+	"SpecialGroups":[
+		{
+			"group_id":0, 
+			"group_key":"whitelist_anticheat",
+			"group_name":"Anti-Cheat Whitelist"
+		},
+		{
+			"group_id":1,
+			"group_key":"whitelist_multibalancer",
+			"group_name":"Auto-Balance Whitelist"
+		},
+		{
+			"group_id":2,
+			"group_key":"whitelist_ping",
+			"group_name":"Ping Kick Whitelist"
+		},
+		{
+			"group_id":3,
+			"group_key":"blacklist_dispersion",
+			"group_name":"Auto-Balance Dispersion List"
+		},
+		{
+			"group_id":4,
+			"group_key":"slot_reserved",
+			"group_name":"Reserved Slot"
+		},
+		{
+			"group_id":5,
+			"group_key":"slot_spectator",
+			"group_name":"Spectator Whitelist"
+		},
+		{
+			"group_id":6,
+			"group_key":"whitelist_adminassistant",
+			"group_name":"Admin Assistant Whitelist"
+		},
+		{
+			"group_id":7,
+			"group_key":"whitelist_spambot",
+			"group_name":"SpamBot Whitelist"
+		},
+		{
+			"group_id":8,
+			"group_key":"whitelist_teamswap",
+			"group_name":"TeamSwap Command Whitelist"
+		},
+		{
+			"group_id":9,
+			"group_key":"whitelist_report",
+			"group_name":"Player Report Whitelist"
+		},
+		{
+			"group_id":10,
+			"group_key":"whitelist_populator",
+			"group_name":"Approved Populator Whitelist"
+		},
+		{
+			"group_id":11,
+			"group_key":"whitelist_teamkill",
+			"group_name":"TeamKill Punishment Whitelist"
+		},
+		{
+			"group_id":12,
+			"group_key":"blacklist_spectator",
+			"group_name":"Spectator Blacklist" 
+		},
+		{
+			"group_id":13,
+			"group_key":"blacklist_report",
+			"group_name":"Report Source Blacklist" 
+		},
+		{
+			"group_id":14,
+			"group_key":"whitelist_commandtarget",
+			"group_name":"Command Target Whitelist" 
+		},
+		{
+			"group_id":15,
+			"group_key":"blacklist_autoassist",
+			"group_name":"Auto-Assist Blacklist" 
+		},
+		{
+			"group_id":16,
+			"group_key":"whitelist_squadsplit",
+			"group_name":"Squad Split Whitelist"
+		},
+		{
+			"group_id":17,
+			"group_key":"whitelist_squadsplit_advanced",
+			"group_name":"Advanced Squad Split Whitelist"
+		},
+		{
+			"group_id":18,
+			"group_key":"blacklist_allcaps",
+			"group_name":"All-Caps Chat Blacklist"
+		}
+	]
+}

@@ -1,0 +1,1666 @@
+{
+  "BF3": {
+    "870MCS": {
+      "readable_short": "870-MCS",
+      "readable_long": "870-MCS Combat Shotgun"
+    },
+    "AEK-971": {
+      "readable_short": "AEK-971",
+      "readable_long": "AEK-971 Assault Rifle"
+    },
+    "AKS-74u": {
+      "readable_short": "AKS-74u",
+      "readable_long": "AKS-74u Assault Rifle"
+    },
+    "AN-94 Abakan": {
+      "readable_short": "AN-94",
+      "readable_long": "AN-94 Abakan Assault Rifle"
+    },
+    "AS Val": {
+      "readable_short": "AS Val",
+      "readable_long": "AS Val Supressed Assault Rifle"
+    },
+    "DamageArea": {
+      "readable_short": "Damage Area",
+      "readable_long": "Damage Area"
+    },
+    "DAO-12": {
+      "readable_short": "DAO-12",
+      "readable_long": "DAO-12 Striker Shotgun"
+    },
+    "Death": {
+      "readable_short": "Death",
+      "readable_long": "Death"
+    },
+    "Defib": {
+      "readable_short": "Defib",
+      "readable_long": "Defibrillator"
+    },
+    "F2000": {
+      "readable_short": "F2000",
+      "readable_long": "F2000 Assault Rifle"
+    },
+    "FAMAS": {
+      "readable_short": "FAMAS",
+      "readable_long": "FAMAS Assault Rifle"
+    },
+    "FGM-148": {
+      "readable_short": "Javelin",
+      "readable_long": "FGM-148 Javelin"
+    },
+    "FIM92": {
+      "readable_short": "Stinger",
+      "readable_long": "FIM-92 Stinger"
+    },
+    "Glock18": {
+      "readable_short": "G18",
+      "readable_long": "G18 Machine Pistol"
+    },
+    "HK53": {
+      "readable_short": "MP5",
+      "readable_long": "HK53/MP5 Assault Rifle"
+    },
+    "jackhammer": {
+      "readable_short": "MK3A1",
+      "readable_long": "Jackhammer/MK3A1 Shotgun"
+    },
+    "JNG90": {
+      "readable_short": "JNG-90",
+      "readable_long": "JNG-90 Sniper Rifle"
+    },
+    "Knife_RazorBlade": {
+      "readable_short": "ACB-90",
+      "readable_long": "ACB-90 Premium Knife"
+    },
+    "L96": {
+      "readable_short": "L96A1",
+      "readable_long": "L96A1 Sniper Rifle"
+    },
+    "LSAT": {
+      "readable_short": "LSAT",
+      "readable_long": "LSAT Light Machine Gun"
+    },
+    "M416": {
+      "readable_short": "M416",
+      "readable_long": "M416 Assault Rifle"
+    },
+    "M417": {
+      "readable_short": "M417",
+      "readable_long": "M417 Sniper Rifle"
+    },
+    "M1014": {
+      "readable_short": "M1014",
+      "readable_long": "M1014 Semi-automatic Shotgun"
+    },
+    "M15 AT Mine": {
+      "readable_short": "AT Mine",
+      "readable_long": "M15 Anti-Tank Mine"
+    },
+    "M16A4": {
+      "readable_short": "M16A4",
+      "readable_long": "M16A4 Assault Rifle"
+    },
+    "M1911": {
+      "readable_short": "M1911",
+      "readable_long": "M1911 Pistol"
+    },
+    "M240": {
+      "readable_short": "M240",
+      "readable_long": "M240 Light Machine Gun"
+    },
+    "M249": {
+      "readable_short": "M249",
+      "readable_long": "M249 Light Machine Gun"
+    },
+    "M26Mass": {
+      "readable_short": "M26 Mass",
+      "readable_long": "M26 Mass Shotgun"
+    },
+    "M27IAR": {
+      "readable_short": "M27 IAR",
+      "readable_long": "M27 IAR Light Machine Gun"
+    },
+    "M320": {
+      "readable_short": "M320",
+      "readable_long": "M320 Grenade launcher"
+    },
+    "M39": {
+      "readable_short": "M39 EMR",
+      "readable_long": "M39 EMR Sniper Rifle"
+    },
+    "M40A5": {
+      "readable_short": "M40A5",
+      "readable_long": "M40A5 Sniper Rifle"
+    },
+    "M4A1": {
+      "readable_short": "M4A1",
+      "readable_long": "M4A1 Carbine"
+    },
+    "M60": {
+      "readable_short": "M60E4",
+      "readable_long": "M60E4 Light Machine Gun"
+    },
+    "M67": {
+      "readable_short": "Grenade",
+      "readable_long": "M67 Grenade"
+    },
+    "M9": {
+      "readable_short": "M9",
+      "readable_long": "M9 Pistol"
+    },
+    "M93R": {
+      "readable_short": "93R",
+      "readable_long": "Beretta M93R"
+    },
+    "Medkit": {
+      "readable_short": "Medkit",
+      "readable_long": "Medkit"
+    },
+    "Melee": {
+      "readable_short": "Melee",
+      "readable_long": "Melee Tags"
+    },
+    "MG36": {
+      "readable_short": "MG36",
+      "readable_long": "MG36 Light Machine Gun"
+    },
+    "Mk11": {
+      "readable_short": "MK11",
+      "readable_long": "MK11 Mod 0 Sniper Rifle"
+    },
+    "Model98B": {
+      "readable_short": "M98B",
+      "readable_long": "Barrett M98B Sniper Rifle"
+    },
+    "MP7": {
+      "readable_short": "MP7",
+      "readable_long": "MP7 SubMachine Gun"
+    },
+    "Pecheneg": {
+      "readable_short": "PKP Pecheneg",
+      "readable_long": "PKP Pecheneg Light Machine Gun"
+    },
+    "PP-19": {
+      "readable_short": "PP-19",
+      "readable_long": "PP-19 Bizon SubMachine Gun"
+    },
+    "PP-2000": {
+      "readable_short": "PP-2000",
+      "readable_long": "PP-2000 SubMachine Gun"
+    },
+    "QBB-95": {
+      "readable_short": "QBB-95",
+      "readable_long": "QBB-95 Light Machine Gun"
+    },
+    "QBU-88": {
+      "readable_short": "QBU-88",
+      "readable_long": "QBU-88 Sniper Rifle"
+    },
+    "QBZ-95": {
+      "readable_short": "QBZ-95",
+      "readable_long": "QBZ-95 Assault Rifle"
+    },
+    "Repair Tool": {
+      "readable_short": "Repair Tool",
+      "readable_long": "Repair Tool"
+    },
+    "RoadKill": {
+      "readable_short": "Roadkill",
+      "readable_long": "Roadkill"
+    },
+    "RPG-7": {
+      "readable_short": "RPG",
+      "readable_long": "RPG-7 Rocket Launcher"
+    },
+    "RPK-74M": {
+      "readable_short": "RPK-74M",
+      "readable_long": "RPK-74M Light Machine Gun"
+    },
+    "SCAR-L": {
+      "readable_short": "SCAR-L",
+      "readable_long": "SCAR-L Assault Rifle"
+    },
+    "SG 553 LB": {
+      "readable_short": "SG 550",
+      "readable_long": "SIG SG 550 Assault Rifle"
+    },
+    "Siaga20k": {
+      "readable_short": "Saiga 20K",
+      "readable_long": "Saiga 20K Combat Shotgun"
+    },
+    "SKS": {
+      "readable_short": "SKS",
+      "readable_long": "Simonov SKS-45 Sniper Rifle"
+    },
+    "SMAW": {
+      "readable_short": "SMAW",
+      "readable_long": "SMAW Rocket Launcher"
+    },
+    "SoldierCollision": {
+      "readable_short": "Soldier Collision",
+      "readable_long": "Soldier Collision"
+    },
+    "SPAS-12": {
+      "readable_short": "SPAS-12",
+      "readable_long": "SPAS-12 Combat Shotgun"
+    },
+    "Suicide": {
+      "readable_short": "Suicide",
+      "readable_long": "Suicide"
+    },
+    "SV98": {
+      "readable_short": "SV-98",
+      "readable_long": "SV-98 Sniper Rifle"
+    },
+    "SVD": {
+      "readable_short": "SVD",
+      "readable_long": "SVD Sniper Rifle"
+    },
+    "Steyr AUG": {
+      "readable_short": "Aug A3",
+      "readable_long": "Aug A3 Assault Rifle"
+    },
+    "Taurus .44": {
+      "readable_short": "44 Magnum",
+      "readable_long": ".44 Magnum Revolver"
+    },
+    "Type88": {
+      "readable_short": "Type88 LMG",
+      "readable_long": "Type88 Light Machine Gun"
+    },
+    "USAS-12": {
+      "readable_short": "USAS-12",
+      "readable_long": "USAS-12 Automatic Shotgun"
+    },
+    "Weapons/A91/A91": {
+      "readable_short": "A-91",
+      "readable_long": "A-91 Assault Rifle"
+    },
+    "Weapons/AK74M/AK74": {
+      "readable_short": "AK-74",
+      "readable_long": "AK-74 Assault Rifle"
+    },
+    "Weapons/G36C/G36C": {
+      "readable_short": "G36C",
+      "readable_long": "G36C Assault Rifle"
+    },
+    "Weapons/G3A3/G3A3": {
+      "readable_short": "G3A3",
+      "readable_long": "G3A3 Battle Rifle"
+    },
+    "Weapons/Gadgets/C4/C4": {
+      "readable_short": "C4",
+      "readable_long": "C4 Explosive"
+    },
+    "Weapons/Gadgets/Claymore/Claymore": {
+      "readable_short": "Claymore",
+      "readable_long": "Claymore Mine"
+    },
+    "Weapons/KH2002/KH2002": {
+      "readable_short": "KH2002",
+      "readable_long": "KH2002 Assault Rifle"
+    },
+    "Weapons/Knife/Knife": {
+      "readable_short": "Knife",
+      "readable_long": "Knife"
+    },
+    "Weapons/MagpulPDR/MagpulPDR": {
+      "readable_short": "Magpul PDR",
+      "readable_long": "Magpul Personal Defense Rifle"
+    },
+    "Weapons/MP412Rex/MP412REX": {
+      "readable_short": "Rex Revolver",
+      "readable_long": "MP412 Rex Revolver"
+    },
+    "Weapons/MP443/MP443": {
+      "readable_short": "MP-443",
+      "readable_long": "MP-443 Grach Pistol"
+    },
+    "Weapons/MP443/MP443_GM": {
+      "readable_short": "MP-443 GM",
+      "readable_long": "MP-443 Grach Pistol (GM)"
+    },
+    "Weapons/P90/P90": {
+      "readable_short": "P90",
+      "readable_long": "P90 SubMachine Gu"
+    },
+    "Weapons/P90/P90_GM": {
+      "readable_short": "P90 GM",
+      "readable_long": "P90 SubMachine Gu (GM)"
+    },
+    "Weapons/Sa18IGLA/Sa18IGLA": {
+      "readable_short": "IGLA",
+      "readable_long": "SA-18 IGLA Air Defense"
+    },
+    "Weapons/SCAR-H/SCAR-H": {
+      "readable_short": "SCAR-H",
+      "readable_long": "SCAR-H Assault Rifle"
+    },
+    "Weapons/UMP45/UMP45": {
+      "readable_short": "UMP-45",
+      "readable_long": "UMP-45 SubMachine Gun"
+    },
+    "Weapons/XP1_L85A2/L85A2": {
+      "readable_short": "L85A2",
+      "readable_long": "L85A2 Assault Rifle"
+    },
+    "Weapons/XP2_ACR/ACR": {
+      "readable_short": "ACW-R",
+      "readable_long": "ACW-R Carbine"
+    },
+    "Weapons/XP2_L86/L86": {
+      "readable_short": "L86A2",
+      "readable_long": "L86A2 Light Machine Gun"
+    },
+    "Weapons/XP2_MP5K/MP5K": {
+      "readable_short": "M5K",
+      "readable_long": "M5K Submachine Gun"
+    },
+    "Weapons/XP2_MTAR/MTAR": {
+      "readable_short": "MTAR-21",
+      "readable_long": "MTAR-21 Carbine"
+    },
+    "CrossBow": {
+      "readable_short": "CrossBow",
+      "readable_long": "CrossBow"
+    }
+  },
+  "BF4": {
+    "AA Mine": {
+      "readable_short": "AA Mine",
+      "readable_long": "Anti-Air Mine"
+    },
+    "DamageArea": {
+      "readable_short": "Damage Area",
+      "readable_long": "Damage Area"
+    },
+    "Death": {
+      "readable_short": "Death",
+      "readable_long": "Death"
+    },
+    "Melee": {
+      "readable_short": "Melee",
+      "readable_long": "Melee"
+    },
+    "RoadKill": {
+      "readable_short": "Roadkill",
+      "readable_long": "Vehicle Roadkill"
+    },
+    "SoldierCollision": {
+      "readable_short": "Soldier Collision",
+      "readable_long": "Soldier Collision"
+    },
+    "Suicide": {
+      "readable_short": "Suicide",
+      "readable_long": "Suicide"
+    },
+    "VehicleUpsideDown": {
+      "readable_short": "Vehicle Upside Down",
+      "readable_long": "Vehicle Upside Down"
+    },
+    "U_870": {
+      "readable_short": "870-MCS",
+      "readable_long": "870-MCS Combat Shotgun"
+    },
+    "U_A91": {
+      "readable_short": "A-91",
+      "readable_long": "A-91 Carbine"
+    },
+    "U_ACR": {
+      "readable_short": "ACW-R",
+      "readable_long": "ACW-R Carbine"
+    },
+    "U_AEK971": {
+      "readable_short": "AEK-971",
+      "readable_long": "AEK-971 Assault Rifle"
+    },
+    "U_AEK971_M26_Buck": {
+      "readable_short": "M26 Mass",
+      "readable_long": "M26 Mass under AEK-971"
+    },
+    "U_AEK971_M26_Flechette": {
+      "readable_short": "M26 Dart",
+      "readable_long": "M26 Dart under AEK-971"
+    },
+    "U_AEK971_M26_Frag": {
+      "readable_short": "M26 Frag",
+      "readable_long": "M26 Frag under AEK-971"
+    },
+    "U_AEK971_M26_Slug": {
+      "readable_short": "M26 Slug",
+      "readable_long": "M26 Slug under AEK-971"
+    },
+    "U_AEK971_M320_3GL": {
+      "readable_short": "M320 3GL",
+      "readable_long": "M320 3GL under AEK-971"
+    },
+    "U_AEK971_M320_FLASH": {
+      "readable_short": "M320 FB",
+      "readable_long": "M320 Flash under AEK-971"
+    },
+    "U_AEK971_M320_HE": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE under AEK-971"
+    },
+    "U_AEK971_M320_LVG": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG under AEK-971"
+    },
+    "U_AEK971_M320_SHG": {
+      "readable_short": "M320 Dart",
+      "readable_long": "M320 Dart under AEK-971"
+    },
+    "U_AEK971_M320_SMK": {
+      "readable_short": "M320 SMK",
+      "readable_long": "M320 Smoke under AEK-971"
+    },
+    "U_AK12": {
+      "readable_short": "AK-12",
+      "readable_long": "AK-12 Assault Rifle"
+    },
+    "U_AK12_M26_Buck": {
+      "readable_short": "M26 Mass",
+      "readable_long": "M26 Mass under AK-12"
+    },
+    "U_AK12_M26_Flechette": {
+      "readable_short": "M26 Dart",
+      "readable_long": "M26 Dart under AK-12"
+    },
+    "U_AK12_M26_Frag": {
+      "readable_short": "M26 Frag",
+      "readable_long": "M26 Frag under AK-12"
+    },
+    "U_AK12_M26_Slug": {
+      "readable_short": "M26 Slug",
+      "readable_long": "M26 Slug under AK-12"
+    },
+    "U_AK12_M320_3GL": {
+      "readable_short": "M320 3GL",
+      "readable_long": "M320 3GL under AK-12"
+    },
+    "U_AK12_M320_FLASH": {
+      "readable_short": "M320 FB",
+      "readable_long": "M320 Flash under AK-12"
+    },
+    "U_AK12_M320_HE": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE under AK-12"
+    },
+    "U_AK12_M320_LVG": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG under AK-12"
+    },
+    "U_AK12_M320_SHG": {
+      "readable_short": "M320 Dart",
+      "readable_long": "M320 Dart under AK-12"
+    },
+    "U_AK12_M320_SMK": {
+      "readable_short": "M320 SMK",
+      "readable_long": "M320 Smoke under AK-12"
+    },
+    "U_AK5C": {
+      "readable_short": "AK 5C",
+      "readable_long": "AK 5C Carbine"
+    },
+    "U_AKU12": {
+      "readable_short": "AKU-12",
+      "readable_long": "AKU-12 Carbine"
+    },
+    "U_AMR2": {
+      "readable_short": "AMR-2 CQB",
+      "readable_long": "AMR2-2 Sniper Rifle"
+    },
+    "U_AMR2_CQB": {
+      "readable_short": "AMR-2 CQB",
+      "readable_long": "AMR-2 CQB Sniper Rifle"
+    },
+    "U_AMR2_MED": {
+      "readable_short": "AMR-2 MID",
+      "readable_long": "AMR-2 MID Sniper Rifle"
+    },
+    "U_AN94": {
+      "readable_short": "AN-94",
+      "readable_long": "AN-94 Abakan Assault Rifle"
+    },
+    "U_AN94_M320_HE_v1": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE under AN-94"
+    },
+    "U_AN94_M320_LVG_v1": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG under AN-94"
+    },
+    "U_AR160": {
+      "readable_short": "AR160",
+      "readable_long": "AR-160 Assault Rifle"
+    },
+    "U_AR160_M26_Buck": {
+      "readable_short": "M26 Mass",
+      "readable_long": "M26 Mass under ARX 160"
+    },
+    "U_AR160_M26_Flechette": {
+      "readable_short": "M26 Dart",
+      "readable_long": "M26 Dart under ARX 160"
+    },
+    "U_AR160_M26_Frag": {
+      "readable_short": "M26 Frag",
+      "readable_long": "M26 Frag under ARX 160"
+    },
+    "U_AR160_M26_Slug": {
+      "readable_short": "M26 Slug",
+      "readable_long": "M26 Slug under ARX 160"
+    },
+    "U_AR160_M320_3GL": {
+      "readable_short": "M320 3GL",
+      "readable_long": "M320 3GL under ARX 160"
+    },
+    "U_AR160_M320_FLASH": {
+      "readable_short": "M320 FB",
+      "readable_long": "M320 Flash under ARX 160"
+    },
+    "U_AR160_M320_HE": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE under ARX 160"
+    },
+    "U_AR160_M320_LVG": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG under ARX 160"
+    },
+    "U_AR160_M320_SHG": {
+      "readable_short": "M320 Dart",
+      "readable_long": "M320 Dart under ARX 160"
+    },
+    "U_AR160_M320_SMK": {
+      "readable_short": "M320 SMK",
+      "readable_long": "M320 Smoke under ARX 160"
+    },
+    "U_ASVal": {
+      "readable_short": "AS Val",
+      "readable_long": "AS Val SubMachine Gun"
+    },
+    "U_AT4": {
+      "readable_short": "M136 CS",
+      "readable_long": "M136-CS Rocket Launcher"
+    },
+    "U_AWS": {
+      "readable_short": "AWS",
+      "readable_long": "AWS Light Machine Gun"
+    },
+    "U_BallisticShield": {
+      "readable_short": "Shield",
+      "readable_long": "Ballistic Shield"
+    },
+    "U_Bulldog": {
+      "readable_short": "Bulldog",
+      "readable_long": "Bulldog Assault Rifle"
+    },
+    "U_C4": {
+      "readable_short": "C4",
+      "readable_long": "C4 Explosive"
+    },
+    "U_C4_Support": {
+      "readable_short": "C4",
+      "readable_long": "C4 Explosive"
+    },
+    "U_CBJ-MS": {
+      "readable_short": "CBJ-MS",
+      "readable_long": "CBJ-MS SubMachine Gun"
+    },
+    "U_Claymore": {
+      "readable_short": "Claymore",
+      "readable_long": "Claymore Mine"
+    },
+    "U_Claymore_Recon": {
+      "readable_short": "Claymore",
+      "readable_long": "Claymore Mine"
+    },
+    "U_CS-LR4": {
+      "readable_short": "CS-LR4",
+      "readable_long": "CS-LR4 Sniper Rifle"
+    },
+    "U_CS5": {
+      "readable_short": "CS5",
+      "readable_long": "CS5 Sniper Rifle"
+    },
+    "U_CZ805": {
+      "readable_short": "CZ-805",
+      "readable_long": "CZ-805 Assault Rifle"
+    },
+    "U_CZ805_M26_Buck": {
+      "readable_short": "M26 Mass",
+      "readable_long": "M26 Mass under CZ-805"
+    },
+    "U_CZ805_M26_Flechette": {
+      "readable_short": "M26 Dart",
+      "readable_long": "M26 Dart under CZ-805"
+    },
+    "U_CZ805_M26_Frag": {
+      "readable_short": "M26 Frag",
+      "readable_long": "M26 Frag under CZ-805"
+    },
+    "U_CZ805_M26_Slug": {
+      "readable_short": "M26 Slug",
+      "readable_long": "M26 Slug under CZ-805"
+    },
+    "U_CZ605_M320_3GL": {
+      "readable_short": "M320 3GL",
+      "readable_long": "M320 3GL under CZ-805"
+    },
+    "U_CZ805_M320_FLASH": {
+      "readable_short": "M320 FB",
+      "readable_long": "M320 Flash under CZ-805"
+    },
+    "U_CZ805_M320_HE": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE under CZ-805"
+    },
+    "U_CZ805_M320_LVG": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG under CZ-805"
+    },
+    "U_CZ805_M320_SHG": {
+      "readable_short": "M320 Dart",
+      "readable_long": "M320 Dart under CZ-805"
+    },
+    "U_CZ805_M320_SMK": {
+      "readable_short": "M320 SMK",
+      "readable_long": "M320 Smoke under CZ-805"
+    },
+    "U_CZ75": {
+      "readable_short": "CZ-75",
+      "readable_long": "CZ-75 Pistol"
+    },
+    "U_DAO12": {
+      "readable_short": "DAO-12",
+      "readable_long": "DAO-12 Striker Shotgun"
+    },
+    "U_DBV12": {
+      "readable_short": "DBV-12",
+      "readable_long": "DBV-12 Combat Shotgun"
+    },
+    "U_DesertEagle": {
+      "readable_short": "Deagle",
+      "readable_long": "Desert Eagle Pistol"
+    },
+    "U_Defib": {
+      "readable_short": "Defib",
+      "readable_long": "Defibrillator"
+    },
+    "EODBot": {
+      "readable_short": "EOD Bot",
+      "readable_long": "EOD Bot"
+    },
+    "U_F2000": {
+      "readable_short": "F2000",
+      "readable_long": "F2000 Assault Rifle"
+    },
+    "U_FAMAS": {
+      "readable_short": "FAMAS",
+      "readable_long": "FAMAS Assault Rifle"
+    },
+    "U_FGM148": {
+      "readable_short": "Javelin",
+      "readable_long": "FGM-148 Javelin"
+    },
+    "U_FIM92": {
+      "readable_short": "Stinger",
+      "readable_long": "FIM-92 Stinger"
+    },
+    "U_Flashbang": {
+      "readable_short": "Flashbang",
+      "readable_long": "Flashbang"
+    },
+    "U_FN57": {
+      "readable_short": "FN57",
+      "readable_long": "FN57 Pistol"
+    },
+    "U_FY-JS": {
+      "readable_short": "FY-JS",
+      "readable_long": "FY-JS Sniper Rifle"
+    },
+    "U_G36C": {
+      "readable_short": "G36C",
+      "readable_long": "G36C Carbine"
+    },
+    "U_GalilACE": {
+      "readable_short": "ACE 21 CQB",
+      "readable_long": "ACE 21 CQB Carbine"
+    },
+    "U_GalilACE23": {
+      "readable_short": "ACE 23",
+      "readable_long": "ACE 23 Assault Rifle"
+    },
+    "U_GalilACE52": {
+      "readable_short": "ACE 52 CQB",
+      "readable_long": "ACE 52 CQB Carbine"
+    },
+    "U_GalilACE53": {
+      "readable_short": "ACE 53 SV",
+      "readable_long": "ACE 53 SV DMR"
+    },
+    "U_Glock18": {
+      "readable_short": "G18",
+      "readable_long": "G18 Machine Pistol"
+    },
+    "U_GOL": {
+      "readable_short": "GOL Magnum",
+      "readable_long": "GOL Magnum Sniper Rifle"
+    },
+    "U_Grenade_RGO": {
+      "readable_short": "RGO Impact",
+      "readable_long": "RGO Impact Grenade"
+    },
+    "U_HAWK": {
+      "readable_short": "Hawk 12G",
+      "readable_long": "Hawk 12G Combat Shotgun"
+    },
+    "U_HK45C": {
+      "readable_short": "Compact 45",
+      "readable_long": "Compact 45 Pistol"
+    },
+    "U_JNG90": {
+      "readable_short": "JNG-90",
+      "readable_long": "JNG-90 Sniper Rifle"
+    },
+    "U_JS2": {
+      "readable_short": "JS2",
+      "readable_long": "JS2 SubMachine Gun"
+    },
+    "U_L85A2": {
+      "readable_short": "L85A2",
+      "readable_long": "L85A2 Assault Rifle"
+    },
+    "U_L85A2_M320_3GL_V2": {
+      "readable_short": "M320 3GL",
+      "readable_long": "M320 3GL under L85A2"
+    },
+    "U_L85A2_M320_FLASH_V2": {
+      "readable_short": "M320 FB",
+      "readable_long": "M320 Flash under L85A2"
+    },
+    "U_L85A2_M320_HE_V2": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE under L85A2"
+    },
+    "U_L85A2_M320_LVG_V2": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG under L85A2"
+    },
+    "U_L85A2_M320_SHG_V2": {
+      "readable_short": "M320 Dart",
+      "readable_long": "M320 Dart under L85A2"
+    },
+    "U_L85A2_M320_SMK_V2": {
+      "readable_short": "M320 SMK",
+      "readable_long": "M320 Smoke under L85A2"
+    },
+    "U_L96A1": {
+      "readable_short": "L96A1",
+      "readable_long": "L96A1 Sniper Rifle"
+    },
+    "U_LSAT": {
+      "readable_short": "LSAT",
+      "readable_long": "LSAT Light Machine Gun"
+    },
+    "U_M1014": {
+      "readable_short": "M1014",
+      "readable_long": "M1014 Combat Shotgun"
+    },
+    "U_M15": {
+      "readable_short": "AT Mine",
+      "readable_long": "M15 AT Mine"
+    },
+    "U_M16A4": {
+      "readable_short": "M16A4",
+      "readable_long": "M16A4 Assault Rifle"
+    },
+    "U_M16A4_M26_Buck": {
+      "readable_short": "M26 Mass",
+      "readable_long": "M26 Mass under M16A4"
+    },
+    "U_M16A4_M26_Flechette": {
+      "readable_short": "M26 Dart",
+      "readable_long": "M26 Dart under M16A4"
+    },
+    "U_M16A4_M26_Frag": {
+      "readable_short": "M26 Frag",
+      "readable_long": "M26 Frag under M16A4"
+    },
+    "U_M16A4_M26_Slug": {
+      "readable_short": "M26 Slug",
+      "readable_long": "M26 Slug under M16A4"
+    },
+    "U_M16A4_M320_3GL": {
+      "readable_short": "M320 3GL",
+      "readable_long": "M320 3GL under M16A4"
+    },
+    "U_M16A4_M320_FLASH": {
+      "readable_short": "M320 FB",
+      "readable_long": "M320 Flash under M16A4"
+    },
+    "U_M16A4_M320_HE": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE under M16A4"
+    },
+    "U_M16A4_M320_LVG": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG under M16A4"
+    },
+    "U_M16A4_M320_SHG": {
+      "readable_short": "M320 Dart",
+      "readable_long": "M320 Dart under M16A4"
+    },
+    "U_M16A4_M320_SMK": {
+      "readable_short": "M320 SMK",
+      "readable_long": "M320 Smoke under M16A4"
+    },
+    "U_M1911": {
+      "readable_short": "M1911",
+      "readable_long": "M1911 Pistol"
+    },
+    "U_M200": {
+      "readable_short": "SRR-61",
+      "readable_long": "SRR-61 Sniper Rifle"
+    },
+    "M224": {
+      "readable_short": "Mortar",
+      "readable_long": "M224 Mortar"
+    },
+    "U_M240": {
+      "readable_short": "M240B",
+      "readable_long": "M240B Light Machine Gun"
+    },
+    "U_M249": {
+      "readable_short": "M249",
+      "readable_long": "M249 Light Machine Gun"
+    },
+    "U_M26Mass": {
+      "readable_short": "M26 Mass",
+      "readable_long": "M26 Mass"
+    },
+    "U_M26Mass_Flechette": {
+      "readable_short": "M26 Dart",
+      "readable_long": "M26 Dart"
+    },
+    "U_M26Mass_Frag": {
+      "readable_short": "M26 Frag",
+      "readable_long": "M26 Frag"
+    },
+    "U_M26Mass_Slug": {
+      "readable_short": "M26 Slug",
+      "readable_long": "M26 Slug"
+    },
+    "U_M320_3GL": {
+      "readable_short": "M320 3GL",
+      "readable_long": "M320 3GL"
+    },
+    "U_M320_FLASH": {
+      "readable_short": "M320 FB",
+      "readable_long": "M320 Flashbang"
+    },
+    "U_M320_HE": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE"
+    },
+    "U_M320_LVG": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG"
+    },
+    "U_M320_SHG": {
+      "readable_short": "M320 Dart",
+      "readable_long": "M320 Dart"
+    },
+    "U_M320_SMK": {
+      "readable_short": "M320 SMK",
+      "readable_long": "M320 Smoke"
+    },
+    "U_M34": {
+      "readable_short": "Incendiary",
+      "readable_long": "M34 Incendiary"
+    },
+    "U_M39EBR": {
+      "readable_short": "M39 EMR",
+      "readable_long": "M39 EMR DMR"
+    },
+    "U_M40A5": {
+      "readable_short": "M40A5",
+      "readable_long": "M40A5 Sniper Rifle"
+    },
+    "U_M416": {
+      "readable_short": "M416",
+      "readable_long": "M416 Assault Rifle"
+    },
+    "U_M416_M26_Buck": {
+      "readable_short": "M26 Mass",
+      "readable_long": "M26 Mass under M416"
+    },
+    "U_M416_M26_Flechette": {
+      "readable_short": "M26 Dart",
+      "readable_long": "M26 Dart under M416"
+    },
+    "U_M416_M26_Frag": {
+      "readable_short": "M26 Frag",
+      "readable_long": "M26 Frag under M416"
+    },
+    "U_M416_M26_Slug": {
+      "readable_short": "M26 Slug",
+      "readable_long": "M26 Slug under M416"
+    },
+    "U_M416_M320_3GL": {
+      "readable_short": "M320 3GL",
+      "readable_long": "M320 3GL under M416"
+    },
+    "U_M416_M320_FLASH": {
+      "readable_short": "M320 FB",
+      "readable_long": "M320 Flash under M416"
+    },
+    "U_M416_M320_HE": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE under M416"
+    },
+    "U_M416_M320_LVG": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG under M416"
+    },
+    "U_M416_M320_SHG": {
+      "readable_short": "M320 Dart",
+      "readable_long": "M320 Dart under M416"
+    },
+    "U_M416_M320_SMK": {
+      "readable_short": "M320 SMK",
+      "readable_long": "M320 Smoke under M416"
+    },
+    "U_M4A1": {
+      "readable_short": "M4",
+      "readable_long": "M4 Carbine"
+    },
+    "U_M60E4": {
+      "readable_short": "M60-E4",
+      "readable_long": "M60-E4 Light Machine Gun"
+    },
+    "U_M67": {
+      "readable_short": "M67 Frag",
+      "readable_long": "M67 Frag Grenade"
+    },
+    "U_M82A3": {
+      "readable_short": "M82A3",
+      "readable_long": "M82A3 Sniper Rifle"
+    },
+    "U_M82A3_CQB": {
+      "readable_short": "M82A3 CQB",
+      "readable_long": "M82A3 CQB Sniper Rifle"
+    },
+    "U_M82A3_MED": {
+      "readable_short": "M82A3 MID",
+      "readable_long": "M82A3 MID Sniper Rifle"
+    },
+    "U_M9": {
+      "readable_short": "M9",
+      "readable_long": "M9 Pistol"
+    },
+    "U_M93R": {
+      "readable_short": "93R",
+      "readable_long": "93R Machine Pistol"
+    },
+    "U_M98B": {
+      "readable_short": "M98B",
+      "readable_long": "M98B Sniper Rifle"
+    },
+    "U_MagpulPDR": {
+      "readable_short": "PDW-R",
+      "readable_long": "PDW-R SubMachine Gun"
+    },
+    "Gameplay/Gadgets/MAV/MAV": {
+      "readable_short": "MAV",
+      "readable_long": "MAV Drone"
+    },
+    "U_Medkit": {
+      "readable_short": "Medkit",
+      "readable_long": "Medkit"
+    },
+    "U_Handflare": {
+      "readable_short": "Flare",
+      "readable_long": "Hand Flare"
+    },
+    "U_MG4": {
+      "readable_short": "MG4",
+      "readable_long": "MG4 Light Machine Gun"
+    },
+    "U_MGL": {
+      "readable_short": "M320 3GL",
+      "readable_long": "M320 MGL Grenade Launcher"
+    },
+    "U_MK11": {
+      "readable_short": "MK11 Mod 0",
+      "readable_long": "MK11 Mod 0 DMR"
+    },
+    "U_MP7": {
+      "readable_short": "MP7",
+      "readable_long": "MP7 SubMachine Gun"
+    },
+    "U_MP412Rex": {
+      "readable_short": "M412 REX",
+      "readable_long": "M412 Rex Revolver"
+    },
+    "U_MP443": {
+      "readable_short": "MP443",
+      "readable_long": "MP443 Pistol"
+    },
+    "U_MPX": {
+      "readable_short": "MPX",
+      "readable_long": "MPX SubMachine Gun"
+    },
+    "U_MTAR21": {
+      "readable_short": "MTAR-21",
+      "readable_long": "MTAR-21 Carbine"
+    },
+    "U_MX4": {
+      "readable_short": "MX4",
+      "readable_long": "MX4 SubMachine Gun"
+    },
+    "U_NLAW": {
+      "readable_short": "MBT LAW",
+      "readable_long": "MBT LAW Rocket Launcher"
+    },
+    "U_P226": {
+      "readable_short": "P226",
+      "readable_long": "P226 Pistol"
+    },
+    "U_P90": {
+      "readable_short": "P90",
+      "readable_long": "P90 SubMachine Gun"
+    },
+    "U_Pecheneg": {
+      "readable_short": "PKP Pecheneg",
+      "readable_long": "PKP Pecheneg Light Machine Gun"
+    },
+    "U_PortableMedicpack": {
+      "readable_short": "Medicpack",
+      "readable_long": "Portable Medicpack"
+    },
+    "U_PP2000": {
+      "readable_short": "PP-2000",
+      "readable_long": "PP-2000 SubMachine Gun"
+    },
+    "U_QBB95": {
+      "readable_short": "QBB-95-1",
+      "readable_long": "QBB-95-1 Light Machine Gun"
+    },
+    "U_QBS09": {
+      "readable_short": "QBS-09",
+      "readable_long": "QBS-09 Combat Shotgun"
+    },
+    "U_QBU88": {
+      "readable_short": "QBU-88",
+      "readable_long": "QBU-88 DMR"
+    },
+    "U_QBZ951": {
+      "readable_short": "QBZ-95-1",
+      "readable_long": "QBZ-95-1 Assault Rifle"
+    },
+    "U_QBZ951_M26_Buck": {
+      "readable_short": "M26 Mass",
+      "readable_long": "M26 Mass under QBZ-95-1"
+    },
+    "U_QBZ951_M26_Flechette": {
+      "readable_short": "M26 Dart",
+      "readable_long": "M26 Dart under QBZ-95-1"
+    },
+    "U_QBZ951_M26_Frag": {
+      "readable_short": "M26 Frag",
+      "readable_long": "M26 Frag under QBZ-95-1"
+    },
+    "U_QBZ951_M26_Slug": {
+      "readable_short": "M26 Slug",
+      "readable_long": "M26 Slug under QBZ-95-1"
+    },
+    "U_QBZ951_M320_3GL": {
+      "readable_short": "M320 3GL",
+      "readable_long": "M320 3GL under QBZ-95-1"
+    },
+    "U_QBZ951_M320_FLASH": {
+      "readable_short": "M320 FB",
+      "readable_long": "M320 Flash under QBZ-95-1"
+    },
+    "U_QBZ951_M320_HE": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE under QBZ-95-1"
+    },
+    "U_QBZ951_M320_LVG": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG under QBZ-95-1"
+    },
+    "U_QBZ951_M320_SHG": {
+      "readable_short": "M320 Dart",
+      "readable_long": "M320 Dart under QBZ-95-1"
+    },
+    "U_QBZ951_M320_SMK": {
+      "readable_short": "M320 SMK",
+      "readable_long": "M320 Smoke under QBZ-95-1"
+    },
+    "U_QSZ92": {
+      "readable_short": "QSZ-92",
+      "readable_long": "QSZ-92 Pistol"
+    },
+    "XP3/Gameplay/Vehicles/RAWR/RAWR": {
+      "readable_short": "RAWR",
+      "readable_long": "RAWR Attack Bot"
+    },
+    "U_Repairtool": {
+      "readable_short": "Repair Tool",
+      "readable_long": "Repair Tool"
+    },
+    "U_RFB": {
+      "readable_short": "RFB",
+      "readable_long": "RFB DMR"
+    },
+    "U_RPG7": {
+      "readable_short": "RPG-7",
+      "readable_long": "RPG-7V2 Rocket Launcher"
+    },
+    "U_RPK12": {
+      "readable_short": "RPK-12",
+      "readable_long": "RPK-12 Light Machine Gun"
+    },
+    "U_RPK-74": {
+      "readable_short": "RPK-74",
+      "readable_long": "RPK-74 Light Machine Gun"
+    },
+    "U_Sa18IGLA": {
+      "readable_short": "IGLA",
+      "readable_long": "A-18 IGLA Air Defense"
+    },
+    "U_SAIGA_20K": {
+      "readable_short": "Saiga 12K",
+      "readable_long": "Saiga 12K Combat Shotgun"
+    },
+    "U_SAR21": {
+      "readable_short": "SAR-21",
+      "readable_long": "SAR-21 Assault Rifle"
+    },
+    "U_SAR21_M26_Buck": {
+      "readable_short": "M26 Mass",
+      "readable_long": "M26 Mass under SAR-21"
+    },
+    "U_SAR21_M26_Flechette": {
+      "readable_short": "M26 Dart",
+      "readable_long": "M26 Dart under SAR-21"
+    },
+    "U_SAR21_M26_Frag": {
+      "readable_short": "M26 Frag",
+      "readable_long": "M26 Frag under SAR-21"
+    },
+    "U_SAR21_M26_Slug": {
+      "readable_short": "M26 Slug",
+      "readable_long": "M26 Slug under SAR-21"
+    },
+    "U_SAR21_M320_3GL": {
+      "readable_short": "M320 3GL",
+      "readable_long": "M320 3GL under SAR-21"
+    },
+    "U_SAR21_M320_FLASH": {
+      "readable_short": "M320 FB",
+      "readable_long": "M320 Flash under SAR-21"
+    },
+    "U_SAR21_M320_HE": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE under SAR-21"
+    },
+    "U_SAR21_M320_LVG": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG under SAR-21"
+    },
+    "U_SAR21_M320_SHG": {
+      "readable_short": "M320 Dart",
+      "readable_long": "M320 Dart under SAR-21"
+    },
+    "U_SAR21_M320_SMK": {
+      "readable_short": "M320 SMK",
+      "readable_long": "M320 Smoke under SAR-21"
+    },
+    "U_SCAR-H": {
+      "readable_short": "SCAR-H",
+      "readable_long": "SCAR-H Assault Rifle"
+    },
+    "U_SCAR-H_M26_Buck": {
+      "readable_short": "M26 Mass",
+      "readable_long": "M26 Mass under SCAR-H"
+    },
+    "U_SCAR-H_M26_Flechette": {
+      "readable_short": "M26 Dart",
+      "readable_long": "M26 Dart under SCAR-H"
+    },
+    "U_SCAR-H_M26_Frag": {
+      "readable_short": "M26 Frag",
+      "readable_long": "M26 Frag under SCAR-H"
+    },
+    "U_SCAR-H_M26_Slug": {
+      "readable_short": "M26 Slug",
+      "readable_long": "M26 Slug under SCAR-H"
+    },
+    "U_SCAR-H_M320_3GL": {
+      "readable_short": "M320 3GL",
+      "readable_long": "M320 3GL under SCAR-H"
+    },
+    "U_SCAR-H_M320_FLASH": {
+      "readable_short": "M320 FB",
+      "readable_long": "M320 Flash under SCAR-H"
+    },
+    "U_SCAR-H_M320_HE": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE under SCAR-H"
+    },
+    "U_SCAR-H_M320_LVG": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG under SCAR-H"
+    },
+    "U_SCAR-H_M320_SHG": {
+      "readable_short": "M320 Dart",
+      "readable_long": "M320 Dart under SCAR-H"
+    },
+    "U_SCAR-H_M320_SMK": {
+      "readable_short": "M320 SMK",
+      "readable_long": "M320 Smoke under SCAR-H"
+    },
+    "U_SCAR-HSV": {
+      "readable_short": "SCAR-H SV",
+      "readable_long": "SCAR-H SV DMR"
+    },
+    "U_Scorpion": {
+      "readable_short": "CZ-3A1",
+      "readable_long": "Scorpion Evo SubMachine Gun"
+    },
+    "U_Scout": {
+      "readable_short": "Scout Elite",
+      "readable_long": "Scout Elite Sniper Rifle"
+    },
+    "U_SerbuShorty": {
+      "readable_short": "Shorty 12G",
+      "readable_long": "Shorty 12G Secondary Shotgun"
+    },
+    "U_SG553LB": {
+      "readable_short": "SG553",
+      "readable_long": "SG553 Carbine"
+    },
+    "U_SKS": {
+      "readable_short": "SKS",
+      "readable_long": "SKS DMR"
+    },
+    "U_SLAM": {
+      "readable_short": "M2 SLAM",
+      "readable_long": "M2 SLAM Mine"
+    },
+    "U_SMAW": {
+      "readable_short": "SMAW",
+      "readable_long": "SMAW Rocket Launcher"
+    },
+    "U_SPAS12": {
+      "readable_short": "SPAS-12",
+      "readable_long": "SPAS-12 Combat Shotgun"
+    },
+    "U_SR2": {
+      "readable_short": "SR-2",
+      "readable_long": "SR-2 SubMachine Gun"
+    },
+    "U_SRAW": {
+      "readable_short": "SRAW",
+      "readable_long": "SRAW Wire Guided Rocket"
+    },
+    "U_SR338": {
+      "readable_short": "SR338",
+      "readable_long": "SR338 Sniper Rifle"
+    },
+    "U_SRS": {
+      "readable_short": "338-Recon",
+      "readable_long": "338-Recon Sniper Rifle"
+    },
+    "U_Starstreak": {
+      "readable_short": "HVM-II",
+      "readable_long": "Starstreak AA Rocket Launcher"
+    },
+    "U_SteyrAug": {
+      "readable_short": "AUG A3",
+      "readable_long": "AUG A3 Assault Rifle"
+    },
+    "U_SteyrAug_M26_Buck": {
+      "readable_short": "M26 Mass",
+      "readable_long": "M26 Mass under AUG A3"
+    },
+    "U_SteyrAug_M26_Flechette": {
+      "readable_short": "M26 Dart",
+      "readable_long": "M26 Dart under AUG A3"
+    },
+    "U_SteyrAug_M26_Frag": {
+      "readable_short": "M26 Frag",
+      "readable_long": "M26 Frag under AUG A3"
+    },
+    "U_SteyrAug_M26_Slug": {
+      "readable_short": "M26 Slug",
+      "readable_long": "M26 Slug under AUG A3"
+    },
+    "U_SteyrAug_M320_3GL": {
+      "readable_short": "M320 3GL",
+      "readable_long": "M320 3GL under AUG A3"
+    },
+    "U_SteyrAug_M320_FLASH": {
+      "readable_short": "M320 FB",
+      "readable_long": "M320 Flash under AUG A3"
+    },
+    "U_SteyrAug_M320_HE": {
+      "readable_short": "M320 HE",
+      "readable_long": "M320 HE under AUG A3"
+    },
+    "U_SteyrAug_M320_LVG": {
+      "readable_short": "M320 LVG",
+      "readable_long": "M320 LVG under AUG A3"
+    },
+    "U_SteyrAug_M320_SHG": {
+      "readable_short": "M320 Dart",
+      "readable_long": "M320 Dart under AUG A3"
+    },
+    "U_SteyrAug_M320_SMK": {
+      "readable_short": "M320 SMK",
+      "readable_long": "M320 Smoke under AUG A3"
+    },
+    "U_SV98": {
+      "readable_short": "SV-98",
+      "readable_long": "SV-98 Sniper Rifle"
+    },
+    "U_SVD12": {
+      "readable_short": "SVD-12",
+      "readable_long": "SVD-12 DMR"
+    },
+    "U_SW40": {
+      "readable_short": "SW40",
+      "readable_long": "SW40 Revolver"
+    },
+    "U_Taurus44": {
+      "readable_short": "44 Magnum",
+      "readable_long": ".44 Magnum Revolver"
+    },
+    "U_Tomahawk": {
+      "readable_short": "Cruise Missile",
+      "readable_long": "Tomahawk Cruise Missile"
+    },
+    "U_Type88": {
+      "readable_short": "Type 88",
+      "readable_long": "Type 88 LMG"
+    },
+    "U_Type95B": {
+      "readable_short": "Type-95B-1",
+      "readable_long": "Type-95B-1 Carbine"
+    },
+    "UCAV": {
+      "readable_short": "UCAV",
+      "readable_long": "UCAV Explosive Drone"
+    },
+    "XP1/Gameplay/Gadgets/UCAV/UCAV_Launcher": {
+      "readable_short": "UCAV",
+      "readable_long": "UCAV Explosive Drone"
+    },
+    "U_Ultimax": {
+      "readable_short": "U-100 MK5",
+      "readable_long": "Ultimax-100 Light Machine Gun"
+    },
+    "U_UMP9": {
+      "readable_short": "UMP-9",
+      "readable_long": "UMP-9 SubMachine Gun"
+    },
+    "U_UMP45": {
+      "readable_short": "UMP-45",
+      "readable_long": "UMP-45 SubMachine Gun"
+    },
+    "U_Unica6": {
+      "readable_short": "Unica",
+      "readable_long": "Unica 6 Revolver"
+    },
+    "U_USAS-12": {
+      "readable_short": "USAS-12",
+      "readable_long": "USAS-12 Frag Shotgun"
+    },
+    "U_USAS-12_Nightvision": {
+      "readable_short": "USAS-12",
+      "readable_long": "USAS-12 Frag Shotgun"
+    },
+    "U_UTAS": {
+      "readable_short": "UTS 15",
+      "readable_long": "UTS-15 Combat Shotgun"
+    },
+    "U_V40": {
+      "readable_short": "V40 Mini",
+      "readable_long": "V40 Mini Grenade"
+    },
+    "U_XM25": {
+      "readable_short": "Airburst",
+      "readable_long": "XM25 Airburst"
+    },
+    "U_XM25_Flechette": {
+      "readable_short": "XM25 Dart",
+      "readable_long": "XM25 Dart"
+    },
+    "U_XM25_Smoke": {
+      "readable_short": "XM25 Smoke",
+      "readable_long": "XM25 Smoke"
+    },
+    "XP1/Gameplay/Vehicles/KLR650/KLR650": {
+      "readable_short": "Dirtbike",
+      "readable_long": "KLR650 Dirtbike"
+    },
+    "XP0/Gameplay/Vehicles/SkidLoader/SkidLoader": {
+      "readable_short": "Skid Loader",
+      "readable_long": "Skid Loader"
+    },
+    "Gameplay/Vehicles/QuadBike/QUADBIKE": {
+      "readable_short": "Quad Bike",
+      "readable_long": "Quad Bike"
+    },
+    "Gameplay/Vehicles/AAV-7A1/AAV-7A1": {
+      "readable_short": "AMTRAC",
+      "readable_long": "AAV-7A1 AMTRAC"
+    },
+    "DPV": {
+      "readable_short": "DPV",
+      "readable_long": "Desert Patrol Vehicle"
+    },
+    "Gameplay/Vehicles/CH_LTHE_Z-9/CH_LTHE_Z-9": {
+      "readable_short": "Z-9 HAITUN",
+      "readable_long": "Z-9 Transport Helicopter"
+    },
+    "Gameplay/Vehicles/CH_FAV_LYT2021/CH_FAV_LYT2021": {
+      "readable_short": "LYT2021",
+      "readable_long": "LYT2021 Jeep"
+    },
+    "Gameplay/Vehicles/GrowlerITV/GrowlerITV": {
+      "readable_short": "M1161 ITV",
+      "readable_long": "M1161 ITV Growler ITV"
+    },
+    "Ka-60": {
+      "readable_short": "Ka-60 KASATKA",
+      "readable_long": "Kamov Ka-60 Transport Helicopter"
+    },
+    "Gameplay/Vehicles/CH_MRAP-ZFB-05/CH_MRAP-ZFB-05": {
+      "readable_short": "MRAP",
+      "readable_long": "ZFB05 MRAP"
+    },
+    "Gameplay/Vehicles/RU_MRAP_SPM3/RU_MRAP_SPM3": {
+      "readable_short": "MRAP",
+      "readable_long": "SPM-3 MRAP"
+    },
+    "Gameplay/Vehicles/US_MRAP-COUGAR/US_MRAP-COUGAR": {
+      "readable_short": "MRAP",
+      "readable_long": "Cougar MRAP"
+    },
+    "Gameplay/Vehicles/Train_01/Train_01": {
+      "readable_short": "Train",
+      "readable_long": "Map Train"
+    },
+    "VDV Buggy": {
+      "readable_short": "Buggy",
+      "readable_long": "VDV Buggy"
+    },
+    "Gameplay/Vehicles/Venom/Venom": {
+      "readable_short": "UH-1Y Venom",
+      "readable_long": "UH-1Y Venom Transport Helicopter"
+    },
+    "Gameplay/Vehicles/CH_AA_PGZ-95/CH_AA_PGZ-95": {
+      "readable_short": "TYPE 95 AA",
+      "readable_long": "TYPE 95 AA Anti-Air"
+    },
+    "Gameplay/Vehicles/BTR-90/BTR90": {
+      "readable_short": "BTR-90",
+      "readable_long": "BTR-90 APC"
+    },
+    "Gameplay/Vehicles/CH_IFV_ZBD09/CH_IFV_ZBD09": {
+      "readable_short": "ZBD-09",
+      "readable_long": "ZBD-09 APC"
+    },
+    "Gameplay/Vehicles/HIMARS/HIMARS": {
+      "readable_short": "M142",
+      "readable_long": "M142 Mobile Artillery"
+    },
+    "Gameplay/Vehicles/LAV25/LAV_AD": {
+      "readable_short": "LAV-AD",
+      "readable_long": "LAV-AD Anti-Air"
+    },
+    "Gameplay/Vehicles/LAV25/LAV25": {
+      "readable_short": "LAV-25",
+      "readable_long": "LAV-25 APC"
+    },
+    "Gameplay/Vehicles/9K22_Tunguska_M/9K22_Tunguska_M": {
+      "readable_short": "Tunguska",
+      "readable_long": "9K22 Tunguska Anti-Air"
+    },
+    "Gameplay/Vehicles/M1A2/M1Abrams": {
+      "readable_short": "M1 Abrams",
+      "readable_long": "M1 Abrams MBT"
+    },
+    "T90": {
+      "readable_short": "T-90A",
+      "readable_long": "T-90A MBT"
+    },
+    "Gameplay/Vehicles/CH_MBT_Type99/CH_MBT_Type99": {
+      "readable_short": "Type 99 MBT",
+      "readable_long": "Type 99 MBT"
+    },
+    "Gameplay/Vehicles/A-10_THUNDERBOLT/A10_THUNDERBOLT": {
+      "readable_short": "A-10 Jet",
+      "readable_long": "A-10 Thunderbolt Attack Jet"
+    },
+    "Gameplay/Vehicles/AC130/AC130_Gunship": {
+      "readable_short": "Gunship",
+      "readable_long": "AC-130 Gunship"
+    },
+    "Gameplay/Vehicles/AH1Z/AH1Z": {
+      "readable_short": "AH-1Z Viper",
+      "readable_long": "AH-1Z Viper Attack Helicopter"
+    },
+    "Gameplay/Vehicles/AH6/AH6_Littlebird": {
+      "readable_short": "Little Bird",
+      "readable_long": "AH-6 Little Bird Scout Helicopter"
+    },
+    "XP1/Gameplay/Vehicles/B1Lancer/B1Lancer": {
+      "readable_short": "Bomber",
+      "readable_long": "B-1 Lancer Bomber"
+    },
+    "Gameplay/Vehicles/F35/F35B": {
+      "readable_short": "F35",
+      "readable_long": "F-35 Stealth Jet"
+    },
+    "Gameplay/Vehicles/Ch_FJET_J-20/CH_FJET_J-20": {
+      "readable_short": "J-20",
+      "readable_long": "J-20 Stealth Jet"
+    },
+    "XP1/Gameplay/Vehicles/H6K/H6K": {
+      "readable_short": "Bomber",
+      "readable_long": "Xian H-6 Bomber"
+    },
+    "Gameplay/Vehicles/Mi28/Mi28": {
+      "readable_short": "Mi-28 Havoc",
+      "readable_long": "Mi-28 Havoc Attack Helicopter"
+    },
+    "Gameplay/Vehicles/SU-25TM/SU-25TM": {
+      "readable_short": "Su-25TM",
+      "readable_long": "Su-25TM Attack Jet"
+    },
+    "Gameplay/Vehicles/RU_FJET_T-50_Pak_FA/RU_FJET_T-50_Pak_FA": {
+      "readable_short": "Su-50",
+      "readable_long": "Su-50 Stealth Jet"
+    },
+    "Gameplay/Vehicles/UAV_GlobalHawk/UAV_GlobalHawk": {
+      "readable_short": "UAV",
+      "readable_long": "Global Hawk UAV"
+    },
+    "Gameplay/Vehicles/CH_JET_Qiang-5-fantan/CH_JET_Q5_FANTAN": {
+      "readable_short": "Q-5 Fantan",
+      "readable_long": "Q-5 Fantan Attack Jet"
+    },
+    "Z-10w": {
+      "readable_short": "Z-10",
+      "readable_long": "Z-10 Attack Helicopter"
+    },
+    "Gameplay/Vehicles/Z11W/Z-11w": {
+      "readable_short": "Z-11W",
+      "readable_long": "Z-11W Scout Helicopter"
+    },
+    "Gameplay/Vehicles/Z11W/spec/Z-11w_CH": {
+      "readable_short": "Z-11W",
+      "readable_long": "Z-11W Scout Helicopter"
+    },
+    "Gameplay/Vehicles/US_FAC-CB90/US_FAC-CB90": {
+      "readable_short": "RCB",
+      "readable_long": "CB90 Fast Assault Craft"
+    },
+    "Gameplay/Vehicles/CH_FAC_DV15/CH_FAC_DV15": {
+      "readable_short": "DV-15",
+      "readable_long": "DV-15 Fast Assault Craft"
+    },
+    "Gameplay/Vehicles/CH_FAC_DV15/spec/CH_FAC_DV15_RU": {
+      "readable_short": "DV-15",
+      "readable_long": "DV-15 Fast Assault Craft"
+    },
+    "RHIB": {
+      "readable_short": "RHIB",
+      "readable_long": "RHIB Boat"
+    },
+    "Gameplay/Vehicles/CH_ATGM_HJ-8/CH_ATGM_HJ-8": {
+      "readable_short": "HJ-8",
+      "readable_long": "HJ-8 Launcher"
+    },
+    "Gameplay/Vehicles/Centurion_C-RAM/Centurion_C-RAM": {
+      "readable_short": "HJ-8 LAUNCHER",
+      "readable_long": "Centurion C-RAM Anti-Air"
+    },
+    "Gameplay/Vehicles/Centurion_C-RAM/Centurion_C-RAM_MP_Naval": {
+      "readable_short": "HJ-8 LAUNCHER",
+      "readable_long": "Centurion C-RAM Anti-Air"
+    },
+    "Gameplay/Vehicles/GunShieldAndTripod/GunShieldTripod": {
+      "readable_short": ".50 Cal",
+      "readable_long": "Mounted .50 Cal Machine Gun"
+    },
+    "Kornet": {
+      "readable_short": "Kornet Launcher",
+      "readable_long": "9M133 Kornet Launcher"
+    },
+    "Gameplay/Vehicles/CH_CIWS-LD-2000/CH_CIWS-LD-2000": {
+      "readable_short": "LD-2000 AA",
+      "readable_long": "LD-2000 Anti-Air"
+    },
+    "Gameplay/Vehicles/Pantsir/Pantsir-S1": {
+      "readable_short": "Pantsir",
+      "readable_long": "Pantsir-S1 Anti-Air"
+    },
+    "Gameplay/Vehicles/TOW2/TOW2": {
+      "readable_short": "TOW Launcher",
+      "readable_long": "M220 TOW Launcher"
+    },
+    "dlSHTR": {
+      "readable_short": "Phantom",
+      "readable_long": "Phantom Bow"
+    },
+    "U_Railgun": {
+      "readable_short": "Railgun",
+      "readable_long": "Rorsch MK-1"
+    }
+  }
+}
