@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.47
- * 21-DEC-2017
+ * Version 7.0.0.48
+ * 27-DEC-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.47</version_code>
+ * <version_code>7.0.0.48</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.47";
+        private const String PluginVersion = "7.0.0.48";
 
         public enum GameVersion
         {
@@ -46309,7 +46309,7 @@ namespace PRoConEvents
                 Log.Debug(() => "Fetching weapon names...", 2);
                 try
                 {
-                    downloadString = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/AWeaponNames.json" + "?cacherand=" + Environment.TickCount);
+                    downloadString = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsweaponnames.json" + "?cacherand=" + Environment.TickCount);
                     Log.Debug(() => "Weapon names fetched.", 1);
                 }
                 catch (Exception)
@@ -46380,7 +46380,7 @@ namespace PRoConEvents
                 Log.Debug(() => "Fetching special group definitions...", 2);
                 try
                 {
-                    groupInfo = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/ASpecialGroups.json" + "?cacherand=" + Environment.TickCount);
+                    groupInfo = ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsspecialgroups.json" + "?cacherand=" + Environment.TickCount);
                     Log.Debug(() => "Special group definitions fetched.", 1);
                 }
                 catch (Exception)
