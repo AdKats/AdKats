@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.0.48
- * 27-DEC-2017
+ * Version 7.0.0.49
+ * 29-DEC-2017
  * 
  * Automatic Update Information
- * <version_code>7.0.0.48</version_code>
+ * <version_code>7.0.0.49</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.0.48";
+        private const String PluginVersion = "7.0.0.49";
 
         public enum GameVersion
         {
@@ -38730,7 +38730,7 @@ namespace PRoConEvents
                             {
                                 aRole.role_id = command.LastInsertedId;
                             }
-                            Log.Debug(() => "Role uploaded to database SUCCESSFULY.", 5);
+                            Log.Debug(() => "Role " + aRole.role_name + " uploaded to database.", 5);
                         }
                         else
                         {
@@ -38774,7 +38774,7 @@ namespace PRoConEvents
                             Int32 rowsAffected = SafeExecuteNonQuery(command);
                             if (rowsAffected > 0)
                             {
-                                Log.Debug(() => "Role-command uploaded to database SUCCESSFULY.", 5);
+                                Log.Debug(() => "Role-command " + aRole.role_name + " uploaded to database.", 5);
                             }
                             else
                             {
@@ -38789,6 +38789,10 @@ namespace PRoConEvents
                         command.CommandText = @"DELETE FROM `adkats_rolegroups` where `role_id` = " + aRole.role_id;
                         //Attempt to execute the query
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
+                        if (rowsAffected > 0)
+                        {
+                            Log.Debug(() => "Deleted existing database role-group info for " + aRole.role_name + ".", 5);
+                        }
                     }
                     foreach (ASpecialGroup aGroup in aRole.RoleSetGroups.Values.ToList())
                     {
@@ -38818,7 +38822,7 @@ namespace PRoConEvents
                             Int32 rowsAffected = SafeExecuteNonQuery(command);
                             if (rowsAffected > 0)
                             {
-                                Log.Debug(() => "Role-groups uploaded to database SUCCESSFULY.", 5);
+                                Log.Debug(() => "Role-group " + aGroup.group_key + " for " + aRole.role_name + " uploaded to database.", 5);
                             }
                             else
                             {
