@@ -959,4 +959,43 @@ Added small improvements to fuzzy player match response text.</li>
 <ul>
     <li><b>No upgrade SQL required.</b></li>
 </ul>
+<h4>7.0.1.0 (12-JAN-2018)</h4>
+<b>Enhancements</b><br/>
+<ul>
+	<li>Added team power monitor unswitcher functionality. The system can now block a player from moving between teams conditionally based on team power metrics, still allowing them to move to the weak team.</li>
+	<li>Added a display for the current server round number under the server settings section.</li>
+	<li>Improved the log message description when you turn on team power monitor reassignment.</li>
+	<li>AdKats can now detect if a player is stuck in a move loop and cancel moving the player. This can happen if an admin moved a player to team A but the server's autobalancer wants them to be on team B. The two plugins could get in an infinite fight over where the player should be and prevent them from spawning. Now AdKats will give up the fight after a few seconds.</li>
+	<li>Added some custom team power adjustments for conquest large metro to better balance things on that map when using the team power monitor.</li>
+	<li>Added the ability for AdKats to buff a very weak team by 1-4 players over the other team depending on population and map state so they have a chance. This only applies to newly joining players and is only active when the team power reassignment setting is enabled.</li>
+	<li>Cleaned up a few chat messages to be more descriptive/more concise as needed.</li>
+	<li>If a non-admin player attempts to use a command they don't have access to in public chat, a chat message is now displayed to the server letting them know the previous player is not actually an admin. Helps with the case where someone types !ban playername reason when they aren't an admin and people get the false impression that they actually are an admin.</li>
+</ul>
+<b>New Commands</b><br/>
+<ul>
+	<li>Added the ignore loadout command for use when AdKats is being run in tandem with the loadout enforcer. This command is useful when battlelog is lagging on a player's loadout and it's claiming they have an item when they don't. Issue the loadout ignore command on the player and they will no longer be wrongfully slain by the loadout enforcer due to the battlelog data issue.</li>
+</ul>
+<b>Changes</b><br/>
+<ul>
+	<li>Reduced the maximum high population nuke duration from 120 seconds to 60 seconds.</li>
+	<li>Reduced the maximum medium population nuke duration from 120 seconds to 45 seconds.</li>
+	<li>Reduced the maximum low population nuke duration from 120 seconds to 30 seconds.</li>
+	<li>Reduced the maximum auto nuke duration increase from 60 seconds to 30 seconds.</li>
+	<li>Removed the automatic move of players to an assigned team when they die. This caused an issue with the team power monitor reassignment where it would assign a player to the proper team but the server move would fail, causing a confusing move a few minutes later.</li>
+	<li>Kicking/banning yourself on BF4 will no longer have a delay. </li>
+	<li>Assisting to a team that would have 4 more players is now hard blocked, regardless of how badly they are losing.</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+	<li>Fixed issue where plugin website link in procon was broken.</li>
+	<li>Fixed an issue where the role setting section would fail to render and throw an error in the console.</li>
+	<li>Fixed an issue where the player join/pull commands could assign the wrong required team to a player.</li>
+	<li>Fixed an issue where admin assistant status could be loaded for admin soldiers. No admin should also have admin assistant status.</li>
+	<li>Fixed an issue where the plugin weapon names and special groups startup files had incorrect primary load URLs, making the plugin rely solely on our backup server for those files.</li>
+	<li>Fixed an issue where race conditions could cause a command fetch by key to fail, causing an admin command to fail processing.</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
 </blockquote>
