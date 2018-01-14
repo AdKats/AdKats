@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.1
- * 13-JAN-2018
+ * Version 7.0.1.2
+ * 14-JAN-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.1</version_code>
+ * <version_code>7.0.1.2</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.1";
+        private const String PluginVersion = "7.0.1.2";
 
         public enum GameVersion
         {
@@ -2486,7 +2486,7 @@ namespace PRoConEvents
                 if (IsActiveSettingSection(discordMonitorSection))
                 {
                     buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Monitor Discord Players", typeof(Boolean), _DiscordPlayerMonitorView));
-                    if (_DiscordPlayerMonitorView)
+                    if (_DiscordPlayerMonitorView && _DiscordManager != null)
                     {
                         buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _DiscordPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _DiscordPlayers.Values.OrderBy(aPlayer => aPlayer.DiscordObject.Channel.Name).Select(aPlayer => aPlayer.player_name + " [" + aPlayer.DiscordObject.Name + "] (" + aPlayer.DiscordObject.Channel.Name + ") " + (String.IsNullOrEmpty(aPlayer.player_discord_id) ? "[Name]" : "[ID]")).ToArray()));
                         var discordMembers = _DiscordManager.GetMembers(false, true, true);
@@ -4565,7 +4565,7 @@ namespace PRoConEvents
                         {
                             TeamPowerActiveInfluence = 1;
                         }
-                        foreach (var aPlayer in _FetchedPlayers.Values.ToList())
+                        foreach (var aPlayer in GetFetchedPlayers())
                         {
                             aPlayer.TopStats.TempTopPower = 0.0;
                         }
@@ -9829,7 +9829,7 @@ namespace PRoConEvents
                     _serverInfo.GetRoundElapsedTime().TotalMinutes > 2)
                 {
                     // Clear all required teams/squads 2 minutes into the round so the regular balancer can take over
-                    foreach (APlayer aPlayer in _FetchedPlayers.Values.ToList().Where(aPlayer => aPlayer.RequiredTeam != null))
+                    foreach (APlayer aPlayer in GetFetchedPlayers().Where(aPlayer => aPlayer.RequiredTeam != null))
                     {
                         aPlayer.RequiredTeam = null;
                         aPlayer.RequiredSquad = -1;
@@ -12233,7 +12233,7 @@ namespace PRoConEvents
                             if (_PlayerRoleRefetch || !_firstPlayerListComplete)
                             {
                                 //Update roles for all fetched players
-                                foreach (APlayer aPlayer in _FetchedPlayers.Values.ToList())
+                                foreach (APlayer aPlayer in GetFetchedPlayers())
                                 {
                                     AssignPlayerRole(aPlayer);
                                 }
@@ -14225,7 +14225,7 @@ namespace PRoConEvents
                 if (_roundID > 0 && _RoundPlayerIDs.TryGetValue(_roundID, out roundPlayers) && _useAntiCheatLIVESystem)
                 {
                     //Get players who where online this round
-                    roundPlayerObjects = _FetchedPlayers.Values.Where(dPlayer => roundPlayers.Contains(dPlayer.player_id)).ToList();
+                    roundPlayerObjects = GetFetchedPlayers().Where(dPlayer => roundPlayers.Contains(dPlayer.player_id)).ToList();
 
                     //TODO: Clear out the total score/kills/deaths
 
@@ -14257,7 +14257,7 @@ namespace PRoConEvents
                 _EventRoundPolled = false;
                 _pingKicksThisRound = 0;
                 _ScrambleRequiredTeamsRemoved = false;
-                foreach (APlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null))
+                foreach (APlayer aPlayer in GetFetchedPlayers().Where(aPlayer => aPlayer.RequiredTeam != null))
                 {
                     aPlayer.RequiredTeam = null;
                     aPlayer.RequiredSquad = -1;
@@ -14464,7 +14464,7 @@ namespace PRoConEvents
                     getMapInfo();
                     _roundState = RoundState.Ended;
                     _pingKicksThisRound = 0;
-                    foreach (APlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null))
+                    foreach (APlayer aPlayer in GetFetchedPlayers().Where(aPlayer => aPlayer.RequiredTeam != null))
                     {
                         aPlayer.RequiredTeam = null;
                         aPlayer.RequiredSquad = -1;
@@ -16050,7 +16050,7 @@ namespace PRoConEvents
                     _gameVersion == GameVersion.BF4 &&
                     !String.IsNullOrEmpty(_vipKickedPlayerName))
                 {
-                    var matchingPlayer = _FetchedPlayers.Values.FirstOrDefault(aPlayer => aPlayer.player_name == soldierName);
+                    var matchingPlayer = GetFetchedPlayers().FirstOrDefault(aPlayer => aPlayer.player_name == soldierName);
                     if (matchingPlayer != null)
                     {
                         OnlineAdminSayMessage(_vipKickedPlayerName + " kicked for VIP " + matchingPlayer.GetVerboseName() + " to join.");
@@ -16093,7 +16093,7 @@ namespace PRoConEvents
                     _gameVersion == GameVersion.BF4 &&
                     reason == "PLAYER_KICKED")
                 {
-                    var matchingPlayer = _FetchedPlayers.Values.FirstOrDefault(aPlayer => aPlayer.player_name == soldierName);
+                    var matchingPlayer = GetFetchedPlayers().FirstOrDefault(aPlayer => aPlayer.player_name == soldierName);
                     if (matchingPlayer != null)
                     {
                         _vipKickedPlayerName = matchingPlayer.GetVerboseName();
@@ -33315,13 +33315,13 @@ namespace PRoConEvents
                         Thread.CurrentThread.Name = "UptimePrinter";
                         SendMessageToSource(record, "Server: " + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.InfoObject.ServerUptime), 10));
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "Procon: " + FormatTimeString(UtcNow() - _proconStartTime, 10));
+                        SendMessageToSource(record, "Procon: " + FormatNowDuration(_proconStartTime, 10));
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "AdKats " + PluginVersion + ": " + FormatTimeString(UtcNow() - _AdKatsRunningTime, 10));
+                        SendMessageToSource(record, "AdKats " + PluginVersion + ": " + FormatNowDuration(_AdKatsRunningTime, 10));
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "Last Player List: " + FormatTimeString(UtcNow() - _LastPlayerListProcessed, 10) + " ago");
+                        SendMessageToSource(record, "Last Player List: " + FormatNowDuration(_LastPlayerListProcessed, 10) + " ago");
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "Server has been in " + _populationStatus.ToString().ToLower() + " population for " + FormatTimeString(UtcNow() - _populationTransitionTime, 3));
+                        SendMessageToSource(record, "Server has been in " + _populationStatus.ToString().ToLower() + " population for " + FormatNowDuration(_populationTransitionTime, 3));
                         Double totalPopulationDuration = _populationDurations[PopulationState.Low].TotalSeconds + _populationDurations[PopulationState.Medium].TotalSeconds + _populationDurations[PopulationState.High].TotalSeconds;
                         if (totalPopulationDuration > 0)
                         {
@@ -39095,7 +39095,7 @@ namespace PRoConEvents
                 {
                     if (playerID > 0)
                     {
-                        aPlayer = _FetchedPlayers.Values.ToList().FirstOrDefault(dPlayer => dPlayer.player_id == playerID);
+                        aPlayer = GetFetchedPlayers().FirstOrDefault(dPlayer => dPlayer.player_id == playerID);
                     }
                     if (aPlayer != null)
                     {
@@ -39105,7 +39105,7 @@ namespace PRoConEvents
                     }
                     if (!String.IsNullOrEmpty(playerGUID))
                     {
-                        aPlayer = _FetchedPlayers.Values.ToList().FirstOrDefault(dPlayer => dPlayer.player_guid == playerGUID);
+                        aPlayer = GetFetchedPlayers().FirstOrDefault(dPlayer => dPlayer.player_guid == playerGUID);
                     }
                     if (aPlayer != null)
                     {
@@ -39115,7 +39115,7 @@ namespace PRoConEvents
                     }
                     if (!String.IsNullOrEmpty(playerIP))
                     {
-                        aPlayer = _FetchedPlayers.Values.ToList().FirstOrDefault(dPlayer => dPlayer.player_ip == playerIP);
+                        aPlayer = GetFetchedPlayers().FirstOrDefault(dPlayer => dPlayer.player_ip == playerIP);
                     }
                     if (aPlayer != null)
                     {
@@ -39125,7 +39125,7 @@ namespace PRoConEvents
                     }
                     if (!String.IsNullOrEmpty(playerName))
                     {
-                        aPlayer = _FetchedPlayers.Values.ToList().FirstOrDefault(dPlayer => dPlayer.player_name == playerName);
+                        aPlayer = GetFetchedPlayers().FirstOrDefault(dPlayer => dPlayer.player_name == playerName);
                     }
                     if (aPlayer != null)
                     {
@@ -39135,7 +39135,7 @@ namespace PRoConEvents
                     }
                     if (!String.IsNullOrEmpty(playerDiscordID))
                     {
-                        aPlayer = _FetchedPlayers.Values.ToList().FirstOrDefault(dPlayer => dPlayer.player_discord_id == playerDiscordID);
+                        aPlayer = GetFetchedPlayers().FirstOrDefault(dPlayer => dPlayer.player_discord_id == playerDiscordID);
                     }
                     if (aPlayer != null)
                     {
@@ -39518,14 +39518,7 @@ namespace PRoConEvents
                     if (aPlayer != null && aPlayer.player_id > 0)
                     {
                         aPlayer.LastUsage = UtcNow();
-                        //Remove all old values
-                        List<Int64> removeIDs = _FetchedPlayers.ToList().Where(pair => (UtcNow() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
-                        foreach (Int64 removeID in removeIDs)
-                        {
-                            _FetchedPlayers.Remove(removeID);
-                        }
-                        aPlayer.LastUsage = UtcNow();
-                        _FetchedPlayers[aPlayer.player_id] = aPlayer;
+                        AddFetchedPlayer(aPlayer);
                     }
                 }
                 catch (Exception e)
@@ -39539,6 +39532,46 @@ namespace PRoConEvents
                 aPlayer.LastUsage = UtcNow();
             }
             return aPlayer;
+        }
+
+        private void AddFetchedPlayer(APlayer aPlayer)
+        {
+            try
+            {
+                lock (_FetchedPlayers)
+                {
+                    //Remove all old values
+                    List<Int64> removeIDs = _FetchedPlayers.Values.ToList()
+                        .Where(dPlayer => (UtcNow() - dPlayer.LastUsage).TotalMinutes > 120)
+                        .Select(dPlayer => dPlayer.player_id).ToList();
+                    foreach (Int64 removeID in removeIDs)
+                    {
+                        _FetchedPlayers.Remove(removeID);
+                    }
+                    aPlayer.LastUsage = UtcNow();
+                    _FetchedPlayers[aPlayer.player_id] = aPlayer;
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AException("Error adding new fetched player.", e));
+            }
+        }
+
+        private List<APlayer> GetFetchedPlayers()
+        {
+            try
+            {
+                lock (_FetchedPlayers)
+                {
+                    return _FetchedPlayers.Values.ToList();
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AException("Error getting fetched players.", e));
+            }
+            return new List<APlayer>();
         }
 
         private APlayer UpdatePlayer(APlayer aPlayer)
@@ -46875,7 +46908,7 @@ namespace PRoConEvents
                 }
                 if (!_CommandKeyDictionary.TryGetValue(commandKey, out command))
                 {
-                    _threadMasterWaitHandle.WaitOne(500);
+                    _threadMasterWaitHandle.WaitOne(1000);
                     if (!_CommandKeyDictionary.TryGetValue(commandKey, out command))
                     {
                         HandleException(new AException("Unable to get command for key '" + commandKey + "'"));
@@ -48187,16 +48220,23 @@ namespace PRoConEvents
 
             public void Debug(Func<String> messageFunc, Int32 level)
             {
-                if (DebugLevel >= level)
+                try
                 {
-                    if (DebugLevel >= 8)
+                    if (DebugLevel >= level)
                     {
-                        WriteConsole("[" + level + "-" + new StackFrame(1).GetMethod().Name + "-" + ((String.IsNullOrEmpty(Thread.CurrentThread.Name)) ? ("Main") : (Thread.CurrentThread.Name)) + "-" + Thread.CurrentThread.ManagedThreadId + "] " + messageFunc());
+                        if (DebugLevel >= 8)
+                        {
+                            WriteConsole("[" + level + "-" + new StackFrame(1).GetMethod().Name + "-" + ((String.IsNullOrEmpty(Thread.CurrentThread.Name)) ? ("Main") : (Thread.CurrentThread.Name)) + "-" + Thread.CurrentThread.ManagedThreadId + "] " + messageFunc());
+                        }
+                        else
+                        {
+                            WriteConsole(messageFunc());
+                        }
                     }
-                    else
-                    {
-                        WriteConsole(messageFunc());
-                    }
+                }
+                catch (Exception e)
+                {
+                    WriteConsole("Error writing debug message. " + e.ToString());
                 }
             }
 
@@ -48247,6 +48287,14 @@ namespace PRoConEvents
                 //Opening
                 string exceptionMessage = "^b^8EXCEPTION-" +//Plugin version
                                           Int32.Parse(_plugin.GetPluginVersion().Replace(".", ""));
+                if (_plugin._firstPlayerListComplete)
+                {
+                    exceptionMessage += "-" + Math.Round(_plugin.NowDuration(_plugin._AdKatsRunningTime).TotalHours, 2);
+                }
+                else
+                {
+                    exceptionMessage += "-" + Math.Round(_plugin.NowDuration(_plugin._proconStartTime).TotalHours, 2);
+                }
                 if (e != null)
                 {
                     exceptionMessage += "-";
@@ -48396,25 +48444,22 @@ namespace PRoConEvents
             else
             {
                 var exceptionString = Log.Exception(aException.Message, aException.InternalException, 1);
-                if (_CommandKeyDictionary.ContainsKey("adkats_exception"))
+                //Create the Exception record
+                ARecord record = new ARecord
                 {
-                    //Create the Exception record
-                    ARecord record = new ARecord
-                    {
-                        record_source = ARecord.Sources.Automated,
-                        isDebug = true,
-                        server_id = _serverInfo.ServerID,
-                        command_type = GetCommandByKey("adkats_exception"),
-                        command_numeric = Int32.Parse(GetPluginVersion().Replace(".", "")),
-                        target_name = "AdKats",
-                        target_player = null,
-                        source_name = "AdKats",
-                        record_message = Log.FClear(exceptionString),
-                        record_time = UtcNow()
-                    };
-                    //Process the record
-                    QueueRecordForProcessing(record);
-                }
+                    record_source = ARecord.Sources.Automated,
+                    isDebug = true,
+                    server_id = _serverInfo.ServerID,
+                    command_type = GetCommandByKey("adkats_exception"),
+                    command_numeric = Int32.Parse(GetPluginVersion().Replace(".", "")),
+                    target_name = "AdKats",
+                    target_player = null,
+                    source_name = "AdKats",
+                    record_message = Log.FClear(exceptionString),
+                    record_time = UtcNow()
+                };
+                //Process the record
+                QueueRecordForProcessing(record);
             }
             return aException;
         }
@@ -49322,7 +49367,9 @@ namespace PRoConEvents
             public Exception InternalException = null;
             public String Message = String.Empty;
             public String Method = String.Empty;
-            //Param Constructors
+
+            // This constructor MUST be executed inside the method where the error was triggered
+            // otherwise the most recent item in the stack frame will not be correct
             public AException(String message, Exception internalException)
             {
                 Method = new StackFrame(1).GetMethod().Name;
