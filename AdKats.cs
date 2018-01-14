@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.0
- * 12-JAN-2018
+ * Version 7.0.1.1
+ * 13-JAN-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.0</version_code>
+ * <version_code>7.0.1.1</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.0";
+        private const String PluginVersion = "7.0.1.1";
 
         public enum GameVersion
         {
@@ -11208,10 +11208,6 @@ namespace PRoConEvents
                                     t1Power *= 1.08;
                                 }
                             }
-                        }
-                        if (_UseExperimentalTools)
-                        {
-                            Log.Info("T1: " + Math.Round(t1Power, 1) + " (" + Math.Round(debugT1Power, 1) + ")");
                         }
                         if (t1Power > t2Power)
                         {
@@ -33897,7 +33893,7 @@ namespace PRoConEvents
                                     // Reset the poll for the next stage
                                     _ActivePoll.Reset();
 
-                                    _ActivePoll.Title = "Choose '" + ruleString + "' mode with !vote #";
+                                    _ActivePoll.Title = "Choose '" + ruleString + "' mode with !#";
                                     // Get the available rule options
                                     var existingEventModes = _EventRoundOptions
                                                                 .Select(option => option.Mode)
@@ -40015,10 +40011,6 @@ namespace PRoConEvents
                         newEnemyPower *= 1.08;
                     }
                 }
-            }
-            if (_UseExperimentalTools)
-            {
-                Log.Info("Old: " + Math.Round(oldEnemyPower, 1) + " (" + Math.Round(debugOldPower, 1) + ") New: " + Math.Round(newEnemyPower, 1) + " (" + Math.Round(debugNewPower, 1) + ")");
             }
             var newFriendlyCount = GetPlayerCount(true, true, true, friendlyTeam.TeamID) - 1;
             var newEnemyCount = GetPlayerCount(true, true, true, enemyTeam.TeamID) + 1;
