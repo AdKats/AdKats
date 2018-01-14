@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.2
+ * Version 7.0.1.3
  * 14-JAN-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.2</version_code>
+ * <version_code>7.0.1.3</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.2";
+        private const String PluginVersion = "7.0.1.3";
 
         public enum GameVersion
         {
@@ -11394,7 +11394,9 @@ namespace PRoConEvents
                 {
                     DoPlayerListReceive();
                     //Return if small duration (1 second) since last accepted player list
-                    if (NowDuration(_LastPlayerListAccept).TotalSeconds < 1.0)
+                    //But only if the plugin hasn't just started up
+                    if (NowDuration(_LastPlayerListAccept).TotalSeconds < 1.0 &&
+                        NowDuration(_AdKatsRunningTime).TotalSeconds > 30)
                     {
                         return;
                     }
@@ -12387,6 +12389,10 @@ namespace PRoConEvents
                             Log.Success("Player listing complete [" + _PlayerDictionary.Count + " players].");
 
                             Log.Info("Performing final startup.");
+
+                            //Immediately request another player list to make sure we haven't missed anyone who just joined.
+                            DoPlayerListTrigger();
+
                             //Register external plugin commands
                             RegisterCommand(_issueCommandMatchCommand);
                             RegisterCommand(_fetchAuthorizedSoldiersMatchCommand);
