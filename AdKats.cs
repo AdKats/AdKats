@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.3
+ * Version 7.0.1.4
  * 14-JAN-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.3</version_code>
+ * <version_code>7.0.1.4</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.3";
+        private const String PluginVersion = "7.0.1.4";
 
         public enum GameVersion
         {
@@ -45489,7 +45489,7 @@ namespace PRoConEvents
                                 Hashtable overview = null;
                                 if (!data.ContainsKey("overviewStats") || (overview = (Hashtable)data["overviewStats"]) == null)
                                 {
-                                    Log.Error("Could not find overview statistics for " + aPlayer.player_name);
+                                    Log.Warn("Could not find overview statistics for " + aPlayer.player_name);
                                 }
                                 else
                                 {
@@ -45499,7 +45499,7 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        aPlayer.BL_SPM = Int32.Parse(overview["scorePerMinute"].ToString());
+                                        aPlayer.BL_SPM = Int64.Parse(overview["scorePerMinute"].ToString());
                                     }
                                     if (!overview.ContainsKey("kdRatio"))
                                     {
@@ -49913,7 +49913,7 @@ namespace PRoConEvents
             public List<DateTime> TeamMoves;
 
             public Dictionary<Int64, APlayerStats> RoundStats;
-            public Int32 BL_SPM;
+            public Int64 BL_SPM;
             public Double BL_KDR;
             public Double BL_KPM;
             public ATopStats TopStats;
