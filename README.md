@@ -3849,7 +3849,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         Display console debug when relevant events happen.
     </li>
 </ul>
-<h3>B30. Team Power Monitor:</h3>
+<h3>C30. Team Power Monitor:</h3>
 <ul>
     <li><b>'Team Power Active Influence'</b> - 
         How much players performance in the current round should be weighted against their overall statistics.
@@ -3885,7 +3885,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         Seeders are evenly balanced between teams, and when there is an odd number of seeders the extra seeder is placed on the more powerful team.
     </li>
 </ul>
-<h3>B31. Weapon Limiter Settings:</h3>
+<h3>C31. Weapon Limiter Settings:</h3>
 <ul>
     <li><b>'Use NO EXPLOSIVES Limiter'</b> - 
         Whether to enable the internal no explosives limiter.
