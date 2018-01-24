@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.4
- * 14-JAN-2018
+ * Version 7.0.1.5
+ * 23-JAN-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.4</version_code>
+ * <version_code>7.0.1.5</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.4";
+        private const String PluginVersion = "7.0.1.5";
 
         public enum GameVersion
         {
@@ -158,7 +158,7 @@ namespace PRoConEvents
         private volatile String _pluginDescFetchProgress = "NotStarted";
         private ARecord _pluginUpdateCaller;
         private volatile Boolean _useKeepAlive;
-        private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
+        private readonly Dictionary<Int32, Thread> _watchdogThreads = new Dictionary<Int32, Thread>();
         private Int32 _startingTicketCount = -1;
         private RoundState _roundState = RoundState.Loaded;
         private DateTime _playingStartTime = DateTime.UtcNow;
@@ -6646,9 +6646,9 @@ namespace PRoConEvents
                                     TryAddUserSoldier(aUser, strValue);
                                     QueueUserForUpload(aUser);
                                     Log.Debug(() => "Exiting a user change thread.", 2);
-                                    LogThreadExit();
+                                    ThreadStopWatchdog();
                                 }));
-                                StartAndLogThread(addSoldierThread);
+                                ThreadStartWatchdog(addSoldierThread);
                                 break;
                             case "Soldiers":
                                 if (strVariable.Contains("Delete Soldier?") && strValue.ToLower() == "delete")
@@ -8051,9 +8051,9 @@ namespace PRoConEvents
                             TryAddUserSoldier(aUser, aUser.user_name);
                             QueueUserForUpload(aUser);
                             Log.Debug(() => "Exiting a user change thread.", 2);
-                            LogThreadExit();
+                            ThreadStopWatchdog();
                         }));
-                        StartAndLogThread(addUserThread);
+                        ThreadStartWatchdog(addUserThread);
                     }
                     else
                     {
@@ -8249,7 +8249,7 @@ namespace PRoConEvents
                         {
                             Log.Error("Failed to fetch weapon stat definitions. AdKats cannot be started.");
                             Disable();
-                            LogThreadExit();
+                            ThreadStopWatchdog();
                             return;
                         }
 
@@ -8262,7 +8262,7 @@ namespace PRoConEvents
                         {
                             Log.Error("Failed to fetch reputation definitions. AdKats cannot be started.");
                             Disable();
-                            LogThreadExit();
+                            ThreadStopWatchdog();
                             return;
                         }
 
@@ -8277,7 +8277,7 @@ namespace PRoConEvents
                             {
                                 Log.Error("Failed to fetch weapon names. AdKats cannot be started.");
                                 Disable();
-                                LogThreadExit();
+                                ThreadStopWatchdog();
                                 return;
                             }
                         }
@@ -8291,7 +8291,7 @@ namespace PRoConEvents
                         {
                             Log.Error("Failed to fetch special player group definitions. AdKats cannot be started.");
                             Disable();
-                            LogThreadExit();
+                            ThreadStopWatchdog();
                             return;
                         }
 
@@ -8337,12 +8337,12 @@ namespace PRoConEvents
                     {
                         HandleException(new AException("Error while enabling AdKats.", e));
                     }
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 }));
 
                 Log.Write("^b^2ENABLED!^n^0 Beginning startup sequence...");
                 //Start the thread
-                StartAndLogThread(_Activator);
+                ThreadStartWatchdog(_Activator);
             }
             catch (Exception e)
             {
@@ -8387,13 +8387,13 @@ namespace PRoConEvents
                             Thread.Sleep(500);
                             alive = false;
                             String aliveThreads = "";
-                            lock (_aliveThreads)
+                            lock (_watchdogThreads)
                             {
-                                foreach (Int32 deadThreadID in _aliveThreads.Values.ToList().Where(thread => !thread.IsAlive).Select(thread => thread.ManagedThreadId).ToList())
+                                foreach (Int32 deadThreadID in _watchdogThreads.Values.ToList().Where(thread => !thread.IsAlive).Select(thread => thread.ManagedThreadId).ToList())
                                 {
-                                    _aliveThreads.Remove(deadThreadID);
+                                    _watchdogThreads.Remove(deadThreadID);
                                 }
-                                foreach (Thread aliveThread in _aliveThreads.Values.ToList())
+                                foreach (Thread aliveThread in _watchdogThreads.Values.ToList())
                                 {
                                     alive = true;
                                     aliveThreads += (aliveThread.Name + "[" + aliveThread.ManagedThreadId + "] ");
@@ -8586,7 +8586,7 @@ namespace PRoConEvents
 
         private void FetchPluginDocumentation()
         {
-            if (_aliveThreads.Values.ToList().Any(aThread => aThread != null && aThread.Name == "DescFetching"))
+            if (IsThreadAlive("DescFetching"))
             {
                 return;
             }
@@ -8725,7 +8725,7 @@ namespace PRoConEvents
                     {
                         Log.Error("Unable to fetch required documentation files. AdKats cannot be started.");
                         Disable();
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                         return;
                     }
                     Log.Debug(() => "Setting desc fetch handle.", 1);
@@ -8738,10 +8738,10 @@ namespace PRoConEvents
                 {
                     HandleException(new AException("Error while fetching plugin description and changelog.", e));
                 }
-                LogThreadExit();
+                ThreadStopWatchdog();
             }));
             //Start the thread
-            StartAndLogThread(descFetcher);
+            ThreadStartWatchdog(descFetcher);
         }
 
         private void RunMemoryMonitor()
@@ -8771,7 +8771,7 @@ namespace PRoConEvents
                     else if (MBUsed > 250)
                     {
                         String mm = " MAP: ";
-                        mm += "1:" + _aliveThreads.Count() + ", ";
+                        mm += "1:" + _watchdogThreads.Count() + ", ";
                         mm += "2:" + _populationPopulatingPlayers.Count() + ", ";
                         mm += "3:" + _ActOnIsAliveDictionary.Count() + ", ";
                         mm += "4:" + _ActOnSpawnDictionary.Count() + ", ";
@@ -9871,13 +9871,8 @@ namespace PRoConEvents
 
                             RunTeamPowerScramblerMonitor();
 
-                            //Clean dead threads
-                            var threads = _aliveThreads.ToList();
-                            foreach (Int32 deadThreadID in threads.Where(threadPair => threadPair.Value == null || !threadPair.Value.IsAlive)
-                                                                  .Select(threadPair => threadPair.Value == null ? threadPair.Key : threadPair.Value.ManagedThreadId))
-                            {
-                                _aliveThreads.Remove(deadThreadID);
-                            }
+                            //Prune Watchdog Threads
+                            PruneWatchdogThreads();
 
                             //Batch very long keep alive - every 10 minutes
                             if (NowDuration(_LastVeryLongKeepAliveCheck).TotalMinutes > 10.0)
@@ -9927,19 +9922,8 @@ namespace PRoConEvents
                                 }
 
                                 //Check for thread warning
-                                if (_aliveThreads.Count() >= 20)
-                                {
-                                    String aliveThreads = "";
-                                    lock (_aliveThreads)
-                                    {
-                                        foreach (Thread value in _aliveThreads.Values.ToList())
-                                        {
-                                            aliveThreads = aliveThreads + (value.Name + "[" + value.ManagedThreadId + "] ");
-                                        }
-                                    }
-                                    Log.Warn("Thread warning: " + aliveThreads);
-                                }
-
+                                MonitorWatchdogThreadCount();
+                                
                                 _LastShortKeepAliveCheck = UtcNow();
                             }
 
@@ -10147,10 +10131,10 @@ namespace PRoConEvents
                 //Reset the master wait handle
                 _threadMasterWaitHandle.Reset();
                 //DB Comm is the heart of AdKats, everything revolves around that thread
-                StartAndLogThread(_DatabaseCommunicationThread);
+                ThreadStartWatchdog(_DatabaseCommunicationThread);
                 //Battlelog comm and IP API threads are independant
-                StartAndLogThread(_BattlelogCommThread);
-                StartAndLogThread(_IPAPICommThread);
+                ThreadStartWatchdog(_BattlelogCommThread);
+                ThreadStartWatchdog(_IPAPICommThread);
                 //Other threads are started within the db comm thread
             }
             catch (Exception e)
@@ -10188,9 +10172,9 @@ namespace PRoConEvents
                         HandleException(new AException("Error while running reboot."));
                     }
                     Log.Debug(() => "Exiting a reboot thread.", 5);
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 }));
-                StartAndLogThread(pluginRebootThread);
+                ThreadStartWatchdog(pluginRebootThread);
             }
             else
             {
@@ -10415,9 +10399,10 @@ namespace PRoConEvents
                     Thread.Sleep(500);
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride");
                     //Wait for proper team overrides to complete
-                    if (_aliveThreads.Values.ToList().All(thread => thread != null && thread.Name != "TeamAssignmentConfirmation"))
+
+                    if (!IsThreadAlive("TeamAssignmentConfirmation"))
                     {
-                        StartAndLogThread(new Thread(new ThreadStart(delegate
+                        ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                         {
                             Thread.CurrentThread.Name = "TeamAssignmentConfirmation";
                             Thread.Sleep(TimeSpan.FromSeconds(1));
@@ -10444,7 +10429,7 @@ namespace PRoConEvents
                                 _acceptingTeamUpdates = false;
                                 break;
                             }
-                            LogThreadExit();
+                            ThreadStopWatchdog();
                         })));
                     }
                 }
@@ -10455,14 +10440,14 @@ namespace PRoConEvents
                     OnTeamFactionOverride(2, 1);
                     _acceptingTeamUpdates = false;
                 }
-
+                
                 //Team power monitor assignment code
                 if (_UseTeamPowerMonitorScrambler &&
                     _firstPlayerListComplete &&
                     _populationStatus != PopulationState.Low &&
-                    _aliveThreads.Values.ToList().All(thread => thread != null && thread.Name != "TeamPowerMonitorAssignment"))
+                    !IsThreadAlive("TeamPowerMonitorAssignment"))
                 {
-                    StartAndLogThread(new Thread(new ThreadStart(delegate
+                    ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                     {
                         Thread.CurrentThread.Name = "TeamPowerMonitorAssignment";
                         Thread.Sleep(TimeSpan.FromSeconds(0.1));
@@ -10925,7 +10910,7 @@ namespace PRoConEvents
                         }
                         Log.Success("Team check 2 complete!");
 
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                     })));
                 }
             }
@@ -12442,7 +12427,7 @@ namespace PRoConEvents
                     }
                 }
                 Log.Debug(() => "Ending Player Listing Thread", 1);
-                LogThreadExit();
+                ThreadStopWatchdog();
             }
             catch (Exception e)
             {
@@ -12584,7 +12569,7 @@ namespace PRoConEvents
                     }
                 }
                 Log.Debug(() => "Ending Access Fetching Thread", 1);
-                LogThreadExit();
+                ThreadStopWatchdog();
             }
             catch (Exception e)
             {
@@ -12761,13 +12746,13 @@ namespace PRoConEvents
                     {
                         HandleException(new AException("Error in round stat logger thread", e));
                     }
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 }));
 
-                if (_aliveThreads.Values.ToList().All(thread => thread != null && thread.Name != "RoundTicketLogger"))
+                if (!IsThreadAlive("RoundTicketLogger"))
                 {
                     //Start the thread
-                    StartAndLogThread(roundLoggerThread);
+                    ThreadStartWatchdog(roundLoggerThread);
                 }
             }
             catch (Exception e)
@@ -13492,9 +13477,9 @@ namespace PRoConEvents
                                                     HandleException(new AException("Error while running round end delay."));
                                                 }
                                                 Log.Debug(() => "Exiting a round end delay thread.", 5);
-                                                LogThreadExit();
+                                                ThreadStopWatchdog();
                                             }));
-                                            StartAndLogThread(roundEndDelayThread);
+                                            ThreadStartWatchdog(roundEndDelayThread);
                                         }
                                     }
                                 }
@@ -14020,7 +14005,7 @@ namespace PRoConEvents
                     _EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString())
                 {
                     var nRound = _roundID + 1;
-                    StartAndLogThread(new Thread(new ThreadStart(delegate
+                    ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                     {
                         Thread.CurrentThread.Name = "EventAnnounce";
                         // If there is an active poll auto-complete it and any subsequent polls for 5 seconds
@@ -14095,7 +14080,7 @@ namespace PRoConEvents
                             }
                         }
                         UpdateSettingPage();
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                     })));
                 }
 
@@ -14236,7 +14221,7 @@ namespace PRoConEvents
                     //TODO: Clear out the total score/kills/deaths
 
                     //Queue players for stats refresh
-                    StartAndLogThread(new Thread(new ThreadStart(delegate
+                    ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                     {
                         Thread.CurrentThread.Name = "StatRefetch";
                         Thread.Sleep(TimeSpan.FromSeconds(30));
@@ -14252,7 +14237,7 @@ namespace PRoConEvents
                                 QueuePlayerForAntiCheatCheck(aPlayer);
                             }
                         }
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                     })));
                 }
 
@@ -14718,7 +14703,7 @@ namespace PRoConEvents
                     }
                 }
                 Log.Debug(() => "Ending Kill Processing Thread", 1);
-                LogThreadExit();
+                ThreadStopWatchdog();
             }
             catch (Exception e)
             {
@@ -15804,7 +15789,7 @@ namespace PRoConEvents
 
                         if (EventActive())
                         {
-                            StartAndLogThread(new Thread(new ThreadStart(delegate
+                            ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                             {
                                 Thread.CurrentThread.Name = "RoundWelcome";
                                 Thread.Sleep(TimeSpan.FromSeconds(10));
@@ -15815,29 +15800,29 @@ namespace PRoConEvents
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(3));
                                     AdminSayMessage(GetEventMessage(false) + " Use !rules for details.");
                                 }
-                                LogThreadExit();
+                                ThreadStopWatchdog();
                             })));
                         }
                         else if (_UseExperimentalTools && _gameVersion == GameVersion.BF4 && _serverInfo != null && _serverInfo.GetRoundElapsedTime().TotalSeconds < 30)
                         {
                             if (_serverInfo.ServerName.ToLower().Contains("metro") && _serverInfo.ServerName.ToLower().Contains("no explosives"))
                             {
-                                StartAndLogThread(new Thread(new ThreadStart(delegate
+                                ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                                 {
                                     Thread.CurrentThread.Name = "RoundWelcome";
                                     Thread.Sleep(TimeSpan.FromSeconds(17));
                                     AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro!");
-                                    LogThreadExit();
+                                    ThreadStopWatchdog();
                                 })));
                             }
                             else if (_serverInfo.ServerName.ToLower().Contains("locker") && _serverInfo.ServerName.ToLower().Contains("pistol"))
                             {
-                                StartAndLogThread(new Thread(new ThreadStart(delegate
+                                ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                                 {
                                     Thread.CurrentThread.Name = "RoundWelcome";
                                     Thread.Sleep(TimeSpan.FromSeconds(17));
                                     AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of Pistols Only Locker!");
-                                    LogThreadExit();
+                                    ThreadStopWatchdog();
                                 })));
                             }
                         }
@@ -15977,11 +15962,11 @@ namespace PRoConEvents
                                     HandleException(new AException("Error while printing spawn messages", e));
                                 }
                                 Log.Debug(() => "Exiting a spawn printer.", 5);
-                                LogThreadExit();
+                                ThreadStopWatchdog();
                             }));
 
                             //Start the thread
-                            StartAndLogThread(spawnPrinter);
+                            ThreadStartWatchdog(spawnPrinter);
                         }
                     }
                     aPlayer.player_spawnedOnce = true;
@@ -16421,7 +16406,7 @@ namespace PRoConEvents
                     }
                 }
                 Log.Debug(() => "Ending Ban Enforcer Thread", 1);
-                LogThreadExit();
+                ThreadStopWatchdog();
             }
             catch (Exception e)
             {
@@ -16867,7 +16852,7 @@ namespace PRoConEvents
                     }
                 }
                 Log.Debug(() => "Ending AntiCheat Thread", 1);
-                LogThreadExit();
+                ThreadStopWatchdog();
             }
             catch (Exception e)
             {
@@ -17236,11 +17221,11 @@ namespace PRoConEvents
                                     HandleException(new AException("Error while runnin ban delay."));
                                 }
                                 Log.Debug(() => "Exiting a ban delay thread.", 5);
-                                LogThreadExit();
+                                ThreadStopWatchdog();
                             }));
 
                             //Start the thread
-                            StartAndLogThread(banDelayThread);
+                            ThreadStartWatchdog(banDelayThread);
                         }
                     }
                     else
@@ -17424,11 +17409,11 @@ namespace PRoConEvents
                                     HandleException(new AException("Error while runnin ban delay."));
                                 }
                                 Log.Debug(() => "Exiting a ban delay thread.", 5);
-                                LogThreadExit();
+                                ThreadStopWatchdog();
                             }));
 
                             //Start the thread
-                            StartAndLogThread(banDelayThread);
+                            ThreadStartWatchdog(banDelayThread);
                         }
                     }
                     else
@@ -17819,9 +17804,9 @@ namespace PRoConEvents
                             HandleException(new AException("Error while running online non-admin say."));
                         }
                         Log.Debug(() => "Exiting an online non-admin say thread.", 8);
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                     }));
-                    StartAndLogThread(nonAdminSayThread);
+                    ThreadStartWatchdog(nonAdminSayThread);
                 }
                 else
                 {
@@ -17906,9 +17891,9 @@ namespace PRoConEvents
                             HandleException(new AException("Error while running online non-admin yell."));
                         }
                         Log.Debug(() => "Exiting an online non-admin yell thread.", 8);
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                     }));
-                    StartAndLogThread(nonAdminSayThread);
+                    ThreadStartWatchdog(nonAdminSayThread);
                 }
                 else
                 {
@@ -17993,9 +17978,9 @@ namespace PRoConEvents
                             HandleException(new AException("Error while running online non-admin tell."));
                         }
                         Log.Debug(() => "Exiting an online non-admin tell thread.", 8);
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                     }));
-                    StartAndLogThread(nonAdminSayThread);
+                    ThreadStartWatchdog(nonAdminSayThread);
                 }
                 else
                 {
@@ -18648,7 +18633,7 @@ namespace PRoConEvents
                     }
                 }
                 Log.Debug(() => "Ending Messaging Thread", 1);
-                LogThreadExit();
+                ThreadStopWatchdog();
             }
             catch (Exception e)
             {
@@ -18959,7 +18944,7 @@ namespace PRoConEvents
                     _TeamswapWaitHandle.WaitOne(TimeSpan.FromSeconds(10));
                 }
                 Log.Debug(() => "Ending TeamSwap Thread", 1);
-                LogThreadExit();
+                ThreadStopWatchdog();
             }
             catch (Exception e)
             {
@@ -19972,7 +19957,7 @@ namespace PRoConEvents
                     }
                 }
                 Log.Debug(() => "Ending Command Thread", 1);
-                LogThreadExit();
+                ThreadStopWatchdog();
             }
             catch (Exception e)
             {
@@ -27321,7 +27306,7 @@ namespace PRoConEvents
                     }
                 }
                 Log.Debug(() => "Ending IP API Comm Thread", 1);
-                LogThreadExit();
+                ThreadStopWatchdog();
             }
             catch (Exception e)
             {
@@ -27444,7 +27429,7 @@ namespace PRoConEvents
                     }
                 }
                 Log.Debug(() => "Ending Battlelog Comm Thread", 1);
-                LogThreadExit();
+                ThreadStopWatchdog();
             }
             catch (Exception e)
             {
@@ -27553,7 +27538,7 @@ namespace PRoConEvents
                     }
                 }
                 Log.Debug(() => "Ending Action Handling Thread", 1);
-                LogThreadExit();
+                ThreadStopWatchdog();
             }
             catch (Exception e)
             {
@@ -31758,7 +31743,7 @@ namespace PRoConEvents
             }));
 
             //Start the thread
-            StartAndLogThread(reportAutoHandler);
+            ThreadStartWatchdog(reportAutoHandler);
         }
 
         public void PurgeExtendedRoundStats()
@@ -31877,7 +31862,7 @@ namespace PRoConEvents
                 if (_NukeCountdownDurationSeconds > 0)
                 {
                     //Start the thread
-                    StartAndLogThread(new Thread(new ThreadStart(delegate
+                    ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                     {
                         Log.Debug(() => "Starting a nuke countdown printer.", 5);
                         try
@@ -31887,7 +31872,7 @@ namespace PRoConEvents
                             {
                                 if (!_pluginEnabled)
                                 {
-                                    LogThreadExit();
+                                    ThreadStopWatchdog();
                                     return;
                                 }
                                 AdminTellMessage("Nuking " + record.GetTargetNames() + " team in " + countdown + "...");
@@ -31958,7 +31943,7 @@ namespace PRoConEvents
                             HandleException(new AException("Error while printing nuke countdown"));
                         }
                         Log.Debug(() => "Exiting a nuke countdown printer.", 5);
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                     })));
                 }
                 else
@@ -32054,7 +32039,7 @@ namespace PRoConEvents
                         break;
                 }
                 //Start the thread
-                StartAndLogThread(new Thread(new ThreadStart(delegate
+                ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                 {
                     Log.Debug(() => "Starting a countdown printer thread.", 5);
                     try
@@ -32064,7 +32049,7 @@ namespace PRoConEvents
                         {
                             if (!_pluginEnabled)
                             {
-                                LogThreadExit();
+                                ThreadStopWatchdog();
                                 return;
                             }
                             if (record.target_name == "All")
@@ -32074,7 +32059,7 @@ namespace PRoConEvents
                             else
                             {
                                 //Threads spawned from threads...oh god
-                                StartAndLogThread(new Thread(new ThreadStart(delegate
+                                ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                                 {
                                     try
                                     {
@@ -32089,7 +32074,7 @@ namespace PRoConEvents
                                     {
                                         HandleException(new AException("Error while printing private countdown"));
                                     }
-                                    LogThreadExit();
+                                    ThreadStopWatchdog();
                                 })));
                             }
                             _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
@@ -32111,7 +32096,7 @@ namespace PRoConEvents
                         HandleException(new AException("Error while printing server countdown", e));
                     }
                     Log.Debug(() => "Exiting a countdown printer.", 5);
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 })));
             }
             catch (Exception e)
@@ -32851,11 +32836,11 @@ namespace PRoConEvents
                             HandleException(new AException("Error while printing server rules", e));
                         }
                         Log.Debug(() => "Exiting a rule printer.", 5);
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                     }));
 
                     //Start the thread
-                    StartAndLogThread(rulePrinter);
+                    ThreadStartWatchdog(rulePrinter);
                 }
             }
             catch (Exception e)
@@ -32985,9 +32970,9 @@ namespace PRoConEvents
                                 HandleException(new AException("Error while running surrender timing."));
                             }
                             Log.Debug(() => "Exiting a surrender timing thread.", 5);
-                            LogThreadExit();
+                            ThreadStopWatchdog();
                         }));
-                        StartAndLogThread(surrenderTimingThread);
+                        ThreadStartWatchdog(surrenderTimingThread);
                     }
                 }
 
@@ -33034,9 +33019,9 @@ namespace PRoConEvents
                                 HandleException(new AException("Error while running round end delay."));
                             }
                             Log.Debug(() => "Exiting a round end delay thread.", 5);
-                            LogThreadExit();
+                            ThreadStopWatchdog();
                         }));
-                        StartAndLogThread(roundEndDelayThread);
+                        ThreadStartWatchdog(roundEndDelayThread);
                     }
                 }
                 else
@@ -33180,11 +33165,11 @@ namespace PRoConEvents
                         HandleException(new AException("Error while printing server commands"));
                     }
                     Log.Debug(() => "Exiting a command printer.", 5);
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 }));
 
                 //Start the thread
-                StartAndLogThread(commandPrinter);
+                ThreadStartWatchdog(commandPrinter);
 
                 if (record.source_name != record.target_name)
                 {
@@ -33343,11 +33328,11 @@ namespace PRoConEvents
                         HandleException(new AException("Error while printing uptime"));
                     }
                     Log.Debug(() => "Exiting a uptime printer.", 5);
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 }));
 
                 //Start the thread
-                StartAndLogThread(uptimePrinter);
+                ThreadStartWatchdog(uptimePrinter);
             }
             catch (Exception e)
             {
@@ -33408,12 +33393,12 @@ namespace PRoConEvents
                 }
                 SendMessageToSource(record, "Rebooting AdKats shortly.");
                 //Run the reboot delay thread
-                StartAndLogThread(new Thread(new ThreadStart(delegate
+                ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                 {
                     Thread.CurrentThread.Name = "RebootDelay";
                     Thread.Sleep(10000);
                     Disable();
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 })));
             }
             catch (Exception e)
@@ -33449,7 +33434,7 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                StartAndLogThread(new Thread(new ThreadStart(delegate
+                ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                 {
                     Thread.CurrentThread.Name = "ShutdownRunner";
                     AdminTellMessage("SERVER RESTART IN 5...");
@@ -33472,7 +33457,7 @@ namespace PRoConEvents
                         Thread.Sleep(TimeSpan.FromSeconds(30));
                         Environment.Exit(2232);
                     }
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 })));
             }
             catch (Exception e)
@@ -33652,11 +33637,11 @@ namespace PRoConEvents
                         HandleException(new AException("Error while printing player info"));
                     }
                     Log.Debug(() => "Exiting a player info printer.", 5);
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 }));
 
                 //Start the thread
-                StartAndLogThread(infoPrinter);
+                ThreadStartWatchdog(infoPrinter);
             }
             catch (Exception e)
             {
@@ -33725,11 +33710,11 @@ namespace PRoConEvents
                         HandleException(new AException("Error while printing player perks"));
                     }
                     Log.Debug(() => "Exiting a player perk printer.", 5);
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 }));
 
                 //Start the thread
-                StartAndLogThread(perkPrinter);
+                ThreadStartWatchdog(perkPrinter);
             }
             catch (Exception e)
             {
@@ -33980,10 +33965,10 @@ namespace PRoConEvents
                         _ActivePoll = null;
 
                         Log.Debug(() => "Exiting an event poll runner thread.", 5);
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                     }));
                     //Start the thread
-                    StartAndLogThread(pollRunner);
+                    ThreadStartWatchdog(pollRunner);
                 }
                 else
                 {
@@ -34060,11 +34045,11 @@ namespace PRoConEvents
                         HandleException(new AException("Error while printing player chat"));
                     }
                     Log.Debug(() => "Exiting a player chat printer.", 5);
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 }));
 
                 //Start the thread
-                StartAndLogThread(chatPrinter);
+                ThreadStartWatchdog(chatPrinter);
             }
             catch (Exception e)
             {
@@ -34757,15 +34742,15 @@ namespace PRoConEvents
                             FetchRoundID(false);
 
                             //Start other threads
-                            StartAndLogThread(_PlayerListingThread);
-                            StartAndLogThread(_AccessFetchingThread);
-                            StartAndLogThread(_KillProcessingThread);
-                            StartAndLogThread(_MessageProcessingThread);
-                            StartAndLogThread(_CommandParsingThread);
-                            StartAndLogThread(_ActionHandlingThread);
-                            StartAndLogThread(_TeamSwapThread);
-                            StartAndLogThread(_BanEnforcerThread);
-                            StartAndLogThread(_AntiCheatThread);
+                            ThreadStartWatchdog(_PlayerListingThread);
+                            ThreadStartWatchdog(_AccessFetchingThread);
+                            ThreadStartWatchdog(_KillProcessingThread);
+                            ThreadStartWatchdog(_MessageProcessingThread);
+                            ThreadStartWatchdog(_CommandParsingThread);
+                            ThreadStartWatchdog(_ActionHandlingThread);
+                            ThreadStartWatchdog(_TeamSwapThread);
+                            ThreadStartWatchdog(_BanEnforcerThread);
+                            ThreadStartWatchdog(_AntiCheatThread);
 
                             firstRun = false;
                             _threadsReady = true;
@@ -34869,7 +34854,7 @@ namespace PRoConEvents
                     }
                 }
                 Log.Debug(() => "Ending Database Comm Thread", 1);
-                LogThreadExit();
+                ThreadStopWatchdog();
             }
             catch (Exception e)
             {
@@ -34883,7 +34868,7 @@ namespace PRoConEvents
             //Every 60 minutes feed stat logger settings
             if (_lastStatLoggerStatusUpdateTime.AddMinutes(60) < UtcNow())
             {
-                if (_aliveThreads.Values.ToList().Any(aThread => aThread != null && aThread.Name == "StatLoggerSettingsFeeder"))
+                if (IsThreadAlive("StatLoggerSettingsFeeder"))
                 {
                     return;
                 }
@@ -34959,9 +34944,9 @@ namespace PRoConEvents
                     {
                         HandleException(new AException("Error while feeding stat logger settings."));
                     }
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 }));
-                StartAndLogThread(statLoggerFeedingThread);
+                ThreadStartWatchdog(statLoggerFeedingThread);
             }
             Log.Debug(() => "FeedStatLoggerSettings finished!", 6);
         }
@@ -34972,11 +34957,11 @@ namespace PRoConEvents
             {
                 if (_SettingUploadQueue.Count > 0)
                 {
-                    if (_aliveThreads.Values.ToList().Any(aThread => aThread != null && aThread.Name == "SettingUploader"))
+                    if (IsThreadAlive("SettingUploader"))
                     {
                         return;
                     }
-                    StartAndLogThread(new Thread(new ThreadStart(delegate
+                    ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                     {
                         Thread.CurrentThread.Name = "SettingUploader";
                         Thread.Sleep(250);
@@ -35008,7 +34993,7 @@ namespace PRoConEvents
                         {
                             HandleException(new AException("Error while uploading settings.", e));
                         }
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                     })));
                 }
             }
@@ -45419,11 +45404,17 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        HandleException(new AException("Could not find persona ID for " + aPlayer.player_name));
+                                        var warnMessage = "Could not find persona ID for " + aPlayer.player_name + ".";
                                         if (!String.IsNullOrEmpty(personaResponse))
                                         {
                                             KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
+                                            warnMessage += " Player kicked from server.";
                                         }
+                                        else
+                                        {
+                                            warnMessage += " Will attempt battlelog re-fetch until they leave the server.";
+                                        }
+                                        Log.Warn(warnMessage);
                                         return false;
                                     }
                                 }
@@ -45580,11 +45571,17 @@ namespace PRoConEvents
                                     Match pid = Regex.Match(response, @"bfh/agent/" + aPlayer.player_name + @"/stats/(\d+)/pc/", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                                     if (!pid.Success)
                                     {
-                                        HandleException(new AException("Could not find persona ID for " + aPlayer.player_name));
+                                        var warnMessage = "Could not find persona ID for " + aPlayer.player_name + ".";
                                         if (!String.IsNullOrEmpty(response))
                                         {
                                             KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
+                                            warnMessage += " Player kicked from server.";
                                         }
+                                        else
+                                        {
+                                            warnMessage += " Will attempt battlelog re-fetch until they leave the server.";
+                                        }
+                                        Log.Warn(warnMessage);
                                         return false;
                                     }
                                     else
@@ -46477,18 +46474,18 @@ namespace PRoConEvents
         private void RunSQLUpdates(Boolean async)
         {
             Log.Debug(() => "Entering RunSQLUpdates", 7);
-            if (_aliveThreads.Values.ToList().Any(aThread => aThread != null && aThread.Name == "SQLUpdater"))
+            if (IsThreadAlive("SQLUpdater"))
             {
                 return;
             }
             if (async)
             {
-                StartAndLogThread(new Thread(new ThreadStart(delegate
+                ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                 {
                     Thread.CurrentThread.Name = "SQLUpdater";
                     Thread.Sleep(TimeSpan.FromMilliseconds(250));
                     RunSQLUpdates();
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 })));
             }
             else
@@ -47304,7 +47301,7 @@ namespace PRoConEvents
             if (kickDuration > 0)
             {
                 // Cannot just kick the player, they don't see the kick message
-                StartAndLogThread(new Thread(new ThreadStart(delegate
+                ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                 {
                     Thread.CurrentThread.Name = "KickPlayerMessage";
                     var startTime = UtcNow();
@@ -47314,7 +47311,7 @@ namespace PRoConEvents
                         Thread.Sleep(500);
                     }
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 })));
             }
             else
@@ -47349,7 +47346,7 @@ namespace PRoConEvents
             {
                 var wasSpawned = aPlayer.player_spawnedOnce;
                 // Cannot just ban the player, they don't see the ban message
-                StartAndLogThread(new Thread(new ThreadStart(delegate
+                ThreadStartWatchdog(new Thread(new ThreadStart(delegate
                 {
                     Thread.CurrentThread.Name = "BanKickPlayerMessage";
                     var startTime = UtcNow();
@@ -47361,7 +47358,7 @@ namespace PRoConEvents
                         Thread.Sleep(500);
                     }
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", aPlayer.player_name, message);
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                 })));
             }
             else
@@ -47574,37 +47571,101 @@ namespace PRoConEvents
             Log.Debug(() => "Num params: " + parameters.Count, 6);
             return parameters.ToArray();
         }
-
-        public void JoinWith(Thread thread)
+        
+        protected void ThreadStopWatchdog()
         {
-            if (thread == null || !thread.IsAlive)
+            try
             {
-                Log.Debug(() => "Thread already finished.", 3);
-                return;
-            }
-            Log.Debug(() => "Waiting for ^b" + thread.Name + "^n to finish", 3);
-            thread.Join();
-        }
-
-        protected void LogThreadExit()
-        {
-            lock (_aliveThreads)
-            {
-                _aliveThreads.Remove(Thread.CurrentThread.ManagedThreadId);
-            }
-        }
-
-        protected void StartAndLogThread(Thread aThread)
-        {
-            aThread.Start();
-            lock (_aliveThreads)
-            {
-                if (!_aliveThreads.ContainsKey(aThread.ManagedThreadId))
+                lock (_watchdogThreads)
                 {
-                    _aliveThreads.Add(aThread.ManagedThreadId, aThread);
-                    _threadMasterWaitHandle.WaitOne(100);
+                    _watchdogThreads.Remove(Thread.CurrentThread.ManagedThreadId);
                 }
             }
+            catch (Exception e)
+            {
+                HandleException(new AException("Error logging thread exit.", e));
+            }
+        }
+        
+        protected void ThreadStartWatchdog(Thread aThread)
+        {
+            try
+            {
+                aThread.Start();
+                lock (_watchdogThreads)
+                {
+                    if (!_watchdogThreads.ContainsKey(aThread.ManagedThreadId))
+                    {
+                        _watchdogThreads.Add(aThread.ManagedThreadId, aThread);
+                        _threadMasterWaitHandle.WaitOne(100);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AException("Error logging thread start.", e));
+            }
+        }
+
+        protected void PruneWatchdogThreads()
+        {
+            try
+            {
+                lock (_watchdogThreads)
+                {
+                    var threads = _watchdogThreads.ToList();
+                    foreach (Int32 deadThreadID in threads.Where(threadPair => threadPair.Value == null || !threadPair.Value.IsAlive)
+                                                          .Select(threadPair => threadPair.Value == null ? threadPair.Key : threadPair.Value.ManagedThreadId))
+                    {
+                        _watchdogThreads.Remove(deadThreadID);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AException("Error pruning watchdog threads.", e));
+            }
+        }
+
+        protected void MonitorWatchdogThreadCount()
+        {
+            try
+            {
+                lock (_watchdogThreads)
+                {
+                    if (_watchdogThreads.Count() >= 20)
+                    {
+                        String aliveThreads = "";
+                        foreach (Thread value in _watchdogThreads.Values.ToList())
+                        {
+                            aliveThreads = aliveThreads + (value.Name + "[" + value.ManagedThreadId + "] ");
+                        }
+                        Log.Warn("Thread warning: " + aliveThreads);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AException("Error monitoring watchdog thread count.", e));
+            }
+        }
+
+        private Boolean IsThreadAlive(String threadName)
+        {
+            try
+            {
+                lock (_watchdogThreads)
+                {
+                    return _watchdogThreads.Values.ToList().Any(aThread => aThread != null &&
+                                                                           aThread.IsAlive &&
+                                                                           aThread.Name == threadName);
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AException("Error checking for matching alive thread.", e));
+            }
+            return false;
         }
 
         public String GenerateKickReason(ARecord record)
@@ -47675,7 +47736,7 @@ namespace PRoConEvents
                         }
                         Log.Error("Unable to install/update MULTIBalancer.");
                         _pluginUpdateCaller = null;
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                         return;
                     }
                 }
@@ -47687,7 +47748,7 @@ namespace PRoConEvents
                     }
                     Log.Error("Downloaded MULTIBalancer source was empty. Unable to install/update MULTIBalancer.");
                     _pluginUpdateCaller = null;
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                     return;
                 }
                 String externalPluginFileName = "MULTIbalancer.cs";
@@ -47708,7 +47769,7 @@ namespace PRoConEvents
                     }
                     Log.Error("Updated MULTIBalancer source could not compile. Unable to install/update MULTIBalancer.");
                     _pluginUpdateCaller = null;
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                     return;
                 }
                 Int64 patchedPluginSizeKb = 0;
@@ -47726,7 +47787,7 @@ namespace PRoConEvents
                             }
                             Log.Error("Cannot write updates to MULTIBalancer source file. Unable to install/update MULTIBalancer.");
                             _pluginUpdateCaller = null;
-                            LogThreadExit();
+                            ThreadStopWatchdog();
                             return;
                         }
                         Byte[] info = new UTF8Encoding(true).GetBytes(externalPluginSource);
@@ -47755,7 +47816,7 @@ namespace PRoConEvents
                         }
                         Log.Error("Constant failure to write MULTIBalancer update to file. Unable to install/update MULTIBalancer.");
                         _pluginUpdateCaller = null;
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                         return;
                     }
                 } while (externalPluginFileWriteFailed);
@@ -47789,7 +47850,7 @@ namespace PRoConEvents
                         }
                         Log.Error("Unable to install/update AdKatsLRT Extension. Connection error, or invalid token.");
                         _pluginUpdateCaller = null;
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                         return;
                     }
                 }
@@ -47801,7 +47862,7 @@ namespace PRoConEvents
                     }
                     Log.Error("Downloaded AdKatsLRT Extension source was empty. Unable to install/update AdKatsLRT Extension.");
                     _pluginUpdateCaller = null;
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                     return;
                 }
                 String extensionFileName = "AdKatsLRT.cs";
@@ -47822,7 +47883,7 @@ namespace PRoConEvents
                     }
                     Log.Error("Updated AdKatsLRT Extension source could not compile. Unable to install/update AdKatsLRT Extension.");
                     _pluginUpdateCaller = null;
-                    LogThreadExit();
+                    ThreadStopWatchdog();
                     return;
                 }
                 Int64 patchedExtensionSizeKb = 0;
@@ -47840,7 +47901,7 @@ namespace PRoConEvents
                             }
                             Log.Error("Cannot write updates to AdKatsLRT Extension source file. Unable to install/update AdKatsLRT Extension.");
                             _pluginUpdateCaller = null;
-                            LogThreadExit();
+                            ThreadStopWatchdog();
                             return;
                         }
                         Byte[] info = new UTF8Encoding(true).GetBytes(extensionSource);
@@ -47869,7 +47930,7 @@ namespace PRoConEvents
                         }
                         Log.Error("Constant failure to write AdKatsLRT Extension update to file. Unable to install/update AdKatsLRT Extension.");
                         _pluginUpdateCaller = null;
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                         return;
                     }
                 } while (extensionFileWriteFailed);
@@ -47890,14 +47951,14 @@ namespace PRoConEvents
                     (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken)) ||
                     manual)
                 {
-                    if (_aliveThreads.Values.ToList().Any(aThread => aThread != null && aThread.Name == "PluginUpdater"))
+                    if (IsThreadAlive("PluginUpdater"))
                     {
                         if (_pluginUpdateCaller != null)
                         {
                             SendMessageToSource(_pluginUpdateCaller, "Update already in progress.");
                         }
                         _pluginUpdateCaller = null;
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                         return;
                     }
                     Thread pluginUpdater = new Thread(new ThreadStart(delegate
@@ -47965,7 +48026,7 @@ namespace PRoConEvents
                                             Log.Error("Unable to download plugin update to version " + _latestPluginVersion);
                                         }
                                         _pluginUpdateCaller = null;
-                                        LogThreadExit();
+                                        ThreadStopWatchdog();
                                         return;
                                     }
                                 }
@@ -47981,7 +48042,7 @@ namespace PRoConEvents
                                     Log.Error("Downloaded plugin source was empty. Cannot update to version " + _latestPluginVersion);
                                 }
                                 _pluginUpdateCaller = null;
-                                LogThreadExit();
+                                ThreadStopWatchdog();
                                 return;
                             }
                             _pluginUpdateProgress = "Downloaded";
@@ -48019,7 +48080,7 @@ namespace PRoConEvents
                                     Log.Error("Updated plugin source could not compile. Cannot update to version " + _latestPluginVersion);
                                 }
                                 _pluginUpdateCaller = null;
-                                LogThreadExit();
+                                ThreadStopWatchdog();
                                 return;
                             }
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
@@ -48047,7 +48108,7 @@ namespace PRoConEvents
                                         }
                                         Log.Error("Cannot write updates to source file. Cannot update.");
                                         _pluginUpdateCaller = null;
-                                        LogThreadExit();
+                                        ThreadStopWatchdog();
                                         return;
                                     }
                                     Byte[] info = new UTF8Encoding(true).GetBytes(pluginSource);
@@ -48077,7 +48138,7 @@ namespace PRoConEvents
                                     }
                                     Log.Error("Constant failure to write plugin update to file. Cannot update.");
                                     _pluginUpdateCaller = null;
-                                    LogThreadExit();
+                                    ThreadStopWatchdog();
                                     return;
                                 }
                             } while (fileWriteFailed);
@@ -48153,9 +48214,9 @@ namespace PRoConEvents
                             HandleException(new AException("Error while running update thread.", e));
                         }
                         _pluginUpdateCaller = null;
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                     }));
-                    StartAndLogThread(pluginUpdater);
+                    ThreadStartWatchdog(pluginUpdater);
                 }
             }
             catch (Exception e)
@@ -48663,7 +48724,7 @@ namespace PRoConEvents
                                         //If someone manually disables AdKats, exit everything
                                         if (!_pluginEnabled)
                                         {
-                                            LogThreadExit();
+                                            ThreadStopWatchdog();
                                             return;
                                         }
                                         //Wait 15 seconds to retry
@@ -48721,11 +48782,11 @@ namespace PRoConEvents
                                     Log.Error("Error handling database disconnect.");
                                 }
                                 Log.Success("Exiting Critical Disconnect Handler.");
-                                LogThreadExit();
+                                ThreadStopWatchdog();
                             }));
 
                             //Start the thread
-                            StartAndLogThread(_DisconnectHandlingThread);
+                            ThreadStartWatchdog(_DisconnectHandlingThread);
                         }
                         catch (Exception)
                         {
@@ -48821,7 +48882,7 @@ namespace PRoConEvents
                                 {
                                     Log.Error("Teams not loaded when they should be.");
                                 }
-                                LogThreadExit();
+                                ThreadStopWatchdog();
                                 return;
                             }
                             if (!GetTeamByID(2, out team2))
@@ -48830,7 +48891,7 @@ namespace PRoConEvents
                                 {
                                     Log.Error("Teams not loaded when they should be.");
                                 }
-                                LogThreadExit();
+                                ThreadStopWatchdog();
                                 return;
                             }
                             if (team1.TeamTicketCount < team2.TeamTicketCount)
@@ -48849,11 +48910,11 @@ namespace PRoConEvents
                             HandleException(new AException("Error in round timer thread.", e));
                         }
                         Log.Debug(() => "Exiting round timer.", 2);
-                        LogThreadExit();
+                        ThreadStopWatchdog();
                     }));
 
                     //Start the thread
-                    StartAndLogThread(_RoundTimerThread);
+                    ThreadStartWatchdog(_RoundTimerThread);
                 }
                 catch (Exception e)
                 {
@@ -51473,10 +51534,10 @@ namespace PRoConEvents
                         {
                             Plugin.HandleException(new AException("Error in email sending thread.", e));
                         }
-                        Plugin.LogThreadExit();
+                        Plugin.ThreadStopWatchdog();
                     }));
                     //Start the thread
-                    Plugin.StartAndLogThread(emailSendingThread);
+                    Plugin.ThreadStartWatchdog(emailSendingThread);
                 }
                 catch (Exception e)
                 {
@@ -51567,7 +51628,7 @@ namespace PRoConEvents
                                 {
                                     IsBackground = true
                                 };
-                                Plugin.StartAndLogThread(_EmailProcessingThread);
+                                Plugin.ThreadStartWatchdog(_EmailProcessingThread);
                             }
                             _EmailProcessingWaitHandle.Set();
                         }
@@ -51683,7 +51744,7 @@ namespace PRoConEvents
                         }
                     }
                     Plugin.Log.Debug(() => "Ending mail Processing Thread", 1);
-                    Plugin.LogThreadExit();
+                    Plugin.ThreadStopWatchdog();
                 }
                 catch (Exception e)
                 {
