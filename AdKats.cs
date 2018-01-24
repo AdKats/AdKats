@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.5
+ * Version 7.0.1.6
  * 23-JAN-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.5</version_code>
+ * <version_code>7.0.1.6</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.5";
+        private const String PluginVersion = "7.0.1.6";
 
         public enum GameVersion
         {
@@ -11204,6 +11204,7 @@ namespace PRoConEvents
                             powerTeam = team2;
                             weakTeam = team1;
                         }
+                        var powerGap = Math.Abs(((t1Power - t2Power) / t2Power) * 100);
                         var players = _PlayerDictionary.Values.ToList();
                         var weakCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
                                                                  (dPlayer.fbpInfo.TeamID == weakTeam.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == weakTeam.TeamID)));
@@ -11239,11 +11240,25 @@ namespace PRoConEvents
                                     Log.Error(aPlayer.player_name + " assigned without top stats fetched.");
                                 }
 
-                                if (weakTeam == mapDownTeam &&
+                                // If the current weak team is not map dominant, or is down by more than 30% power
+                                // and it doesn't have too many players, assign the player to that team
+                                var accepted = false;
+                                var acceptReason = "None";
+                                if (weakTeam == mapDownTeam)
+                                {
+                                    accepted = true;
+                                    acceptReason = "Map";
+                                }
+                                else if (powerGap > 30)
+                                {
+                                    accepted = true;
+                                    acceptReason = "P-" + Math.Round(powerGap);
+                                }
+                                if (accepted &&
                                     weakCount - teamCountLeniency < powerCount &&
                                     weakCount < maxTeamPlayerCount)
                                 {
-                                    var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + weakTeam.GetTeamIDKey() + ".";
+                                    var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + weakTeam.GetTeamIDKey() + " [" + acceptReason + "].";
                                     if (_PlayerDictionary.ContainsKey(_debugSoldierName))
                                     {
                                         PlayerSayMessage(_debugSoldierName, message);
