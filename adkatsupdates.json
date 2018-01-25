@@ -20,42 +20,6 @@
 			"update_failure":[]
 		},
 		{
-			"update_id":"addChatlogDateIndex",
-			"version_minimum":"6.0.0.0",
-			"version_maximum":null,
-			"message_name":"Indexing tbl_chatlog.logDate for performance",
-			"message_success":"tbl_chatlog.logDate index successfully created",
-			"message_failure":"Failed to added tbl_chatlog.logDate index",
-			"update_checks_hasResults":false,
-			"update_checks":[
-				"SHOW INDEX FROM %DATABASENAME%.`tbl_chatlog` WHERE `Key_name` = 'logDate'"
-			],
-			"update_execute_requiresModRows":false,
-			"update_execute":[
-				"ALTER TABLE %DATABASENAME%.`tbl_chatlog` ADD INDEX (logDate)"
-			],
-			"update_success":[],
-			"update_failure":[]
-		},
-		{
-			"update_id":"addRecordTimeIndex",
-			"version_minimum":"6.0.0.0",
-			"version_maximum":null,
-			"message_name":"Indexing adkats_records_main.record_time for performance",
-			"message_success":"adkats_records_main.record_time index successfully created",
-			"message_failure":"Failed to added adkats_records_main.record_time index",
-			"update_checks_hasResults":false,
-			"update_checks":[
-				"SHOW INDEX FROM %DATABASENAME%.`adkats_records_main` WHERE `Key_name` = 'adkats_records_main_fk_record_time'"
-			],
-			"update_execute_requiresModRows":false,
-			"update_execute":[
-				"ALTER TABLE %DATABASENAME%.`adkats_records_main` ADD INDEX `adkats_records_main_fk_record_time` (`record_time` ASC)"
-			],
-			"update_success":[],
-			"update_failure":[]
-		},
-		{
 			"update_id":"increaseSettingMaxSize",
 			"version_minimum":"6.0.0.0",
 			"version_maximum":null,
