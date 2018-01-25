@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.6
- * 23-JAN-2018
+ * Version 7.0.1.7
+ * 24-JAN-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.6</version_code>
+ * <version_code>7.0.1.7</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.6";
+        private const String PluginVersion = "7.0.1.7";
 
         public enum GameVersion
         {
@@ -9139,6 +9139,7 @@ namespace PRoConEvents
                     _firstPlayerListComplete)
                 {
                     PurgeExtendedRoundStats();
+                    PurgeOutdatedStatistics();
                     PurgeOutdatedExceptions();
                 }
             }
@@ -31785,6 +31786,32 @@ namespace PRoConEvents
                 HandleException(new AException("Error while purging extended round statistics.", e));
             }
             Log.Debug(() => "Exiting PurgeExtendedRoundStats", 6);
+        }
+
+        public void PurgeOutdatedStatistics()
+        {
+            Log.Debug(() => "Entering PurgeOutdatedStatistics", 6);
+            try
+            {
+                //Purge all Adkats statistics older than 90 days
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"delete from adkats_statistics where adkats_statistics.stat_time < date_sub(sysdate(), interval 90 day)";
+                        Int32 affectedRows = SafeExecuteNonQuery(command);
+                        if (affectedRows > 0)
+                        {
+                            Log.Debug(() => "Purged " + affectedRows + " AdKats statistics older than 90 days.", 5);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AException("Error while purging Adkats statistics.", e));
+            }
+            Log.Debug(() => "Exiting PurgeOutdatedStatistics", 6);
         }
 
         public void PurgeOutdatedExceptions()
