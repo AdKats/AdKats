@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.7
- * 24-JAN-2018
+ * Version 7.0.1.8
+ * 25-JAN-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.7</version_code>
+ * <version_code>7.0.1.8</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.7";
+        private const String PluginVersion = "7.0.1.8";
 
         public enum GameVersion
         {
@@ -2488,7 +2488,11 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "Monitor Discord Players", typeof(Boolean), _DiscordPlayerMonitorView));
                     if (_DiscordPlayerMonitorView && _DiscordManager != null)
                     {
-                        buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _DiscordPlayers.Count() + "] Discord Players (Display)", typeof(String[]), _DiscordPlayers.Values.OrderBy(aPlayer => aPlayer.DiscordObject.Channel.Name).Select(aPlayer => aPlayer.player_name + " [" + aPlayer.DiscordObject.Name + "] (" + aPlayer.DiscordObject.Channel.Name + ") " + (String.IsNullOrEmpty(aPlayer.player_discord_id) ? "[Name]" : "[ID]")).ToArray()));
+                        buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + _DiscordPlayers.Count() + "] Discord Players (Display)", typeof(String[]), 
+                            _DiscordPlayers.Values.Where(aPlayer => aPlayer != null && aPlayer.DiscordObject != null && aPlayer.DiscordObject.Channel != null)
+                                                  .OrderBy(aPlayer => aPlayer.DiscordObject.Channel.Name)
+                                                  .Select(aPlayer => aPlayer.player_name + " [" + aPlayer.DiscordObject.Name + "] (" + aPlayer.DiscordObject.Channel.Name + ") " + (String.IsNullOrEmpty(aPlayer.player_discord_id) ? "[Name]" : "[ID]"))
+                                                  .ToArray()));
                         var discordMembers = _DiscordManager.GetMembers(false, true, true);
                         buildList.Add(new CPluginVariable(GetSettingSection(discordMonitorSection) + t + "[" + discordMembers.Count() + "] Discord Channel Members (Display)", typeof(String[]), discordMembers.OrderBy(aMember => aMember.Channel.Name).Select(aMember => aMember.Name + " (" + aMember.Channel.Name + ")").ToArray()));
                         discordMembers = _DiscordManager.GetMembers(false, false, false);
