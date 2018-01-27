@@ -1,4 +1,4 @@
-[//]: # "<latest_stable_release>7.0.0.0</latest_stable_release>"
+[//]: # "<latest_stable_release>7.0.1.0</latest_stable_release>"
 <p>
     <a name=adkats />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg" alt="AdKats Advanced In-Game Admin Tools">
