@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.11
+ * Version 7.0.1.12
  * 28-JAN-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.11</version_code>
+ * <version_code>7.0.1.12</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.11";
+        private const String PluginVersion = "7.0.1.12";
 
         public enum GameVersion
         {
@@ -33813,7 +33813,8 @@ namespace PRoConEvents
                             SendMessageToSource(record, "Cannot remove existing event rounds while an event is active.");
                         }
                     }
-                    if (optionsString.Contains("reset")) {
+                    if (optionsString.Contains("start") && 
+                        _EventRoundOptions.Any()) {
                         // If the event isn't active, make the event start next round.
                         if (!EventActive())
                         {
