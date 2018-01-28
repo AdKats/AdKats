@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.9
- * 27-JAN-2018
+ * Version 7.0.1.10
+ * 28-JAN-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.9</version_code>
+ * <version_code>7.0.1.10</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.9";
+        private const String PluginVersion = "7.0.1.10";
 
         public enum GameVersion
         {
@@ -5851,18 +5851,23 @@ namespace PRoConEvents
                     if (EventWeeklyRepeat != _EventWeeklyRepeat)
                     {
                         _EventWeeklyRepeat = EventWeeklyRepeat;
-                        _CurrentEventRoundNumber = 999999;
-                        QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
-                        if (_EventWeeklyRepeat)
+                        // Do not recalculate the event round number from downloaded settings
+                        // Only recalculate it from user input
+                        if (_firstUserListComplete)
                         {
-                            _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
-                            if (GetEventRoundDateTime() < DateTime.Now)
+                            _CurrentEventRoundNumber = 999999;
+                            QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
+                            if (_EventWeeklyRepeat)
                             {
-                                // If the given event date is today, but is already in the past
-                                // reset it to the same day next week
-                                _EventDate = _EventDate.AddDays(7);
+                                _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
+                                if (GetEventRoundDateTime() < DateTime.Now)
+                                {
+                                    // If the given event date is today, but is already in the past
+                                    // reset it to the same day next week
+                                    _EventDate = _EventDate.AddDays(7);
+                                }
+                                QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                             }
-                            QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                         }
                         QueueSettingForUpload(new CPluginVariable(@"Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
                     }
@@ -5901,8 +5906,13 @@ namespace PRoConEvents
                     if (_EventWeeklyDay != update)
                     {
                         _EventWeeklyDay = update;
-                        _CurrentEventRoundNumber = 999999;
-                        QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
+                        // Do not recalculate the event round number from downloaded settings
+                        // Only recalculate it from user input
+                        if (_firstUserListComplete)
+                        {
+                            _CurrentEventRoundNumber = 999999;
+                            QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
+                        }
                         if (_EventWeeklyRepeat)
                         {
                             _EventDate = GetNextWeekday(DateTime.Now.Date, _EventWeeklyDay);
@@ -5923,8 +5933,13 @@ namespace PRoConEvents
                     if (eventDate.ToShortDateString() != _EventDate.ToShortDateString())
                     {
                         _EventDate = eventDate;
-                        _CurrentEventRoundNumber = 999999;
-                        QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
+                        // Do not recalculate the event round number from downloaded settings
+                        // Only recalculate it from user input
+                        if (_firstUserListComplete)
+                        {
+                            _CurrentEventRoundNumber = 999999;
+                            QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
+                        }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
                     }
@@ -5938,13 +5953,18 @@ namespace PRoConEvents
                         {
                             eventHour = 0;
                         }
-                        if (eventHour > 23.5)
+                        if (eventHour > 23.9)
                         {
-                            eventHour = 23.5;
+                            eventHour = 23.9;
                         }
                         _EventHour = eventHour;
-                        _CurrentEventRoundNumber = 999999;
-                        QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
+                        // Do not recalculate the event round number from downloaded settings
+                        // Only recalculate it from user input
+                        if (_firstUserListComplete)
+                        {
+                            _CurrentEventRoundNumber = 999999;
+                            QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
+                        }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Event Hour in 24 format", typeof(Double), _EventHour));
                     }
@@ -33776,7 +33796,8 @@ namespace PRoConEvents
                 {
 
                     // Check for options
-                    if (record.record_message.ToLower().Trim() == "reset")
+                    var optionsString = record.record_message.ToLower().Trim();
+                    if (optionsString.Contains("reset"))
                     {
                         if (!EventActive())
                         {
@@ -33789,6 +33810,18 @@ namespace PRoConEvents
                         else
                         {
                             SendMessageToSource(record, "Cannot remove existing event rounds while an event is active.");
+                        }
+                    }
+                    if (optionsString.Contains("start") && 
+                        !optionsString.Contains("reset")) {
+                        // If the event isn't active, make the event start next round.
+                        if (!EventActive())
+                        {
+                            _CurrentEventRoundNumber = _roundID + 1;
+                            QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
+                            SendMessageToSource(record, "Event will be started next round.");
+                            FinalizeRecord(record);
+                            return;
                         }
                     }
 
@@ -33957,6 +33990,15 @@ namespace PRoConEvents
                                         _EventRoundOptions.Add(option);
                                         QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
                                         AdminTellMessage("EVENT POLL COMPLETE! Next event round is " + option.getModeRuleDisplay());
+
+                                        // If the event isn't active or set up with a date, make the event start next round.
+                                        if (!EventActive() &&
+                                            _CurrentEventRoundNumber == 999999)
+                                        {
+                                            _CurrentEventRoundNumber = _roundID + 1;
+                                            QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
+                                        }
+
                                         UpdateSettingPage();
                                     }
                                 }
