@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.8
- * 25-JAN-2018
+ * Version 7.0.1.9
+ * 27-JAN-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.8</version_code>
+ * <version_code>7.0.1.9</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.8";
+        private const String PluginVersion = "7.0.1.9";
 
         public enum GameVersion
         {
@@ -14050,7 +14050,7 @@ namespace PRoConEvents
                             var nextCode = GetEventRoundRuleCode(GetActiveEventRoundNumber(false));
                             if (nextCode == AEventOption.RuleCode.AO ||
                                 nextCode == AEventOption.RuleCode.BKO ||
-                                nextCode == AEventOption.RuleCode.CVI)
+                                nextCode == AEventOption.RuleCode.CAI)
                             {
                                 ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
                             }
@@ -14768,8 +14768,8 @@ namespace PRoConEvents
                         return "NO HEADSHOTS!";
                     case AEventOption.RuleCode.AW:
                         return "ALL WEAPONS!";
-                    case AEventOption.RuleCode.CVI:
-                        return "COWBOYS VS INDIANS!";
+                    case AEventOption.RuleCode.CAI:
+                        return "COWBOYS AND INDIANS!";
                     case AEventOption.RuleCode.TR:
                         return "TROLL RULES!";
                 }
@@ -14792,35 +14792,35 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.KO:
                         return "KNIFE ONLY! Only kills with knives are allowed.";
                     case AEventOption.RuleCode.BSO:
-                        return "BOLT SNIPER ONLY! Only bolt action sniper rifles are allowed. Melee is NOT allowed.";
+                        return "BOLT SNIPER ONLY! Only bolt action sniper rifles are allowed. NO Knives.";
                     case AEventOption.RuleCode.MLO:
-                        return "Mares LEG ONLY! Only kills with the mares leg are allowed. Melee is NOT allowed.";
+                        return "Mares LEG ONLY! Only kills with the mares leg are allowed. NO Knives.";
                     case AEventOption.RuleCode.DO:
                         return "DEFIBS ONLY! Only kills with the medic's defibrilators are allowed.";
                     case AEventOption.RuleCode.BKO:
-                        return "BOW/KNIVES ONLY! Only kills with the phantom bow and knives are allowed.";
+                        return "BOW/KNIVES ONLY! Only Phantom Bow/Knives are allowed. NO poison/explosive arrows.";
                     case AEventOption.RuleCode.RTO:
                         return "REPAIR TOOL ONLY! Only kills with the engineer's repair tool are allowed.";
                     case AEventOption.RuleCode.PO:
-                        return "PISTOLS ONLY! Only kills with pistols are allowed. The G18/93R are NOT allowed. The shorty is NOT a pistol. Melee is NOT allowed.";
+                        return "PISTOLS ONLY! Only kills with pistols are allowed. NO G18/93R. NO Shorty 12G. NO Knives.";
                     case AEventOption.RuleCode.SO:
-                        return "SHOTGUNS ONLY! Only kills with shotguns are allowed. Any ammo type in the shotguns are allowed. Melee is NOT allowed.";
+                        return "SHOTGUNS ONLY! Only kills with shotguns are allowed. Any ammo type. NO Knives.";
                     case AEventOption.RuleCode.NE:
-                        return "NO EXPLOSIVES! Kills with explosive weapons are NOT allowed. All other weapons are allowed.";
+                        return "NO EXPLOSIVES! Kills with explosive weapons are NOT allowed, all others are allowed.";
                     case AEventOption.RuleCode.EO:
-                        return "EXPLOSIVES ONLY! Only kills with explosive weapons are allowed. 12G frag rounds are shotguns NOT explosives. Melee is NOT allowed.";
+                        return "EXPLOSIVES ONLY! Only explosive weapons are allowed. NO shotgun frag rounds. NO Knives.";
                     case AEventOption.RuleCode.AO:
-                        return "AUTO-PRIMARIES ONLY! Only automatic primary weapons are allowed. Assault rifles, LMGs, etc. Burst is allowed. Melee is NOT allowed.";
+                        return "AUTO-PRIMARIES ONLY! Only automatic primary weapons. Assault rifles, LMGs, Burst, etc. NO Knives.";
                     case AEventOption.RuleCode.GO:
-                        return "GRENADES ONLY! Only kills with grenades are allowed. M67, V40, etc. Melee is NOT allowed.";
+                        return "GRENADES ONLY! Only kills with grenades are allowed. M67, V40, etc. NO Knives.";
                     case AEventOption.RuleCode.HO:
-                        return "HEADSHOTS ONLY! No weapon restrictions, however you must kill with headshots. If you kill without a headshot you are auto-killed.";
+                        return "HEADSHOTS ONLY! All weapons, but only headshots. If you kill without a headshot you are slain.";
                     case AEventOption.RuleCode.NH:
-                        return "NO HEADSHOTS! No weapon restrictions, however you cannot kill with headshots. If you kill with a headshot you are auto-killed.";
+                        return "NO HEADSHOTS! All weapons, but NO headshots. If you kill with a headshot you are slain";
                     case AEventOption.RuleCode.AW:
                         return "ALL WEAPONS! No weapon restrictions. Go nuts.";
-                    case AEventOption.RuleCode.CVI:
-                        return "COWBOYS VS INDIANS! Upper team (spawn outside) uses PHANTOM BOW! Lower team (spawn downstairs) uses MARES LEG! Knives are allowed.";
+                    case AEventOption.RuleCode.CAI:
+                        return "COWBOYS AND INDIANS! Phantom Bow, Mares Leg, Revolvers, and Knives only. NO poison/explosive arrows.";
                     case AEventOption.RuleCode.TR:
                         return "TROLL RULES! Knives, Defibs, RepairTools, Shields, EODBots, SUAVs, and Smoke Launchers.";
                 }
@@ -15054,55 +15054,21 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.AW:
                         // Everything is allowed, always return false
                         return false;
-                    case AEventOption.RuleCode.CVI:
-                        // COWBOYS VS INDIANS!
-                        switch (aKill.killer.fbpInfo.TeamID)
+                    case AEventOption.RuleCode.CAI:
+                        // COWBOYS AND INDIANS!
+                        // Phantom Bow, Mares Leg, Revolvers, and Knives.
+                        if (!aKill.weaponCode.ToLower().Contains("knife") &&
+                            !aKill.weaponCode.ToLower().Contains("melee") &&
+                            aKill.weaponCode != "U_SaddlegunSnp" &&
+                            aKill.weaponCode != "U_SW40" &&
+                            aKill.weaponCode != "U_Taurus44" &&
+                            aKill.weaponCode != "U_Unica6" &&
+                            aKill.weaponCode != "U_MP412Rex" &&
+                            aKill.weaponCode != "dlSHTR" &&
+                            aKill.weaponCode != "DamageArea")
                         {
-                            case 1:
-                                // Lower team uses maresleg/knives
-                                if (!aKill.weaponCode.ToLower().Contains("knife") &&
-                                    !aKill.weaponCode.ToLower().Contains("melee") &&
-                                    aKill.weaponCode != "U_SaddlegunSnp" &&
-                                    aKill.weaponCode != "DamageArea")
-                                {
-                                    QueueRecordForProcessing(new ARecord
-                                    {
-                                        record_source = ARecord.Sources.Automated,
-                                        server_id = _serverInfo.ServerID,
-                                        command_type = GetCommandByKey("player_kill"),
-                                        command_numeric = _roundID,
-                                        target_name = aKill.killer.player_name,
-                                        target_player = aKill.killer,
-                                        source_name = "AutoAdmin",
-                                        record_time = UtcNow(),
-                                        record_message = "LOWER TEAM USE MARESLEG/KNIVES!"
-                                    });
-                                }
-                                break;
-                            case 2:
-                                // Upper team uses bow/knives
-                                if (!aKill.weaponCode.ToLower().Contains("knife") &&
-                                    !aKill.weaponCode.ToLower().Contains("melee") &&
-                                    aKill.weaponCode != "dlSHTR" &&
-                                    aKill.weaponCode != "DamageArea")
-                                {
-                                    QueueRecordForProcessing(new ARecord
-                                    {
-                                        record_source = ARecord.Sources.Automated,
-                                        server_id = _serverInfo.ServerID,
-                                        command_type = GetCommandByKey("player_kill"),
-                                        command_numeric = _roundID,
-                                        target_name = aKill.killer.player_name,
-                                        target_player = aKill.killer,
-                                        source_name = "AutoAdmin",
-                                        record_time = UtcNow(),
-                                        record_message = "UPPER TEAM USE BOW/KNIVES!"
-                                    });
-                                }
-                                break;
-                            default:
-                                Log.Info("Invalid team when killing during cowboys vs indians.");
-                                break;
+                            message = GetEventMessage(false) + " Use !rules for details.";
+                            return true;
                         }
                         return false;
                     case AEventOption.RuleCode.TR:
@@ -49563,7 +49529,7 @@ namespace PRoConEvents
                 RTO,
                 HO,
                 NH,
-                CVI,
+                CAI,
                 TR
             };
             public static readonly Dictionary<RuleCode, String> RuleNames = new Dictionary<RuleCode, String> {
@@ -49583,7 +49549,7 @@ namespace PRoConEvents
                 {RuleCode.RTO, "Repair Tool Only"},
                 {RuleCode.HO, "Headshots Only"},
                 {RuleCode.NH, "No Headshots"},
-                {RuleCode.CVI, "Cowboys VS Indians"},
+                {RuleCode.CAI, "Cowboys and Indians"},
                 {RuleCode.TR, "Troll Rules"}
             };
 
