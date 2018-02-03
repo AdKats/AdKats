@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.12
- * 28-JAN-2018
+ * Version 7.0.1.13
+ * 3-FEB-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.12</version_code>
+ * <version_code>7.0.1.13</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.12";
+        private const String PluginVersion = "7.0.1.13";
 
         public enum GameVersion
         {
@@ -5978,9 +5978,9 @@ namespace PRoConEvents
                         {
                             EventPollMaxOptions = 1;
                         }
-                        if (EventPollMaxOptions > 6)
+                        if (EventPollMaxOptions > 5)
                         {
-                            EventPollMaxOptions = 6;
+                            EventPollMaxOptions = 5;
                         }
                         _EventPollMaxOptions = EventPollMaxOptions;
                         //Once setting has been changed, upload the change to database
@@ -15175,7 +15175,8 @@ namespace PRoConEvents
                 if (_useAntiCheatLIVESystem && 
                     _AntiCheatLIVESystemActiveStats &&
                     _serverInfo.ServerType != "OFFICIAL" && 
-                    !PlayerProtected(aKill.killer))
+                    !PlayerProtected(aKill.killer) &&
+                    !EventActive())
                 {
                     //KPM check
                     Int32 lowCountRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
@@ -33843,8 +33844,8 @@ namespace PRoConEvents
                             _EventRoundPolled = true;
 
                             // This poll has two stages. Choosing the rules and choosing the mode.
-                            AEventOption.RuleCode chosenRule;
-                            AEventOption.ModeCode chosenMode;
+                            AEventOption.RuleCode chosenRule = AEventOption.RuleCode.UNKNOWN;
+                            AEventOption.ModeCode chosenMode = AEventOption.ModeCode.UNKNOWN;
                             _ActivePoll.Title = "Choose event rules with !#";
                             // Get the available rule options
                             var existingEventRules = _EventRoundOptions
@@ -33874,7 +33875,25 @@ namespace PRoConEvents
                                     }
                                 }
                             }
-                            foreach (var option in availableRuleOptions)
+                            List<AEventOption.RuleCode> chosenRules = new List<AEventOption.RuleCode>();
+                            // Add the current event round's rule to the list, in case they want to play it again
+                            if (EventActive())
+                            {
+                                AEventOption.RuleCode currentRule = GetEventRoundRuleCode(GetActiveEventRoundNumber(false));
+                                if (currentRule != AEventOption.RuleCode.UNKNOWN)
+                                {
+                                    chosenRules.Add(currentRule);
+                                }
+                            }
+                            // Add the remaining available rules to the chosen list
+                            foreach (var rule in availableRuleOptions)
+                            {
+                                if (!chosenRules.Contains(rule))
+                                {
+                                    chosenRules.Add(rule);
+                                }
+                            }
+                            foreach (var option in chosenRules)
                             {
                                 if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
                                 {
@@ -33927,15 +33946,6 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    // Reset the poll for the next stage
-                                    _ActivePoll.Reset();
-
-                                    _ActivePoll.Title = "Choose '" + ruleString + "' mode with !#";
-                                    // Get the available rule options
-                                    var existingEventModes = _EventRoundOptions
-                                                                .Select(option => option.Mode)
-                                                                .Distinct()
-                                                                .ToList();
                                     // Get the available mode options for the chosen rule
                                     var availableModeOptions = _EventRoundPollOptions
                                                                 .Where(option => option.Rule == chosenRule)
@@ -33943,46 +33953,11 @@ namespace PRoConEvents
                                                                 .Distinct()
                                                                 .OrderBy(option => rng.Next())
                                                                 .ToList();
-                                    foreach (var option in availableModeOptions)
+
+                                    if (availableModeOptions.Count() == 1)
                                     {
-                                        if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
-                                        {
-                                            break;
-                                        }
-                                        // Add the name of the option to the chosen list
-                                        _ActivePoll.AddOption(AEventOption.ModeNames[option], false);
-                                    }
-
-                                    while (_pluginEnabled &&
-                                           _roundState == RoundState.Playing &&
-                                           NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
-                                           _ActivePoll.Votes.Count() < _PollMaxVotes &&
-                                           !_ActivePoll.Completed &&
-                                           !_ActivePoll.Canceled)
-                                    {
-                                        if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
-                                        {
-                                            // Print the poll
-                                            // Do not announce the current mode leader
-                                            _ActivePoll.PrintPoll(false);
-                                        }
-
-                                        _threadMasterWaitHandle.WaitOne(100);
-                                    }
-
-                                    if (_ActivePoll.Completed)
-                                    {
-                                        AdminSayMessage("Event mode poll completed with current winner.");
-                                    }
-
-                                    // Only continue if the round is still active
-                                    // And the poll has not been canceled
-                                    if (_pluginEnabled &&
-                                        !_ActivePoll.Canceled)
-                                    {
-
-                                        // Get the outcome
-                                        chosenMode = AEventOption.ModeFromDisplay(_ActivePoll.GetWinningOption("won", false));
+                                        // There is only one option for the poll, so just select it and finish
+                                        chosenMode = availableModeOptions.First();
                                         var option = new AEventOption()
                                         {
                                             Mode = chosenMode,
@@ -34001,6 +33976,72 @@ namespace PRoConEvents
                                         }
 
                                         UpdateSettingPage();
+                                    }
+                                    else
+                                    {
+                                        // Reset the poll for the next stage
+                                        _ActivePoll.Reset();
+
+                                        _ActivePoll.Title = "Choose '" + ruleString + "' mode with !#";
+                                        foreach (var option in availableModeOptions)
+                                        {
+                                            if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
+                                            {
+                                                break;
+                                            }
+                                            // Add the name of the option to the chosen list
+                                            _ActivePoll.AddOption(AEventOption.ModeNames[option], false);
+                                        }
+
+                                        while (_pluginEnabled &&
+                                               _roundState == RoundState.Playing &&
+                                               NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
+                                               _ActivePoll.Votes.Count() < _PollMaxVotes &&
+                                               !_ActivePoll.Completed &&
+                                               !_ActivePoll.Canceled)
+                                        {
+                                            if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
+                                            {
+                                                // Print the poll
+                                                // Do not announce the current mode leader
+                                                _ActivePoll.PrintPoll(false);
+                                            }
+
+                                            _threadMasterWaitHandle.WaitOne(100);
+                                        }
+
+                                        if (_ActivePoll.Completed)
+                                        {
+                                            AdminSayMessage("Event mode poll completed with current winner.");
+                                        }
+
+                                        // Only continue if the round is still active
+                                        // And the poll has not been canceled
+                                        if (_pluginEnabled &&
+                                            !_ActivePoll.Canceled)
+                                        {
+
+                                            // Get the outcome
+                                            chosenMode = AEventOption.ModeFromDisplay(_ActivePoll.GetWinningOption("won", false));
+                                            var option = new AEventOption()
+                                            {
+                                                Mode = chosenMode,
+                                                Rule = chosenRule
+                                            };
+                                            _EventRoundOptions.Add(option);
+                                            QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                                            AdminTellMessage("EVENT POLL COMPLETE! Next event round is " + option.getModeRuleDisplay());
+
+                                            // If the event isn't active or set up with a date, make the event start next round.
+                                            if (!EventActive() &&
+                                                _CurrentEventRoundNumber == 999999)
+                                            {
+                                                _CurrentEventRoundNumber = _roundID + 1;
+                                                QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
+                                            }
+
+                                            UpdateSettingPage();
+                                        }
                                     }
                                 }
                             }
