@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.13
- * 3-FEB-2018
+ * Version 7.0.1.14
+ * 4-FEB-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.13</version_code>
+ * <version_code>7.0.1.14</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.13";
+        private const String PluginVersion = "7.0.1.14";
 
         public enum GameVersion
         {
@@ -635,6 +635,8 @@ namespace PRoConEvents
         private Boolean _UseTeamPowerMonitorScrambler = false;
         private Boolean _ScrambleRequiredTeamsRemoved = false;
         private Boolean _UseTeamPowerMonitorReassign = false;
+        private Boolean _UseTeamPowerMonitorReassignLenient = false;
+        private Double _TeamPowerMonitorReassignLenientPercent = 30;
         private Boolean _UseTeamPowerMonitorUnswitcher = false;
         private Boolean currentStartingTeam1 = true;
         private Boolean _PlayersAutoAssistedThisRound = false;
@@ -2574,6 +2576,14 @@ namespace PRoConEvents
                     }
                     buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
                     buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
+                    if (_UseTeamPowerMonitorReassign)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power Join Reassignment Leniency", typeof(Boolean), _UseTeamPowerMonitorReassignLenient));
+                        if (_UseTeamPowerMonitorReassignLenient)
+                        {
+                            buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Team Power Join Reassignment Leniency Percent", typeof(Double), _TeamPowerMonitorReassignLenientPercent));
+                        }
+                    }
                     buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Unswitcher", typeof(Boolean), _UseTeamPowerMonitorUnswitcher));
                     buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Seeder Control", typeof(Boolean), _UseTeamPowerMonitorSeeders));
                 }
@@ -4652,6 +4662,50 @@ namespace PRoConEvents
                         }
                         //Upload change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Team Power Join Reassignment Leniency").Success)
+                {
+                    //Initial parse
+                    Boolean UseTeamPowerMonitorReassignLenient = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (UseTeamPowerMonitorReassignLenient != _UseTeamPowerMonitorReassignLenient)
+                    {
+                        //Assignment
+                        _UseTeamPowerMonitorReassignLenient = UseTeamPowerMonitorReassignLenient;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            if (_UseTeamPowerMonitorReassignLenient)
+                            {
+                                Log.Info("If a reassignment would normally not happen, but a team is down by more than the configured percentage of power, it will assign players to the weak team anyway.");
+                            }
+                            else
+                            {
+                                Log.Info("Team join reassignment leniency is no longer enabled.");
+                            }
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Team Power Join Reassignment Leniency", typeof(Boolean), _UseTeamPowerMonitorReassignLenient));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Team Power Join Reassignment Leniency Percent").Success)
+                {
+                    Double leniencyPercent;
+                    if (!Double.TryParse(strValue, out leniencyPercent))
+                    {
+                        HandleException(new AException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
+                    if (_TeamPowerMonitorReassignLenientPercent != leniencyPercent)
+                    {
+                        if (leniencyPercent <= 15.0)
+                        {
+                            leniencyPercent = 15.0;
+                        }
+                        _TeamPowerMonitorReassignLenientPercent = leniencyPercent;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Team Power Join Reassignment Leniency Percent", typeof(Double), _TeamPowerMonitorReassignLenientPercent));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Enable Team Power Unswitcher").Success)
@@ -11274,7 +11328,8 @@ namespace PRoConEvents
                                     accepted = true;
                                     acceptReason = "Map";
                                 }
-                                else if (powerGap > 30)
+                                else if (_UseTeamPowerMonitorReassignLenient && 
+                                         powerGap > _TeamPowerMonitorReassignLenientPercent)
                                 {
                                     accepted = true;
                                     acceptReason = "P-" + Math.Round(powerGap);
@@ -36218,6 +36273,8 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Balancer", typeof(Boolean), _UseTeamPowerMonitorBalance));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
+                QueueSettingForUpload(new CPluginVariable(@"Team Power Join Reassignment Leniency", typeof(Boolean), _UseTeamPowerMonitorReassignLenient));
+                QueueSettingForUpload(new CPluginVariable(@"Team Power Join Reassignment Leniency Percent", typeof(Double), _TeamPowerMonitorReassignLenientPercent));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Unswitcher", typeof(Boolean), _UseTeamPowerMonitorUnswitcher));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Seeder Control", typeof(Boolean), _UseTeamPowerMonitorSeeders));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof(Boolean), _useRoundTimer));
@@ -42594,7 +42651,7 @@ namespace PRoConEvents
         {
             _commandTimeoutDictionary["self_rules"] = (plugin => (plugin._ServerRulesList.Count() * plugin._ServerRulesInterval));
             _commandTimeoutDictionary["player_punish"] = (plugin => (18));
-            _commandTimeoutDictionary["player_kick"] = (plugin => (30));
+            _commandTimeoutDictionary["player_kick"] = (plugin => (45));
             _commandTimeoutDictionary["player_blacklistdisperse"] = (plugin => (30));
             _commandTimeoutDictionary["player_ban_temp"] = (plugin => (30));
             _commandTimeoutDictionary["player_ban_perm"] = (plugin => (90));
