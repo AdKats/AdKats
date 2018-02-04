@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.14
+ * Version 7.0.1.15
  * 4-FEB-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.14</version_code>
+ * <version_code>7.0.1.15</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.14";
+        private const String PluginVersion = "7.0.1.15";
 
         public enum GameVersion
         {
@@ -4641,6 +4641,7 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Enable Team Power Join Reassignment").Success)
                 {
+                    Log.Info(strVariable);
                     //Initial parse
                     Boolean UseTeamPowerMonitorReassign = Boolean.Parse(strValue);
                     //Check for changed value
@@ -4664,7 +4665,7 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Team Power Join Reassignment Leniency").Success)
+                else if (strVariable == "Team Power Join Reassignment Leniency")
                 {
                     //Initial parse
                     Boolean UseTeamPowerMonitorReassignLenient = Boolean.Parse(strValue);
@@ -4689,7 +4690,7 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Team Power Join Reassignment Leniency", typeof(Boolean), _UseTeamPowerMonitorReassignLenient));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Team Power Join Reassignment Leniency Percent").Success)
+                else if (strVariable == "Team Power Join Reassignment Leniency Percent")
                 {
                     Double leniencyPercent;
                     if (!Double.TryParse(strValue, out leniencyPercent))
