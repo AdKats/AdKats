@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.15
+ * Version 7.0.1.16
  * 4-FEB-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.15</version_code>
+ * <version_code>7.0.1.16</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.15";
+        private const String PluginVersion = "7.0.1.16";
 
         public enum GameVersion
         {
@@ -4639,9 +4639,8 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Enable Team Power Join Reassignment").Success)
+                else if (strVariable == "Enable Team Power Join Reassignment")
                 {
-                    Log.Info(strVariable);
                     //Initial parse
                     Boolean UseTeamPowerMonitorReassign = Boolean.Parse(strValue);
                     //Check for changed value
