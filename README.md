@@ -3876,6 +3876,15 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         Using team power metrics this system will reassign newly joining players to the weak team.
         If a 64 man server is nearly full and the weak team needs a lot of help it will allow up to a 4 player advantage for the weak team.
     </li>
+    <li><b>'Team Power Join Reassignment Leniency'</b> - 
+        Normally join reassignment only kicks in if a team is weaker, and they have less of the map controlled. This leniency kicks in as an override
+        so that if a team is VERY behind in power it will still get players assigned to it even if they have more map control at the moment. The 
+        configuration for this is power ratio percentage a team must be behind before this will activate. For example if it's set to 30, the other 
+        team must be a full 30% more powerful before this override will kick in.
+    </li>
+    <li><b>'Team Power Join Reassignment Leniency Percent'</b> - 
+        The percentage of power that a team must be behind in order to still get players assigned to it when they normally wouldn't be.
+    </li>
     <li><b>'Enable Team Power Unswitcher'</b> - 
         Using team power metrics this system blocks players from moving themselves to the more powerful team.
         Still allows players to move themselves to the weaker team.
