@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.16
+ * Version 7.0.1.17
  * 4-FEB-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.16</version_code>
+ * <version_code>7.0.1.17</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.16";
+        private const String PluginVersion = "7.0.1.17";
 
         public enum GameVersion
         {
@@ -428,6 +428,7 @@ namespace PRoConEvents
 
         //Players
         private readonly Dictionary<String, APlayer> _PlayerDictionary = new Dictionary<String, APlayer>();
+        private readonly List<String> _MissingPlayers = new List<String>();
         private readonly List<ASquad> _RoundPrepSquads = new List<ASquad>();
         private readonly Dictionary<String, APlayer> _PlayerLeftDictionary = new Dictionary<String, APlayer>();
         private readonly Dictionary<Int64, APlayer> _FetchedPlayers = new Dictionary<Int64, APlayer>();
@@ -11387,7 +11388,11 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    Log.Warn(soldierName + " switched to " + teamId + " without being in player list.");
+                    Log.Warn(soldierName + " switched to team " + teamId + " without being in player list.");
+                    if (!_MissingPlayers.Contains(soldierName))
+                    {
+                        _MissingPlayers.Add(soldierName);
+                    }
                 }
                 //When a player changes team, tell teamswap to recheck queues
                 _TeamswapWaitHandle.Set();
@@ -11803,6 +11808,11 @@ namespace PRoConEvents
                                             aPlayer.lastAction = UtcNow();
                                         }
                                         aPlayer.fbpInfo = playerInfo;
+                                        if (_MissingPlayers.Contains(aPlayer.player_name))
+                                        {
+                                            Log.Success("Missing player " + aPlayer.GetVerboseName() + " finally loaded.");
+                                            _MissingPlayers.Remove(aPlayer.player_name);
+                                        }
                                         switch (aPlayer.fbpInfo.Type)
                                         {
                                             case 0:
@@ -11994,6 +12004,11 @@ namespace PRoConEvents
                                         aPlayer.player_server = _serverInfo;
                                         //Add the frostbite player info
                                         aPlayer.fbpInfo = playerInfo;
+                                        if (_MissingPlayers.Contains(aPlayer.player_name))
+                                        {
+                                            Log.Success("Missing player " + aPlayer.GetVerboseName() + " finally loaded.");
+                                            _MissingPlayers.Remove(aPlayer.player_name);
+                                        }
                                         String joinLocation = String.Empty;
                                         ATeam playerTeam = null;
                                         if (aPlayer.fbpInfo != null)
@@ -15800,7 +15815,11 @@ namespace PRoConEvents
                     //Fetch the player
                     if (!_PlayerDictionary.TryGetValue(soldierName, out aPlayer))
                     {
-                        Log.Error("Could not find " + soldierName + " in player dictionary on spawn.");
+                        Log.Warn(soldierName + " spawned without being in player list.");
+                        if (!_MissingPlayers.Contains(soldierName))
+                        {
+                            _MissingPlayers.Add(soldierName);
+                        }
                         return;
                     }
                     aPlayer.player_spawnedRound = true;
