@@ -796,7 +796,7 @@
 </p>
 <h3>AntiCheat System with Whitelist</h3>
 <p>
-    The AntiCheat System is a system for automatically catching and acting
+    The AntiCheat System is used for automatically catching and acting
     on players with suspicious or impossible statistics.
 </p>
 <p>
@@ -812,7 +812,8 @@
 </p>
 <p>
     The LIVE mods for this section enable it to detect damage mods from round to round, regardless of overall stats.
-    Players using a damage mod during a round should be banned automatically after round end.
+    Players using a damage mod during a round should be banned automatically the round after they are detected.
+	The delay is due to battlelog request limits and needing to wait for the battlereport to post.
 </p>
 <h4>HSK Checker [Code 5 Bans]</h4>
 <p>
@@ -827,7 +828,9 @@
     100 kills with the weapon in question are required to trigger this check.
 </p>
 <p>
-    The LIVE mods for this section are not public yet.
+    The LIVE mods for this section are enabled when you turn on the 'LIVE system includes mass murder and aimbot checks' setting. Players using a very blatant aimbot for heads in a round should be caught very quickly with this system.
+	It's very difficult to trigger this check normally, so don't worry about causing a large number of false positives
+	by enabling it.
 </p>
 <h4>KPM Checker [Code 6 Bans]</h4>
 <p>
@@ -840,6 +843,11 @@
     If that value is greater than your trigger level the ban is issued.
     After some research and testing the value used on our servers is the default, 5.0.
     200 kills with the weapon in question are required to trigger this check.
+</p>
+<p>
+    The LIVE mods for this section are enabled when you turn on the 'LIVE system includes mass murder and aimbot checks' setting. Players who kill an inordinate amount of people in a short period of time will be caught quickly with this 
+	system. It's very difficult to trigger this check normally, so don''tt worry about causing a large number of false 
+	positives by enabling it.
 </p>
 <h4>Special Weapons Checker [Code 8 Bans]</h4>
 <p>
@@ -881,7 +889,7 @@
     </ul>
 </p>
 <p>
-    The LIVE mods for this section are not public yet.
+    These special weapon checks are always enabled.
 </p>
 <h4>Magic Bullet</h4>
 <p>
@@ -891,17 +899,32 @@
 <h4>Posting Method</h4>
 <p>
     The "most hacked" weapon (the one farthest above normal) is the one displayed in the ban reason using the
-    following formats:<br/>
+    following formats:
+</p>
+<p>
     Damage Mod Bans:<br/>
-    DPS Automatic Ban [WEAPONNAME-DPS-KILLS-HEADSHOTS-HITS]<br/>
-    LIVE Damage Mod Bans:<br/>
-    DPS Automatic Ban [LIVE][WEAPONNAME-DPS-KILLS-HEADSHOTS-HITS]<br/>
+    DPS Automatic Ban [4-WEAPONNAME-DPS-KILLS-HEADSHOTS-HITS]<br/>
     Aimbot Bans:<br/>
-    HSK Automatic Ban [WEAPONNAME-HSK-KILLS-HEADSHOTS-HITS]<br/>
+    HSK Automatic Ban [5-WEAPONNAME-HSK-KILLS-HEADSHOTS-HITS]<br/>
     KPM Bans:<br/>
-    KPM Automatic Ban [WEAPONNAME-KPM-KILLS-HEADSHOTS-HITS]
+    KPM Automatic Ban [6-WEAPONNAME-KPM-KILLS-HEADSHOTS-HITS]
+</p>
+<p>
+    LIVE ban reasons have the following formats:
+</p>
+<p>
+    LIVE Damage Mod Bans:<br/>
+    DPS Automatic Ban [LIVE][4-WEAPONNAME-DPS-KILLS-HEADSHOTS-HITS]<br/>
+    LIVE Aimbot Bans:<br/>
+    HSK Automatic Ban [LIVE][5-L-KILLS-HSK]<br/>
+    HSK Automatic Ban [LIVE][5-H-KILLS-HSK]<br/>
+    LIVE KPM Bans:<br/>
+    KPM Automatic Ban [LIVE][5-L-KILLS]<br/>
+    KPM Automatic Ban [LIVE][5-H-KILLS]<br/>
     LIVE Magic Bullet:<br/>
-    Magic Bullet [LIVE][7-KILLS-HITS]
+    Magic Bullet [LIVE][7-KILLS-HITS]<br/>
+	Special Weapons:<br/>
+	[LIVE][Code 8-" + actedCode + "]: Dispute Requested
 </p>
 <p>
 <ul>
