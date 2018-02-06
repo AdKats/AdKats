@@ -902,28 +902,28 @@
     following formats:
 </p>
 <p>
-    Damage Mod Bans:<br/>
+    <b>Damage Mod Bans:</b><br/>
     DPS Automatic Ban [4-WEAPONNAME-DPS-KILLS-HEADSHOTS-HITS]<br/>
-    Aimbot Bans:<br/>
+    <b>Aimbot Bans:</b><br/>
     HSK Automatic Ban [5-WEAPONNAME-HSK-KILLS-HEADSHOTS-HITS]<br/>
-    KPM Bans:<br/>
+    <b>KPM Bans:</b><br/>
     KPM Automatic Ban [6-WEAPONNAME-KPM-KILLS-HEADSHOTS-HITS]
 </p>
 <p>
     LIVE ban reasons have the following formats:
 </p>
 <p>
-    LIVE Damage Mod Bans:<br/>
+    <b>LIVE Damage Mod Bans:</b><br/>
     DPS Automatic Ban [LIVE][4-WEAPONNAME-DPS-KILLS-HEADSHOTS-HITS]<br/>
-    LIVE Aimbot Bans:<br/>
+    <b>LIVE Aimbot Bans:</b><br/>
     HSK Automatic Ban [LIVE][5-L-KILLS-HSK]<br/>
     HSK Automatic Ban [LIVE][5-H-KILLS-HSK]<br/>
-    LIVE KPM Bans:<br/>
+    <b>LIVE KPM Bans:</b><br/>
     KPM Automatic Ban [LIVE][5-L-KILLS]<br/>
     KPM Automatic Ban [LIVE][5-H-KILLS]<br/>
-    LIVE Magic Bullet:<br/>
+    <b>LIVE Magic Bullet:</b><br/>
     Magic Bullet [LIVE][7-KILLS-HITS]<br/>
-	Special Weapons:<br/>
+	<b>LIVE Special Weapons:</b><br/>
 	[LIVE][Code 8-" + actedCode + "]: Dispute Requested
 </p>
 <p>
