@@ -237,9 +237,9 @@
 </p>
 <h4><b>2. XpKiller's "Procon Chat, GUID, Stats and Mapstats Logger" Plugin</b></h4>
 <p>
-    AdKats will only run if one of this plugin is using the same database AdKats uses, and running on every
-    battlefield Server you plan to install AdKats on.
-    Running it alongside AdKats on each Procon layer is advised, and will ensure these conditions are met.
+    Stat logger was used for years before AdKats came on the scene so that database structure is used as a base for this plugin.
+    AdKats will only run properly if pointed at the same database that your stat logger plugins are connected to, and also only when stat logger is running on all the servers you plan to install AdKats on.
+    Running AdKats on the same layers as your stat logger instances for each server will ensure these conditions are met.
 </p>
 <p>
     The latest universal version of XpKiller's Stat Logger can be downloaded from here: <a
@@ -266,14 +266,14 @@
 </p>
 <p>
     <b>WARNING: DO NOT run more than one instance of AdKats on a single procon layer at the same time.</b>
-    Procon provides the ability to have a single layer monitor multiple servers at the same time, and this is normally a good thing. However, AdKats is nearly the same size (logic wise) as procon itself now, and running multiple instances on the same process can result in heavy performance issues and instability. Do not use this multiple-server-per-layer functionality unless only ONE of the servers on the layer has AdKats running. Each server should have its own dedicated layer when running AdKats.
+    Procon provides the ability to have a single layer monitor multiple servers at the same time, which is normally a good thing. However, over the years AdKats has grown larger than procon itself logic-wise and running multiple instances of AdKats on the same process can result in heavy performance issues and instability. Do not use procon's multiple-server-per-layer functionality unless only ONE of the servers on the layer has AdKats running. Each server should have its own dedicated layer when using this plugin. Splitting off AdKats into its own admin tool separate from procon has been brought up many times but the effort required at this point would not be worth the benefit.
 </p>
 <ol>
     <li>
         <b>Install XpKiller's Stat logger plugin.</b>
         Download and install the latest universal version of XpKiller's
         <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>.
-        Make sure stat logger is running without error for a few minutes after installation.
+        Make sure stat logger is running without error for a few minutes after its own installation BEFORE you attempt to do anything with AdKats installation. It needs to add an entry to the tbl_server table before AdKats can properly start up.
         If you are already running the BF3 only version of stat logger, that is fine, but the universal version is preferred for full functionality.
     </li>
     <li>
@@ -283,30 +283,33 @@
     </li>
     <li>
         <b>Set up the database.</b>
-        Run the contents of the <a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">AdKats Database Setup Script</a> on your database, on the same schema stat logger uses.
+        Run the contents of the <a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">AdKats Database Setup Script</a> on your database, on the same schema stat logger uses. You can do this via PHPMyAdmin or through a client such as MySQL Workbench, either will work just fine. You can use the same database/schema for all of your servers, you don't need a separate database for each server.
         <b><u>WARNING: If you already have AdKats installed and running this script will completely wipe your existing data for the plugin and all of your settings.</u></b>
-        The script must be run by an account with permissions to create tables, triggers, and stored procedures.
+        The script must be run by an account with permissions to create <b>tables, triggers, and stored procedures</b>.
     </li>
     <li>
         <b>Download the plugin.</b>
         Download the <a href="https://sourceforge.net/projects/adkats/files/latest/download" target="_blank">Latest
-        Stable Release of AdKats</a>
+        Stable Release of AdKats</a>. If you want to try the latest features/fixes which aren't part of the stable release yet then just use the /pupdate command once your instance of AdKats is running, then reboot your procon layer.
     </li>
     <li>
         <b>Add the plugin to Procon.</b>
         Add the plugin file (AdKats.cs) to Procon as you would any other, in either the plugins/BF3 or plugins/BF4
-        folder depending on which game your layer is running on.
+        folder depending on which game your layer is running on. 
+	No other files are required on the layer side, only the AdKats.cs file in the proper location according to your game.
     </li>
     <li>
         <b>Enter database credentials.</b>
-        All database connection information must be entered in the settings tab before AdKats can run. Plugin must be
-        able to create/modify/use tables and their data.
+        All database connection information must be entered in the settings tab before AdKats can run. 
+	The plugin must be able to create/modify/use tables and their data. 
+	Using the same credentials as your stat logger plugin should be sufficient.
     </li>
     <li>
         <b>Enable AdKats.</b>
-        AdKats will confirm all dependencies and show confirmation in the console.
-        If startup completes and provides notification it is running, then all is well.
-        AdKats will automatically update itself with new patches and releases.
+        AdKats will confirm all dependencies and show startup information in the console.
+        If startup completes and says the plugin is running then all is well.
+        AdKats will automatically update itself with new stable patches and releases.
+	If you want to update manually just use the /pupdate command.
         Enjoy your new admin tool!
     </li>
 </ol>
