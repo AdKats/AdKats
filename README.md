@@ -261,12 +261,18 @@
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Install.jpg" alt="AdKats User Manual">
 </p>
 <p>
-    <b>WARNING: Running AdKats on a Linux environment is not advised or fully supported.</b>
+    <b>WARNINGS. Read these before install.</b>
+</p>
+<p>
+    <b>Running AdKats on a Linux environment is not advised or fully supported.</b>
     Testing on linux environments has been limited for AdKats. Some issues have been mitigated, namely issues with connecting over HTTPS for plugin documentation, updates, and startup, but this was necessary because the plugin wouldn't start otherwise. However, beyond that there has been very little full fledged testing on linux environments for this plugin, and there are so many facets of the plugin now I cannot guarantee functionality on that platform.
 </p>
 <p>
-    <b>WARNING: DO NOT run more than one instance of AdKats on a single procon layer at the same time.</b>
+    <b>DO NOT run more than one instance of AdKats on a single procon layer at the same time.</b>
     Procon provides the ability to have a single layer monitor multiple servers at the same time, which is normally a good thing. However, over the years AdKats has grown larger than procon itself logic-wise and running multiple instances of AdKats on the same process can result in heavy performance issues and instability. Do not use procon's multiple-server-per-layer functionality unless only ONE of the servers on the layer has AdKats running. Each server should have its own dedicated layer when using this plugin. Splitting off AdKats into its own admin tool separate from procon has been brought up many times but the effort required at this point would not be worth the benefit.
+</p>
+<p>
+    <b>INSTALL INSTRUCTIONS.</b>
 </p>
 <ol>
     <li>
