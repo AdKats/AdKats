@@ -370,7 +370,7 @@
     The default role is "Default Guest" and the allowed commands for that role are shown to you in the role section.
     The default guest role cannot be deleted but can be edited to allow any non-admin commands.
     You can add more roles by typing a new role name in the "add role" field.
-    Any newly added roles default to allow all commands so you will need to edit the allowed commands for new roles.
+    Any newly added roles duplicate the current allowed commands on the "Default Guest" role so you will need to edit the allowed commands for new roles.
     When you change a user's role and they are currently in-game they will be told that their role has changed, and what
     it was changed to.
 </p>
