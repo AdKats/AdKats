@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.17
- * 4-FEB-2018
+ * Version 7.0.1.18
+ * 23-FEB-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.17</version_code>
+ * <version_code>7.0.1.18</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.17";
+        private const String PluginVersion = "7.0.1.18";
 
         public enum GameVersion
         {
@@ -630,6 +630,7 @@ namespace PRoConEvents
         public readonly String[] _subscriptionGroups = { "OnlineSoldiers" };
         private readonly List<AClient> _subscribedClients = new List<AClient>();
         private String[] _BannedTags = { };
+        private DateTime _AutoKickNewPlayerDate = DateTime.UtcNow + TimeSpan.FromDays(7300);
         //Team Power Monitor
         private Boolean _UseTeamPowerMonitorSeeders = false;
         private Boolean _UseTeamPowerMonitorBalance = false;
@@ -2044,6 +2045,7 @@ namespace PRoConEvents
                         buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
                     }
                     buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Banned Tags", typeof(String[]), _BannedTags));
+                    buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Auto-Kick Players Who First Joined After This Date", typeof(String), _AutoKickNewPlayerDate.ToShortDateString()));
                 }
                 lstReturn.AddRange(buildList);
             }
@@ -5997,6 +5999,16 @@ namespace PRoConEvents
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Event Date", typeof(String), _EventDate.ToShortDateString()));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Kick Players Who First Joined After This Date").Success)
+                {
+                    DateTime autoKickDate = DateTime.Parse(strValue);
+                    if (autoKickDate.ToShortDateString() != _AutoKickNewPlayerDate.ToShortDateString())
+                    {
+                        _AutoKickNewPlayerDate = autoKickDate;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Kick Players Who First Joined After This Date", typeof(String), _AutoKickNewPlayerDate.ToShortDateString()));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Event Hour in 24 format").Success)
@@ -11976,6 +11988,11 @@ namespace PRoConEvents
                                                 continue;
                                             }
                                         }
+                                        if (aPlayer.player_firstseen > _AutoKickNewPlayerDate)
+                                        {
+                                            // This player is newer to the server than the maximum first seen date, kick them
+                                            KickPlayerMessage(aPlayer.player_name, "Please Contact The Server Admin", 0);
+                                        }
                                         aPlayer.player_online = true;
                                         aPlayer.JoinTime = UtcNow();
                                         //Fetch their infraction points
@@ -15403,7 +15420,7 @@ namespace PRoConEvents
                             target_name = aKill.killer.player_name,
                             target_player = aKill.killer,
                             source_name = "AutoAdmin",
-                            record_message = "Code [8-" + actedCode + "]: Dispute Requested",
+                            record_message = "[LIVE][Code 8-" + actedCode + "]: Dispute Requested",
                             record_time = UtcNow()
                         });
                         return;
@@ -36321,6 +36338,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Event Countdown Server Name", typeof(String), _eventCountdownServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Active Server Name", typeof(String), _eventActiveServerName));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Kick Players Who First Joined After This Date", typeof(String), _AutoKickNewPlayerDate.ToShortDateString()));
                 QueueSettingForUpload(new CPluginVariable(@"Use LIVE Anti Cheat System", typeof(Boolean), _useAntiCheatLIVESystem));
                 QueueSettingForUpload(new CPluginVariable(@"LIVE System Includes Mass Murder and Aimbot Checks", typeof(Boolean), _AntiCheatLIVESystemActiveStats));
                 QueueSettingForUpload(new CPluginVariable(@"DPS Checker: Ban Message", typeof(String), _AntiCheatDPSBanMessage));
