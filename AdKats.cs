@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.18
+ * Version 7.0.1.19
  * 23-FEB-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.18</version_code>
+ * <version_code>7.0.1.19</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.18";
+        private const String PluginVersion = "7.0.1.19";
 
         public enum GameVersion
         {
@@ -19122,7 +19122,21 @@ namespace PRoConEvents
                         return;
                     }
                     //Power level exclusion
-                    if (record.source_player != null && record.target_player != null && record.source_player.player_role.role_powerLevel < record.target_player.player_role.role_powerLevel && (record.command_type.command_key == "player_kill" || record.command_type.command_key == "player_kick" || record.command_type.command_key == "player_ban_temp" || record.command_type.command_key == "player_ban_perm" || record.command_type.command_key == "player_ban_perm_future" || record.command_type.command_key == "player_punish" || record.command_type.command_key == "player_forgive" || record.command_type.command_key == "player_mute" || record.command_type.command_key == "player_move" || record.command_type.command_key == "player_fmove" || record.command_type.command_key == "self_lead" || record.command_type.command_key == "player_pull" || record.command_type.command_key == "player_lock"))
+                    if (record.source_player != null && record.target_player != null && record.source_player.player_role.role_powerLevel < record.target_player.player_role.role_powerLevel && 
+                        (record.command_type.command_key == "player_kill" ||
+                         record.command_type.command_key == "player_kill_force" ||
+                         record.command_type.command_key == "player_kick" || 
+                         record.command_type.command_key == "player_ban_temp" || 
+                         record.command_type.command_key == "player_ban_perm" || 
+                         record.command_type.command_key == "player_ban_perm_future" || 
+                         record.command_type.command_key == "player_punish" || 
+                         record.command_type.command_key == "player_forgive" || 
+                         record.command_type.command_key == "player_mute" || 
+                         record.command_type.command_key == "player_move" || 
+                         record.command_type.command_key == "player_fmove" || 
+                         record.command_type.command_key == "self_lead" || 
+                         record.command_type.command_key == "player_pull" || 
+                         record.command_type.command_key == "player_lock"))
                     {
                         SendMessageToSource(record, "You cannot issue " + record.command_type.command_name + " on " + record.target_player.GetVerboseName() + " their power level (" + record.target_player.player_role.role_powerLevel + ") is higher than yours (" + record.source_player.player_role.role_powerLevel + ")");
                         FinalizeRecord(record);
