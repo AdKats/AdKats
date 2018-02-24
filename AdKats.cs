@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.19
- * 23-FEB-2018
+ * Version 7.0.1.20
+ * 24-FEB-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.19</version_code>
+ * <version_code>7.0.1.20</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.19";
+        private const String PluginVersion = "7.0.1.20";
 
         public enum GameVersion
         {
@@ -1932,7 +1932,8 @@ namespace PRoConEvents
                         buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
                         buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by GUID", typeof(Boolean), _DefaultEnforceGUID));
                         buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by IP", typeof(Boolean), _DefaultEnforceIP));
-
+                        
+                        /*
                         //Metabans Settings
                         buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Use Metabans?", typeof(bool), _useMetabans));
                         if (_useMetabans)
@@ -1941,6 +1942,7 @@ namespace PRoConEvents
                             buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Metabans API Key", typeof(String), _metabansAPIKey));
                             buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Metabans Filter Strings", typeof(String[]), _metabansFilterStrings));
                         }
+                        */
                     }
                 }
 
@@ -7471,7 +7473,7 @@ namespace PRoConEvents
                     _PushBulletReportsOnlyWhenAdminless = Boolean.Parse(strValue);
                     QueueSettingForUpload(new CPluginVariable(@"Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
                 }
-                else if (Regex.Match(strVariable, @"Use Metabans?").Success)
+                else if (false && Regex.Match(strVariable, @"Use Metabans?").Success)
                 {
                     var useMetabans = Boolean.Parse(strValue);
                     if (!_useMetabans && useMetabans)
@@ -7484,7 +7486,7 @@ namespace PRoConEvents
                     //Once setting has been changed, upload the change to database
                     QueueSettingForUpload(new CPluginVariable("Use Metabans?", typeof(Boolean), _useMetabans));
                 }
-                else if (Regex.Match(strVariable, @"Metabans API Key").Success)
+                else if (false && Regex.Match(strVariable, @"Metabans API Key").Success)
                 {
                     if (string.IsNullOrEmpty(strValue))
                     {
@@ -7498,7 +7500,7 @@ namespace PRoConEvents
                         SetExternalPluginSetting("Metabans", "API Key", _metabansAPIKey);
                     }
                 }
-                else if (Regex.Match(strVariable, @"Metabans Username").Success)
+                else if (false && Regex.Match(strVariable, @"Metabans Username").Success)
                 {
                     if (string.IsNullOrEmpty(strValue))
                     {
@@ -7512,7 +7514,7 @@ namespace PRoConEvents
                         SetExternalPluginSetting("Metabans", "Username", _metabansUsername);
                     }
                 }
-                else if (Regex.Match(strVariable, @"Metabans Filter Strings").Success)
+                else if (false && Regex.Match(strVariable, @"Metabans Filter Strings").Success)
                 {
                     _metabansFilterStrings = CPluginVariable.DecodeStringArray(strValue);
                     //Once setting has been changed, upload the change to database
@@ -14917,7 +14919,7 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.EO:
                         return "EXPLOSIVES ONLY! Only explosive weapons are allowed. NO shotgun frag rounds. NO Knives.";
                     case AEventOption.RuleCode.AO:
-                        return "AUTO-PRIMARIES ONLY! Only automatic primary weapons. Assault rifles, LMGs, Burst, etc. NO Knives.";
+                        return "AUTO-PRIMARIES ONLY! Only automatic primary weapons. Assault rifles, LMGs, Burst, etc.";
                     case AEventOption.RuleCode.GO:
                         return "GRENADES ONLY! Only kills with grenades are allowed. M67, V40, etc. NO Knives.";
                     case AEventOption.RuleCode.HO:
@@ -15098,7 +15100,9 @@ namespace PRoConEvents
                         break;
                     case AEventOption.RuleCode.AO:
                         // AUTOMATIC PRIMARIES ONLY!
-                        if ((aKill.weaponCategory != DamageTypes.AssaultRifle &&
+                        if ((!aKill.weaponCode.ToLower().Contains("knife") &&
+                             !aKill.weaponCode.ToLower().Contains("melee") && 
+                             aKill.weaponCategory != DamageTypes.AssaultRifle &&
                              aKill.weaponCategory != DamageTypes.Carbine &&
                              aKill.weaponCategory != DamageTypes.LMG &&
                              aKill.weaponCategory != DamageTypes.SMG &&
@@ -33981,15 +33985,6 @@ namespace PRoConEvents
                                 }
                             }
                             List<AEventOption.RuleCode> chosenRules = new List<AEventOption.RuleCode>();
-                            // Add the current event round's rule to the list, in case they want to play it again
-                            if (EventActive())
-                            {
-                                AEventOption.RuleCode currentRule = GetEventRoundRuleCode(GetActiveEventRoundNumber(false));
-                                if (currentRule != AEventOption.RuleCode.UNKNOWN)
-                                {
-                                    chosenRules.Add(currentRule);
-                                }
-                            }
                             // Add the remaining available rules to the chosen list
                             foreach (var rule in availableRuleOptions)
                             {
@@ -35672,6 +35667,8 @@ namespace PRoConEvents
 
         private void SubmitToMetabans(ABan aBan, AssessmentTypes type)
         {
+            // Keep the code. Do not allow this function to execute.
+            return;
             //Reject submitting the ban if the ban message does not contain trigger words
             var banReasonLower = aBan.ban_record.record_message.ToLowerInvariant();
             if (_metabansFilterStrings.Length > 0 && !_metabansFilterStrings.Any(fString => banReasonLower.Contains(fString.ToLowerInvariant())))
@@ -36406,10 +36403,12 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"PushBullet Note Target", typeof(String), _PushBulletHandler.DefaultTarget.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"PushBullet Channel Tag", typeof(String), _PushBulletHandler.DefaultChannelTag));
                 QueueSettingForUpload(new CPluginVariable(@"Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
+                /*
                 QueueSettingForUpload(new CPluginVariable(@"Use Metabans?", typeof(Boolean), _useMetabans));
                 QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof(String), _metabansAPIKey));
                 QueueSettingForUpload(new CPluginVariable(@"Metabans Username", typeof(String), _metabansUsername));
                 QueueSettingForUpload(new CPluginVariable(@"Metabans Filter Strings", typeof(String), CPluginVariable.EncodeStringArray(_metabansFilterStrings)));
+                */
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Muted Message", typeof(String), _MutedPlayerMuteMessage));
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Killed Message", typeof(String), _MutedPlayerKillMessage));
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Kicked Message", typeof(String), _MutedPlayerKickMessage));
