@@ -824,7 +824,7 @@
     Players using a damage mod during a round should be banned automatically the round after they are detected.
 	The delay is due to battlelog request limits and needing to wait for the battlereport to post.
 </p>
-<h4>HSK Checker [Code 5 Bans]</h4>
+<h4>HSK Checker [Code 6 Bans]</h4>
 <p>
     For this check only automatic weapons from specific categories are used in the calculation.
     This includes Sub Machine Guns, Assault Rifles, Carbines, and Machine Guns.
@@ -841,7 +841,7 @@
 	It's very difficult to trigger this check normally, so don't worry about causing a large number of false positives
 	by enabling it.
 </p>
-<h4>KPM Checker [Code 6 Bans]</h4>
+<h4>KPM Checker [Code 5 Bans]</h4>
 <p>
     Be careful with this one, this is where a lot of legit competitive players reside.
     This check should only be used to request gameplay video of players to prove their play, then whitelist the player
