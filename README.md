@@ -914,9 +914,9 @@
     <b>Damage Mod Bans:</b><br/>
     DPS Automatic Ban [4-WEAPONNAME-DPS-KILLS-HEADSHOTS-HITS]<br/>
     <b>Aimbot Bans:</b><br/>
-    HSK Automatic Ban [5-WEAPONNAME-HSK-KILLS-HEADSHOTS-HITS]<br/>
+    HSK Automatic Ban [6-WEAPONNAME-HSK-KILLS-HEADSHOTS-HITS]<br/>
     <b>KPM Bans:</b><br/>
-    KPM Automatic Ban [6-WEAPONNAME-KPM-KILLS-HEADSHOTS-HITS]
+    KPM Automatic Ban [5-WEAPONNAME-KPM-KILLS-HEADSHOTS-HITS]
 </p>
 <p>
     LIVE ban reasons have the following formats:
@@ -925,15 +925,15 @@
     <b>LIVE Damage Mod Bans:</b><br/>
     DPS Automatic Ban [LIVE][4-WEAPONNAME-DPS-KILLS-HEADSHOTS-HITS]<br/>
     <b>LIVE Aimbot Bans:</b><br/>
-    HSK Automatic Ban [LIVE][5-L-KILLS-HSK]<br/>
-    HSK Automatic Ban [LIVE][5-H-KILLS-HSK]<br/>
+    HSK Automatic Ban [LIVE][6-L-KILLS-HSK]<br/>
+    HSK Automatic Ban [LIVE][6-H-KILLS-HSK]<br/>
     <b>LIVE KPM Bans:</b><br/>
     KPM Automatic Ban [LIVE][5-L-KILLS]<br/>
     KPM Automatic Ban [LIVE][5-H-KILLS]<br/>
     <b>LIVE Magic Bullet:</b><br/>
     Magic Bullet [LIVE][7-KILLS-HITS]<br/>
-	<b>LIVE Special Weapons:</b><br/>
-	[LIVE][Code 8-" + actedCode + "]: Dispute Requested
+    <b>LIVE Special Weapons:</b><br/>
+    [LIVE][Code 8-" + actedCode + "]: Dispute Requested
 </p>
 <p>
 <ul>
