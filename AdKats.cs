@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.21
- * 5-MAR-2018
+ * Version 7.0.1.22
+ * 6-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.21</version_code>
+ * <version_code>7.0.1.22</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.21";
+        private const String PluginVersion = "7.0.1.22";
 
         public enum GameVersion
         {
@@ -9594,6 +9594,9 @@ namespace PRoConEvents
                                 {
                                     var aPlayer = mapDownSeeders.First();
                                     aPlayer.RequiredTeam = mapUpTeam;
+                                    Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
+                                    ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
+                                    _MULTIBalancerUnswitcherDisabled = true;
                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
                                 }
                             }
@@ -10887,6 +10890,10 @@ namespace PRoConEvents
                                 }
                             }
 
+                            Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
+                            ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
+                            _MULTIBalancerUnswitcherDisabled = true;
+
                             playerList = _PlayerDictionary.Values.ToList();
                             Log.Success("Built move queue.");
                             Log.Info("Clearing squads.");
@@ -11188,7 +11195,7 @@ namespace PRoConEvents
                         {
                             if (_serverInfo.GetRoundElapsedTime().TotalMinutes > 3)
                             {
-                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") REASSIGNED themselves from " + aPlayer.RequiredTeam.GetTeamIDKey() + " to " + newTeam.GetTeamIDKey() + ".");
+                                OnlineAdminSayMessage(Log.CViolet(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") REASSIGNED themselves from " + aPlayer.RequiredTeam.GetTeamIDKey() + " to " + newTeam.GetTeamIDKey() + "."));
                             }
                             aPlayer.RequiredTeam = newTeam;
                         }
@@ -11204,12 +11211,19 @@ namespace PRoConEvents
                                     {
                                         PlayerSayMessage(_debugSoldierName, message);
                                     }
+                                    else if (_UseExperimentalTools)
+                                    {
+                                        ProconChatWrite(Log.CViolet(message));
+                                    }
                                 }
-                                PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch.");
+                                PlayerTellMessage(aPlayer.player_name, Log.CViolet("You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch."));
                                 aPlayer.lastSwitchMessage = UtcNow();
                             }
                             moveAccepted = false;
                             var squadName = aPlayer.RequiredSquad > 0 ? ASquad.Names[aPlayer.RequiredSquad] : ASquad.Names[1];
+                            Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
+                            ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
+                            _MULTIBalancerUnswitcherDisabled = true;
                             ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad > 0 ? aPlayer.RequiredSquad + "" : "1", "true");
                         }
                     }
@@ -11353,12 +11367,19 @@ namespace PRoConEvents
                                     weakCount - teamCountLeniency < powerCount &&
                                     weakCount < maxTeamPlayerCount)
                                 {
-                                    var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + weakTeam.GetTeamIDKey() + " [" + acceptReason + "].";
+                                    var message = Log.CViolet(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + weakTeam.GetTeamIDKey() + " [" + acceptReason + "].");
                                     if (_PlayerDictionary.ContainsKey(_debugSoldierName))
                                     {
                                         PlayerSayMessage(_debugSoldierName, message);
                                     }
+                                    else if (_UseExperimentalTools)
+                                    {
+                                        ProconChatWrite(message);
+                                    }
                                     moveAccepted = false;
+                                    Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
+                                    ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
+                                    _MULTIBalancerUnswitcherDisabled = true;
                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, weakTeam.TeamID + "", "0", "true");
                                 }
                             }
@@ -11368,13 +11389,20 @@ namespace PRoConEvents
                             // Do unswitching
                             if (newTeam == powerTeam)
                             {
-                                var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") unswitched back to " + weakTeam.GetTeamIDKey() + ".";
+                                var message = Log.CViolet(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") unswitched back to " + weakTeam.GetTeamIDKey() + ".");
                                 if (_PlayerDictionary.ContainsKey(_debugSoldierName))
                                 {
                                     PlayerSayMessage(_debugSoldierName, message);
                                 }
-                                aPlayer.Say("Unswitched back to " + weakTeam.GetTeamIDKey() + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch.");
+                                else if (_UseExperimentalTools)
+                                {
+                                    ProconChatWrite(message);
+                                }
+                                aPlayer.Say(Log.CViolet("Unswitched back to " + weakTeam.GetTeamIDKey() + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch."));
                                 moveAccepted = false;
+                                Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
+                                ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
+                                _MULTIBalancerUnswitcherDisabled = true;
                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, weakTeam.TeamID + "", "0", "true");
                             }
                         }
@@ -11472,6 +11500,9 @@ namespace PRoConEvents
                         squadId != 0 &&
                         _roundState != RoundState.Playing)
                     {
+                        Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
+                        ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
+                        _MULTIBalancerUnswitcherDisabled = true;
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
                     }
                 }
@@ -12074,6 +12105,9 @@ namespace PRoConEvents
                                                     PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch.");
                                                     aPlayer.lastSwitchMessage = UtcNow();
                                                 }
+                                                Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
+                                                ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
+                                                _MULTIBalancerUnswitcherDisabled = true;
                                                 ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "1", "false");
                                             }
                                         }
@@ -18901,22 +18935,22 @@ namespace PRoConEvents
                                         if (!ContainsCPlayerInfo(_Team1MoveQueue, player.SoldierName))
                                         {
                                             _Team1MoveQueue.Enqueue(player);
-                                            PlayerSayMessage(player.SoldierName, "Added to (" + team1.TeamKey + " -> " + team2.TeamKey + ") queue in position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1) + ".");
+                                            PlayerSayMessage(player.SoldierName, Log.CViolet("Added to (" + team1.TeamKey + " -> " + team2.TeamKey + ") queue in position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1) + "."));
                                         }
                                         else
                                         {
-                                            PlayerSayMessage(player.SoldierName, team2.TeamKey + " Team Full (" + team2.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1));
+                                            PlayerSayMessage(player.SoldierName, Log.CViolet(team2.TeamKey + " Team Full (" + team2.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1)));
                                         }
                                         break;
                                     case 2:
                                         if (!ContainsCPlayerInfo(_Team2MoveQueue, player.SoldierName))
                                         {
                                             _Team2MoveQueue.Enqueue(player);
-                                            PlayerSayMessage(player.SoldierName, "Added to (" + team2.TeamKey + " -> " + team1.TeamKey + ") queue in position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1) + ".");
+                                            PlayerSayMessage(player.SoldierName, Log.CViolet("Added to (" + team2.TeamKey + " -> " + team1.TeamKey + ") queue in position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1) + "."));
                                         }
                                         else
                                         {
-                                            PlayerSayMessage(player.SoldierName, team1.TeamKey + " Team Full (" + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1));
+                                            PlayerSayMessage(player.SoldierName, Log.CViolet(team1.TeamKey + " Team Full (" + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1)));
                                         }
                                         break;
                                 }
@@ -18955,17 +18989,22 @@ namespace PRoConEvents
                                             Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                                             ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                             _MULTIBalancerUnswitcherDisabled = true;
-                                            PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2.TeamKey + " to team " + team1.TeamKey);
+                                            var told = false;
                                             if (dicPlayer != null)
                                             {
                                                 dicPlayer.RequiredTeam = team1;
                                                 ARecord assistRecord = dicPlayer.TargetedRecords.FirstOrDefault(record => record.command_type.command_key == "self_assist" && record.command_action.command_key == "self_assist_unconfirmed");
                                                 if (assistRecord != null)
                                                 {
-                                                    AdminSayMessage(assistRecord.target_player.GetVerboseName() + " (" + Math.Round(assistRecord.target_player.GetPower(true)) + "), thank you for assisting " + team1.TeamKey + "!");
+                                                    AdminSayMessage(Log.CViolet(assistRecord.target_player.GetVerboseName() + " (" + Math.Round(assistRecord.target_player.GetPower(true)) + "), thank you for assisting " + team1.TeamKey + "!"));
                                                     assistRecord.command_action = GetCommandByKey("self_assist");
                                                     QueueRecordForProcessing(assistRecord);
+                                                    told = true;
                                                 }
+                                            }
+                                            if (!told)
+                                            {
+                                                PlayerSayMessage(player.SoldierName, Log.CViolet("Swapping you from team " + team2.TeamKey + " to team " + team1.TeamKey));
                                             }
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "1", "1", "true");
                                             _LastPlayerMoveIssued = UtcNow();
@@ -40338,7 +40377,7 @@ namespace PRoConEvents
                         {
                             _AssistAttemptQueue.Enqueue(realRecord);
                         }
-                        AdminSayMessage(rejectionMessage);
+                        AdminSayMessage(Log.CViolet(rejectionMessage));
                     }
                 }
                 else if (debugRecord != null)
@@ -40364,7 +40403,7 @@ namespace PRoConEvents
                     {
                         powerDiffString = "Bypass";
                     }
-                    AdminSayMessage(realRecord.GetTargetNames() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.GetTeamIDKey() + " accepted (" + powerDiffString + "), queueing.");
+                    AdminSayMessage(Log.CViolet(realRecord.GetTargetNames() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.GetTeamIDKey() + " accepted (" + powerDiffString + "), queueing."));
                     realRecord.command_action = GetCommandByKey("self_assist_unconfirmed");
                 }
                 else if (debugRecord != null)
