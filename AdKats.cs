@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.20
- * 24-FEB-2018
+ * Version 7.0.1.21
+ * 5-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.20</version_code>
+ * <version_code>7.0.1.21</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.20";
+        private const String PluginVersion = "7.0.1.21";
 
         public enum GameVersion
         {
@@ -9393,7 +9393,7 @@ namespace PRoConEvents
                         {
                             message += t2.GetTeamIDKey() + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
                         }
-                        message += "(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
+                        message += "^n(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
                         if (_PlayerDictionary.ContainsKey(_debugSoldierName))
                         {
                             PlayerSayMessage(_debugSoldierName, message);
@@ -18175,7 +18175,7 @@ namespace PRoConEvents
                     IEnumerable<string> lines = subMessage.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).GroupBy(w => (charCount += w.Length + 1) / maxLineLength).Select(g => string.Join(" ", g.ToArray()));
                     foreach (string line in lines)
                     {
-                        ExecuteCommand("procon.protected.send", "admin.say", line, "all");
+                        ExecuteCommand("procon.protected.send", "admin.say", Log.FClear(line), "all");
                         _threadMasterWaitHandle.WaitOne(25);
                     }
                 }
@@ -18225,7 +18225,7 @@ namespace PRoConEvents
                     IEnumerable<string> lines = subMessage.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).GroupBy(w => (charCount += w.Length + 1) / maxLineLength).Select(g => string.Join(" ", g.ToArray()));
                     foreach (string line in lines)
                     {
-                        ExecuteCommand("procon.protected.send", "admin.say", line, "player", target);
+                        ExecuteCommand("procon.protected.send", "admin.say", Log.FClear(line), "player", target);
                         _threadMasterWaitHandle.WaitOne(25);
                     }
                 }
@@ -28175,16 +28175,16 @@ namespace PRoConEvents
                             {
                                 if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin")
                                 {
-                                    AdminSayMessage("Punishing " + record.GetTargetNames() + " for " + record.record_message);
+                                    AdminSayMessage(Log.CRed(Log.FBold("Punishing " + record.GetTargetNames() + " for " + record.record_message)));
                                 }
                                 else
                                 {
-                                    AdminSayMessage(record.GetTargetNames() + " PUNISHED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                                    AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " PUNISHED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                                 }
                             }
                             else if (record.source_name != "PlayerMuteSystem")
                             {
-                                AdminSayMessage(record.GetTargetNames() + " KILLED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                                AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " KILLED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                             }
                             int seconds = (int)UtcNow().Subtract(record.target_player.lastDeath).TotalSeconds;
                             Log.Debug(() => "Killing player. Player last died " + seconds + " seconds ago.", 3);
@@ -28209,16 +28209,16 @@ namespace PRoConEvents
                                 {
                                     if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin")
                                     {
-                                        AdminSayMessage("Punishing " + record.GetTargetNames() + " for " + record.record_message);
+                                        AdminSayMessage(Log.CRed(Log.FBold("Punishing " + record.GetTargetNames() + " for " + record.record_message)));
                                     }
                                     else
                                     {
-                                        AdminSayMessage(record.GetTargetNames() + " PUNISHED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                                        AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " PUNISHED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                                     }
                                 }
                                 else if (record.source_name != "PlayerMuteSystem")
                                 {
-                                    AdminSayMessage(record.GetTargetNames() + " KILLED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                                    AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " KILLED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                                 }
                                 if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name))
                                 {
@@ -28320,7 +28320,7 @@ namespace PRoConEvents
                     {
                         SendMessageToSource(record, "You WARNED " + record.GetTargetNames() + " for " + record.record_message);
                     }
-                    AdminSayMessage(record.GetTargetNames() + " WARNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                    AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " WARNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                     PlayerTellMessage(record.target_name, "Warned for " + record.record_message, true, 3);
                 }
             }
@@ -28437,11 +28437,11 @@ namespace PRoConEvents
                     {
                         if (record.source_name == "PingEnforcer")
                         {
-                            AdminSayMessage(record.GetTargetNames() + " KICKED for " + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping) + "ms ping. Avg:" + Math.Round(record.target_player.player_ping_avg) + "ms") : ("missing ping.")));
+                            AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " KICKED for " + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping) + "ms ping. Avg:" + Math.Round(record.target_player.player_ping_avg) + "ms") : ("missing ping.")))));
                         }
                         else if (record.source_name != "AFKManager" && record.source_name != "SpectatorManager")
                         {
-                            AdminSayMessage(record.GetTargetNames() + " KICKED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                            AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " KICKED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                         }
                     }
                     if (record.target_player.fbpInfo != null)
@@ -28542,7 +28542,7 @@ namespace PRoConEvents
                 }
                 if (record.target_name != record.source_name)
                 {
-                    AdminSayMessage(record.GetTargetNames() + " BANNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                    AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " BANNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                 }
                 SendMessageToSource(record, "You TEMP BANNED " + record.GetTargetNames() + " for " + FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 3));
             }
@@ -28622,7 +28622,7 @@ namespace PRoConEvents
                 }
                 if (record.target_name != record.source_name)
                 {
-                    AdminSayMessage(record.GetTargetNames() + " BANNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message);
+                    AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " BANNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                 }
                 SendMessageToSource(record, "You PERMA BANNED " + record.GetTargetNames());
             }
@@ -28959,7 +28959,7 @@ namespace PRoConEvents
                 if (record.record_exception == null)
                 {
                     Int32 points = FetchPoints(record.target_player, false, true);
-                    PlayerSayMessage(record.target_player.player_name, "Forgiven 1 infraction point. You now have " + points + " point(s) against you.");
+                    PlayerSayMessage(record.target_player.player_name, Log.CGreen(Log.FBold("Forgiven 1 infraction point. You now have " + points + " point(s) against you.")));
                     SendMessageToSource(record, "Forgive Logged for " + record.GetTargetNames() + ". They now have " + points + " infraction points.");
                     record.target_player.LastForgive = record;
                 }
