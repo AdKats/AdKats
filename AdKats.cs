@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.22
- * 6-MAR-2018
+ * Version 7.0.1.23
+ * 7-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.22</version_code>
+ * <version_code>7.0.1.23</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.22";
+        private const String PluginVersion = "7.0.1.23";
 
         public enum GameVersion
         {
@@ -9199,8 +9199,8 @@ namespace PRoConEvents
                             if (NowDuration(assistRecord.record_creationTime).TotalMinutes > 5.0)
                             {
                                 // If the record is more than 5 minutes old, get rid of it
-                                SendMessageToSource(assistRecord, "Automatic Assist has timed out. Please use assist again to re-queue yourself.");
-                                OnlineAdminSayMessage("Automatic Assist timed out for " + assistRecord.GetSourceName());
+                                SendMessageToSource(assistRecord, Log.CViolet("Automatic assist has timed out. Please use assist again to re-queue yourself."));
+                                OnlineAdminSayMessage("Automatic assist timed out for " + assistRecord.GetSourceName());
                                 _AssistAttemptQueue.Dequeue();
                             }
                             else
@@ -11421,7 +11421,7 @@ namespace PRoConEvents
                                 if (matchingRecord != null)
                                 {
                                     //The player is queued, rebuild the queue without them in it
-                                    SendMessageToSource(matchingRecord, "You moved teams manually. Automatic assist cancelled.");
+                                    SendMessageToSource(matchingRecord, Log.CViolet("You moved teams manually. Automatic assist cancelled."));
                                     _AssistAttemptQueue = new Queue<ARecord>(_AssistAttemptQueue.Where(assistRecord => assistRecord != matchingRecord));
                                 }
                             }
@@ -12092,7 +12092,7 @@ namespace PRoConEvents
                                                 {
                                                     if (_UseExperimentalTools)
                                                     {
-                                                        var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") re-joined, sending them back to " + aPlayer.RequiredTeam.GetTeamIDKey() + ".";
+                                                        var message = Log.CViolet(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") re-joined, sending them back to " + aPlayer.RequiredTeam.GetTeamIDKey() + ".");
                                                         if (_PlayerDictionary.ContainsKey(_debugSoldierName))
                                                         {
                                                             PlayerSayMessage(_debugSoldierName, message);
@@ -13491,7 +13491,7 @@ namespace PRoConEvents
                                                         continue;
                                                     }
                                                     OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
-                                                    PlayerTellMessage(aPlayer.player_name, "You are being automatically assisted to the weak team.");
+                                                    PlayerTellMessage(aPlayer.player_name, Log.CViolet("You are being automatically assisted to the weak team."));
                                                     Thread.Sleep(2000);
                                                     _PlayersAutoAssistedThisRound = true;
                                                     QueueRecordForProcessing(new ARecord
@@ -18137,7 +18137,7 @@ namespace PRoConEvents
 
         public Boolean OnlineAdminSayMessage(String message, String exclude)
         {
-            ProconChatWrite(Log.CMaroon(Log.FBold(message)));
+            ProconChatWrite(Log.FBold(Log.CMaroon(message)));
             Boolean adminsTold = false;
             foreach (APlayer player in FetchOnlineAdminSoldiers().Where(aPlayer => aPlayer.player_name != exclude))
             {
@@ -18149,7 +18149,7 @@ namespace PRoConEvents
 
         public Boolean OnlineAdminYellMessage(String message)
         {
-            ProconChatWrite(Log.CMaroon(Log.FBold(message)));
+            ProconChatWrite(Log.FBold(Log.CMaroon(message)));
             Boolean adminsTold = false;
             foreach (APlayer player in FetchOnlineAdminSoldiers())
             {
@@ -18161,7 +18161,7 @@ namespace PRoConEvents
 
         public Boolean OnlineAdminTellMessage(String message)
         {
-            ProconChatWrite(Log.CMaroon(Log.FBold(message)));
+            ProconChatWrite(Log.FBold(Log.CMaroon(message)));
             Boolean adminsTold = false;
             foreach (APlayer player in FetchOnlineAdminSoldiers())
             {
@@ -20453,7 +20453,7 @@ namespace PRoConEvents
                             //Cannot call this command when game not active
                             if (_roundState != RoundState.Playing)
                             {
-                                SendMessageToSource(record, "You can't use assist unless a round is active.");
+                                SendMessageToSource(record, Log.CViolet("You can't use assist unless a round is active."));
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -20471,7 +20471,7 @@ namespace PRoConEvents
                             //May only call this command from in-game
                             if (record.source_player.player_type != PlayerType.Player)
                             {
-                                SendMessageToSource(record, "You must be a player to use assist.");
+                                SendMessageToSource(record, Log.CViolet("You must be a player to use assist."));
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -20484,7 +20484,7 @@ namespace PRoConEvents
                                 Double timeout = (secondTimeout - (UtcNow() - assists.Max(aRecord => aRecord.record_time_update)).TotalSeconds);
                                 if (timeout > 0)
                                 {
-                                    SendMessageToSource(record, "Assist recently used. Please wait " + Math.Ceiling(timeout) + " seconds before using it. Thank you.");
+                                    SendMessageToSource(record, Log.CViolet("Assist recently used. Please wait " + Math.Ceiling(timeout) + " seconds before using it. Thank you."));
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -20496,7 +20496,7 @@ namespace PRoConEvents
                                 {
                                     if (_AssistAttemptQueue.Any(assistRecord => assistRecord.target_player.player_id == record.target_player.player_id))
                                     {
-                                        SendMessageToSource(record, "You are already queued for automatic assist. You will be moved if possible.");
+                                        SendMessageToSource(record, Log.CViolet("You are already queued for automatic assist. You will be moved if possible."));
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -28108,7 +28108,7 @@ namespace PRoConEvents
 
                 QueuePlayerForMove(record.target_player.fbpInfo);
                 record.target_player.Say("On your next death you will be moved to the opposing team.");
-                SendMessageToSource(record, record.GetTargetNames() + " will be sent to TeamSwap on their next death.");
+                SendMessageToSource(record, Log.CViolet(record.GetTargetNames() + " will be sent to TeamSwap on their next death."));
             }
             catch (Exception e)
             {
@@ -28145,7 +28145,7 @@ namespace PRoConEvents
                 {
                     message = "TeamSwap called on " + record.GetTargetNames();
                     Log.Debug(() => "Calling Teamswap on target", 6);
-                    SendMessageToSource(record, "" + record.GetTargetNames() + " sent to TeamSwap.");
+                    SendMessageToSource(record, Log.CViolet(record.GetTargetNames() + " sent to TeamSwap."));
                     QueuePlayerForForceMove(record.target_player.fbpInfo);
                 }
             }
@@ -28214,16 +28214,16 @@ namespace PRoConEvents
                             {
                                 if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin")
                                 {
-                                    AdminSayMessage(Log.CRed(Log.FBold("Punishing " + record.GetTargetNames() + " for " + record.record_message)));
+                                    AdminSayMessage(Log.FBold(Log.CRed("Punishing " + record.GetTargetNames() + " for " + record.record_message)));
                                 }
                                 else
                                 {
-                                    AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " PUNISHED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
+                                    AdminSayMessage(Log.FBold(Log.CRed(record.GetTargetNames() + " PUNISHED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                                 }
                             }
                             else if (record.source_name != "PlayerMuteSystem")
                             {
-                                AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " KILLED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
+                                AdminSayMessage(Log.FBold(Log.CRed(record.GetTargetNames() + " KILLED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                             }
                             int seconds = (int)UtcNow().Subtract(record.target_player.lastDeath).TotalSeconds;
                             Log.Debug(() => "Killing player. Player last died " + seconds + " seconds ago.", 3);
@@ -28248,16 +28248,16 @@ namespace PRoConEvents
                                 {
                                     if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin")
                                     {
-                                        AdminSayMessage(Log.CRed(Log.FBold("Punishing " + record.GetTargetNames() + " for " + record.record_message)));
+                                        AdminSayMessage(Log.FBold(Log.CRed("Punishing " + record.GetTargetNames() + " for " + record.record_message)));
                                     }
                                     else
                                     {
-                                        AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " PUNISHED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
+                                        AdminSayMessage(Log.FBold(Log.CRed(record.GetTargetNames() + " PUNISHED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                                     }
                                 }
                                 else if (record.source_name != "PlayerMuteSystem")
                                 {
-                                    AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " KILLED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
+                                    AdminSayMessage(Log.FBold(Log.CRed(record.GetTargetNames() + " KILLED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                                 }
                                 if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name))
                                 {
@@ -28359,7 +28359,7 @@ namespace PRoConEvents
                     {
                         SendMessageToSource(record, "You WARNED " + record.GetTargetNames() + " for " + record.record_message);
                     }
-                    AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " WARNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
+                    AdminSayMessage(Log.FBold(Log.CRed(record.GetTargetNames() + " WARNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                     PlayerTellMessage(record.target_name, "Warned for " + record.record_message, true, 3);
                 }
             }
@@ -28476,11 +28476,11 @@ namespace PRoConEvents
                     {
                         if (record.source_name == "PingEnforcer")
                         {
-                            AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " KICKED for " + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping) + "ms ping. Avg:" + Math.Round(record.target_player.player_ping_avg) + "ms") : ("missing ping.")))));
+                            AdminSayMessage(Log.FBold(Log.CRed(record.GetTargetNames() + " KICKED for " + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping) + "ms ping. Avg:" + Math.Round(record.target_player.player_ping_avg) + "ms") : ("missing ping.")))));
                         }
                         else if (record.source_name != "AFKManager" && record.source_name != "SpectatorManager")
                         {
-                            AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " KICKED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
+                            AdminSayMessage(Log.FBold(Log.CRed(record.GetTargetNames() + " KICKED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                         }
                     }
                     if (record.target_player.fbpInfo != null)
@@ -28581,7 +28581,7 @@ namespace PRoConEvents
                 }
                 if (record.target_name != record.source_name)
                 {
-                    AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " BANNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
+                    AdminSayMessage(Log.FBold(Log.CRed(record.GetTargetNames() + " BANNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                 }
                 SendMessageToSource(record, "You TEMP BANNED " + record.GetTargetNames() + " for " + FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 3));
             }
@@ -28661,7 +28661,7 @@ namespace PRoConEvents
                 }
                 if (record.target_name != record.source_name)
                 {
-                    AdminSayMessage(Log.CRed(Log.FBold(record.GetTargetNames() + " BANNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
+                    AdminSayMessage(Log.FBold(Log.CRed(record.GetTargetNames() + " BANNED" + (_ShowAdminNameInAnnouncement ? (" by " + record.GetSourceName()) : ("")) + " for " + record.record_message)));
                 }
                 SendMessageToSource(record, "You PERMA BANNED " + record.GetTargetNames());
             }
@@ -28998,7 +28998,7 @@ namespace PRoConEvents
                 if (record.record_exception == null)
                 {
                     Int32 points = FetchPoints(record.target_player, false, true);
-                    PlayerSayMessage(record.target_player.player_name, Log.CGreen(Log.FBold("Forgiven 1 infraction point. You now have " + points + " point(s) against you.")));
+                    PlayerSayMessage(record.target_player.player_name, Log.FBold(Log.CGreen("Forgiven 1 infraction point. You now have " + points + " point(s) against you.")));
                     SendMessageToSource(record, "Forgive Logged for " + record.GetTargetNames() + ". They now have " + points + " infraction points.");
                     record.target_player.LastForgive = record;
                 }
@@ -40197,7 +40197,7 @@ namespace PRoConEvents
             }
             else
             {
-                InfoOrRespond(debugRecord, "Invalid teams when attempting to assist. Team ID was " + aPlayer.fbpInfo.TeamID + ".");
+                InfoOrRespond(debugRecord, Log.CViolet("Invalid teams when attempting to assist. Team ID was " + aPlayer.fbpInfo.TeamID + "."));
                 return false;
             }
             ATeam mapUpTeam, mapDownTeam;
@@ -40369,6 +40369,7 @@ namespace PRoConEvents
             {
                 if (realRecord != null)
                 {
+                    rejectionMessage = Log.FBold(Log.CViolet(rejectionMessage));
                     rejectionMessage = realRecord.GetSourceName() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.GetTeamIDKey() + " rejected (" + rejectionMessage + ").";
                     if (!auto)
                     {
@@ -40393,7 +40394,7 @@ namespace PRoConEvents
             {
                 if (realRecord != null)
                 {
-                    SendMessageToSource(realRecord, "Queuing you to assist the weak team. Thank you.");
+                    SendMessageToSource(realRecord, Log.CViolet("Queuing you to assist the weak team. Thank you."));
                     var powerDiffString = Math.Round(newPercDiff) + "<" + Math.Round(oldPercDiff);
                     if (newPercDiff > oldPercDiff && newPercDiff <= powerPercentageThreshold)
                     {
@@ -40408,7 +40409,7 @@ namespace PRoConEvents
                 }
                 else if (debugRecord != null)
                 {
-                    SendMessageToSource(debugRecord, "Assist accepted.");
+                    SendMessageToSource(debugRecord, Log.CViolet("Assist accepted."));
                 }
             }
             return canAssist;
