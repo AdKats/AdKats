@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.23
+ * Version 7.0.1.24
  * 7-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.23</version_code>
+ * <version_code>7.0.1.24</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.23";
+        private const String PluginVersion = "7.0.1.24";
 
         public enum GameVersion
         {
@@ -9396,7 +9396,7 @@ namespace PRoConEvents
                         message += "^n(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
                         if (_PlayerDictionary.ContainsKey(_debugSoldierName))
                         {
-                            PlayerSayMessage(_debugSoldierName, message);
+                            PlayerSayMessage(_debugSoldierName, Log.FBold(message));
                         }
                         else if (GetPlayerCount() > 5)
                         {
@@ -13115,7 +13115,11 @@ namespace PRoConEvents
                                     {
                                         var t1Duration = TimeSpan.FromMinutes(team1.TeamTicketCount / Math.Abs(t1RawRate));
                                         var t2Duration = TimeSpan.FromMinutes(team2.TeamTicketCount / Math.Abs(t2RawRate));
-                                        if (t1Duration < t2Duration)
+                                        if (Math.Abs((t1Duration - t2Duration).TotalSeconds) < 120)
+                                        {
+                                            winMessage = " | Unsure of winning team.";
+                                        }
+                                        else if (t1Duration < t2Duration)
                                         {
                                             winMessage = " | " + team2.GetTeamIDKey() + " wins in " + FormatTimeString(t1Duration, 2) + ".";
                                         }
@@ -17921,7 +17925,7 @@ namespace PRoConEvents
                             }
                             if (displayProconChat)
                             {
-                                ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Say (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
+                                ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Say (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
                             }
                             //Process will take ~2 seconds for a full server
                             foreach (APlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -18008,7 +18012,7 @@ namespace PRoConEvents
                             }
                             if (displayProconChat)
                             {
-                                ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Yell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
+                                ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Yell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
                             }
                             //Process will take ~2 seconds for a full server
                             foreach (APlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -18095,7 +18099,7 @@ namespace PRoConEvents
                             }
                             if (displayProconChat)
                             {
-                                ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
+                                ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Tell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
                             }
                             //Process will take ~2 seconds for a full server
                             foreach (APlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -18199,7 +18203,7 @@ namespace PRoConEvents
                 }
                 if (displayProconChat)
                 {
-                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Say > " + message);
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Say > " + message);
                 }
                 string[] messageSplit = message.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
                 int maxLineLength = 127;
@@ -18249,7 +18253,7 @@ namespace PRoConEvents
                 }
                 if (displayProconChat)
                 {
-                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Say > " + Log.CBlue(target) + " > " + message);
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Say > " + Log.CBlue(target) + " > " + message);
                 }
                 string[] messageSplit = message.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
                 int maxLineLength = 127;
@@ -18343,7 +18347,7 @@ namespace PRoConEvents
                 }
                 if (displayProconChat)
                 {
-                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Yell[" + _YellDuration + "s] > " + Log.CBlue(target) + " > " + message);
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Yell[" + _YellDuration + "s] > " + Log.CBlue(target) + " > " + message);
                 }
                 for (int count = 0; count < spamCount; count++)
                 {
@@ -18380,7 +18384,7 @@ namespace PRoConEvents
                 }
                 if (displayProconChat)
                 {
-                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + message);
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + message);
                 }
                 AdminSayMessage(message, false);
                 AdminYellMessage(message, false, 0);
@@ -18413,7 +18417,7 @@ namespace PRoConEvents
                 }
                 if (displayProconChat)
                 {
-                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + Log.CBlue(target) + " > " + message);
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + Log.CBlue(target) + " > " + message);
                 }
                 PlayerSayMessage(target, message, false, spamCount);
                 PlayerYellMessage(target, message, false, spamCount);
