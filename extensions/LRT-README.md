@@ -1,7 +1,7 @@
-[//]: # "<latest_stable_release>2.0.1.7</latest_stable_release>"
+[//]: # "<latest_stable_release>2.0.8.9</latest_stable_release>"
 <p>
     <a href="https://forum.myrcon.com/showthread.php?9180" name=thread>
-        <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Loadout.jpg" alt="AdKatsLRT - On-Spawn Loadout Enforcer">
+        <img src="https://raw.githubusercontent.com/AdKats/AdKats/master/images/AdKats_Docs_Loadout.jpg" alt="AdKatsLRT - On-Spawn Loadout Enforcer">
     </a>
 </p>
 <h2>Overview</h2>
@@ -62,11 +62,11 @@
 <br/>
 <p>
     <a name=manual />
-    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_UserManual.jpg" alt="AdKats User Manual">
+    <img src="https://raw.githubusercontent.com/AdKats/AdKats/master/images/AdKats_Docs_UserManual.jpg" alt="AdKats User Manual">
 </p>
 <p>
     <a name=dependencies />
-    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Dependencies.jpg" alt="AdKats User Manual">
+    <img src="https://raw.githubusercontent.com/AdKats/AdKats/master/images/AdKats_Docs_Dependencies.jpg" alt="AdKats User Manual">
 </p>
 <ul>
     <li>
@@ -79,7 +79,7 @@
 <HR>
 <p>
     <a name=install />
-    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Install.jpg" alt="AdKats User Manual">
+    <img src="https://raw.githubusercontent.com/AdKats/AdKats/master/images/AdKats_Docs_Install.jpg" alt="AdKats User Manual">
 </p>
 <ol>
     <li>
@@ -104,7 +104,7 @@
 <HR>
 <p>
     <a name=features />
-    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Features.jpg" alt="AdKats User Manual">
+    <img src="https://raw.githubusercontent.com/AdKats/AdKats/master/images/AdKats_Docs_Features.jpg" alt="AdKats User Manual">
 </p>
 <h3>Item Library</h3>
 <p>
@@ -148,7 +148,7 @@
 <HR>
 <p>
     <a name=commands />
-    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Commands.jpg" alt="AdKats User Manual">
+    <img src="https://raw.githubusercontent.com/AdKats/AdKats/master/images/AdKats_Docs_Commands.jpg" alt="AdKats User Manual">
 </p>
 <p>
     Certain commands in AdKats are modified by this plugin. The changes to those commands are listed below.
@@ -191,7 +191,7 @@
 <HR>
 <p>
     <a name=settings />
-    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Settings.jpg" alt="AdKats User Manual">
+    <img src="https://raw.githubusercontent.com/AdKats/AdKats/master/images/AdKats_Docs_Settings.jpg" alt="AdKats User Manual">
 </p>
 <h3>0. Instance Settings:</h3>
 <ul>
