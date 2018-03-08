@@ -1,6 +1,4 @@
-<script>
-    //<latest_stable_release>2.0.1.7</latest_stable_release>
-</script>
+[//]: # "<latest_stable_release>2.0.1.7</latest_stable_release>"
 <p>
     <a href="https://forum.myrcon.com/showthread.php?9180" name=thread>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Loadout.jpg" alt="AdKatsLRT - On-Spawn Loadout Enforcer">
@@ -111,12 +109,6 @@
 <h3>Item Library</h3>
 <p>
     Every infantry/Vehicle item in the game (about 3500 items), can be enforced here. The settings are split into several sections; Weapons, Weapon Accessories, Gadgets, and Vehicle Weapons/Unlocks, in that order.
-</p>
-<p>
-    <img src="http://i.gyazo.com/fdee6812030b997538c9f1ed4e466cd6.png" alt="AdKatsLRT Setting List"><br>
-    <img src="http://i.gyazo.com/84eb0a158f0aa249aba63b19a2fbd615.png" alt="AdKatsLRT Setting List"><br>
-    <img src="http://i.gyazo.com/c903a4090b83ad8acfa5c64007a5afee.png" alt="AdKatsLRT Setting List"><br>
-    <img src="http://i.gyazo.com/88bee5cd3932406a11c4ffecc216df4c.png" alt="AdKatsLRT Setting List">
 </p>
 <h3>Loadout Processing</h3>
 <h4>Deciding Enforcement Type</h4>
