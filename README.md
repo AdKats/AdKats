@@ -2822,6 +2822,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         IP address and port of this server. 
         Automatically set by Procon.
     </li>
+    <li><b>'Server Round (Display)'</b> - 
+        The current round number as determined by the extended round statistics log.
+    </li>
     <li><b>'Server Game (Display)'</b> - 
         Game version of this server as recognized by AdKats.
         Automatically set by Procon.
