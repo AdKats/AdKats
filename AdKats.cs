@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.26
+ * Version 7.0.1.27
  * 12-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.26</version_code>
+ * <version_code>7.0.1.27</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.26";
+        private const String PluginVersion = "7.0.1.27";
 
         public enum GameVersion
         {
@@ -49845,24 +49845,9 @@ namespace PRoConEvents
                     return true;
                 }
 
-                public Double GetCompletionPercentage(List<AKill> Kills)
+                public ChallengeRuleStatus GetCompletionStatus(List<AKill> Kills, String currentWeaponCode)
                 {
-                    GetCompletionPercentage(Kills, null, out Double completionPercentage, out List<String> incompleteWeapons, out Double currentWeaponPercentage, out String currentWeaponStatus);
-                    return completionPercentage;
-                }
-
-                public void GetCompletionPercentage(List<AKill> Kills, 
-                                                    String currentWeaponCode, 
-                                                    out Double completionPercentage, 
-                                                    out List<String> incompleteWeapons, 
-                                                    out Double currentWeaponPercentage, 
-                                                    out String currentWeaponStatus)
-                {
-                    Double totalRequiredKills = 0;
-                    Double totalCompletedKills = 0;
-                    incompleteWeapons = new List<String>();
-                    currentWeaponPercentage = 0;
-                    currentWeaponStatus = null;
+                    var status = new ChallengeRuleStatus();
                     foreach (var pair in WeaponKillRequirements)
                     {
                         var reqWeapon = pair.Key;
@@ -49880,22 +49865,38 @@ namespace PRoConEvents
                         var matchingKills = Kills.Where(aKill => aKill.weaponCode == reqWeapon);
 
                         // Increment the counts
-                        totalRequiredKills += reqKills;
-                        totalCompletedKills += matchingKills.Count();
+                        status.totalRequiredKills += reqKills;
+                        status.totalCompletedKills += matchingKills.Count();
 
                         String weaponName = _plugin.WeaponNameDictionary.GetShortWeaponNameByCode(reqWeapon);
                         if (!String.IsNullOrEmpty(currentWeaponCode) &&
                             reqWeapon == currentWeaponCode)
                         {
-                            currentWeaponPercentage = Math.Min(Math.Round(100.0 * matchingKills.Count() / reqKills), 100);
-                            currentWeaponStatus = Name + " " + weaponName + " [" + matchingKills.Count() + "/" + reqKills + "][" + currentWeaponPercentage + "]";
+                            status.currentWeaponPercentage = Math.Min(Math.Round(100.0 * matchingKills.Count() / reqKills), 100);
+                            status.currentWeaponStatus = Name + " " + weaponName + " [" + matchingKills.Count() + "/" + reqKills + "][" + status.currentWeaponPercentage + "]";
                         }
                         if (matchingKills.Count() < reqKills)
                         {
-                            incompleteWeapons.Add(weaponName);
+                            status.incompleteWeapons.Add(weaponName);
                         }
                     }
-                    completionPercentage = Math.Min(Math.Round(100.0 * totalCompletedKills / totalRequiredKills), 100);
+                    status.completionPercentage = Math.Min(Math.Round(100.0 * status.totalCompletedKills / status.totalRequiredKills), 100);
+                    return status;
+                }
+
+                public class ChallengeRuleStatus
+                {
+                    public Double completionPercentage;
+                    public List<String> incompleteWeapons;
+                    public Double currentWeaponPercentage;
+                    public String currentWeaponStatus;
+                    public Double totalRequiredKills;
+                    public Double totalCompletedKills;
+
+                    public ChallengeRuleStatus()
+                    {
+                        incompleteWeapons = new List<string>();
+                    }
                 }
             }
 
@@ -49915,9 +49916,9 @@ namespace PRoConEvents
                     Kills = new List<AKill>();
                 }
 
-                public Double GetCompletionPercentage()
+                public Double GetCompletionStatus()
                 {
-                    return Rule.GetCompletionPercentage(Kills);
+                    return Rule.GetCompletionStatus(Kills, null).completionPercentage;
                 }
 
                 public Boolean AddKill(AKill aKill)
@@ -49943,26 +49944,21 @@ namespace PRoConEvents
                     Kills.Add(aKill);
 
                     //Check for completion case.
-                    Rule.GetCompletionPercentage(Kills, 
-                                                 aKill.weaponCode, 
-                                                 out Double completionPercentage, 
-                                                 out List<String> incompleteWeapons, 
-                                                 out Double currentWeaponPercentage,
-                                                 out String weaponStatus);
+                    var status = Rule.GetCompletionStatus(Kills, aKill.weaponCode);
                     
                     // Check for rule already fulfilled for this weapon
-                    if (currentWeaponPercentage >= 99.99)
+                    if (status.currentWeaponPercentage >= 99.99)
                     {
-                        if (completionPercentage >= 99.99)
+                        if (status.completionPercentage >= 99.99)
                         {
                             _plugin.AdminTellMessage(Player.GetVerboseName() + " just completed the " + Rule.Name + " challenge! Congrats!");
                         }
                         // Check for completion of the entire challenge rule
-                        Player.Say(weaponStatus + " COMPLETED! Use the next weapon; " + incompleteWeapons.Count() + " remain.");
+                        Player.Say(status.currentWeaponStatus + " COMPLETED! Use the next weapon; " + status.incompleteWeapons.Count() + " remain.");
                     }
                     else
                     {
-                        Player.Say(weaponStatus);
+                        Player.Say(status.currentWeaponStatus);
                     }
                     return true;
                 }
