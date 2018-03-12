@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.31
+ * Version 7.0.1.32
  * 12-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.31</version_code>
+ * <version_code>7.0.1.32</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.31";
+        private const String PluginVersion = "7.0.1.32";
 
         public enum GameVersion
         {
@@ -8404,6 +8404,9 @@ namespace PRoConEvents
                             }
                         }
 
+                        //Make sure the default in-game admin is disabled
+                        ExecuteCommand("procon.protected.plugins.enable", "CInGameAdmin", "False");
+
                         try
                         {
                             //Initialize the weapon name dictionary
@@ -8416,9 +8419,6 @@ namespace PRoConEvents
                         {
                             Log.HandleException(new AException("Error while enabling weapon dictionary or challenge manager.", e));
                         }
-
-                        //Make sure the default in-game admin is disabled
-                        ExecuteCommand("procon.protected.plugins.enable", "CInGameAdmin", "False");
 
                         //Initialize the stat library
                         _StatLibrary = new StatLibrary(this);
@@ -49768,78 +49768,100 @@ namespace PRoConEvents
             public AChallengeManager(AdKats plugin)
             {
                 _plugin = plugin;
-                Rules = new List<ChallengeRule>();
-                Entries = new Dictionary<APlayer, ChallengeEntry>();
+                try
+                {
+                    Rules = new List<ChallengeRule>();
+                    Entries = new Dictionary<APlayer, ChallengeEntry>();
 
-                PopulateRules();
+                    PopulateRules();
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while creating challenge manager.", e));
+                }
             }
 
             public String GetCurrentRuleName()
             {
-                return CurrentRule != null ? CurrentRule.Name : "No Current Rule";
+                try
+                {
+                    return CurrentRule != null ? CurrentRule.Name : "No Current Rule";
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while getting current rule name.", e));
+                }
+                return null;
             }
 
             private void PopulateRules()
             {
-                if (_plugin._gameVersion == GameVersion.BF4)
+                try
                 {
-                    // Assault Rifles
-                    var AR = new ChallengeRule(_plugin)
+                    if (_plugin._gameVersion == GameVersion.BF4)
                     {
-                        RuleID = 1,
-                        Name = "Assault Rifles"
-                    };
-                    AR.AddDetail(new ChallengeRule.Detail()
-                    {
-                        RuleID = 1,
-                        DetailID = 1,
-                        Type = ChallengeRule.Detail.DetailType.Damage,
-                        Damage = DamageTypes.AssaultRifle,
-                        WeaponCount = 5,
-                        KillCount = 5
-                    });
-                    Rules.Add(AR);
+                        // Assault Rifles
+                        var AR = new ChallengeRule(_plugin)
+                        {
+                            RuleID = 1,
+                            Name = "Assault Rifles"
+                        };
+                        AR.AddDetail(new ChallengeRule.Detail()
+                        {
+                            RuleID = 1,
+                            DetailID = 1,
+                            Type = ChallengeRule.Detail.DetailType.Damage,
+                            Damage = DamageTypes.AssaultRifle,
+                            WeaponCount = 5,
+                            KillCount = 5
+                        });
+                        Rules.Add(AR);
 
-                    // Carbine
-                    var CA = new ChallengeRule(_plugin)
-                    {
-                        RuleID = 2,
-                        Name = "Carbines"
-                    };
-                    CA.AddDetail(new ChallengeRule.Detail()
-                    {
-                        RuleID = 2,
-                        DetailID = 1,
-                        Type = ChallengeRule.Detail.DetailType.Damage,
-                        Damage = DamageTypes.AssaultRifle,
-                        WeaponCount = 5,
-                        KillCount = 5
-                    });
-                    Rules.Add(CA);
+                        // Carbine
+                        var CA = new ChallengeRule(_plugin)
+                        {
+                            RuleID = 2,
+                            Name = "Carbines"
+                        };
+                        CA.AddDetail(new ChallengeRule.Detail()
+                        {
+                            RuleID = 2,
+                            DetailID = 1,
+                            Type = ChallengeRule.Detail.DetailType.Damage,
+                            Damage = DamageTypes.AssaultRifle,
+                            WeaponCount = 5,
+                            KillCount = 5
+                        });
+                        Rules.Add(CA);
 
-                    // 2 DMRs
-                    var DMR = new ChallengeRule(_plugin)
-                    {
-                        RuleID = 3,
-                        Name = "2 DMRs"
-                    };
-                    DMR.AddDetail(new ChallengeRule.Detail()
-                    {
-                        RuleID = 3,
-                        DetailID = 1,
-                        Type = ChallengeRule.Detail.DetailType.Weapon,
-                        Weapon = "U_SKS",
-                        KillCount = 5
-                    });
-                    DMR.AddDetail(new ChallengeRule.Detail()
-                    {
-                        RuleID = 3,
-                        DetailID = 2,
-                        Type = ChallengeRule.Detail.DetailType.Weapon,
-                        Weapon = "U_MK11",
-                        KillCount = 5
-                    });
-                    Rules.Add(DMR);
+                        // 2 DMRs
+                        var DMR = new ChallengeRule(_plugin)
+                        {
+                            RuleID = 3,
+                            Name = "2 DMRs"
+                        };
+                        DMR.AddDetail(new ChallengeRule.Detail()
+                        {
+                            RuleID = 3,
+                            DetailID = 1,
+                            Type = ChallengeRule.Detail.DetailType.Weapon,
+                            Weapon = "U_SKS",
+                            KillCount = 5
+                        });
+                        DMR.AddDetail(new ChallengeRule.Detail()
+                        {
+                            RuleID = 3,
+                            DetailID = 2,
+                            Type = ChallengeRule.Detail.DetailType.Weapon,
+                            Weapon = "U_MK11",
+                            KillCount = 5
+                        });
+                        Rules.Add(DMR);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while populating challenge rules.", e));
                 }
             }
 
@@ -49867,177 +49889,207 @@ namespace PRoConEvents
 
                 public void AddDetail(Detail detail)
                 {
-                    ChallengeDetails.Add(detail);
-                    BuildWeaponKillMapping();
+                    try
+                    {
+                        ChallengeDetails.Add(detail);
+                        BuildWeaponKillMapping();
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while adding challeng detail.", e));
+                    }
                 }
 
                 public Boolean KillValid(AKill aKill)
                 {
-                    // Check for invalid kill
-                    if (aKill == null ||
-                        aKill.killer == null ||
-                        String.IsNullOrEmpty(aKill.weaponCode) ||
-                        aKill.victim == null)
+                    try
                     {
-                        _plugin.Log.Info("Kill was invalid for challenge rule " + Name + ".");
+                        // Check for invalid kill
+                        if (aKill == null ||
+                            aKill.killer == null ||
+                            String.IsNullOrEmpty(aKill.weaponCode) ||
+                            aKill.victim == null)
+                        {
+                            _plugin.Log.Info("Kill was invalid for challenge rule " + Name + ".");
+                            return false;
+                        }
+                        // Default to the kill being invalid
+                        var killValid = false;
+                        foreach (var detail in ChallengeDetails)
+                        {
+                            switch (detail.Type)
+                            {
+                                case Detail.DetailType.None:
+                                    _plugin.Log.Error("No kills are valid for a NONE rule type.");
+                                    return false;
+                                case Detail.DetailType.Damage:
+                                    // Check for matching damage
+                                    if (detail.WeaponCount > 0 &&
+                                        detail.KillCount > 0 &&
+                                        detail.Damage == aKill.weaponDamage)
+                                    {
+                                        return true;
+                                    }
+                                    break;
+                                case Detail.DetailType.Weapon:
+                                    // Check for matching weapon
+                                    if (detail.KillCount > 0 &&
+                                        detail.Weapon == aKill.weaponCode)
+                                    {
+                                        return true;
+                                    }
+                                    break;
+                            }
+                        }
+                        _plugin.Log.Info("Rule " + Name + " does not include weapon " + aKill.weaponCode + ".");
                         return false;
                     }
-                    // Default to the kill being invalid
-                    var killValid = false;
-                    foreach (var detail in ChallengeDetails)
+                    catch (Exception e)
                     {
-                        switch (detail.Type)
-                        {
-                            case Detail.DetailType.None:
-                                _plugin.Log.Error("No kills are valid for a NONE rule type.");
-                                return false;
-                            case Detail.DetailType.Damage:
-                                // Check for matching damage
-                                if (detail.WeaponCount > 0 &&
-                                    detail.KillCount > 0 &&
-                                    detail.Damage == aKill.weaponDamage)
-                                {
-                                    return true;
-                                }
-                                break;
-                            case Detail.DetailType.Weapon:
-                                // Check for matching weapon
-                                if (detail.KillCount > 0 &&
-                                    detail.Weapon == aKill.weaponCode)
-                                {
-                                    return true;
-                                }
-                                break;
-                        }
+                        _plugin.Log.HandleException(new AException("Error while checking whether challenge kill was valid.", e));
                     }
-                    _plugin.Log.Info("Rule " + Name + " does not include weapon " + aKill.weaponCode + ".");
                     return false;
                 }
 
                 public void BuildWeaponKillMapping()
                 {
-                    var weaponKillMapping = new Dictionary<String, Int32>();
-                    foreach (var detail in ChallengeDetails)
+                    try
                     {
-                        switch (detail.Type)
+                        var weaponKillMapping = new Dictionary<String, Int32>();
+                        foreach (var detail in ChallengeDetails)
                         {
-                            case Detail.DetailType.None:
-                                _plugin.Log.Error("Detail " + detail.DetailID + " was invalid. It has no detail type, damage or weapon.");
-                                continue;
-                            case Detail.DetailType.Damage:
-                                // Invalid detail handling
-                                if (detail.Damage == DamageTypes.None ||
-                                    detail.WeaponCount <= 0 ||
-                                    detail.KillCount <= 0)
-                                {
-                                    _plugin.Log.Error("Detail " + detail.DetailID + " was invalid. Fix the damage type, weapon count, or kill count.");
+                            switch (detail.Type)
+                            {
+                                case Detail.DetailType.None:
+                                    _plugin.Log.Error("Detail " + detail.DetailID + " was invalid. It has no detail type, damage or weapon.");
                                     continue;
-                                }
-
-                                // Get all the weapon codes for the current damage type
-                                var weaponCodes = _plugin.WeaponDictionary.WeaponTypes
-                                                         .Where(pair => pair.Value == detail.Damage)
-                                                         .Select(pair => pair.Key).Distinct().ToList();
-
-                                // Loop over all the weapons for the damage type
-                                var weaponsAdded = 0;
-                                foreach (var ruleWeaponCode in weaponCodes)
-                                {
-                                    // Do not add more than the number of weapons required
-                                    if (weaponsAdded >= detail.WeaponCount)
+                                case Detail.DetailType.Damage:
+                                    // Invalid detail handling
+                                    if (detail.Damage == DamageTypes.None ||
+                                        detail.WeaponCount <= 0 ||
+                                        detail.KillCount <= 0)
                                     {
-                                        break;
+                                        _plugin.Log.Error("Detail " + detail.DetailID + " was invalid. Fix the damage type, weapon count, or kill count.");
+                                        continue;
                                     }
-                                    // If the weapon doesn't exist, add it
-                                    if (weaponKillMapping.ContainsKey(ruleWeaponCode))
+
+                                    // Get all the weapon codes for the current damage type
+                                    var weaponCodes = _plugin.WeaponDictionary.WeaponTypes
+                                                             .Where(pair => pair.Value == detail.Damage)
+                                                             .Select(pair => pair.Key).Distinct().ToList();
+
+                                    // Loop over all the weapons for the damage type
+                                    var weaponsAdded = 0;
+                                    foreach (var ruleWeaponCode in weaponCodes)
                                     {
-                                        weaponKillMapping[ruleWeaponCode] = 0;
+                                        // Do not add more than the number of weapons required
+                                        if (weaponsAdded >= detail.WeaponCount)
+                                        {
+                                            break;
+                                        }
+                                        // If the weapon doesn't exist, add it
+                                        if (weaponKillMapping.ContainsKey(ruleWeaponCode))
+                                        {
+                                            weaponKillMapping[ruleWeaponCode] = 0;
+                                        }
+                                        // Increment the count of the weapon kills by the required count
+                                        weaponKillMapping[ruleWeaponCode] += detail.KillCount;
+                                        weaponsAdded++;
+                                    }
+                                    break;
+                                case Detail.DetailType.Weapon:
+                                    // Invalid detail handling
+                                    if (String.IsNullOrEmpty(detail.Weapon) ||
+                                        detail.KillCount <= 0)
+                                    {
+                                        _plugin.Log.Error("Detail " + detail.DetailID + " was invalid. Fix the weapon code, or kill count.");
+                                        continue;
+                                    }
+
+                                    // If the weapon doesn't exist, add it
+                                    if (weaponKillMapping.ContainsKey(detail.Weapon))
+                                    {
+                                        weaponKillMapping[detail.Weapon] = 0;
                                     }
                                     // Increment the count of the weapon kills by the required count
-                                    weaponKillMapping[ruleWeaponCode] += detail.KillCount;
-                                    weaponsAdded++;
-                                }
-                                break;
-                            case Detail.DetailType.Weapon:
-                                // Invalid detail handling
-                                if (String.IsNullOrEmpty(detail.Weapon) ||
-                                    detail.KillCount <= 0)
-                                {
-                                    _plugin.Log.Error("Detail " + detail.DetailID + " was invalid. Fix the weapon code, or kill count.");
-                                    continue;
-                                }
-                                
-                                // If the weapon doesn't exist, add it
-                                if (weaponKillMapping.ContainsKey(detail.Weapon))
-                                {
-                                    weaponKillMapping[detail.Weapon] = 0;
-                                }
-                                // Increment the count of the weapon kills by the required count
-                                weaponKillMapping[detail.Weapon] += detail.KillCount;
-                                break;
+                                    weaponKillMapping[detail.Weapon] += detail.KillCount;
+                                    break;
+                            }
                         }
+                        foreach (var weapon in weaponKillMapping)
+                        {
+                            _plugin.Log.Info("RULE: " + Name + ": " + weapon.Key + ":" + weapon.Value);
+                        }
+                        WeaponKillMapping = weaponKillMapping;
                     }
-                    foreach (var weapon in weaponKillMapping)
+                    catch (Exception e)
                     {
-                        _plugin.Log.Info("RULE: " + Name + ": " + weapon.Key + ":" + weapon.Value);
+                        _plugin.Log.HandleException(new AException("Error while building challenge rule weapon kill mapping.", e));
                     }
-                    WeaponKillMapping = weaponKillMapping;
                 }
 
                 public RuleStatus GetCompletionStatus(List<AKill> Kills, String currentWeaponCode)
                 {
-                    if (!ChallengeDetails.Any())
+                    try
                     {
-                        _plugin.Log.Error("Cannot return completion status, no damage types added.");
-                        return null;
-                    }
-
-                    var status = new RuleStatus();
-                    foreach (var pair in WeaponKillMapping)
-                    {
-                        var reqWeapon = pair.Key;
-                        var reqKills = pair.Value;
-
-                        // Do not include weapons that have their kill requirement at zero
-                        if (reqKills == 0)
+                        if (!ChallengeDetails.Any())
                         {
-                            continue;
+                            _plugin.Log.Error("Cannot return completion status, no damage types added.");
+                            return null;
                         }
 
-                        // If the player has not completed any kills for the weapon
-                        // Or if they have not completed all the kills for a weapon
-                        // Add the weapon to the incomplete list
-                        var matchingKills = Kills.Where(aKill => aKill.weaponCode == reqWeapon);
-
-                        var weaponKillCount = Math.Min(matchingKills.Count(), reqKills);
-
-                        // Increment the counts
-                        status.totalRequiredKills += reqKills;
-                        status.totalCompletedKills += weaponKillCount;
-
-                        String weaponName = _plugin.WeaponDictionary.GetShortWeaponNameByCode(reqWeapon);
-                        if (!String.IsNullOrEmpty(currentWeaponCode) &&
-                            reqWeapon == currentWeaponCode)
+                        var status = new RuleStatus();
+                        foreach (var pair in WeaponKillMapping)
                         {
-                            status.currentWeaponPercentage = Math.Min(Math.Round(100.0 * weaponKillCount / reqKills), 100);
-                            status.currentWeaponStatus = Name + " " + weaponName + " [" + weaponKillCount + "/" + reqKills + "][" + status.currentWeaponPercentage + "%]";
+                            var reqWeapon = pair.Key;
+                            var reqKills = pair.Value;
+
+                            // Do not include weapons that have their kill requirement at zero
+                            if (reqKills == 0)
+                            {
+                                continue;
+                            }
+
+                            // If the player has not completed any kills for the weapon
+                            // Or if they have not completed all the kills for a weapon
+                            // Add the weapon to the incomplete list
+                            var matchingKills = Kills.Where(aKill => aKill.weaponCode == reqWeapon);
+
+                            var weaponKillCount = Math.Min(matchingKills.Count(), reqKills);
+
+                            // Increment the counts
+                            status.totalRequiredKills += reqKills;
+                            status.totalCompletedKills += weaponKillCount;
+
+                            String weaponName = _plugin.WeaponDictionary.GetShortWeaponNameByCode(reqWeapon);
+                            if (!String.IsNullOrEmpty(currentWeaponCode) &&
+                                reqWeapon == currentWeaponCode)
+                            {
+                                status.currentWeaponPercentage = Math.Min(Math.Round(100.0 * weaponKillCount / reqKills), 100);
+                                status.currentWeaponStatus = Name + " " + weaponName + " [" + weaponKillCount + "/" + reqKills + "][" + status.currentWeaponPercentage + "%]";
+                            }
+                            if (weaponKillCount < reqKills)
+                            {
+                                status.incompleteWeapons.Add(weaponName);
+                            }
                         }
-                        if (weaponKillCount < reqKills)
+                        if (status.totalRequiredKills <= 0)
                         {
-                            status.incompleteWeapons.Add(weaponName);
+                            _plugin.Log.Error("Cannot return completion status. Total required kills must be positive. Current: " + status.totalRequiredKills);
+                            return null;
                         }
+                        status.completionPercentage = Math.Min(Math.Round(100.0 * status.totalCompletedKills / status.totalRequiredKills), 100);
+                        if (!String.IsNullOrEmpty(status.currentWeaponStatus))
+                        {
+                            status.currentWeaponStatus += "[" + status.completionPercentage + "%]";
+                        }
+                        return status;
                     }
-                    if (status.totalRequiredKills <= 0)
+                    catch (Exception e)
                     {
-                        _plugin.Log.Error("Cannot return completion status. Total required kills must be positive. Current: " + status.totalRequiredKills);
-                        return null;
+                        _plugin.Log.HandleException(new AException("Error while getting challenge rule completion status.", e));
                     }
-                    status.completionPercentage = Math.Min(Math.Round(100.0 * status.totalCompletedKills / status.totalRequiredKills), 100);
-                    if (!String.IsNullOrEmpty(status.currentWeaponStatus))
-                    {
-                        status.currentWeaponStatus += "[" + status.completionPercentage + "%]";
-                    }
-                    return status;
+                    return null;
                 }
 
                 public class RuleStatus
@@ -50086,58 +50138,81 @@ namespace PRoConEvents
 
                 public ChallengeEntry(AdKats plugin, AChallengeManager manager, APlayer player)
                 {
-                    _plugin = plugin;
-                    Manager = manager;
-                    Player = player;
-                    
-                    Kills = new List<AKill>();
+                    try
+                    {
+                        _plugin = plugin;
+                        Manager = manager;
+                        Player = player;
+
+                        Kills = new List<AKill>();
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while creating challenge entry.", e));
+                    }
                 }
 
                 public Double GetCompletionPercentage()
                 {
-                    return Rule.GetCompletionStatus(Kills, null).completionPercentage;
+                    try
+                    {
+                        return Rule.GetCompletionStatus(Kills, null).completionPercentage;
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while getting challenge entry completion percentage.", e));
+                    }
+                    return 0;
                 }
 
                 public Boolean AddKill(AKill aKill)
                 {
-                    // Check for invalid entry
-                    if (aKill.killer.player_id != Player.player_id)
+                    try
                     {
-                        _plugin.Log.Info("Kill player " + aKill.killer.GetVerboseName() + " did not match entry player " + Player.GetVerboseName() + ".");
-                        return false;
-                    }
-                    // Check for invalid rule
-                    if (Rule == null)
-                    {
-                        _plugin.Log.Warn("Rule was null when trying to add kill: " + aKill.ToString());
-                        return false;
-                    }
-                    // Check for invalid kill
-                    if (!Rule.KillValid(aKill))
-                    {
-                        return false;
-                    }
-                    // Everything is validated. Add the kill.
-                    Kills.Add(aKill);
-
-                    //Check for completion case.
-                    var status = Rule.GetCompletionStatus(Kills, aKill.weaponCode);
-                    
-                    // Check for rule already fulfilled for this weapon
-                    if (status.currentWeaponPercentage >= 99.99)
-                    {
-                        if (status.completionPercentage >= 99.99)
+                        // Check for invalid entry
+                        if (aKill.killer.player_id != Player.player_id)
                         {
-                            _plugin.AdminTellMessage(Player.GetVerboseName() + " just completed the " + Rule.Name + " challenge! Congrats!");
+                            _plugin.Log.Info("Kill player " + aKill.killer.GetVerboseName() + " did not match entry player " + Player.GetVerboseName() + ".");
+                            return false;
                         }
-                        // Check for completion of the entire challenge rule
-                        Player.Say(status.currentWeaponStatus + " COMPLETED! Use the next weapon; " + status.incompleteWeapons.Count() + " remain.");
+                        // Check for invalid rule
+                        if (Rule == null)
+                        {
+                            _plugin.Log.Warn("Rule was null when trying to add kill: " + aKill.ToString());
+                            return false;
+                        }
+                        // Check for invalid kill
+                        if (!Rule.KillValid(aKill))
+                        {
+                            return false;
+                        }
+                        // Everything is validated. Add the kill.
+                        Kills.Add(aKill);
+
+                        //Check for completion case.
+                        var status = Rule.GetCompletionStatus(Kills, aKill.weaponCode);
+
+                        // Check for rule already fulfilled for this weapon
+                        if (status.currentWeaponPercentage >= 99.99)
+                        {
+                            if (status.completionPercentage >= 99.99)
+                            {
+                                _plugin.AdminTellMessage(Player.GetVerboseName() + " just completed the " + Rule.Name + " challenge! Congrats!");
+                            }
+                            // Check for completion of the entire challenge rule
+                            Player.Say(status.currentWeaponStatus + " COMPLETED! Use the next weapon; " + status.incompleteWeapons.Count() + " remain.");
+                        }
+                        else
+                        {
+                            Player.Say(status.currentWeaponStatus);
+                        }
+                        return true;
                     }
-                    else
+                    catch (Exception e)
                     {
-                        Player.Say(status.currentWeaponStatus);
+                        _plugin.Log.HandleException(new AException("Error while adding kill to challenge entry.", e));
                     }
-                    return true;
+                    return false;
                 }
             }
         }
@@ -52095,35 +52170,42 @@ namespace PRoConEvents
 
             public AWeaponDictionary(Logger log, Utilities util, GameVersion gameVersion, WeaponDictionary dic)
             {
-                Log = log;
-                Util = util;
-                _gameVersion = gameVersion;
-                
-                // Populate the weapon type dictionary
-                foreach (Weapon weapon in dic)
+                try
                 {
-                    if (weapon != null && !WeaponTypes.ContainsKey(weapon.Name))
-                    {
-                        WeaponTypes.Add(weapon.Name, weapon.Damage);
-                    }
-                }
+                    Log = log;
+                    Util = util;
+                    _gameVersion = gameVersion;
 
-                //Fill the damage type setting enum string
-                Random random = new Random(Environment.TickCount);
-                DamageTypeEnumString = String.Empty;
-                foreach (DamageTypes damageType in Enum.GetValues(typeof(DamageTypes)).Cast<DamageTypes>())
-                {
-                    if (String.IsNullOrEmpty(DamageTypeEnumString))
+                    // Populate the weapon type dictionary
+                    foreach (Weapon weapon in dic)
                     {
-                        DamageTypeEnumString += "enum.DamageTypeEnum_" + random.Next(100000, 999999) + "(";
+                        if (weapon != null && !WeaponTypes.ContainsKey(weapon.Name))
+                        {
+                            WeaponTypes.Add(weapon.Name, weapon.Damage);
+                        }
                     }
-                    else
+
+                    //Fill the damage type setting enum string
+                    Random random = new Random(Environment.TickCount);
+                    DamageTypeEnumString = String.Empty;
+                    foreach (DamageTypes damageType in Enum.GetValues(typeof(DamageTypes)).Cast<DamageTypes>())
                     {
-                        DamageTypeEnumString += "|";
+                        if (String.IsNullOrEmpty(DamageTypeEnumString))
+                        {
+                            DamageTypeEnumString += "enum.DamageTypeEnum_" + random.Next(100000, 999999) + "(";
+                        }
+                        else
+                        {
+                            DamageTypeEnumString += "|";
+                        }
+                        DamageTypeEnumString += damageType;
                     }
-                    DamageTypeEnumString += damageType;
+                    DamageTypeEnumString += ")";
                 }
-                DamageTypeEnumString += ")";
+                catch (Exception e)
+                {
+                    Log.HandleException(new AException("Error while creating weapon dictionary.", e));
+                }
             }
 
             public Boolean PopulateWeaponNameDictionaries()
@@ -52220,63 +52302,94 @@ namespace PRoConEvents
 
             public DamageTypes GetDamageType(String damageType)
             {
-                DamageTypes category;
-                if (!WeaponTypes.TryGetValue(damageType, out category))
+                try
                 {
-                    category = DamageTypes.None;
+                    DamageTypes category;
+                    if (WeaponTypes.TryGetValue(damageType, out category))
+                    {
+                        return category;
+                    }
                 }
-                return category;
+                catch (Exception e)
+                {
+                    Log.HandleException(new AException("Error while getting damage type.", e));
+                }
+                return DamageTypes.None;
             }
 
             public String GetWeaponCodeByShortName(String weaponShortName)
             {
-                if (!String.IsNullOrEmpty(weaponShortName))
+                try
                 {
-                    foreach (var pairs in WeaponNames)
+                    if (!String.IsNullOrEmpty(weaponShortName))
                     {
-                        if (pairs.Value != null &&
-                            pairs.Value.readable_short == weaponShortName)
+                        foreach (var pairs in WeaponNames)
                         {
-                            return pairs.Key;
+                            if (pairs.Value != null &&
+                                pairs.Value.readable_short == weaponShortName)
+                            {
+                                return pairs.Key;
+                            }
                         }
                     }
+                    Log.HandleException(new AException("Unable to get weapon CODE for NAME '" + weaponShortName + "'"));
+                    return weaponShortName;
                 }
-                Log.HandleException(new AException("Unable to get weapon CODE for NAME '" + weaponShortName + "'"));
-                return weaponShortName;
+                catch (Exception e)
+                {
+                    Log.HandleException(new AException("Error while getting weapon code for short name.", e));
+                }
+                return null;
             }
             
             public String GetShortWeaponNameByCode(String weaponCode)
             {
-                AWeaponName weaponName = null;
-                if (String.IsNullOrEmpty(weaponCode))
+                try
                 {
-                    Log.HandleException(new AException("weaponCode was null when fetching weapon name"));
-                    return null;
+                    AWeaponName weaponName = null;
+                    if (String.IsNullOrEmpty(weaponCode))
+                    {
+                        Log.HandleException(new AException("weaponCode was null when fetching weapon name"));
+                        return null;
+                    }
+                    WeaponNames.TryGetValue(weaponCode, out weaponName);
+                    if (weaponName == null)
+                    {
+                        Log.HandleException(new AException("Unable to get weapon NAME for CODE '" + weaponCode + "'"));
+                        return weaponCode;
+                    }
+                    return weaponName.readable_short;
                 }
-                WeaponNames.TryGetValue(weaponCode, out weaponName);
-                if (weaponName == null)
+                catch (Exception e)
                 {
-                    Log.HandleException(new AException("Unable to get weapon NAME for CODE '" + weaponCode + "'"));
-                    return weaponCode;
+                    Log.HandleException(new AException("Error while getting short weapon name for code.", e));
                 }
-                return weaponName.readable_short;
+                return null;
             }
 
             public String GetLongWeaponNameByCode(String weaponCode)
             {
-                AWeaponName weaponName = null;
-                if (String.IsNullOrEmpty(weaponCode))
+                try
                 {
-                    Log.HandleException(new AException("weaponCode was null when fetching weapon name"));
-                    return null;
+                    AWeaponName weaponName = null;
+                    if (String.IsNullOrEmpty(weaponCode))
+                    {
+                        Log.HandleException(new AException("weaponCode was null when fetching weapon name"));
+                        return null;
+                    }
+                    WeaponNames.TryGetValue(weaponCode, out weaponName);
+                    if (weaponName == null)
+                    {
+                        Log.HandleException(new AException("Unable to get weapon NAME for CODE '" + weaponCode + "'"));
+                        return weaponCode;
+                    }
+                    return weaponName.readable_short;
                 }
-                WeaponNames.TryGetValue(weaponCode, out weaponName);
-                if (weaponName == null)
+                catch (Exception e)
                 {
-                    Log.HandleException(new AException("Unable to get weapon NAME for CODE '" + weaponCode + "'"));
-                    return weaponCode;
+                    Log.HandleException(new AException("Error while getting long weapon name for code.", e));
                 }
-                return weaponName.readable_short;
+                return null;
             }
 
             public class AWeaponName
