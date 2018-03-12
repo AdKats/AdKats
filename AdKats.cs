@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.30
+ * Version 7.0.1.31
  * 12-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.30</version_code>
+ * <version_code>7.0.1.31</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.30";
+        private const String PluginVersion = "7.0.1.31";
 
         public enum GameVersion
         {
@@ -8404,11 +8404,18 @@ namespace PRoConEvents
                             }
                         }
 
-                        //Initialize the weapon name dictionary
-                        WeaponDictionary = new AWeaponDictionary(Log, Util, _gameVersion, GetWeaponDefines());
+                        try
+                        {
+                            //Initialize the weapon name dictionary
+                            WeaponDictionary = new AWeaponDictionary(Log, Util, _gameVersion, GetWeaponDefines());
 
-                        //Initialize the challenge manager
-                        ChallengeManager = new AChallengeManager(this);
+                            //Initialize the challenge manager
+                            ChallengeManager = new AChallengeManager(this);
+                        }
+                        catch (Exception e)
+                        {
+                            Log.HandleException(new AException("Error while enabling weapon dictionary or challenge manager.", e));
+                        }
 
                         //Make sure the default in-game admin is disabled
                         ExecuteCommand("procon.protected.plugins.enable", "CInGameAdmin", "False");
