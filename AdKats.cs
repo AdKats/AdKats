@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.29
+ * Version 7.0.1.30
  * 12-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.29</version_code>
+ * <version_code>7.0.1.30</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.29";
+        private const String PluginVersion = "7.0.1.30";
 
         public enum GameVersion
         {
@@ -805,7 +805,7 @@ namespace PRoConEvents
         public List<CMap> _AvailableMapModes = null;
 
         //Weapon stats
-        protected AWeaponNameDictionary WeaponNameDictionary;
+        protected AWeaponDictionary WeaponDictionary;
         private StatLibrary _StatLibrary;
         HashSet<String> _AntiCheatCheckedPlayers = new HashSet<String>();
         HashSet<String> _AntiCheatCheckedPlayersStats = new HashSet<String>();
@@ -851,7 +851,6 @@ namespace PRoConEvents
         private String _eventConcreteCountdownServerName = "Event Concrete Countdown Server Name";
         private String _eventActiveServerName = "Event Active Server Name";
         private readonly HashSet<String> _DetectedWeaponCodes = new HashSet<String>();
-        public Dictionary<String, DamageTypes> WeaponTypeDictionary = null;
 
         //Settings display
         private Dictionary<String, String> _SettingSections = new Dictionary<String, String>();
@@ -2649,15 +2648,35 @@ namespace PRoConEvents
 
                         buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2]" + t + "Placeholder", typeof(String), ""));
 
+                        var ruleSectionPrefix = GetSettingSection(challengeSettings) + " [3] Rules" + t;
+                        buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add Rule", typeof(String), ""));
                         foreach (var rule in ChallengeManager.Rules)
                         {
-                            buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [3] Rules" + t + "CRC-" + rule.Code + s + "Enable", typeof(Boolean), rule.Enabled));
-                            foreach (var weapon in rule.WeaponKillRequirements)
+                            var rulePrefix = ruleSectionPrefix + "CRH" + rule.RuleID + s + rule.Name + s;
+                            buildList.Add(new CPluginVariable(rulePrefix + "Delete Rule?", typeof(String), ""));
+                            foreach (var detail in rule.ChallengeDetails)
                             {
-                                var weaponCode = weapon.Key;
-                                var killRequirement = weapon.Value;
-                                buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [3] Rules" + t + "CRC-" + rule.Code + s + "CWC-" + WeaponNameDictionary.GetShortWeaponNameByCode(weaponCode), typeof(String), ChallengeManager.GetCurrentRuleName()));
+                                if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.None)
+                                {
+                                    Log.Error("Unable to render challenge detail " + rule.RuleID + ":" + detail.DetailID + ", it had type = None.");
+                                    continue;
+                                }
+                                var detailPrefix = rulePrefix + "CRD" + detail.DetailID + s;
+                                buildList.Add(new CPluginVariable(detailPrefix + "Type", AChallengeManager.ChallengeRule.Detail.DetailTypeEnumString, detail.Type.ToString()));
+                                if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.Damage)
+                                {
+                                    buildList.Add(new CPluginVariable(detailPrefix + "Damage Type", WeaponDictionary.DamageTypeEnumString, detail.Damage.ToString()));
+                                    buildList.Add(new CPluginVariable(detailPrefix + "Weapon Count", typeof(Int32), detail.WeaponCount));
+                                }
+                                else if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.Weapon)
+                                {
+                                    buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.DamageTypeEnumString, WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
+                                }
+                                buildList.Add(new CPluginVariable(detailPrefix + "Kill Count", typeof(Int32), detail.KillCount));
+
                             }
+                            buildList.Add(new CPluginVariable(rulePrefix + "Add Damage Type?", WeaponDictionary.DamageTypeEnumString, "None"));
+                            buildList.Add(new CPluginVariable(rulePrefix + "Add Weapon Code?", WeaponDictionary.WeaponNameEnumString, "None"));
                         }
                     }
                 }
@@ -8385,15 +8404,11 @@ namespace PRoConEvents
                             }
                         }
 
-                        WeaponDictionary dic = GetWeaponDefines();
-                        WeaponTypeDictionary = new Dictionary<string, DamageTypes>();
-                        foreach (Weapon weapon in dic)
-                        {
-                            if (weapon != null && !WeaponTypeDictionary.ContainsKey(weapon.Name))
-                            {
-                                WeaponTypeDictionary.Add(weapon.Name, weapon.Damage);
-                            }
-                        }
+                        //Initialize the weapon name dictionary
+                        WeaponDictionary = new AWeaponDictionary(Log, Util, _gameVersion, GetWeaponDefines());
+
+                        //Initialize the challenge manager
+                        ChallengeManager = new AChallengeManager(this);
 
                         //Make sure the default in-game admin is disabled
                         ExecuteCommand("procon.protected.plugins.enable", "CInGameAdmin", "False");
@@ -8428,7 +8443,7 @@ namespace PRoConEvents
                         if (_gameVersion == GameVersion.BF3 || _gameVersion == GameVersion.BF4)
                         {
                             //Fetch all weapon names
-                            if (WeaponNameDictionary.PopulateWeaponNameDictionaries())
+                            if (WeaponDictionary.PopulateWeaponNameDictionaries())
                             {
                                 Log.Success("Fetched weapon names.");
                             }
@@ -10339,12 +10354,6 @@ namespace PRoConEvents
 
             //Initialize PushBullet Handler
             _PushBulletHandler = new PushBulletHandler(this);
-
-            //Initialize the weapon name dictionary
-            WeaponNameDictionary = new AWeaponNameDictionary(Log, Util, _gameVersion);
-            
-            //Initialize the challenge manager
-            ChallengeManager = new AChallengeManager(this);
         }
 
         public override void OnVersion(String serverType, String version)
@@ -14857,10 +14866,7 @@ namespace PRoConEvents
                             DamageTypes category = DamageTypes.None;
                             if (playerKill != null && !String.IsNullOrEmpty(playerKill.DamageType))
                             {
-                                if (!WeaponTypeDictionary.TryGetValue(playerKill.DamageType, out category))
-                                {
-                                    category = DamageTypes.None;
-                                }
+                                category = WeaponDictionary.GetDamageType(playerKill.DamageType);
                             }
                             if (!_DetectedWeaponCodes.Contains(playerKill.DamageType))
                             {
@@ -14887,7 +14893,7 @@ namespace PRoConEvents
                                 victim = victim,
                                 victimCPI = playerKill.Victim,
                                 weaponCode = String.IsNullOrEmpty(playerKill.DamageType) ? "NoDamageType" : playerKill.DamageType,
-                                weaponCategory = category,
+                                weaponDamage = category,
                                 timestamp = playerKill.TimeOfDeath,
                                 IsSuicide = playerKill.IsSuicide,
                                 IsHeadshot = playerKill.Headshot,
@@ -15099,7 +15105,7 @@ namespace PRoConEvents
                         break;
                     case AEventOption.RuleCode.BSO:
                         // BOLT ACTIONS ONLY!
-                        if ((aKill.weaponCategory != DamageTypes.SniperRifle || aKill.weaponCode == "U_SR338") &&
+                        if ((aKill.weaponDamage != DamageTypes.SniperRifle || aKill.weaponCode == "U_SR338") &&
                             aKill.weaponCode != "DamageArea")
                         {
                             return true;
@@ -15141,7 +15147,7 @@ namespace PRoConEvents
                         break;
                     case AEventOption.RuleCode.PO:
                         // PISTOLS ONLY!
-                        if ((aKill.weaponCategory != DamageTypes.Handgun || aKill.weaponCode == "U_M93R" || aKill.weaponCode == "U_Glock18") &&
+                        if ((aKill.weaponDamage != DamageTypes.Handgun || aKill.weaponCode == "U_M93R" || aKill.weaponCode == "U_Glock18") &&
                             aKill.weaponCode != "DamageArea")
                         {
                             return true;
@@ -15149,7 +15155,7 @@ namespace PRoConEvents
                         break;
                     case AEventOption.RuleCode.SO:
                         // SHOTGUNS ONLY!
-                        if (aKill.weaponCategory != DamageTypes.Shotgun &&
+                        if (aKill.weaponDamage != DamageTypes.Shotgun &&
                             aKill.weaponCode != "DamageArea")
                         {
                             return true;
@@ -15157,15 +15163,15 @@ namespace PRoConEvents
                         break;
                     case AEventOption.RuleCode.NE:
                         // NO EXPLOSIVES!
-                        if (aKill.weaponCategory == DamageTypes.Explosive || aKill.weaponCategory == DamageTypes.ProjectileExplosive)
+                        if (aKill.weaponDamage == DamageTypes.Explosive || aKill.weaponDamage == DamageTypes.ProjectileExplosive)
                         {
                             return true;
                         }
                         break;
                     case AEventOption.RuleCode.EO:
                         // EXPLOSIVES ONLY!
-                        if (aKill.weaponCategory != DamageTypes.Explosive &&
-                            aKill.weaponCategory != DamageTypes.ProjectileExplosive &&
+                        if (aKill.weaponDamage != DamageTypes.Explosive &&
+                            aKill.weaponDamage != DamageTypes.ProjectileExplosive &&
                             aKill.weaponCode != "DamageArea" &&
                             aKill.weaponCode != "Gameplay/Gadgets/MAV/MAV" &&
                             aKill.weaponCode != "Death")
@@ -15177,10 +15183,10 @@ namespace PRoConEvents
                         // AUTOMATIC PRIMARIES ONLY!
                         if ((!aKill.weaponCode.ToLower().Contains("knife") &&
                              !aKill.weaponCode.ToLower().Contains("melee") && 
-                             aKill.weaponCategory != DamageTypes.AssaultRifle &&
-                             aKill.weaponCategory != DamageTypes.Carbine &&
-                             aKill.weaponCategory != DamageTypes.LMG &&
-                             aKill.weaponCategory != DamageTypes.SMG &&
+                             aKill.weaponDamage != DamageTypes.AssaultRifle &&
+                             aKill.weaponDamage != DamageTypes.Carbine &&
+                             aKill.weaponDamage != DamageTypes.LMG &&
+                             aKill.weaponDamage != DamageTypes.SMG &&
                              aKill.weaponCode != "U_Groza-4" &&
                              aKill.weaponCode != "DamageArea") ||
                             aKill.weaponCode == "dlSHTR")
@@ -15399,8 +15405,8 @@ namespace PRoConEvents
                     }
                     var nonSniperKills = aKill.killer.LiveKills
                         .Where(dKill =>
-                            dKill.weaponCategory != DamageTypes.SniperRifle &&
-                            dKill.weaponCategory != DamageTypes.DMR)
+                            dKill.weaponDamage != DamageTypes.SniperRifle &&
+                            dKill.weaponDamage != DamageTypes.DMR)
                         .OrderByDescending(dKill => dKill.timestamp);
                     var countAll = nonSniperKills.Count();
                     if (countAll >= lowKillCount)
@@ -15806,7 +15812,7 @@ namespace PRoConEvents
                                         const string removeWeapon = "Weapons/";
                                         const string removeGadgets = "Gadgets/";
                                         const string removePrefix = "U_";
-                                        String weapon = WeaponNameDictionary.GetShortWeaponNameByCode(aKill.weaponCode);
+                                        String weapon = WeaponDictionary.GetShortWeaponNameByCode(aKill.weaponCode);
                                         Int32 index = weapon.IndexOf(removeWeapon, StringComparison.Ordinal);
                                         weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeWeapon.Length));
                                         index = weapon.IndexOf(removeGadgets, StringComparison.Ordinal);
@@ -49773,68 +49779,89 @@ namespace PRoConEvents
                     // Assault Rifles
                     var AR = new ChallengeRule(_plugin)
                     {
-                        Name = "Assault Rifles",
-                        Code = "AR",
-                        GameVersion = GameVersion.BF4,
-                        Enabled = false,
+                        RuleID = 1,
+                        Name = "Assault Rifles"
                     };
-                    AR.WeaponKillRequirements["U_AEK971"] = 4;
-                    AR.WeaponKillRequirements["U_AK12"] = 4;
-                    AR.WeaponKillRequirements["U_AN94"] = 4;
-                    AR.WeaponKillRequirements["U_AR160"] = 4;
-                    AR.WeaponKillRequirements["U_Bulldog"] = 0;
-                    AR.WeaponKillRequirements["U_CZ805"] = 0;
-                    AR.WeaponKillRequirements["U_F2000"] = 0;
-                    AR.WeaponKillRequirements["U_FAMAS"] = 0;
-                    AR.WeaponKillRequirements["U_GalilACE23"] = 0;
-                    AR.WeaponKillRequirements["U_L85A2"] = 0;
-                    AR.WeaponKillRequirements["U_M16A4"] = 0;
-                    AR.WeaponKillRequirements["U_M416"] = 0;
-                    AR.WeaponKillRequirements["U_QBZ951"] = 0;
-                    AR.WeaponKillRequirements["U_SAR21"] = 0;
-                    AR.WeaponKillRequirements["U_SCAR-H"] = 0;
-                    AR.WeaponKillRequirements["U_SteyrAug"] = 0;
+                    AR.AddDetail(new ChallengeRule.Detail()
+                    {
+                        RuleID = 1,
+                        DetailID = 1,
+                        Type = ChallengeRule.Detail.DetailType.Damage,
+                        Damage = DamageTypes.AssaultRifle,
+                        WeaponCount = 5,
+                        KillCount = 5
+                    });
                     Rules.Add(AR);
 
                     // Carbine
                     var CA = new ChallengeRule(_plugin)
                     {
-                        Name = "Carbines",
-                        Code = "CA",
-                        GameVersion = GameVersion.BF4,
-                        Enabled = false,
+                        RuleID = 2,
+                        Name = "Carbines"
                     };
-                    AR.WeaponKillRequirements["U_A91"] = 4;
-                    AR.WeaponKillRequirements["U_ACR"] = 4;
-                    AR.WeaponKillRequirements["U_AK5C"] = 4;
-                    AR.WeaponKillRequirements["U_AKU12"] = 4;
-                    AR.WeaponKillRequirements["U_G36C"] = 0;
-                    AR.WeaponKillRequirements["U_GalilACE"] = 0;
-                    AR.WeaponKillRequirements["U_GalilACE52"] = 0;
-                    AR.WeaponKillRequirements["U_Groza-1"] = 0;
-                    AR.WeaponKillRequirements["U_M4A1"] = 0;
-                    AR.WeaponKillRequirements["U_MTAR21"] = 0;
-                    AR.WeaponKillRequirements["U_SG553LB"] = 0;
-                    AR.WeaponKillRequirements["U_Type95B"] = 0;
+                    CA.AddDetail(new ChallengeRule.Detail()
+                    {
+                        RuleID = 2,
+                        DetailID = 1,
+                        Type = ChallengeRule.Detail.DetailType.Damage,
+                        Damage = DamageTypes.AssaultRifle,
+                        WeaponCount = 5,
+                        KillCount = 5
+                    });
                     Rules.Add(CA);
+
+                    // 2 DMRs
+                    var DMR = new ChallengeRule(_plugin)
+                    {
+                        RuleID = 3,
+                        Name = "2 DMRs"
+                    };
+                    DMR.AddDetail(new ChallengeRule.Detail()
+                    {
+                        RuleID = 3,
+                        DetailID = 1,
+                        Type = ChallengeRule.Detail.DetailType.Weapon,
+                        Weapon = "U_SKS",
+                        KillCount = 5
+                    });
+                    DMR.AddDetail(new ChallengeRule.Detail()
+                    {
+                        RuleID = 3,
+                        DetailID = 2,
+                        Type = ChallengeRule.Detail.DetailType.Weapon,
+                        Weapon = "U_MK11",
+                        KillCount = 5
+                    });
+                    Rules.Add(DMR);
                 }
             }
 
             public class ChallengeRule
             {
+
                 private AdKats _plugin;
 
+                public Int32 RuleID;
                 public String Name;
-                public String Code;
-                // Default to BF3
-                public GameVersion GameVersion = GameVersion.BF3;
-                public Boolean Enabled;
-                public Dictionary<String, Int32> WeaponKillRequirements;
+
+                // Damage Based Challenge
+                public List<Detail> ChallengeDetails
+                {
+                    get; private set;
+                }
+                private Dictionary<String, Int32> WeaponKillMapping;
 
                 public ChallengeRule(AdKats plugin)
                 {
                     _plugin = plugin;
-                    WeaponKillRequirements = new Dictionary<string, int>();
+                    ChallengeDetails = new List<Detail>();
+                    WeaponKillMapping = new Dictionary<string, int>();
+                }
+
+                public void AddDetail(Detail detail)
+                {
+                    ChallengeDetails.Add(detail);
+                    BuildWeaponKillMapping();
                 }
 
                 public Boolean KillValid(AKill aKill)
@@ -49848,19 +49875,118 @@ namespace PRoConEvents
                         _plugin.Log.Info("Kill was invalid for challenge rule " + Name + ".");
                         return false;
                     }
-                    // Check for invalid weapon
-                    if (!WeaponKillRequirements.ContainsKey(aKill.weaponCode))
+                    // Default to the kill being invalid
+                    var killValid = false;
+                    foreach (var detail in ChallengeDetails)
                     {
-                        _plugin.Log.Info("Rule " + Name + " does not include weapon " + aKill.weaponCode + ".");
-                        return false;
+                        switch (detail.Type)
+                        {
+                            case Detail.DetailType.None:
+                                _plugin.Log.Error("No kills are valid for a NONE rule type.");
+                                return false;
+                            case Detail.DetailType.Damage:
+                                // Check for matching damage
+                                if (detail.WeaponCount > 0 &&
+                                    detail.KillCount > 0 &&
+                                    detail.Damage == aKill.weaponDamage)
+                                {
+                                    return true;
+                                }
+                                break;
+                            case Detail.DetailType.Weapon:
+                                // Check for matching weapon
+                                if (detail.KillCount > 0 &&
+                                    detail.Weapon == aKill.weaponCode)
+                                {
+                                    return true;
+                                }
+                                break;
+                        }
                     }
-                    return true;
+                    _plugin.Log.Info("Rule " + Name + " does not include weapon " + aKill.weaponCode + ".");
+                    return false;
                 }
 
-                public ChallengeRuleStatus GetCompletionStatus(List<AKill> Kills, String currentWeaponCode)
+                public void BuildWeaponKillMapping()
                 {
-                    var status = new ChallengeRuleStatus();
-                    foreach (var pair in WeaponKillRequirements)
+                    var weaponKillMapping = new Dictionary<String, Int32>();
+                    foreach (var detail in ChallengeDetails)
+                    {
+                        switch (detail.Type)
+                        {
+                            case Detail.DetailType.None:
+                                _plugin.Log.Error("Detail " + detail.DetailID + " was invalid. It has no detail type, damage or weapon.");
+                                continue;
+                            case Detail.DetailType.Damage:
+                                // Invalid detail handling
+                                if (detail.Damage == DamageTypes.None ||
+                                    detail.WeaponCount <= 0 ||
+                                    detail.KillCount <= 0)
+                                {
+                                    _plugin.Log.Error("Detail " + detail.DetailID + " was invalid. Fix the damage type, weapon count, or kill count.");
+                                    continue;
+                                }
+
+                                // Get all the weapon codes for the current damage type
+                                var weaponCodes = _plugin.WeaponDictionary.WeaponTypes
+                                                         .Where(pair => pair.Value == detail.Damage)
+                                                         .Select(pair => pair.Key).Distinct().ToList();
+
+                                // Loop over all the weapons for the damage type
+                                var weaponsAdded = 0;
+                                foreach (var ruleWeaponCode in weaponCodes)
+                                {
+                                    // Do not add more than the number of weapons required
+                                    if (weaponsAdded >= detail.WeaponCount)
+                                    {
+                                        break;
+                                    }
+                                    // If the weapon doesn't exist, add it
+                                    if (weaponKillMapping.ContainsKey(ruleWeaponCode))
+                                    {
+                                        weaponKillMapping[ruleWeaponCode] = 0;
+                                    }
+                                    // Increment the count of the weapon kills by the required count
+                                    weaponKillMapping[ruleWeaponCode] += detail.KillCount;
+                                    weaponsAdded++;
+                                }
+                                break;
+                            case Detail.DetailType.Weapon:
+                                // Invalid detail handling
+                                if (String.IsNullOrEmpty(detail.Weapon) ||
+                                    detail.KillCount <= 0)
+                                {
+                                    _plugin.Log.Error("Detail " + detail.DetailID + " was invalid. Fix the weapon code, or kill count.");
+                                    continue;
+                                }
+                                
+                                // If the weapon doesn't exist, add it
+                                if (weaponKillMapping.ContainsKey(detail.Weapon))
+                                {
+                                    weaponKillMapping[detail.Weapon] = 0;
+                                }
+                                // Increment the count of the weapon kills by the required count
+                                weaponKillMapping[detail.Weapon] += detail.KillCount;
+                                break;
+                        }
+                    }
+                    foreach (var weapon in weaponKillMapping)
+                    {
+                        _plugin.Log.Info("RULE: " + Name + ": " + weapon.Key + ":" + weapon.Value);
+                    }
+                    WeaponKillMapping = weaponKillMapping;
+                }
+
+                public RuleStatus GetCompletionStatus(List<AKill> Kills, String currentWeaponCode)
+                {
+                    if (!ChallengeDetails.Any())
+                    {
+                        _plugin.Log.Error("Cannot return completion status, no damage types added.");
+                        return null;
+                    }
+
+                    var status = new RuleStatus();
+                    foreach (var pair in WeaponKillMapping)
                     {
                         var reqWeapon = pair.Key;
                         var reqKills = pair.Value;
@@ -49876,27 +50002,38 @@ namespace PRoConEvents
                         // Add the weapon to the incomplete list
                         var matchingKills = Kills.Where(aKill => aKill.weaponCode == reqWeapon);
 
+                        var weaponKillCount = Math.Min(matchingKills.Count(), reqKills);
+
                         // Increment the counts
                         status.totalRequiredKills += reqKills;
-                        status.totalCompletedKills += matchingKills.Count();
+                        status.totalCompletedKills += weaponKillCount;
 
-                        String weaponName = _plugin.WeaponNameDictionary.GetShortWeaponNameByCode(reqWeapon);
+                        String weaponName = _plugin.WeaponDictionary.GetShortWeaponNameByCode(reqWeapon);
                         if (!String.IsNullOrEmpty(currentWeaponCode) &&
                             reqWeapon == currentWeaponCode)
                         {
-                            status.currentWeaponPercentage = Math.Min(Math.Round(100.0 * matchingKills.Count() / reqKills), 100);
-                            status.currentWeaponStatus = Name + " " + weaponName + " [" + matchingKills.Count() + "/" + reqKills + "][" + status.currentWeaponPercentage + "]";
+                            status.currentWeaponPercentage = Math.Min(Math.Round(100.0 * weaponKillCount / reqKills), 100);
+                            status.currentWeaponStatus = Name + " " + weaponName + " [" + weaponKillCount + "/" + reqKills + "][" + status.currentWeaponPercentage + "%]";
                         }
-                        if (matchingKills.Count() < reqKills)
+                        if (weaponKillCount < reqKills)
                         {
                             status.incompleteWeapons.Add(weaponName);
                         }
                     }
+                    if (status.totalRequiredKills <= 0)
+                    {
+                        _plugin.Log.Error("Cannot return completion status. Total required kills must be positive. Current: " + status.totalRequiredKills);
+                        return null;
+                    }
                     status.completionPercentage = Math.Min(Math.Round(100.0 * status.totalCompletedKills / status.totalRequiredKills), 100);
+                    if (!String.IsNullOrEmpty(status.currentWeaponStatus))
+                    {
+                        status.currentWeaponStatus += "[" + status.completionPercentage + "%]";
+                    }
                     return status;
                 }
 
-                public class ChallengeRuleStatus
+                public class RuleStatus
                 {
                     public Double completionPercentage;
                     public List<String> incompleteWeapons;
@@ -49905,30 +50042,51 @@ namespace PRoConEvents
                     public Double totalRequiredKills;
                     public Double totalCompletedKills;
 
-                    public ChallengeRuleStatus()
+                    public RuleStatus()
                     {
                         incompleteWeapons = new List<string>();
                     }
+                }
+
+                public class Detail
+                {
+                    public enum DetailType
+                    {
+                        None,
+                        Weapon,
+                        Damage
+                    }
+                    public static String DetailTypeEnumString = "enum.ChallengeRuleDetailType(None|Weapon|Damage)";
+
+                    public Int32 DetailID;
+                    public Int32 RuleID;
+                    public DetailType Type = DetailType.None;
+                    public DamageTypes Damage = DamageTypes.None;
+                    public Int32 WeaponCount;
+                    public String Weapon;
+                    public Int32 KillCount;
                 }
             }
 
             public class ChallengeEntry
             {
                 private AdKats _plugin;
+                private AChallengeManager Manager;
 
                 private APlayer Player;
                 public ChallengeRule Rule;
                 public List<AKill> Kills;
 
-                public ChallengeEntry(APlayer player, AdKats plugin)
+                public ChallengeEntry(AdKats plugin, AChallengeManager manager, APlayer player)
                 {
                     _plugin = plugin;
+                    Manager = manager;
                     Player = player;
                     
                     Kills = new List<AKill>();
                 }
 
-                public Double GetCompletionStatus()
+                public Double GetCompletionPercentage()
                 {
                     return Rule.GetCompletionStatus(Kills, null).completionPercentage;
                 }
@@ -49942,9 +50100,9 @@ namespace PRoConEvents
                         return false;
                     }
                     // Check for invalid rule
-                    if (Rule == null || !Rule.Enabled)
+                    if (Rule == null)
                     {
-                        _plugin.Log.Warn("Rule was null or disabled when trying to add kill: " + aKill.ToString());
+                        _plugin.Log.Warn("Rule was null when trying to add kill: " + aKill.ToString());
                         return false;
                     }
                     // Check for invalid kill
@@ -50335,7 +50493,7 @@ namespace PRoConEvents
         public class AKill
         {
             public String weaponCode;
-            public DamageTypes weaponCategory;
+            public DamageTypes weaponDamage;
             public APlayer killer;
             public APlayer victim;
             public CPlayerInfo killerCPI;
@@ -51917,19 +52075,48 @@ namespace PRoConEvents
             }
         }
 
-        public class AWeaponNameDictionary
+        public class AWeaponDictionary
         {
-            private readonly Dictionary<String, AWeaponName> _weaponNames = new Dictionary<String, AWeaponName>();
+            public readonly Dictionary<String, AWeaponName> WeaponNames = new Dictionary<String, AWeaponName>();
+            public readonly Dictionary<String, DamageTypes> WeaponTypes = new Dictionary<String, DamageTypes>();
+            public String DamageTypeEnumString = "";
+            public String WeaponNameEnumString = "";
             private GameVersion _gameVersion;
 
             private Logger Log;
             private Utilities Util;
 
-            public AWeaponNameDictionary(Logger log, Utilities util, GameVersion gameVersion)
+            public AWeaponDictionary(Logger log, Utilities util, GameVersion gameVersion, WeaponDictionary dic)
             {
                 Log = log;
                 Util = util;
                 _gameVersion = gameVersion;
+                
+                // Populate the weapon type dictionary
+                foreach (Weapon weapon in dic)
+                {
+                    if (weapon != null && !WeaponTypes.ContainsKey(weapon.Name))
+                    {
+                        WeaponTypes.Add(weapon.Name, weapon.Damage);
+                    }
+                }
+
+                //Fill the damage type setting enum string
+                Random random = new Random(Environment.TickCount);
+                DamageTypeEnumString = String.Empty;
+                foreach (DamageTypes damageType in Enum.GetValues(typeof(DamageTypes)).Cast<DamageTypes>())
+                {
+                    if (String.IsNullOrEmpty(DamageTypeEnumString))
+                    {
+                        DamageTypeEnumString += "enum.DamageTypeEnum_" + random.Next(100000, 999999) + "(";
+                    }
+                    else
+                    {
+                        DamageTypeEnumString += "|";
+                    }
+                    DamageTypeEnumString += damageType;
+                }
+                DamageTypeEnumString += ")";
             }
 
             public Boolean PopulateWeaponNameDictionaries()
@@ -51954,13 +52141,30 @@ namespace PRoConEvents
                         String shortName = (String)((Hashtable)currentWeapon.Value)["readable_short"];
                         String longName = (String)((Hashtable)currentWeapon.Value)["readable_long"];
                         //Add the weapon name
-                        _weaponNames[weaponCode] = new AWeaponName()
+                        WeaponNames[weaponCode] = new AWeaponName()
                         {
                             weapon_game = _gameVersion,
                             readable_short = shortName,
                             readable_long = longName
                         };
                     }
+
+                    //Fill the weapon name enum string
+                    Random random = new Random(Environment.TickCount);
+                    WeaponNameEnumString = String.Empty;
+                    foreach (var weaponName in WeaponNames.Values)
+                    {
+                        if (String.IsNullOrEmpty(WeaponNameEnumString))
+                        {
+                            WeaponNameEnumString += "enum.DamageTypeEnum_" + random.Next(100000, 999999) + "(None|";
+                        }
+                        else
+                        {
+                            WeaponNameEnumString += "|";
+                        }
+                        WeaponNameEnumString += weaponName.readable_short;
+                    }
+                    WeaponNameEnumString += ")";
                 }
                 catch (Exception e)
                 {
@@ -52007,11 +52211,21 @@ namespace PRoConEvents
                 return weaponNames;
             }
 
+            public DamageTypes GetDamageType(String damageType)
+            {
+                DamageTypes category;
+                if (!WeaponTypes.TryGetValue(damageType, out category))
+                {
+                    category = DamageTypes.None;
+                }
+                return category;
+            }
+
             public String GetWeaponCodeByShortName(String weaponShortName)
             {
                 if (!String.IsNullOrEmpty(weaponShortName))
                 {
-                    foreach (var pairs in _weaponNames)
+                    foreach (var pairs in WeaponNames)
                     {
                         if (pairs.Value != null &&
                             pairs.Value.readable_short == weaponShortName)
@@ -52020,7 +52234,8 @@ namespace PRoConEvents
                         }
                     }
                 }
-                return "UnknownWeapon-GWCBSN";
+                Log.HandleException(new AException("Unable to get weapon CODE for NAME '" + weaponShortName + "'"));
+                return weaponShortName;
             }
             
             public String GetShortWeaponNameByCode(String weaponCode)
@@ -52031,10 +52246,10 @@ namespace PRoConEvents
                     Log.HandleException(new AException("weaponCode was null when fetching weapon name"));
                     return null;
                 }
-                _weaponNames.TryGetValue(weaponCode, out weaponName);
+                WeaponNames.TryGetValue(weaponCode, out weaponName);
                 if (weaponName == null)
                 {
-                    Log.HandleException(new AException("Unable to get weapon name for code '" + weaponCode + "'"));
+                    Log.HandleException(new AException("Unable to get weapon NAME for CODE '" + weaponCode + "'"));
                     return weaponCode;
                 }
                 return weaponName.readable_short;
@@ -52048,10 +52263,10 @@ namespace PRoConEvents
                     Log.HandleException(new AException("weaponCode was null when fetching weapon name"));
                     return null;
                 }
-                _weaponNames.TryGetValue(weaponCode, out weaponName);
+                WeaponNames.TryGetValue(weaponCode, out weaponName);
                 if (weaponName == null)
                 {
-                    Log.HandleException(new AException("Unable to get weapon name for code '" + weaponCode + "'"));
+                    Log.HandleException(new AException("Unable to get weapon NAME for CODE '" + weaponCode + "'"));
                     return weaponCode;
                 }
                 return weaponName.readable_short;
