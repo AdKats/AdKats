@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.32
+ * Version 7.0.1.33
  * 12-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.32</version_code>
+ * <version_code>7.0.1.33</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.32";
+        private const String PluginVersion = "7.0.1.33";
 
         public enum GameVersion
         {
@@ -2670,7 +2670,7 @@ namespace PRoConEvents
                                 }
                                 else if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.Weapon)
                                 {
-                                    buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.DamageTypeEnumString, WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
+                                    buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.WeaponNameEnumString, WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
                                 }
                                 buildList.Add(new CPluginVariable(detailPrefix + "Kill Count", typeof(Int32), detail.KillCount));
 
@@ -52241,7 +52241,7 @@ namespace PRoConEvents
                     //Fill the weapon name enum string
                     Random random = new Random(Environment.TickCount);
                     WeaponNameEnumString = String.Empty;
-                    foreach (var weaponName in WeaponNames.Values)
+                    foreach (var weaponName in WeaponNames.Values.Select(name => name.readable_short).Distinct())
                     {
                         if (String.IsNullOrEmpty(WeaponNameEnumString))
                         {
@@ -52251,7 +52251,7 @@ namespace PRoConEvents
                         {
                             WeaponNameEnumString += "|";
                         }
-                        WeaponNameEnumString += weaponName.readable_short;
+                        WeaponNameEnumString += weaponName;
                     }
                     WeaponNameEnumString += ")";
                 }
