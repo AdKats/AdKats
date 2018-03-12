@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.25
- * 22-MAR-2018
+ * Version 7.0.1.26
+ * 12-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.25</version_code>
+ * <version_code>7.0.1.26</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.25";
+        private const String PluginVersion = "7.0.1.26";
 
         public enum GameVersion
         {
@@ -584,6 +584,7 @@ namespace PRoConEvents
         private String _surrenderAutoNukeMessage = "Nuking %WinnerName% for baserape!";
         private Int32 _NukeCountdownDurationSeconds = 0;
         private Int32 _NukeWinningTeamUpTicketCount = 9999;
+        private Boolean _NukeWinningTeamUpTicketHigh = true;
 
         //EmailHandler
         private EmailHandler _EmailHandler;
@@ -676,6 +677,9 @@ namespace PRoConEvents
         private Boolean _DiscordPlayerPerksBalanceWhitelist;
         private Boolean _DiscordPlayerPerksPingWhitelist;
         private Boolean _DiscordPlayerPerksTeamKillTrackerWhitelist;
+
+        //Challenge
+        private AChallengeManager ChallengeManager;
 
         //AntiCheat
         private Boolean _useAntiCheatLIVESystem = true;
@@ -924,6 +928,7 @@ namespace PRoConEvents
             AddSettingSection("B29", "Discord Player Monitor Settings");
             AddSettingSection("C30", "Team Power Monitor");
             AddSettingSection("C31", "Weapon Limiter Settings");
+            AddSettingSection("C32", "Challenge Settings");
             AddSettingSection("D98", "Database Timing Mismatch");
             AddSettingSection("D99", "Debugging");
             AddSettingSection("X99", "Experimental");
@@ -2353,6 +2358,7 @@ namespace PRoConEvents
                             buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Minimum Seconds Between Nukes", typeof(Int32), _surrenderAutoNukeMinBetween));
                             buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Countdown Duration before a Nuke is fired", typeof(Int32), _NukeCountdownDurationSeconds));
                             buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Fire Nuke Triggers if Winning Team up by X Tickets", typeof(Int32), _NukeWinningTeamUpTicketCount));
+                            buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Only fire ticket difference nukes in high population", typeof(Boolean), _NukeWinningTeamUpTicketHigh));
                             buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Announce Nuke Preparation to Players", typeof(Boolean), _surrenderAutoAnnounceNukePrep));
                             buildList.Add(new CPluginVariable(GetSettingSection("B25-2") + t + "Allow Auto-Nuke to fire on losing teams", typeof(Boolean), _surrenderAutoNukeLosingTeams));
                             if (_surrenderAutoNukeLosingTeams)
@@ -2628,6 +2634,42 @@ namespace PRoConEvents
             }
         }
 
+        public void BuildChallengeSettings(List<CPluginVariable> lstReturn)
+        {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
+            var challengeSettings = "C32";
+            try
+            {
+                if (IsActiveSettingSection(challengeSettings))
+                {
+                    buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
+                    if (ChallengeManager.Enabled)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [1] Displays" + t + "Current Rule (Display)", typeof(String), ChallengeManager.GetCurrentRuleName()));
+
+                        buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2]" + t + "Placeholder", typeof(String), ""));
+
+                        foreach (var rule in ChallengeManager.Rules)
+                        {
+                            buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [3] Rules" + t + "CRC-" + rule.Code + s + "Enable", typeof(Boolean), rule.Enabled));
+                            foreach (var weapon in rule.WeaponKillRequirements)
+                            {
+                                var weaponCode = weapon.Key;
+                                var killRequirement = weapon.Value;
+                                buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [3] Rules" + t + "CRC-" + rule.Code + s + "CWC-" + WeaponNameDictionary.GetShortWeaponNameByCode(weaponCode), typeof(String), ChallengeManager.GetCurrentRuleName()));
+                            }
+                        }
+                    }
+                }
+                lstReturn.AddRange(buildList);
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error building challenge settings section.", e));
+                lstReturn.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Failed to build setting section.", typeof(String), ""));
+            }
+        }
+
         public void BuildDebugSettings(List<CPluginVariable> lstReturn)
         {
             List<CPluginVariable> buildList = new List<CPluginVariable>();
@@ -2867,6 +2909,8 @@ namespace PRoConEvents
                     BuildTeamPowerSettings(lstReturn);
 
                     BuildWeaponLimiterSettings(lstReturn);
+
+                    BuildChallengeSettings(lstReturn);
 
                     BuildDebugSettings(lstReturn);
 
@@ -3977,6 +4021,16 @@ namespace PRoConEvents
                         _surrenderAutoNukeResolveAfterMax = surrenderAutoNukeResolveAfterMax;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Switch to surrender after max nukes", typeof(Boolean), _surrenderAutoNukeResolveAfterMax));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Only fire ticket difference nukes in high population").Success)
+                {
+                    Boolean NukeWinningTeamUpTicketHigh = Boolean.Parse(strValue);
+                    if (NukeWinningTeamUpTicketHigh != _NukeWinningTeamUpTicketHigh)
+                    {
+                        _NukeWinningTeamUpTicketHigh = NukeWinningTeamUpTicketHigh;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Only fire ticket difference nukes in high population", typeof(Boolean), _NukeWinningTeamUpTicketHigh));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Announce Nuke Preparation to Players").Success)
@@ -10278,6 +10332,9 @@ namespace PRoConEvents
 
             //Initialize the weapon name dictionary
             WeaponNameDictionary = new AWeaponNameDictionary(Log, Util, _gameVersion);
+            
+            //Initialize the challenge manager
+            ChallengeManager = new AChallengeManager(this);
         }
 
         public override void OnVersion(String serverType, String version)
@@ -13084,7 +13141,7 @@ namespace PRoConEvents
                                     {
                                         var t1Duration = TimeSpan.FromMinutes(team1.TeamTicketCount / Math.Abs(t1RawRate));
                                         var t2Duration = TimeSpan.FromMinutes(team2.TeamTicketCount / Math.Abs(t2RawRate));
-                                        if (Math.Abs((t1Duration - t2Duration).TotalSeconds) < 120)
+                                        if (Math.Abs((t1Duration - t2Duration).TotalSeconds) < 60)
                                         {
                                             winMessage = " | Unsure of winning team.";
                                         }
@@ -13291,7 +13348,8 @@ namespace PRoConEvents
                                                           upRate >= config_mapUp_rate_min;
                                     var validTicketBasedNuke = config_action == AutoSurrenderAction.Nuke &&
                                                                mapUpTeam == winningTeam &&
-                                                               ticketGap > _NukeWinningTeamUpTicketCount;
+                                                               ticketGap > _NukeWinningTeamUpTicketCount &&
+                                                               (!_NukeWinningTeamUpTicketHigh || _populationStatus == PopulationState.High);
                                     var validTeams = config_action == AutoSurrenderAction.Nuke ||
                                                      winningTeam == mapUpTeam;
                                     if ((validRateWindow || validTicketBasedNuke) &&
@@ -20465,8 +20523,11 @@ namespace PRoConEvents
                             {
                                 lock (_AssistAttemptQueue)
                                 {
-                                    if (_AssistAttemptQueue.Any(assistRecord => assistRecord.target_player.player_id == record.target_player.player_id))
+                                    var aRecord = _AssistAttemptQueue.FirstOrDefault(assistRecord => assistRecord.target_player.player_id == record.target_player.player_id);
+                                    if (aRecord != null)
                                     {
+                                        // Refresh the creation time since they manually requested it again
+                                        aRecord.record_creationTime = UtcNow();
                                         SendMessageToSource(record, Log.CViolet("You are already queued for automatic assist. You will be moved if possible."));
                                         FinalizeRecord(record);
                                         return;
@@ -28771,7 +28832,7 @@ namespace PRoConEvents
                         {
                             banDurationString = FormatTimeString(totalTime, 2) + " (" + FormatTimeString(remainingTime, 2) + ")";
                         }
-                        AdminSayMessage("Enforcing " + banDurationString + " ban on " + aBan.ban_record.GetTargetNames() + " for " + aBan.ban_record.record_message);
+                        AdminSayMessage(Log.FBold(Log.CRed("Enforcing " + banDurationString + " ban on " + aBan.ban_record.GetTargetNames() + " for " + aBan.ban_record.record_message)));
                     }
                 }
             }
@@ -28965,7 +29026,7 @@ namespace PRoConEvents
                 if (record.record_exception == null)
                 {
                     Int32 points = FetchPoints(record.target_player, false, true);
-                    PlayerSayMessage(record.target_player.player_name, Log.FBold(Log.CGreen("Forgiven 1 infraction point. You now have " + points + " point(s) against you.")));
+                    PlayerSayMessage(record.target_player.player_name, Log.CGreen("Forgiven 1 infraction point. You now have " + points + " point(s) against you."));
                     SendMessageToSource(record, "Forgive Logged for " + record.GetTargetNames() + ". They now have " + points + " infraction points.");
                     record.target_player.LastForgive = record;
                 }
@@ -36536,6 +36597,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeInstead));
                 QueueSettingForUpload(new CPluginVariable(@"Fire Nuke Triggers if Winning Team up by X Tickets", typeof(Int32), _NukeWinningTeamUpTicketCount));
                 QueueSettingForUpload(new CPluginVariable(@"Switch to surrender after max nukes", typeof(Boolean), _surrenderAutoNukeResolveAfterMax));
+                QueueSettingForUpload(new CPluginVariable(@"Only fire ticket difference nukes in high population", typeof(Boolean), _NukeWinningTeamUpTicketHigh));
                 QueueSettingForUpload(new CPluginVariable(@"Announce Nuke Preparation to Players", typeof(Boolean), _surrenderAutoAnnounceNukePrep));
                 QueueSettingForUpload(new CPluginVariable(@"Allow Auto-Nuke to fire on losing teams", typeof(Boolean), _surrenderAutoNukeLosingTeams));
                 QueueSettingForUpload(new CPluginVariable(@"Maximum Nuke Ticket Difference for Losing Team", typeof(Int32), _surrenderAutoNukeLosingMaxDiff));
@@ -49672,12 +49734,238 @@ namespace PRoConEvents
 
         public class AChallengeManager
         {
+            private AdKats _plugin;
 
-            public class Rule
+            public Boolean Enabled;
+            public ChallengeRule CurrentRule;
+            public Boolean AllowRepeatRules;
+            public List<ChallengeRule> Rules;
+            public Dictionary<APlayer, ChallengeEntry> Entries;
+            
+            public AChallengeManager(AdKats plugin)
             {
+                _plugin = plugin;
+                Rules = new List<ChallengeRule>();
+                Entries = new Dictionary<APlayer, ChallengeEntry>();
+            }
+
+            public String GetCurrentRuleName()
+            {
+                return CurrentRule != null ? CurrentRule.Name : "No Current Rule";
+            }
+
+            private void PopulateRules()
+            {
+                if (_plugin._gameVersion == GameVersion.BF4)
+                {
+                    // Assault Rifles
+                    var AR = new ChallengeRule(_plugin)
+                    {
+                        Name = "Assault Rifles",
+                        Code = "AR",
+                        GameVersion = GameVersion.BF4,
+                        Enabled = false,
+                    };
+                    AR.WeaponKillRequirements["U_AEK971"] = 4;
+                    AR.WeaponKillRequirements["U_AK12"] = 4;
+                    AR.WeaponKillRequirements["U_AN94"] = 4;
+                    AR.WeaponKillRequirements["U_AR160"] = 4;
+                    AR.WeaponKillRequirements["U_Bulldog"] = 0;
+                    AR.WeaponKillRequirements["U_CZ805"] = 0;
+                    AR.WeaponKillRequirements["U_F2000"] = 0;
+                    AR.WeaponKillRequirements["U_FAMAS"] = 0;
+                    AR.WeaponKillRequirements["U_GalilACE23"] = 0;
+                    AR.WeaponKillRequirements["U_L85A2"] = 0;
+                    AR.WeaponKillRequirements["U_M16A4"] = 0;
+                    AR.WeaponKillRequirements["U_M416"] = 0;
+                    AR.WeaponKillRequirements["U_QBZ951"] = 0;
+                    AR.WeaponKillRequirements["U_SAR21"] = 0;
+                    AR.WeaponKillRequirements["U_SCAR-H"] = 0;
+                    AR.WeaponKillRequirements["U_SteyrAug"] = 0;
+                    Rules.Add(AR);
+
+                    // Carbine
+                    var CA = new ChallengeRule(_plugin)
+                    {
+                        Name = "Carbines",
+                        Code = "CA",
+                        GameVersion = GameVersion.BF4,
+                        Enabled = false,
+                    };
+                    AR.WeaponKillRequirements["U_A91"] = 4;
+                    AR.WeaponKillRequirements["U_ACR"] = 4;
+                    AR.WeaponKillRequirements["U_AK5C"] = 4;
+                    AR.WeaponKillRequirements["U_AKU12"] = 4;
+                    AR.WeaponKillRequirements["U_G36C"] = 0;
+                    AR.WeaponKillRequirements["U_GalilACE"] = 0;
+                    AR.WeaponKillRequirements["U_GalilACE52"] = 0;
+                    AR.WeaponKillRequirements["U_Groza-1"] = 0;
+                    AR.WeaponKillRequirements["U_M4A1"] = 0;
+                    AR.WeaponKillRequirements["U_MTAR21"] = 0;
+                    AR.WeaponKillRequirements["U_SG553LB"] = 0;
+                    AR.WeaponKillRequirements["U_Type95B"] = 0;
+                    Rules.Add(CA);
+                }
+            }
+
+            public class ChallengeRule
+            {
+                private AdKats _plugin;
+
                 public String Name;
+                public String Code;
+                // Default to BF3
+                public GameVersion GameVersion = GameVersion.BF3;
                 public Boolean Enabled;
-                public Dictionary<String, Int32> WeaponKillRequirement;
+                public Dictionary<String, Int32> WeaponKillRequirements;
+
+                public ChallengeRule(AdKats plugin)
+                {
+                    _plugin = plugin;
+                    WeaponKillRequirements = new Dictionary<string, int>();
+                }
+
+                public Boolean KillValid(AKill aKill)
+                {
+                    // Check for invalid kill
+                    if (aKill == null ||
+                        aKill.killer == null ||
+                        String.IsNullOrEmpty(aKill.weaponCode) ||
+                        aKill.victim == null)
+                    {
+                        _plugin.Log.Info("Kill was invalid for challenge rule " + Name + ".");
+                        return false;
+                    }
+                    // Check for invalid weapon
+                    if (!WeaponKillRequirements.ContainsKey(aKill.weaponCode))
+                    {
+                        _plugin.Log.Info("Rule " + Name + " does not include weapon " + aKill.weaponCode + ".");
+                        return false;
+                    }
+                    return true;
+                }
+
+                public Double GetCompletionPercentage(List<AKill> Kills)
+                {
+                    GetCompletionPercentage(Kills, null, out Double completionPercentage, out List<String> incompleteWeapons, out Double currentWeaponPercentage, out String currentWeaponStatus);
+                    return completionPercentage;
+                }
+
+                public void GetCompletionPercentage(List<AKill> Kills, 
+                                                    String currentWeaponCode, 
+                                                    out Double completionPercentage, 
+                                                    out List<String> incompleteWeapons, 
+                                                    out Double currentWeaponPercentage, 
+                                                    out String currentWeaponStatus)
+                {
+                    Double totalRequiredKills = 0;
+                    Double totalCompletedKills = 0;
+                    incompleteWeapons = new List<String>();
+                    currentWeaponPercentage = 0;
+                    currentWeaponStatus = null;
+                    foreach (var pair in WeaponKillRequirements)
+                    {
+                        var reqWeapon = pair.Key;
+                        var reqKills = pair.Value;
+
+                        // Do not include weapons that have their kill requirement at zero
+                        if (reqKills == 0)
+                        {
+                            continue;
+                        }
+
+                        // If the player has not completed any kills for the weapon
+                        // Or if they have not completed all the kills for a weapon
+                        // Add the weapon to the incomplete list
+                        var matchingKills = Kills.Where(aKill => aKill.weaponCode == reqWeapon);
+
+                        // Increment the counts
+                        totalRequiredKills += reqKills;
+                        totalCompletedKills += matchingKills.Count();
+
+                        String weaponName = _plugin.WeaponNameDictionary.GetShortWeaponNameByCode(reqWeapon);
+                        if (!String.IsNullOrEmpty(currentWeaponCode) &&
+                            reqWeapon == currentWeaponCode)
+                        {
+                            currentWeaponPercentage = Math.Min(Math.Round(100.0 * matchingKills.Count() / reqKills), 100);
+                            currentWeaponStatus = Name + " " + weaponName + " [" + matchingKills.Count() + "/" + reqKills + "][" + currentWeaponPercentage + "]";
+                        }
+                        if (matchingKills.Count() < reqKills)
+                        {
+                            incompleteWeapons.Add(weaponName);
+                        }
+                    }
+                    completionPercentage = Math.Min(Math.Round(100.0 * totalCompletedKills / totalRequiredKills), 100);
+                }
+            }
+
+            public class ChallengeEntry
+            {
+                private AdKats _plugin;
+
+                private APlayer Player;
+                public ChallengeRule Rule;
+                public List<AKill> Kills;
+
+                public ChallengeEntry(APlayer player, AdKats plugin)
+                {
+                    _plugin = plugin;
+                    Player = player;
+                    
+                    Kills = new List<AKill>();
+                }
+
+                public Double GetCompletionPercentage()
+                {
+                    return Rule.GetCompletionPercentage(Kills);
+                }
+
+                public Boolean AddKill(AKill aKill)
+                {
+                    // Check for invalid entry
+                    if (aKill.killer.player_id != Player.player_id)
+                    {
+                        _plugin.Log.Info("Kill player " + aKill.killer.GetVerboseName() + " did not match entry player " + Player.GetVerboseName() + ".");
+                        return false;
+                    }
+                    // Check for invalid rule
+                    if (Rule == null || !Rule.Enabled)
+                    {
+                        _plugin.Log.Warn("Rule was null or disabled when trying to add kill: " + aKill.ToString());
+                        return false;
+                    }
+                    // Check for invalid kill
+                    if (!Rule.KillValid(aKill))
+                    {
+                        return false;
+                    }
+                    // Everything is validated. Add the kill.
+                    Kills.Add(aKill);
+
+                    //Check for completion case.
+                    Rule.GetCompletionPercentage(Kills, 
+                                                 aKill.weaponCode, 
+                                                 out Double completionPercentage, 
+                                                 out List<String> incompleteWeapons, 
+                                                 out Double currentWeaponPercentage,
+                                                 out String weaponStatus);
+                    
+                    // Check for rule already fulfilled for this weapon
+                    if (currentWeaponPercentage >= 99.99)
+                    {
+                        if (completionPercentage >= 99.99)
+                        {
+                            _plugin.AdminTellMessage(Player.GetVerboseName() + " just completed the " + Rule.Name + " challenge! Congrats!");
+                        }
+                        // Check for completion of the entire challenge rule
+                        Player.Say(weaponStatus + " COMPLETED! Use the next weapon; " + incompleteWeapons.Count() + " remain.");
+                    }
+                    else
+                    {
+                        Player.Say(weaponStatus);
+                    }
+                    return true;
+                }
             }
         }
 
@@ -50049,6 +50337,15 @@ namespace PRoConEvents
             public Boolean IsTeamkill;
             public DateTime timestamp;
             public Int64 RoundID;
+
+            public override string ToString()
+            {
+                // Default values in case any are null;
+                String killerString = killer != null ? killer.GetVerboseName() : "UnknownKiller";
+                String methodString = !String.IsNullOrEmpty(weaponCode) ? weaponCode : "UnknownMethod";
+                String victimString = victim != null ? victim.GetVerboseName() : "UnknownVictim";
+                return killerString + " [" + methodString + "] " + victimString;
+            }
         }
 
         public class AMove
@@ -50687,10 +50984,7 @@ namespace PRoConEvents
             public APlayer source_player = null;
             public String target_name = null;
             public APlayer target_player = null;
-            public DateTime record_creationTime
-            {
-                get; private set;
-            }
+            public DateTime record_creationTime;
             public AccessMethod record_access = AccessMethod.HiddenInternal;
             public Boolean record_held;
             public Boolean record_orchestrate;
@@ -51703,6 +51997,22 @@ namespace PRoConEvents
                 }
                 Log.Debug(() => "Exiting FetchAWeaponNames", 7);
                 return weaponNames;
+            }
+
+            public String GetWeaponCodeByShortName(String weaponShortName)
+            {
+                if (!String.IsNullOrEmpty(weaponShortName))
+                {
+                    foreach (var pairs in _weaponNames)
+                    {
+                        if (pairs.Value != null &&
+                            pairs.Value.readable_short == weaponShortName)
+                        {
+                            return pairs.Key;
+                        }
+                    }
+                }
+                return "UnknownWeapon-GWCBSN";
             }
             
             public String GetShortWeaponNameByCode(String weaponCode)
