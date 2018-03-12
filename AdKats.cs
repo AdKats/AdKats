@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.27
+ * Version 7.0.1.28
  * 12-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.27</version_code>
+ * <version_code>7.0.1.28</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.27";
+        private const String PluginVersion = "7.0.1.28";
 
         public enum GameVersion
         {
@@ -5776,6 +5776,16 @@ namespace PRoConEvents
                     {
                         _factionRandomizerAllowRepeatSelection = allowRepeatSelections;
                         QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Allow Repeat Team Selections", typeof(Boolean), _factionRandomizerAllowRepeatSelection));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Use Challenge System").Success)
+                {
+                    Boolean enabled = Boolean.Parse(strValue);
+                    if (enabled != ChallengeManager.Enabled)
+                    {
+                        ChallengeManager.Enabled = enabled;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use NO EXPLOSIVES Limiter").Success)
