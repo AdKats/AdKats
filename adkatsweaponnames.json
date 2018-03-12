@@ -1658,9 +1658,13 @@
       "readable_short": "Phantom",
       "readable_long": "Phantom Bow"
     },
-    "U_Railgun": {
-      "readable_short": "Railgun",
-      "readable_long": "Rorsch MK-1"
+    "U_Groza-1": {
+      "readable_short": "Groza-1",
+      "readable_long": "Groza-1 Carbine"
+    },
+    "U_Groza-4": {
+      "readable_short": "Groza-4",
+      "readable_long": "Groza-4 PDW"
     }
   }
 }
