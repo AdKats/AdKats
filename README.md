@@ -1,7 +1,7 @@
 [//]: # "<latest_stable_release>7.0.1.0</latest_stable_release>"
 <p>
     <a name=adkats />
-    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg" alt="AdKats Advanced In-Game Admin Tools">
+    <img src="https://i.imgur.com/r9pwH3A.png" alt="AdKats Advanced In-Game Admin Tools">
 </p>
 <p>
     <b>New Extension! Click below to enforce BF4 loadouts on-spawn!</b>
