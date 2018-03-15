@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.33
- * 12-MAR-2018
+ * Version 7.0.1.34
+ * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.33</version_code>
+ * <version_code>7.0.1.34</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.33";
+        private const String PluginVersion = "7.0.1.34";
 
         public enum GameVersion
         {
@@ -9253,7 +9253,7 @@ namespace PRoConEvents
                             if (NowDuration(assistRecord.record_creationTime).TotalMinutes > 5.0)
                             {
                                 // If the record is more than 5 minutes old, get rid of it
-                                SendMessageToSource(assistRecord, Log.CViolet("Automatic assist has timed out. Please use assist again to re-queue yourself."));
+                                SendMessageToSource(assistRecord, Log.CViolet("Automatic assist has timed out. Please use !" + GetCommandByKey("self_assist").command_text + " again to re-queue yourself."));
                                 OnlineAdminSayMessage("Automatic assist timed out for " + assistRecord.GetSourceName());
                                 _AssistAttemptQueue.Dequeue();
                             }
@@ -14430,6 +14430,18 @@ namespace PRoConEvents
                     Log.Error("Round over players not found/ready! Contact ColColonCleaner.");
                 }
 
+                // Choose the next challenge if enabled
+                Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                {
+                    Thread.CurrentThread.Name = "ChallengeRoundEndWait";
+                    Thread.Sleep(TimeSpan.FromSeconds(10));
+                    if (ChallengeManager != null)
+                    {
+                        ChallengeManager.RunNextChallenge();
+                    }
+                    Threading.StopWatchdog();
+                })));
+
                 //Stat refresh
                 List<APlayer> roundPlayerObjects;
                 HashSet<Int64> roundPlayers;
@@ -14873,7 +14885,7 @@ namespace PRoConEvents
                             DamageTypes category = DamageTypes.None;
                             if (playerKill != null && !String.IsNullOrEmpty(playerKill.DamageType))
                             {
-                                category = WeaponDictionary.GetDamageType(playerKill.DamageType);
+                                category = WeaponDictionary.ParseDamageType(playerKill.DamageType);
                             }
                             if (!_DetectedWeaponCodes.Contains(playerKill.DamageType))
                             {
@@ -15764,6 +15776,7 @@ namespace PRoConEvents
                     }
                 }
 
+                var acted = false;
                 try
                 {
                     if (EventActive())
@@ -15796,6 +15809,7 @@ namespace PRoConEvents
                                     record_time = UtcNow(),
                                     record_message = recordMessage
                                 });
+                                acted = true;
                             }
                         }
                     }
@@ -15886,6 +15900,7 @@ namespace PRoConEvents
 
                                             //Process the record
                                             QueueRecordForProcessing(record);
+                                            acted = true;
                                         }
                                         else
                                         {
@@ -15904,6 +15919,21 @@ namespace PRoConEvents
                 catch (Exception e)
                 {
                     Log.HandleException(new AException("Error in no explosives auto-admin.", e));
+                }
+
+                try
+                {
+                    if (!acted &&
+                        ChallengeManager != null &&
+                        ChallengeManager.Enabled &&
+                        GetMatchingVerboseASPlayersOfGroup("challenge_play", aKill.killer).Any())
+                    {
+                        ChallengeManager.ProcessKill(aKill);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.HandleException(new AException("Error while running challenge kill processing.", e));
                 }
             }
             catch (Exception e)
@@ -16019,6 +16049,14 @@ namespace PRoConEvents
                         if (_useRoundTimer)
                         {
                             StartRoundTimer();
+                        }
+
+                        // Choose the next challenge if there is none currently assigned
+                        if (ChallengeManager != null &&
+                            ChallengeManager.Enabled &&
+                            ChallengeManager.CurrentRule == null)
+                        {
+                            ChallengeManager.RunNextChallenge();
                         }
                     }
 
@@ -19975,6 +20013,24 @@ namespace PRoConEvents
                             if (!GetMatchingASPlayersOfGroup("blacklist_allcaps", record.target_player).Any())
                             {
                                 SendMessageToSource(record, "Matching player not under all-caps chat blacklist.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_challenge_play":
+                            if (GetMatchingASPlayersOfGroup("challenge_play", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already in challenge playing status.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_challenge_ignore":
+                            if (!GetMatchingASPlayersOfGroup("challenge_play", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not in challenge playing status.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -24256,6 +24312,47 @@ namespace PRoConEvents
                             FinalizeRecord(record);
                         }
                         break;
+                    case "self_challenge":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            // Target for these commands is always the source.
+                            // If there is no source player, then only allow access to info.
+
+                            //Parse parameters using max param count
+                            String[] parameters = Util.ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    record.target_name = record.source_name;
+                                    record.record_message = "Requesting Challenge Info";
+                                    var info = ChallengeManager.GetChallengeInfo(record.source_player);
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Telling Player Rules";
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, false, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+
+
+                            if (record.record_source != ARecord.Sources.InGame)
+                            {
+                                SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                        }
+                        break;
                     case "self_rules":
                         {
                             //Remove previous commands awaiting confirmation
@@ -26701,6 +26798,163 @@ namespace PRoConEvents
                         }
                         FinalizeRecord(record);
                         break;
+                    case "player_challenge_play":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            String defaultReason = "Challenge Playing Status";
+
+                            //Parse parameters using max param count
+                            String[] parameters = Util.ParseParameters(remainingMessage, 3);
+
+                            if (parameters.Length > 0)
+                            {
+                                String stringDuration = parameters[0].ToLower();
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
+                                if (stringDuration == "perm")
+                                {
+                                    //20 years in minutes
+                                    record.command_numeric = 10518984;
+                                    defaultReason = "Permanent " + defaultReason;
+                                }
+                                else
+                                {
+                                    //Default is minutes
+                                    Double recordDuration = 0.0;
+                                    Double durationMultiplier = 1.0;
+                                    if (stringDuration.EndsWith("s"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('s');
+                                        durationMultiplier = (1.0 / 60.0);
+                                    }
+                                    else if (stringDuration.EndsWith("m"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('m');
+                                        durationMultiplier = 1.0;
+                                    }
+                                    else if (stringDuration.EndsWith("h"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('h');
+                                        durationMultiplier = 60.0;
+                                    }
+                                    else if (stringDuration.EndsWith("d"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('d');
+                                        durationMultiplier = 1440.0;
+                                    }
+                                    else if (stringDuration.EndsWith("w"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('w');
+                                        durationMultiplier = 10080.0;
+                                    }
+                                    else if (stringDuration.EndsWith("y"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('y');
+                                        durationMultiplier = 525949.0;
+                                    }
+                                    if (!Double.TryParse(stringDuration, out recordDuration))
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                    if (record.command_numeric <= 0)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
+                                }
+                            }
+
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    //No parameters
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    //time
+                                    if (record.record_source != ARecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = record.source_name;
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                case 2:
+                                    //time
+                                    //player
+                                    record.target_name = parameters[1];
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                case 3:
+                                    //time
+                                    //player
+                                    //reason
+                                    record.target_name = parameters[1];
+                                    Log.Debug(() => "target: " + record.target_name, 6);
+                                    record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
+                                    if (record.record_message == null)
+                                    {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    Log.Debug(() => "" + record.record_message, 6);
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_challenge_ignore":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = Util.ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != ARecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Challenge Ignore Status";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Challenge Ignore Status";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, true);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     default:
                         Log.Error("Unable to complete record for " + record.command_type.command_key + ", handler not found.");
                         FinalizeRecord(record);
@@ -27991,6 +28245,12 @@ namespace PRoConEvents
                         break;
                     case "player_blacklistreport_remove":
                         ReportSourceBlacklistRemoveTarget(record);
+                        break;
+                    case "player_challenge_play":
+                        ChallengePlayTarget(record);
+                        break;
+                    case "player_challenge_ignore":
+                        ChallengeIgnoreTarget(record);
                         break;
                     case "player_whitelistcommand":
                         CommandTargetWhitelistTarget(record);
@@ -31950,6 +32210,147 @@ namespace PRoConEvents
 
             //Start the thread
             Threading.StartWatchdog(reportAutoHandler);
+        }
+
+        public void ChallengePlayTarget(ARecord record)
+        {
+            Log.Debug(() => "Entering ChallengePlayTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "ChallengePlayTarget not available for multiple targets.");
+                    Log.Error("ChallengePlayTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("challenge_play", record.target_player);
+                if (matchingPlayers.Count > 0)
+                {
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the challenge playing status.");
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        INSERT INTO
+	                        `adkats_specialplayers`
+                        (
+	                        `player_group`,
+	                        `player_id`,
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
+                        )
+                        VALUES
+                        (
+	                        'challenge_play',
+	                        @player_id,
+	                        @player_name,
+	                        UTC_TIMESTAMP(),
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                        )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            Log.Error("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 10518984)
+                        {
+                            record.command_numeric = 10518984;
+                        }
+                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                        command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
+
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
+                        if (rowsAffected > 0)
+                        {
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " challenge playing status for all servers.";
+                            SendMessageToSource(record, message);
+                            Log.Debug(() => message, 3);
+                            FetchAllAccess(true);
+                        }
+                        else
+                        {
+                            Log.Error("Unable to add player to challenge playing status. Error uploading.");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AException("Error while taking action for challenge playing status.", e);
+                Log.HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting ChallengePlayTarget", 6);
+        }
+
+        public void ChallengeIgnoreTarget(ARecord record)
+        {
+            Log.Debug(() => "Entering ChallengeIgnoreTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "ChallengePlayRemoveTarget not available for multiple targets.");
+                    Log.Error("ChallengePlayRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("challenge_play", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the challenge playing status.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (ASpecialPlayer asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from challenge playing status.";
+                                Log.Debug(() => message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                Log.Error("Unable to remove player from challenge playing status. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from challenge playing status.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                Log.HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting ChallengeIgnoreTarget", 6);
         }
 
         public void PurgeExtendedRoundStats()
@@ -42571,6 +42972,16 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command player_loadout_ignore", "INSERT INTO `adkats_commands` VALUES(136, 'Active', 'player_loadout_ignore', 'Log', 'Ignore Player Loadout', 'iloadout', TRUE, 'AnyHidden')", true);
                                     newCommands = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(137))
+                                {
+                                    SendNonQuery("Adding command player_challenge_play", "INSERT INTO `adkats_commands` VALUES(137, 'Active', 'player_challenge_play', 'Log', 'Challenge Playing Status', 'challengeplay', TRUE, 'Any')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(138))
+                                {
+                                    SendNonQuery("Adding command player_challenge_ignore", "INSERT INTO `adkats_commands` VALUES(138, 'Active', 'player_challenge_ignore', 'Log', 'Challenge Ignoring Status', 'challengeignore', TRUE, 'Any')", true);
+                                    newCommands = true;
+                                }
                                 if (newCommands)
                                 {
                                     FetchCommands();
@@ -42727,6 +43138,8 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["poll_complete"] = "Completes the current active poll and runs its action.";
             _CommandDescriptionDictionary["server_nuke_winning"] = "Kills all players on the winning team.";
             _CommandDescriptionDictionary["player_loadout_ignore"] = "If AdKatsLRT is installed the targeted player is temporarily ignored for loadout enforcement.";
+            _CommandDescriptionDictionary["player_challenge_play"] = "A player under challenge playing status will be automatically enrolled in any active challenge.";
+            _CommandDescriptionDictionary["player_challenge_ignore"] = "A player under under challenge ignoring status will not be automatically enrolled in any active challenge.";
         }
 
         private void FillReadableMapModeDictionaries()
@@ -49781,6 +50194,74 @@ namespace PRoConEvents
                 }
             }
 
+            public String GetChallengeInfo(APlayer aPlayer)
+            {
+                if (CurrentRule == null)
+                {
+                    return "No challenge is currently active.";
+                }
+                if (aPlayer == null ||
+                    !Entries.ContainsKey(aPlayer))
+                {
+                    return "CHALLANGE ACTIVE!" + Environment.NewLine + CurrentRule.RuleInfo();
+                }
+                // The player is available and they have entries. Get their status.
+                var status = CurrentRule.GetCompletionStatus(Entries[aPlayer].Kills);
+                var info = aPlayer.GetVerboseName() + CurrentRule.Name + " CHALLENGE" + Environment.NewLine;
+                info += CurrentRule.RuleInfo() + Environment.NewLine;
+                info += "Completion: " + status.CompletionPercentage + "% | " + status.TotalCompletedKills + " Kills | " + status.TotalRequiredKills + " Required" + Environment.NewLine;
+                info += status.ToString();
+                return info;
+            }
+
+            public void RunNextChallenge()
+            {
+                try
+                {
+                    if (Enabled)
+                    {
+                        var possibleRules = Rules;
+                        // Exclude the current rule if desired
+                        if (CurrentRule != null &&
+                            !AllowRepeatRules &&
+                            possibleRules.Count > 1)
+                        {
+                            possibleRules = possibleRules.Where(rule => rule.RuleID != CurrentRule.RuleID).ToList();
+                        }
+                        if (CurrentRule != null &&
+                            Entries.Any())
+                        {
+                            var completed = Entries.Values.Where(entry => entry.Completed);
+                            _plugin.AdminTellMessage(CurrentRule.Name + " Challenge Ended!" + completed.Count() + " players completed it!");
+                            _plugin.Threading.Wait(5000);
+                        }
+
+                        // Remove the current rule
+                        CurrentRule = null;
+                        _plugin.Threading.Wait(100);
+                        // Clear all existing entries
+                        Entries.Clear();
+
+                        // Randomize the list and pick the first one
+                        var rng = new Random(Environment.TickCount);
+                        var chosenRule = possibleRules.OrderBy(rule => rng.Next()).FirstOrDefault();
+                        if (chosenRule != null)
+                        {
+                            CurrentRule = chosenRule;
+                            _plugin.AdminTellMessage(CurrentRule.Name + " Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
+                        }
+                        else
+                        {
+                            _plugin.Log.Error("Unable to select rule for challenge.");
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while running next challenge.", e));
+                }
+            }
+
             public String GetCurrentRuleName()
             {
                 try
@@ -49865,6 +50346,29 @@ namespace PRoConEvents
                 }
             }
 
+            public void ProcessKill(AKill aKill)
+            {
+                try
+                {
+                    if (Enabled &&
+                        CurrentRule != null &&
+                        aKill.killer != null)
+                    {
+                        ChallengeEntry entry;
+                        if (!Entries.TryGetValue(aKill.killer, out entry))
+                        {
+                            entry = new ChallengeEntry(_plugin, this, aKill.killer);
+                            Entries[aKill.killer] = entry;
+                        }
+                        entry.AddKill(aKill);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while processing challenge kill.", e));
+                }
+            }
+
             public class ChallengeRule
             {
 
@@ -49878,13 +50382,27 @@ namespace PRoConEvents
                 {
                     get; private set;
                 }
-                private Dictionary<String, Int32> WeaponKillMapping;
 
                 public ChallengeRule(AdKats plugin)
                 {
                     _plugin = plugin;
                     ChallengeDetails = new List<Detail>();
-                    WeaponKillMapping = new Dictionary<string, int>();
+                }
+
+                public String RuleInfo()
+                {
+                    String info = "Weapon Types: ";
+                    foreach (var detail in ChallengeDetails.Where(det => det.Type == Detail.DetailType.Damage))
+                    {
+                        info += "[" + detail.Damage.ToString() + "/" + detail.WeaponCount + " Weapons/" + detail.KillCount + " Kills] ";
+                    }
+                    info += Environment.NewLine;
+                    info += "Weapons: ";
+                    foreach (var detail in ChallengeDetails.Where(det => det.Type == Detail.DetailType.Damage))
+                    {
+                        info += "[" + detail.Weapon + "/" + detail.KillCount + "_Kills] ";
+                    }
+                    return info;
                 }
 
                 public void AddDetail(Detail detail)
@@ -49892,7 +50410,6 @@ namespace PRoConEvents
                     try
                     {
                         ChallengeDetails.Add(detail);
-                        BuildWeaponKillMapping();
                     }
                     catch (Exception e)
                     {
@@ -49950,85 +50467,8 @@ namespace PRoConEvents
                     }
                     return false;
                 }
-
-                public void BuildWeaponKillMapping()
-                {
-                    try
-                    {
-                        var weaponKillMapping = new Dictionary<String, Int32>();
-                        foreach (var detail in ChallengeDetails)
-                        {
-                            switch (detail.Type)
-                            {
-                                case Detail.DetailType.None:
-                                    _plugin.Log.Error("Detail " + detail.DetailID + " was invalid. It has no detail type, damage or weapon.");
-                                    continue;
-                                case Detail.DetailType.Damage:
-                                    // Invalid detail handling
-                                    if (detail.Damage == DamageTypes.None ||
-                                        detail.WeaponCount <= 0 ||
-                                        detail.KillCount <= 0)
-                                    {
-                                        _plugin.Log.Error("Detail " + detail.DetailID + " was invalid. Fix the damage type, weapon count, or kill count.");
-                                        continue;
-                                    }
-
-                                    // Get all the weapon codes for the current damage type
-                                    var weaponCodes = _plugin.WeaponDictionary.WeaponTypes
-                                                             .Where(pair => pair.Value == detail.Damage)
-                                                             .Select(pair => pair.Key).Distinct().ToList();
-
-                                    // Loop over all the weapons for the damage type
-                                    var weaponsAdded = 0;
-                                    foreach (var ruleWeaponCode in weaponCodes)
-                                    {
-                                        // Do not add more than the number of weapons required
-                                        if (weaponsAdded >= detail.WeaponCount)
-                                        {
-                                            break;
-                                        }
-                                        // If the weapon doesn't exist, add it
-                                        if (weaponKillMapping.ContainsKey(ruleWeaponCode))
-                                        {
-                                            weaponKillMapping[ruleWeaponCode] = 0;
-                                        }
-                                        // Increment the count of the weapon kills by the required count
-                                        weaponKillMapping[ruleWeaponCode] += detail.KillCount;
-                                        weaponsAdded++;
-                                    }
-                                    break;
-                                case Detail.DetailType.Weapon:
-                                    // Invalid detail handling
-                                    if (String.IsNullOrEmpty(detail.Weapon) ||
-                                        detail.KillCount <= 0)
-                                    {
-                                        _plugin.Log.Error("Detail " + detail.DetailID + " was invalid. Fix the weapon code, or kill count.");
-                                        continue;
-                                    }
-
-                                    // If the weapon doesn't exist, add it
-                                    if (weaponKillMapping.ContainsKey(detail.Weapon))
-                                    {
-                                        weaponKillMapping[detail.Weapon] = 0;
-                                    }
-                                    // Increment the count of the weapon kills by the required count
-                                    weaponKillMapping[detail.Weapon] += detail.KillCount;
-                                    break;
-                            }
-                        }
-                        foreach (var weapon in weaponKillMapping)
-                        {
-                            _plugin.Log.Info("RULE: " + Name + ": " + weapon.Key + ":" + weapon.Value);
-                        }
-                        WeaponKillMapping = weaponKillMapping;
-                    }
-                    catch (Exception e)
-                    {
-                        _plugin.Log.HandleException(new AException("Error while building challenge rule weapon kill mapping.", e));
-                    }
-                }
-
-                public RuleStatus GetCompletionStatus(List<AKill> Kills, String currentWeaponCode)
+                
+                public EntryStatus GetCompletionStatus(List<AKill> Kills)
                 {
                     try
                     {
@@ -50038,52 +50478,81 @@ namespace PRoConEvents
                             return null;
                         }
 
-                        var status = new RuleStatus();
-                        foreach (var pair in WeaponKillMapping)
+                        // Build the necessary buckets
+                        var damageDetails = ChallengeDetails.Where(detail => detail.Type == Detail.DetailType.Damage && 
+                                                                              detail.Damage != DamageTypes.None &&
+                                                                              detail.KillCount > 0).ToList();
+                        // Damage buckets
+                        var damageBuckets = new Dictionary<DamageTypes, DamageBucket>();
+                        foreach (var detail in damageDetails)
                         {
-                            var reqWeapon = pair.Key;
-                            var reqKills = pair.Value;
-
-                            // Do not include weapons that have their kill requirement at zero
-                            if (reqKills == 0)
+                            var damageBucket = new DamageBucket(_plugin)
                             {
-                                continue;
+                                Damage = detail.Damage,
+                                WeaponCount = detail.WeaponCount,
+                                MaxKillsPerWeapon = detail.KillCount
+                            };
+                            foreach (var weaponCode in _plugin.WeaponDictionary.GetWeaponsOfDamageType(detail.Damage))
+                            {
+                                damageBucket.Weapons[weaponCode] = new WeaponBucket(_plugin)
+                                {
+                                    WeaponCode = weaponCode,
+                                    MaxKills = detail.KillCount
+                                };
+                            }
+                            damageBuckets[damageBucket.Damage] = damageBucket;
+                        }
+                        // Weapon buckets
+                        var weaponDetails = ChallengeDetails.Where(detail => detail.Type == Detail.DetailType.Weapon && 
+                                                                             !String.IsNullOrEmpty(detail.Weapon) &&
+                                                                             detail.KillCount > 0).ToList();
+                        var weaponBuckets = new Dictionary<String, WeaponBucket>();
+                        foreach (var detail in weaponDetails)
+                        {
+                            var weaponBucket = new WeaponBucket(_plugin)
+                            {
+                                WeaponCode = detail.Weapon,
+                                MaxKills = detail.KillCount
+                            };
+                            weaponBuckets[weaponBucket.WeaponCode] = weaponBucket;
+                        }
+
+                        foreach (var kill in Kills.OrderBy(dKill => dKill.timestamp))
+                        {                            
+                            // See if it matches a specific weapon requirement
+                            if (weaponBuckets.ContainsKey(kill.weaponCode))
+                            {
+                                // It does. See if we can assign the kill to the damage type.
+                                if (weaponBuckets[kill.weaponCode].AddKill(kill))
+                                {
+                                    // Kill added, get out
+                                    continue;
+                                }
                             }
 
-                            // If the player has not completed any kills for the weapon
-                            // Or if they have not completed all the kills for a weapon
-                            // Add the weapon to the incomplete list
-                            var matchingKills = Kills.Where(aKill => aKill.weaponCode == reqWeapon);
-
-                            var weaponKillCount = Math.Min(matchingKills.Count(), reqKills);
-
-                            // Increment the counts
-                            status.totalRequiredKills += reqKills;
-                            status.totalCompletedKills += weaponKillCount;
-
-                            String weaponName = _plugin.WeaponDictionary.GetShortWeaponNameByCode(reqWeapon);
-                            if (!String.IsNullOrEmpty(currentWeaponCode) &&
-                                reqWeapon == currentWeaponCode)
+                            // Couldn't assign the kill to a specific weapon requirement
+                            // Check if the current rule has a need for this kill's damage type
+                            // A weapon can thankfully only belong to one damage type
+                            if (damageBuckets.ContainsKey(kill.weaponDamage))
                             {
-                                status.currentWeaponPercentage = Math.Min(Math.Round(100.0 * weaponKillCount / reqKills), 100);
-                                status.currentWeaponStatus = Name + " " + weaponName + " [" + weaponKillCount + "/" + reqKills + "][" + status.currentWeaponPercentage + "%]";
+                                // It does. See if we can assign the kill to the damage type.
+                                var damageWeapons = damageBuckets[kill.weaponDamage].Weapons;
+                                if (!damageWeapons.ContainsKey(kill.weaponCode))
+                                {
+                                    _plugin.Log.Error("Damage bucket for " + kill.weaponDamage + "/" + kill.weaponCode + " did not contain the needed weapon.");
+                                    continue;
+                                }
+                                if (damageWeapons[kill.weaponCode].AddKill(kill))
+                                {
+                                    // Kill added, get out
+                                    continue;
+                                }
                             }
-                            if (weaponKillCount < reqKills)
-                            {
-                                status.incompleteWeapons.Add(weaponName);
-                            }
+
+                            // Unable to assign the kill. Either we don't have a need for it, or all the slots for it are full.
                         }
-                        if (status.totalRequiredKills <= 0)
-                        {
-                            _plugin.Log.Error("Cannot return completion status. Total required kills must be positive. Current: " + status.totalRequiredKills);
-                            return null;
-                        }
-                        status.completionPercentage = Math.Min(Math.Round(100.0 * status.totalCompletedKills / status.totalRequiredKills), 100);
-                        if (!String.IsNullOrEmpty(status.currentWeaponStatus))
-                        {
-                            status.currentWeaponStatus += "[" + status.completionPercentage + "%]";
-                        }
-                        return status;
+
+                        return new EntryStatus(_plugin, this, damageBuckets, weaponBuckets);
                     }
                     catch (Exception e)
                     {
@@ -50091,19 +50560,258 @@ namespace PRoConEvents
                     }
                     return null;
                 }
-
-                public class RuleStatus
+                
+                public class EntryStatus
                 {
-                    public Double completionPercentage;
-                    public List<String> incompleteWeapons;
-                    public Double currentWeaponPercentage;
-                    public String currentWeaponStatus;
-                    public Double totalRequiredKills;
-                    public Double totalCompletedKills;
+                    private AdKats _plugin;
 
-                    public RuleStatus()
+                    private ChallengeRule Rule;
+                    private Dictionary<DamageTypes, DamageBucket> DamageBuckets;
+                    private Dictionary<String, WeaponBucket> WeaponBuckets;
+
+                    public Int32 TotalRequiredKills
                     {
-                        incompleteWeapons = new List<string>();
+                        get; private set;
+                    }
+                    public Int32 TotalCompletedKills
+                    {
+                        get; private set;
+                    }
+                    public Double CompletionPercentage
+                    {
+                        get; private set;
+                    }
+                    
+                    public EntryStatus(AdKats plugin, ChallengeRule rule, Dictionary<DamageTypes, DamageBucket> damageBuckets, Dictionary<String, WeaponBucket> weaponBuckets)
+                    {
+                        _plugin = plugin;
+
+                        try
+                        {
+                            Rule = rule;
+                            DamageBuckets = damageBuckets;
+                            if (DamageBuckets == null)
+                            {
+                                DamageBuckets = new Dictionary<DamageTypes, DamageBucket>();
+                            }
+                            WeaponBuckets = weaponBuckets;
+                            if (WeaponBuckets == null)
+                            {
+                                WeaponBuckets = new Dictionary<String, WeaponBucket>();
+                            }
+
+                            // Total for all required kills
+                            TotalRequiredKills = DamageBuckets.Values.Sum(bucket => bucket.WeaponCount * bucket.MaxKillsPerWeapon) + WeaponBuckets.Values.Sum(bucket => bucket.MaxKills);
+
+                            // Total for all completed kills
+                            TotalCompletedKills = damageBuckets.Values.Sum(bucket => bucket.GetWeapons().Sum(weapon => weapon.Kills.Count())) + weaponBuckets.Values.Sum(weapon => weapon.Kills.Count());
+
+                            // Total completion percentage
+                            CompletionPercentage = Math.Max(Math.Min(Math.Round(100 * (Double)TotalCompletedKills / (Double)TotalRequiredKills), 100), 0);
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error creating entry status.", e));
+                        }
+                    }
+
+                    public String GetStatusForKill(AKill kill)
+                    {
+                        if (kill.weaponDamage == DamageTypes.None)
+                        {
+                            _plugin.Log.Error("Damage type for current kill couldn't be found, or was None.");
+                            return "ERROR1";
+                        }
+                        try
+                        {
+                            var requiredKills = 0;
+                            var completedKills = 0;
+                            if (WeaponBuckets.ContainsKey(kill.weaponCode))
+                            {
+                                var bucket = WeaponBuckets[kill.weaponCode];
+                                requiredKills += bucket.MaxKills;
+                                completedKills += bucket.Kills.Count();
+                            }
+
+                            if (DamageBuckets.ContainsKey(kill.weaponDamage))
+                            {
+                                var damageBucketWeapons = DamageBuckets[kill.weaponDamage].Weapons;
+                                if (!damageBucketWeapons.ContainsKey(kill.weaponCode))
+                                {
+                                    _plugin.Log.Error("Damage bucket for status weapon " + kill.weaponDamage + "/" + kill.weaponCode + " did not contain the needed weapon.");
+                                    return "ERROR2";
+                                }
+                                var weaponBucket = damageBucketWeapons[kill.weaponCode];
+                                requiredKills += weaponBucket.MaxKills;
+                                completedKills += weaponBucket.Kills.Count();
+                            }
+                            var weaponCompletionPercentage = Math.Max(Math.Min(Math.Round(100 * (Double)TotalCompletedKills / (Double)TotalRequiredKills), 100), 0);
+
+                            String weaponName = _plugin.WeaponDictionary.GetShortWeaponNameByCode(kill.weaponCode);
+                            String completion = "";
+                            if (weaponCompletionPercentage > 99.9)
+                            {
+                                completion = " - WEAPON COMPLETED!";
+                                if (CompletionPercentage < 99.9)
+                                {
+                                    completion += " Use next weapon!";
+                                }
+                            }
+                            return Rule.Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + weaponCompletionPercentage + "%]" + completion;
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error getting status for kill.", e));
+                        }
+                        return "ERROR3";
+                    }
+
+                    public override string ToString()
+                    {
+                        try
+                        {
+                            var status = "";
+                            if (Rule == null)
+                            {
+                                return "ERROR4";
+                            }
+                            status += "--- " + Rule.Name + " Status ---" + Environment.NewLine;
+                            if (!DamageBuckets.Any() && !WeaponBuckets.Any())
+                            {
+                                status += "No damage or weapons defined.";
+                                return status;
+                            }
+                            foreach (var weapon in WeaponBuckets.Values)
+                            {
+                                status += weapon.ToString() + Environment.NewLine;
+                            }
+                            foreach (var damage in DamageBuckets.Values)
+                            {
+                                status += damage.ToString() + Environment.NewLine;
+                            }
+                            return status;
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error getting status string.", e));
+                        }
+                        return "ERROR5";
+                    }
+                }
+
+                public class DamageBucket
+                {
+                    private AdKats _plugin;
+
+                    public DamageTypes Damage;
+                    public Int32 WeaponCount;
+                    public Int32 MaxKillsPerWeapon;
+                    public Dictionary<String, WeaponBucket> Weapons;
+
+                    public DamageBucket(AdKats plugin)
+                    {
+                        _plugin = plugin;
+                        Damage = DamageTypes.None;
+                        Weapons = new Dictionary<String, WeaponBucket>();
+                    }
+
+                    public List<WeaponBucket> GetWeapons()
+                    {
+                        var buckets = new List<WeaponBucket>();
+                        try
+                        {
+                            // Add buckets until the weapon count is reached or we run out of buckets
+                            foreach (var bucket in Weapons.Values.Where(dBucket => dBucket.Kills.Count() > 0)
+                                                                 .OrderByDescending(dBucket => dBucket.Kills))
+                            {
+                                if (buckets.Count() >= WeaponCount)
+                                {
+                                    break;
+                                }
+                                buckets.Add(bucket);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error while getting damage bucket weapons.", e));
+                        }
+                        return buckets;
+                    }
+
+                    public override string ToString()
+                    {
+                        try
+                        {
+                            var requiredKills = WeaponCount * MaxKillsPerWeapon;
+                            var weaponBuckets = GetWeapons();
+                            var completedKills = weaponBuckets.Sum(weapon => weapon.Kills.Count());
+                            var completionPercentage = Math.Max(Math.Min(Math.Round(100 * (Double)completedKills / (Double)requiredKills), 100), 0);
+
+                            var status = "Class " + Damage.ToString() + " [" + completedKills + "/" + requiredKills + "][" + completionPercentage + "%]: ";
+                            if (weaponBuckets.Any())
+                            {
+                                status += String.Join(", ", weaponBuckets.Select(bucket => bucket.ToString()).ToArray());
+                            }
+                            else
+                            {
+                                status += "No weapons used yet.";
+                            }
+                            return status;
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error while getting damage bucket string.", e));
+                        }
+                        return String.Empty;
+                    }
+                }
+
+                public class WeaponBucket
+                {
+                    private AdKats _plugin;
+
+                    public String WeaponCode;
+                    public List<AKill> Kills;
+                    public Int32 MaxKills;
+
+                    public WeaponBucket(AdKats plugin)
+                    {
+                        _plugin = plugin;
+                        Kills = new List<AKill>();
+                    }
+
+                    public Boolean AddKill(AKill kill)
+                    {
+                        try
+                        {
+                            if (Kills.Count() < MaxKills)
+                            {
+                                Kills.Add(kill);
+                                return true;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error while adding kill to weapon bucket.", e));
+                        }
+                        return false;
+                    }
+
+                    public override string ToString()
+                    {
+                        try
+                        {
+                            var completedKills = Kills.Count();
+                            var completionPercentage = Math.Max(Math.Min(Math.Round(100 * (Double)completedKills / (Double)MaxKills), 100), 0);
+                            var weaponName = _plugin.WeaponDictionary.GetShortWeaponNameByCode(WeaponCode);
+
+                            return weaponName + " [" + completedKills + "/" + MaxKills + "][" + completionPercentage + "%]";
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error while getting weapon bucket string.", e));
+                        }
+                        return String.Empty;
                     }
                 }
 
@@ -50133,8 +50841,10 @@ namespace PRoConEvents
                 private AChallengeManager Manager;
 
                 private APlayer Player;
-                public ChallengeRule Rule;
+                private ChallengeRule OriginalRule;
                 public List<AKill> Kills;
+
+                public Boolean Completed;
 
                 public ChallengeEntry(AdKats plugin, AChallengeManager manager, APlayer player)
                 {
@@ -50145,24 +50855,14 @@ namespace PRoConEvents
                         Player = player;
 
                         Kills = new List<AKill>();
+
+                        // Save off the original rule for confirmations later
+                        OriginalRule = manager.CurrentRule;
                     }
                     catch (Exception e)
                     {
                         _plugin.Log.HandleException(new AException("Error while creating challenge entry.", e));
                     }
-                }
-
-                public Double GetCompletionPercentage()
-                {
-                    try
-                    {
-                        return Rule.GetCompletionStatus(Kills, null).completionPercentage;
-                    }
-                    catch (Exception e)
-                    {
-                        _plugin.Log.HandleException(new AException("Error while getting challenge entry completion percentage.", e));
-                    }
-                    return 0;
                 }
 
                 public Boolean AddKill(AKill aKill)
@@ -50176,13 +50876,18 @@ namespace PRoConEvents
                             return false;
                         }
                         // Check for invalid rule
-                        if (Rule == null)
+                        if (Manager.CurrentRule == null)
                         {
-                            _plugin.Log.Warn("Rule was null when trying to add kill: " + aKill.ToString());
+                            _plugin.Log.Warn("Manager's rule was null when trying to add kill: " + aKill.ToString());
+                            return false;
+                        }
+                        if (Manager.CurrentRule != OriginalRule)
+                        {
+                            _plugin.Log.Warn("Manager's rule " + Manager.CurrentRule.Name + " did not match the original rule " + OriginalRule.Name + " for this challenge entry.");
                             return false;
                         }
                         // Check for invalid kill
-                        if (!Rule.KillValid(aKill))
+                        if (!Manager.CurrentRule.KillValid(aKill))
                         {
                             return false;
                         }
@@ -50190,22 +50895,18 @@ namespace PRoConEvents
                         Kills.Add(aKill);
 
                         //Check for completion case.
-                        var status = Rule.GetCompletionStatus(Kills, aKill.weaponCode);
+                        var status = Manager.CurrentRule.GetCompletionStatus(Kills);
 
-                        // Check for rule already fulfilled for this weapon
-                        if (status.currentWeaponPercentage >= 99.99)
+                        if (status.CompletionPercentage >= 99.99)
                         {
-                            if (status.completionPercentage >= 99.99)
-                            {
-                                _plugin.AdminTellMessage(Player.GetVerboseName() + " just completed the " + Rule.Name + " challenge! Congrats!");
-                            }
-                            // Check for completion of the entire challenge rule
-                            Player.Say(status.currentWeaponStatus + " COMPLETED! Use the next weapon; " + status.incompleteWeapons.Count() + " remain.");
+                            var message = Player.GetVerboseName() + " just completed the " + Manager.CurrentRule.Name + " challenge! Congrats!";
+                            _plugin.AdminTellMessage(message);
+                            _plugin.AdminSayMessage(message);
+                            Completed = true;
+                            return true;
                         }
-                        else
-                        {
-                            Player.Say(status.currentWeaponStatus);
-                        }
+
+                        Player.Say(status.GetStatusForKill(aKill));
                         return true;
                     }
                     catch (Exception e)
@@ -52160,7 +52861,7 @@ namespace PRoConEvents
         public class AWeaponDictionary
         {
             public readonly Dictionary<String, AWeaponName> WeaponNames = new Dictionary<String, AWeaponName>();
-            public readonly Dictionary<String, DamageTypes> WeaponTypes = new Dictionary<String, DamageTypes>();
+            public readonly Dictionary<String, DamageTypes> WeaponDamageTypes = new Dictionary<String, DamageTypes>();
             public String DamageTypeEnumString = "";
             public String WeaponNameEnumString = "";
             private GameVersion _gameVersion;
@@ -52179,16 +52880,16 @@ namespace PRoConEvents
                     // Populate the weapon type dictionary
                     foreach (Weapon weapon in dic)
                     {
-                        if (weapon != null && !WeaponTypes.ContainsKey(weapon.Name))
+                        if (weapon != null && !WeaponDamageTypes.ContainsKey(weapon.Name))
                         {
-                            WeaponTypes.Add(weapon.Name, weapon.Damage);
+                            WeaponDamageTypes.Add(weapon.Name, weapon.Damage);
                         }
                     }
 
                     //Fill the damage type setting enum string
                     Random random = new Random(Environment.TickCount);
                     DamageTypeEnumString = String.Empty;
-                    foreach (DamageTypes damageType in Enum.GetValues(typeof(DamageTypes)).Cast<DamageTypes>())
+                    foreach (DamageTypes damageType in Enum.GetValues(typeof(DamageTypes)).Cast<DamageTypes>().OrderBy(type => type.ToString()))
                     {
                         if (String.IsNullOrEmpty(DamageTypeEnumString))
                         {
@@ -52241,7 +52942,7 @@ namespace PRoConEvents
                     //Fill the weapon name enum string
                     Random random = new Random(Environment.TickCount);
                     WeaponNameEnumString = String.Empty;
-                    foreach (var weaponName in WeaponNames.Values.Select(name => name.readable_short).Distinct())
+                    foreach (var weaponName in WeaponNames.Values.Select(name => name.readable_short).Distinct().OrderBy(name => name))
                     {
                         if (String.IsNullOrEmpty(WeaponNameEnumString))
                         {
@@ -52300,12 +53001,12 @@ namespace PRoConEvents
                 return weaponNames;
             }
 
-            public DamageTypes GetDamageType(String damageType)
+            public DamageTypes ParseDamageType(String damageType)
             {
                 try
                 {
                     DamageTypes category;
-                    if (WeaponTypes.TryGetValue(damageType, out category))
+                    if (WeaponDamageTypes.TryGetValue(damageType, out category))
                     {
                         return category;
                     }
@@ -52315,6 +53016,38 @@ namespace PRoConEvents
                     Log.HandleException(new AException("Error while getting damage type.", e));
                 }
                 return DamageTypes.None;
+            }
+
+            public List<String> GetWeaponsOfDamageType(DamageTypes damage)
+            {
+                try
+                {
+                    return WeaponDamageTypes.Where(pair => pair.Value == damage).Select(pair => pair.Key).ToList();
+                }
+                catch (Exception e)
+                {
+                    Log.HandleException(new AException("Error while getting damage type.", e));
+                }
+                return new List<string>();
+            }
+
+            public DamageTypes GetDamageTypeByCode(String weaponCode)
+            {
+                DamageTypes weaponDamage = DamageTypes.None;
+                try
+                {
+                    if (String.IsNullOrEmpty(weaponCode))
+                    {
+                        Log.HandleException(new AException("weaponCode was null when fetching weapon damage type."));
+                        return weaponDamage;
+                    }
+                    WeaponDamageTypes.TryGetValue(weaponCode, out weaponDamage);
+                }
+                catch (Exception e)
+                {
+                    Log.HandleException(new AException("Error while getting damage type for weapon code.", e));
+                }
+                return weaponDamage;
             }
 
             public String GetWeaponCodeByShortName(String weaponShortName)
