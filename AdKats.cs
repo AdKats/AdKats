@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.35
+ * Version 7.0.1.36
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.35</version_code>
+ * <version_code>7.0.1.36</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.35";
+        private const String PluginVersion = "7.0.1.36";
 
         public enum GameVersion
         {
@@ -15835,6 +15835,10 @@ namespace PRoConEvents
                                         const string removeGadgets = "Gadgets/";
                                         const string removePrefix = "U_";
                                         String weapon = WeaponDictionary.GetShortWeaponNameByCode(aKill.weaponCode);
+                                        if (_UseExperimentalTools)
+                                        {
+                                            Log.Info("Weapon in autoadmin: " + weapon);
+                                        }
                                         Int32 index = weapon.IndexOf(removeWeapon, StringComparison.Ordinal);
                                         weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeWeapon.Length));
                                         index = weapon.IndexOf(removeGadgets, StringComparison.Ordinal);
@@ -53066,7 +53070,7 @@ namespace PRoConEvents
                             }
                         }
                     }
-                    Log.HandleException(new AException("Unable to get weapon CODE for NAME '" + weaponShortName + "'"));
+                    Log.HandleException(new AException("Unable to get weapon CODE for short NAME '" + weaponShortName + "', in " + WeaponNames.Count() + " weapons."));
                     return weaponShortName;
                 }
                 catch (Exception e)
@@ -53089,7 +53093,7 @@ namespace PRoConEvents
                     WeaponNames.TryGetValue(weaponCode, out weaponName);
                     if (weaponName == null)
                     {
-                        Log.HandleException(new AException("Unable to get weapon NAME for CODE '" + weaponCode + "'"));
+                        Log.HandleException(new AException("Unable to get weapon short NAME for CODE '" + weaponCode + "', in " + WeaponNames.Count() + " weapons."));
                         return weaponCode;
                     }
                     return weaponName.readable_short;
@@ -53114,7 +53118,7 @@ namespace PRoConEvents
                     WeaponNames.TryGetValue(weaponCode, out weaponName);
                     if (weaponName == null)
                     {
-                        Log.HandleException(new AException("Unable to get weapon NAME for CODE '" + weaponCode + "'"));
+                        Log.HandleException(new AException("Unable to get weapon long NAME for CODE '" + weaponCode + "', in " + WeaponNames.Count() + " weapons."));
                         return weaponCode;
                     }
                     return weaponName.readable_short;
