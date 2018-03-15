@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.34
+ * Version 7.0.1.35
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.34</version_code>
+ * <version_code>7.0.1.35</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.34";
+        private const String PluginVersion = "7.0.1.35";
 
         public enum GameVersion
         {
@@ -1049,6 +1049,19 @@ namespace PRoConEvents
             _DiscordManager = new DiscordManager(this);
 
             FillReadableMapModeDictionaries();
+
+            try
+            {
+                //Initialize the weapon name dictionary
+                WeaponDictionary = new AWeaponDictionary(Log, Util, _gameVersion, GetWeaponDefines());
+
+                //Initialize the challenge manager
+                ChallengeManager = new AChallengeManager(this);
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while enabling weapon dictionary or challenge manager.", e));
+            }
         }
 
         public String GetPluginName()
@@ -5800,7 +5813,8 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"Use Challenge System").Success)
                 {
                     Boolean enabled = Boolean.Parse(strValue);
-                    if (enabled != ChallengeManager.Enabled)
+                    if (ChallengeManager != null &&
+                        enabled != ChallengeManager.Enabled)
                     {
                         ChallengeManager.Enabled = enabled;
                         //Once setting has been changed, upload the change to database
@@ -8406,19 +8420,6 @@ namespace PRoConEvents
 
                         //Make sure the default in-game admin is disabled
                         ExecuteCommand("procon.protected.plugins.enable", "CInGameAdmin", "False");
-
-                        try
-                        {
-                            //Initialize the weapon name dictionary
-                            WeaponDictionary = new AWeaponDictionary(Log, Util, _gameVersion, GetWeaponDefines());
-
-                            //Initialize the challenge manager
-                            ChallengeManager = new AChallengeManager(this);
-                        }
-                        catch (Exception e)
-                        {
-                            Log.HandleException(new AException("Error while enabling weapon dictionary or challenge manager.", e));
-                        }
 
                         //Initialize the stat library
                         _StatLibrary = new StatLibrary(this);
