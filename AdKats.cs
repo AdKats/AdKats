@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.36
+ * Version 7.0.1.37
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.36</version_code>
+ * <version_code>7.0.1.37</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.36";
+        private const String PluginVersion = "7.0.1.37";
 
         public enum GameVersion
         {
@@ -822,6 +822,7 @@ namespace PRoConEvents
         //Experimental
         private Boolean _UseExperimentalTools;
         private Boolean _ShowQuerySettings;
+        private Boolean _DebugKills;
         private readonly Ping _PingProcessor = new Ping();
         private Boolean _UseGrenadeCookCatcher;
         private Dictionary<String, APlayer> _RoundCookers = new Dictionary<String, APlayer>();
@@ -3242,6 +3243,10 @@ namespace PRoConEvents
                             Environment.Exit(2232);
                         }
                         else if (tmp == 3840)
+                        {
+                            _DebugKills = !_DebugKills;
+                        }
+                        else if (tmp == 8142)
                         {
                             _ShowQuerySettings = true;
                         }
@@ -14906,7 +14911,7 @@ namespace PRoConEvents
                             }
 
                             //Call processing on the player kill
-                            ProcessPlayerKill(new AKill()
+                            ProcessPlayerKill(new AKill(this)
                             {
                                 killer = killer,
                                 killerCPI = playerKill.Killer,
@@ -15340,6 +15345,11 @@ namespace PRoConEvents
             {
                 aKill.victim.lastAction = UtcNow();
                 aKill.killer.lastAction = UtcNow();
+
+                if (_DebugKills)
+                {
+                    Log.Info(aKill.ToString());
+                }
 
                 //Add the unmatched unique round death
                 if (!_unmatchedRoundDeaths.Contains(aKill.victim.player_name))
@@ -51280,6 +51290,8 @@ namespace PRoConEvents
 
         public class AKill
         {
+            public AdKats _plugin;
+
             public String weaponCode;
             public DamageTypes weaponDamage;
             public APlayer killer;
@@ -51292,11 +51304,20 @@ namespace PRoConEvents
             public DateTime timestamp;
             public Int64 RoundID;
 
+            public AKill(AdKats plugin)
+            {
+                _plugin = plugin;
+            }
+
             public override string ToString()
             {
                 // Default values in case any are null;
                 String killerString = killer != null ? killer.GetVerboseName() : "UnknownKiller";
-                String methodString = !String.IsNullOrEmpty(weaponCode) ? weaponCode : "UnknownMethod";
+                String methodString = "UnknownMethod";
+                if (!String.IsNullOrEmpty(weaponCode))
+                {
+                    methodString = _plugin.WeaponDictionary.GetShortWeaponNameByCode(weaponCode);
+                }
                 String victimString = victim != null ? victim.GetVerboseName() : "UnknownVictim";
                 return killerString + " [" + methodString + "] " + victimString;
             }
