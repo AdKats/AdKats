@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.38
+ * Version 7.0.1.39
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.38</version_code>
+ * <version_code>7.0.1.39</version_code>
  */
 
 using System;
@@ -66,10 +66,11 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.38";
+        private const String PluginVersion = "7.0.1.39";
 
-        public enum GameVersion
+        public enum GameVersionEnum
         {
+            UNKNOWN,
             BF3,
             BF4,
             BFHL
@@ -169,7 +170,7 @@ namespace PRoConEvents
         private Boolean _firstPlayerListComplete;
         private String _vipKickedPlayerName;
         private Boolean _enforceSingleInstance = true;
-        private GameVersion _gameVersion = GameVersion.BF3;
+        private GameVersionEnum GameVersion = GameVersionEnum.UNKNOWN;
         private Boolean _endingRound;
         private readonly AServer _serverInfo;
         private TimeSpan _previousRoundDuration = TimeSpan.Zero;
@@ -419,7 +420,7 @@ namespace PRoConEvents
         private readonly Dictionary<String, ASpecialPlayer> _verboseSpecialPlayerCache = new Dictionary<String, ASpecialPlayer>();
 
         //Games and teams
-        private readonly Dictionary<Int64, GameVersion> _gameIDDictionary = new Dictionary<Int64, GameVersion>();
+        private readonly Dictionary<Int64, GameVersionEnum> _gameIDDictionary = new Dictionary<Int64, GameVersionEnum>();
         private readonly Dictionary<Int32, ATeam> _teamDictionary = new Dictionary<Int32, ATeam>();
         private Boolean _acceptingTeamUpdates;
         private readonly Dictionary<String, Int32> _unmatchedRoundDeathCounts = new Dictionary<String, Int32>();
@@ -1054,7 +1055,7 @@ namespace PRoConEvents
             try
             {
                 //Initialize the weapon name dictionary
-                WeaponDictionary = new AWeaponDictionary(Log, Util, _gameVersion, GetWeaponDefines());
+                WeaponDictionary = new AWeaponDictionary(this, GetWeaponDefines());
 
                 //Initialize the challenge manager
                 ChallengeManager = new AChallengeManager(this);
@@ -1212,7 +1213,7 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server ID (Display)", typeof(Int32), _serverInfo.ServerID));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server IP (Display)", typeof(String), _serverInfo.ServerIP));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server Round (Display)", typeof(String), _roundID));
-                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server Game (Display)", typeof(String), _gameVersion.ToString()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server Game (Display)", typeof(String), GameVersion.ToString()));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "High Population Value", typeof(Int32), _highPopulationPlayerCount));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Server Restart When Empty", typeof(Boolean), _automaticServerRestart));
@@ -2105,7 +2106,7 @@ namespace PRoConEvents
             List<CPluginVariable> buildList = new List<CPluginVariable>();
             try
             {
-                if (IsActiveSettingSection("A17-2") && _gameVersion == GameVersion.BF4)
+                if (IsActiveSettingSection("A17-2") && GameVersion == GameVersionEnum.BF4)
                 {
                     buildList.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Enable", typeof(Boolean), _factionRandomizerEnable));
                     buildList.Add(new CPluginVariable(GetSettingSection("A17-2") + t + "Faction Randomizer: Restriction", "enum.factionRandomizerRestriction2Enum(NoRestriction|NeverSameFaction|AlwaysSameFaction|AlwaysSwapUSvsRU|AlwaysSwapUSvsCN|AlwaysSwapRUvsCN|AlwaysBothUS|AlwaysBothRU|AlwaysBothCN|AlwaysUSvsX|AlwaysRUvsX|AlwaysCNvsX|NeverUSvsX|NeverRUvsX|NeverCNvsX)", _factionRandomizerRestriction.ToString()));
@@ -3769,7 +3770,7 @@ namespace PRoConEvents
                     Boolean CMDRManagerEnable = Boolean.Parse(strValue);
                     if (CMDRManagerEnable != _CMDRManagerEnable)
                     {
-                        if (_gameVersion == GameVersion.BF3 && CMDRManagerEnable)
+                        if (GameVersion == GameVersionEnum.BF3 && CMDRManagerEnable)
                         {
                             Log.Error("Commander manager cannot be enabled in BF3");
                             _CMDRManagerEnable = false;
@@ -4576,7 +4577,7 @@ namespace PRoConEvents
                     Boolean feedSSL = Boolean.Parse(strValue);
                     if (feedSSL != _FeedServerSpectatorList)
                     {
-                        if (_gameVersion == GameVersion.BF3)
+                        if (GameVersion == GameVersionEnum.BF3)
                         {
                             Log.Error("This feature cannot be enabled on BF3 servers.");
                             return;
@@ -8412,11 +8413,11 @@ namespace PRoConEvents
                             _pluginRebootOnDisableSource = null;
                         }
 
-                        if ((UtcNow() - _proconStartTime).TotalSeconds <= 20)
+                        if ((UtcNow() - _proconStartTime).TotalSeconds <= 25)
                         {
                             Log.Write("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
                             //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
-                            for (Int32 index = 20 - (Int32)(UtcNow() - _proconStartTime).TotalSeconds; index > 0; index--)
+                            for (Int32 index = 25 - (Int32)(UtcNow() - _proconStartTime).TotalSeconds; index > 0; index--)
                             {
                                 Log.Write(index + "...");
                                 Threading.Wait(1000);
@@ -8430,7 +8431,7 @@ namespace PRoConEvents
                         _StatLibrary = new StatLibrary(this);
                         if (_StatLibrary.PopulateWeaponStats())
                         {
-                            Log.Success("Fetched " + _StatLibrary.Weapons.Count + " " + _gameVersion + " weapon stat definitions.");
+                            Log.Success("Fetched " + _StatLibrary.Weapons.Count + " " + GameVersion + " weapon stat definitions.");
                         }
                         else
                         {
@@ -8453,7 +8454,7 @@ namespace PRoConEvents
                             return;
                         }
 
-                        if (_gameVersion == GameVersion.BF3 || _gameVersion == GameVersion.BF4)
+                        if (GameVersion == GameVersionEnum.BF3 || GameVersion == GameVersionEnum.BF4)
                         {
                             //Fetch all weapon names
                             if (WeaponDictionary.PopulateWeaponNameDictionaries())
@@ -10351,16 +10352,16 @@ namespace PRoConEvents
             switch (lstPluginEnv[1])
             {
                 case "BF3":
-                    _gameVersion = GameVersion.BF3;
+                    GameVersion = GameVersionEnum.BF3;
                     break;
                 case "BF4":
-                    _gameVersion = GameVersion.BF4;
+                    GameVersion = GameVersionEnum.BF4;
                     break;
                 case "BFHL":
-                    _gameVersion = GameVersion.BFHL;
+                    GameVersion = GameVersionEnum.BFHL;
                     break;
             }
-            Log.Debug(() => "^1Game Version: " + _gameVersion, 1);
+            Log.Success("^1Game Version: " + GameVersion);
 
             //Initialize the Email Handler
             _EmailHandler = new EmailHandler(this);
@@ -10395,10 +10396,10 @@ namespace PRoConEvents
                         Log.Debug(() => "Assigning team ID " + targetTeamID + " to Neutral ", 4);
                         break;
                     case 0:
-                        switch (_gameVersion)
+                        switch (GameVersion)
                         {
-                            case GameVersion.BF3:
-                            case GameVersion.BF4:
+                            case GameVersionEnum.BF3:
+                            case GameVersionEnum.BF4:
                                 //Check for already existing US team
                                 if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "US")
                                 {
@@ -10408,7 +10409,7 @@ namespace PRoConEvents
                                 _teamDictionary[targetTeamID] = new ATeam(this, targetTeamID, "US", "US Army", "United States Army");
                                 Log.Debug(() => "Assigning team ID " + targetTeamID + " to US ", 4);
                                 break;
-                            case GameVersion.BFHL:
+                            case GameVersionEnum.BFHL:
                                 //Check for already existing US team
                                 if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "Cops")
                                 {
@@ -10421,10 +10422,10 @@ namespace PRoConEvents
                         }
                         break;
                     case 1:
-                        switch (_gameVersion)
+                        switch (GameVersion)
                         {
-                            case GameVersion.BF3:
-                            case GameVersion.BF4:
+                            case GameVersionEnum.BF3:
+                            case GameVersionEnum.BF4:
                                 //Check for already existing RU team
                                 if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "RU")
                                 {
@@ -10434,7 +10435,7 @@ namespace PRoConEvents
                                 _teamDictionary[targetTeamID] = new ATeam(this, targetTeamID, "RU", "Russian Army", "Russian Federation Army");
                                 Log.Debug(() => "Assigning team ID " + targetTeamID + " to RU", 4);
                                 break;
-                            case GameVersion.BFHL:
+                            case GameVersionEnum.BFHL:
                                 //Check for already existing RU team
                                 if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "Crims")
                                 {
@@ -10447,10 +10448,10 @@ namespace PRoConEvents
                         }
                         break;
                     case 2:
-                        switch (_gameVersion)
+                        switch (GameVersion)
                         {
-                            case GameVersion.BF3:
-                            case GameVersion.BF4:
+                            case GameVersionEnum.BF3:
+                            case GameVersionEnum.BF4:
                                 //Check for already existing CN team
                                 if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "CN")
                                 {
@@ -10544,7 +10545,7 @@ namespace PRoConEvents
                 _acceptingTeamUpdates = true;
                 _teamDictionary.Clear();
                 _teamDictionary[0] = new ATeam(this, 0, "Neutral", "Neutrals", "Neutral Players");
-                if (_gameVersion == GameVersion.BF3)
+                if (GameVersion == GameVersionEnum.BF3)
                 {
                     OnTeamFactionOverride(1, 0);
                     OnTeamFactionOverride(2, 1);
@@ -10552,7 +10553,7 @@ namespace PRoConEvents
                     OnTeamFactionOverride(4, 1);
                     _acceptingTeamUpdates = false;
                 }
-                else if (_gameVersion == GameVersion.BF4)
+                else if (GameVersion == GameVersionEnum.BF4)
                 {
                     Log.Debug(() => "Assigning team ID " + 0 + " to Spectator", 4);
                     Thread.Sleep(500);
@@ -10592,7 +10593,7 @@ namespace PRoConEvents
                         })));
                     }
                 }
-                else if (_gameVersion == GameVersion.BFHL)
+                else if (GameVersion == GameVersionEnum.BFHL)
                 {
                     Log.Debug(() => "Assigning team ID " + 0 + " to Spectator", 4);
                     OnTeamFactionOverride(1, 0);
@@ -10816,7 +10817,7 @@ namespace PRoConEvents
                                                                 .Where(aSquad => aSquad.TeamID == chosenTeam)
                                                                 .OrderBy(dSquad => dSquad.Players.Sum(member => member.GetPower(true))))
                                         {
-                                            if (aSquad.Players.Count() < (_gameVersion == GameVersion.BF3 ? 4 : 5))
+                                            if (aSquad.Players.Count() < (GameVersion == GameVersionEnum.BF3 ? 4 : 5))
                                             {
                                                 Log.Info("Adding " + aPlayer.player_name + " to squad " + aSquad);
                                                 aSquad.Players.Add(aPlayer);
@@ -13085,7 +13086,7 @@ namespace PRoConEvents
                                 {
                                     Double winRate = mapUpTeam.GetTicketDifferenceRate();
                                     Double loseRate = mapDownTeam.GetTicketDifferenceRate();
-                                    if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" && _gameVersion == GameVersion.BF4)
+                                    if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" && GameVersion == GameVersionEnum.BF4)
                                     {
                                         Int32 maxFlags = Int32.MaxValue;
                                         switch (_serverInfo.InfoObject.Map)
@@ -14506,7 +14507,7 @@ namespace PRoConEvents
             {
                 //Faction Randomizer
                 //Credit to LumPenPacK
-                if (_factionRandomizerEnable && _gameVersion == GameVersion.BF4)
+                if (_factionRandomizerEnable && GameVersion == GameVersionEnum.BF4)
                 {
                     var nextMap = _serverInfo.GetNextMap();
                     if (((_serverInfo.InfoObject.CurrentRound + 1) >= _serverInfo.InfoObject.TotalRounds) &&
@@ -15383,7 +15384,7 @@ namespace PRoConEvents
                     //KPM check
                     Int32 lowCountRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
                     int lowCountBan =
-                        ((_gameVersion == GameVersion.BF3) ? (25) : (20)) -
+                        ((GameVersion == GameVersionEnum.BF3) ? (25) : (20)) -
                         ((aKill.killer.fbpInfo.Rank <= 15) ? (6) : (0));
                     if (lowCountRecent >= lowCountBan)
                     {
@@ -15403,7 +15404,7 @@ namespace PRoConEvents
                     }
                     Int32 highCountRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 120);
                     int highCountBan =
-                        ((_gameVersion == GameVersion.BF3) ? (40) : (32)) -
+                        ((GameVersion == GameVersionEnum.BF3) ? (40) : (32)) -
                         ((aKill.killer.fbpInfo.Rank <= 15) ? (8) : (0));
                     if (highCountRecent >= highCountBan)
                     {
@@ -15491,7 +15492,7 @@ namespace PRoConEvents
                 }
 
                 // Catch BF4 gadget kills
-                if (_gameVersion == GameVersion.BF4)
+                if (GameVersion == GameVersionEnum.BF4)
                 {
                     //Special weapons
                     String actedCode = null;
@@ -15542,7 +15543,7 @@ namespace PRoConEvents
                     }
                 }
                 // Catch BF3 gadget kills
-                if (_gameVersion == GameVersion.BF3)
+                if (GameVersion == GameVersionEnum.BF3)
                 {
                     //Special weapons
                     String actedCode = null;
@@ -15602,11 +15603,11 @@ namespace PRoConEvents
                                     Double fuseTime = 0;
                                     if (aKill.weaponCode.Contains("M67"))
                                     {
-                                        if (_gameVersion == GameVersion.BF3)
+                                        if (GameVersion == GameVersionEnum.BF3)
                                         {
                                             fuseTime = 3735.00;
                                         }
-                                        else if (_gameVersion == GameVersion.BF4)
+                                        else if (GameVersion == GameVersionEnum.BF4)
                                         {
                                             fuseTime = 3132.00;
                                         }
@@ -15708,7 +15709,7 @@ namespace PRoConEvents
                                         }
                                     }
 
-                                    if (sure.Count == 1 && possible.Count == 0 && _gameVersion == GameVersion.BF3)
+                                    if (sure.Count == 1 && possible.Count == 0 && GameVersion == GameVersionEnum.BF3)
                                     {
                                         APlayer player = sure[0].Key;
                                         String probString = sure[0].Value;
@@ -15899,11 +15900,11 @@ namespace PRoConEvents
                                             }
                                             else if (weapon == "Death")
                                             {
-                                                if (_gameVersion == GameVersion.BF3)
+                                                if (GameVersion == GameVersionEnum.BF3)
                                                 {
                                                     record.record_message = "Rules: Using Mortar";
                                                 }
-                                                else if (_gameVersion == GameVersion.BF4)
+                                                else if (GameVersion == GameVersionEnum.BF4)
                                                 {
                                                     record.record_message = "Rules: Using EOD Bot";
                                                 }
@@ -16038,7 +16039,7 @@ namespace PRoConEvents
                                 Threading.StopWatchdog();
                             })));
                         }
-                        else if (_UseExperimentalTools && _gameVersion == GameVersion.BF4 && _serverInfo != null && _serverInfo.GetRoundElapsedTime().TotalSeconds < 30)
+                        else if (_UseExperimentalTools && GameVersion == GameVersionEnum.BF4 && _serverInfo != null && _serverInfo.GetRoundElapsedTime().TotalSeconds < 30)
                         {
                             if (_serverInfo.ServerName.ToLower().Contains("metro") && _serverInfo.ServerName.ToLower().Contains("no explosives"))
                             {
@@ -16281,7 +16282,7 @@ namespace PRoConEvents
             {
                 if (_pluginEnabled &&
                     _firstPlayerListComplete &&
-                    _gameVersion == GameVersion.BF4 &&
+                    GameVersion == GameVersionEnum.BF4 &&
                     !String.IsNullOrEmpty(_vipKickedPlayerName))
                 {
                     var matchingPlayer = GetFetchedPlayers().FirstOrDefault(aPlayer => aPlayer.player_name == soldierName);
@@ -16324,7 +16325,7 @@ namespace PRoConEvents
             {
                 if (_pluginEnabled &&
                     _firstPlayerListComplete &&
-                    _gameVersion == GameVersion.BF4 &&
+                    GameVersion == GameVersionEnum.BF4 &&
                     reason == "PLAYER_KICKED")
                 {
                     var matchingPlayer = GetFetchedPlayers().FirstOrDefault(aPlayer => aPlayer.player_name == soldierName);
@@ -17126,7 +17127,7 @@ namespace PRoConEvents
                 }
                 if (_useAntiCheatLIVESystem &&
                     //Only on BF4
-                    _gameVersion == GameVersion.BF4 &&
+                    GameVersion == GameVersionEnum.BF4 &&
                     //Stats are available
                     aPlayer.RoundStats.ContainsKey(_roundID - 1) &&
                     aPlayer.RoundStats.ContainsKey(_roundID) &&
@@ -17242,9 +17243,9 @@ namespace PRoConEvents
                 }
 
                 List<String> allowedCategories;
-                switch (_gameVersion)
+                switch (GameVersion)
                 {
-                    case GameVersion.BF3:
+                    case GameVersionEnum.BF3:
                         allowedCategories = new List<string> {
                             "sub_machine_guns",
                             "assault_rifles",
@@ -17253,7 +17254,7 @@ namespace PRoConEvents
                             "handheld_weapons"
                         };
                         break;
-                    case GameVersion.BF4:
+                    case GameVersionEnum.BF4:
                         allowedCategories = new List<string> {
                             "pdws",
                             "assault_rifles",
@@ -17262,7 +17263,7 @@ namespace PRoConEvents
                             "handguns"
                         };
                         break;
-                    case GameVersion.BFHL:
+                    case GameVersionEnum.BFHL:
                         allowedCategories = new List<string> {
                             "assault_rifles",
                             "ar_standard",
@@ -17398,7 +17399,7 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            Log.Warn("Could not find damage stats for " + weaponStat.Category + ":" + weaponStat.ID + " in " + _gameVersion + " library of " + _StatLibrary.Weapons.Count + " weapons.");
+                            Log.Warn("Could not find damage stats for " + weaponStat.Category + ":" + weaponStat.ID + " in " + GameVersion + " library of " + _StatLibrary.Weapons.Count + " weapons.");
                         }
                     }
                 }
@@ -17515,9 +17516,9 @@ namespace PRoConEvents
                 APlayerStats previousStats;
                 aPlayer.RoundStats.TryGetValue(_roundID - 1, out previousStats);
                 List<String> allowedCategories;
-                switch (_gameVersion)
+                switch (GameVersion)
                 {
-                    case GameVersion.BF3:
+                    case GameVersionEnum.BF3:
                         allowedCategories = new List<string> {
                             "sub_machine_guns",
                             "assault_rifles",
@@ -17525,7 +17526,7 @@ namespace PRoConEvents
                             "machine_guns"
                         };
                         break;
-                    case GameVersion.BF4:
+                    case GameVersionEnum.BF4:
                         allowedCategories = new List<string> {
                             "pdws",
                             "assault_rifles",
@@ -17533,7 +17534,7 @@ namespace PRoConEvents
                             "lmgs"
                         };
                         break;
-                    case GameVersion.BFHL:
+                    case GameVersionEnum.BFHL:
                         allowedCategories = new List<string> {
                             "assault_rifles",
                             "ar_standard",
@@ -17582,7 +17583,7 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            Log.Warn("Could not find damage stats for " + weaponStat.Category + ":" + weaponStat.ID + " in " + _gameVersion + " library of " + _StatLibrary.Weapons.Count + " weapons.");
+                            Log.Warn("Could not find damage stats for " + weaponStat.Category + ":" + weaponStat.ID + " in " + GameVersion + " library of " + _StatLibrary.Weapons.Count + " weapons.");
                         }
                     }
                 }
@@ -17702,9 +17703,9 @@ namespace PRoConEvents
                 APlayerStats previousStats;
                 aPlayer.RoundStats.TryGetValue(_roundID - 1, out previousStats);
                 List<String> allowedCategories;
-                switch (_gameVersion)
+                switch (GameVersion)
                 {
-                    case GameVersion.BF3:
+                    case GameVersionEnum.BF3:
                         allowedCategories = new List<string> {
                             "assault_rifles",
                             "carbines",
@@ -17712,7 +17713,7 @@ namespace PRoConEvents
                             "machine_guns"
                         };
                         break;
-                    case GameVersion.BF4:
+                    case GameVersionEnum.BF4:
                         allowedCategories = new List<string> {
                             "assault_rifles",
                             "carbines",
@@ -17723,7 +17724,7 @@ namespace PRoConEvents
                             "shotguns"
                         };
                         break;
-                    case GameVersion.BFHL:
+                    case GameVersionEnum.BFHL:
                         allowedCategories = new List<string> {
                             "assault_rifles",
                             "ar_standard",
@@ -18411,7 +18412,7 @@ namespace PRoConEvents
                 {
                     ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Yell[" + duration + "s] > " + message);
                 }
-                ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion == GameVersion.BF4) ? (Environment.NewLine) : ("")) + message.ToUpper(), duration + "", "all");
+                ExecuteCommand("procon.protected.send", "admin.yell", ((GameVersion == GameVersionEnum.BF4) ? (Environment.NewLine) : ("")) + message.ToUpper(), duration + "", "all");
             }
             catch (Exception e)
             {
@@ -18452,7 +18453,7 @@ namespace PRoConEvents
                 }
                 for (int count = 0; count < spamCount; count++)
                 {
-                    ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion != GameVersion.BF3) ? (Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "player", target);
+                    ExecuteCommand("procon.protected.send", "admin.yell", ((GameVersion != GameVersionEnum.BF3) ? (Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "player", target);
                     Threading.Wait(50);
                 }
             }
@@ -24340,31 +24341,15 @@ namespace PRoConEvents
                             switch (parameters.Length)
                             {
                                 case 0:
+                                    record.record_message = "info";
                                     record.target_name = record.source_name;
-                                    record.record_message = "Requesting Challenge Info";
-                                    var info = ChallengeManager.GetChallengeInfo(record.source_player);
                                     QueueRecordForProcessing(record);
                                     break;
-                                case 1:
-                                    record.target_name = parameters[0];
-                                    record.record_message = "Telling Player Rules";
-                                    if (!HandleRoundReport(record))
-                                    {
-                                        CompleteTargetInformation(record, false, false, false);
-                                    }
-                                    break;
                                 default:
-                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
-                                    FinalizeRecord(record);
-                                    return;
-                            }
-
-
-                            if (record.record_source != ARecord.Sources.InGame)
-                            {
-                                SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
-                                FinalizeRecord(record);
-                                return;
+                                    record.record_message = parameters[0];
+                                    record.target_name = record.source_name;
+                                    QueueRecordForProcessing(record);
+                                    break;
                             }
                         }
                         break;
@@ -28382,6 +28367,9 @@ namespace PRoConEvents
                     case "player_blacklistallcaps_remove":
                         AllCapsBlacklistRemoveTarget(record);
                         break;
+                    case "self_challenge":
+                        SendChallengeInfo(record);
+                        break;
                     case "player_changename":
                     case "player_changetag":
                     case "player_changeip":
@@ -28422,7 +28410,7 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                if (_gameVersion != GameVersion.BF3 && !record.isAliveChecked)
+                if (GameVersion != GameVersionEnum.BF3 && !record.isAliveChecked)
                 {
                     if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name))
                     {
@@ -28535,9 +28523,9 @@ namespace PRoConEvents
                 record.record_action_executed = true;
                 if (record.source_name != record.target_name)
                 {
-                    switch (_gameVersion)
+                    switch (GameVersion)
                     {
-                        case GameVersion.BF3:
+                        case GameVersionEnum.BF3:
                             if (record.command_type.command_key == "player_punish")
                             {
                                 if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin")
@@ -28568,8 +28556,8 @@ namespace PRoConEvents
                                 }
                             }
                             break;
-                        case GameVersion.BF4:
-                        case GameVersion.BFHL:
+                        case GameVersionEnum.BF4:
+                        case GameVersionEnum.BFHL:
                             if (!record.isAliveChecked)
                             {
                                 if (record.command_type.command_key == "player_punish")
@@ -35210,6 +35198,49 @@ namespace PRoConEvents
             Log.Debug(() => "Exiting LeadCurrentSquad", 6);
         }
 
+        public void SendChallengeInfo(ARecord record)
+        {
+            Log.Debug(() => "Entering SendCHallengeInfo", 6);
+            try
+            {
+                record.record_action_executed = true;
+
+                // Immediately get the challenge info, then go async
+                var messages = ChallengeManager.GetChallengeInfo(record.target_player).Split(
+                    new[] { Environment.NewLine },
+                    StringSplitOptions.None
+                );
+
+                Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                {
+                    Log.Debug(() => "Starting a challenge info printer.", 5);
+                    try
+                    {
+                        Thread.CurrentThread.Name = "ChallengeInfoPrinter";
+                        Threading.Wait(100);
+                        foreach (var message in messages)
+                        {
+                            SendMessageToSource(record, message);
+                            Threading.Wait(1500);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Log.HandleException(new AException("Error while printing challenge info.", e));
+                    }
+                    Log.Debug(() => "Exiting a challenge info printer.", 5);
+                    Threading.StopWatchdog();
+                })));
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AException("Error while sending challenge info.", e);
+                Log.HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting SendCHallengeInfo", 6);
+        }
+
         private void QueueUserForUpload(AUser user)
         {
             try
@@ -36219,15 +36250,15 @@ namespace PRoConEvents
             api.mb_assess_player_ok += new MetabansAPI.RequestSuccessHandler(api_mb_assess_player_ok);
 
             SupportedGames gameType;
-            switch (_gameVersion)
+            switch (GameVersion)
             {
-                case GameVersion.BF3:
+                case GameVersionEnum.BF3:
                     gameType = SupportedGames.BF_3;
                     break;
-                case GameVersion.BF4:
+                case GameVersionEnum.BF4:
                     gameType = SupportedGames.BF_4;
                     break;
-                case GameVersion.BFHL:
+                case GameVersionEnum.BFHL:
                     gameType = SupportedGames.BF_H;
                     break;
                 default:
@@ -36706,7 +36737,7 @@ namespace PRoConEvents
                                         Int32 gameID = reader.GetInt32("game_id");
                                         if (!_gameIDDictionary.ContainsKey(gameID))
                                         {
-                                            if (_gameVersion.ToString() == gameName)
+                                            if (GameVersion.ToString() == gameName)
                                             {
                                                 _serverInfo.GameID = gameID;
                                                 gameIDFound = true;
@@ -36714,13 +36745,13 @@ namespace PRoConEvents
                                             switch (gameName)
                                             {
                                                 case "BF3":
-                                                    _gameIDDictionary.Add(gameID, GameVersion.BF3);
+                                                    _gameIDDictionary.Add(gameID, GameVersionEnum.BF3);
                                                     break;
                                                 case "BF4":
-                                                    _gameIDDictionary.Add(gameID, GameVersion.BF4);
+                                                    _gameIDDictionary.Add(gameID, GameVersionEnum.BF4);
                                                     break;
                                                 case "BFHL":
-                                                    _gameIDDictionary.Add(gameID, GameVersion.BFHL);
+                                                    _gameIDDictionary.Add(gameID, GameVersionEnum.BFHL);
                                                     break;
                                                 default:
                                                     Log.Error("Game name " + gameName + " not recognized.");
@@ -42997,6 +43028,11 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command player_challenge_ignore", "INSERT INTO `adkats_commands` VALUES(138, 'Active', 'player_challenge_ignore', 'Log', 'Challenge Ignoring Status', 'challengeignore', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(139))
+                                {
+                                    SendNonQuery("Adding command self_challenge", "INSERT INTO `adkats_commands` VALUES(139, 'Active', 'self_challenge', 'Log', 'Challenge', 'challenge', FALSE, 'Any')", true);
+                                    newCommands = true;
+                                }
                                 if (newCommands)
                                 {
                                     FetchCommands();
@@ -43155,6 +43191,7 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_loadout_ignore"] = "If AdKatsLRT is installed the targeted player is temporarily ignored for loadout enforcement.";
             _CommandDescriptionDictionary["player_challenge_play"] = "A player under challenge playing status will be automatically enrolled in any active challenge.";
             _CommandDescriptionDictionary["player_challenge_ignore"] = "A player under under challenge ignoring status will not be automatically enrolled in any active challenge.";
+            _CommandDescriptionDictionary["self_challenge"] = "Personal control command for the challenge system.";
         }
 
         private void FillReadableMapModeDictionaries()
@@ -46068,7 +46105,7 @@ namespace PRoConEvents
                     Log.Error("Attempted to get battlelog information of nameless player.");
                     return false;
                 }
-                if (_gameVersion == GameVersion.BF3)
+                if (GameVersion == GameVersionEnum.BF3)
                 {
                     Log.Debug(() => "Preparing to fetch battlelog info for BF3 player " + aPlayer.GetVerboseName(), 7);
                     using (WebClient client = new WebClient())
@@ -46129,7 +46166,7 @@ namespace PRoConEvents
                         }
                     }
                 }
-                else if (_gameVersion == GameVersion.BF4)
+                else if (GameVersion == GameVersionEnum.BF4)
                 {
                     Log.Debug(() => "Preparing to fetch battlelog info for BF4 player " + aPlayer.GetVerboseName(), 7);
                     using (WebClient client = new WebClient())
@@ -46282,7 +46319,7 @@ namespace PRoConEvents
                         }
                     }
                 }
-                else if (_gameVersion == GameVersion.BFHL)
+                else if (GameVersion == GameVersionEnum.BFHL)
                 {
                     Log.Debug(() => "Preparing to fetch battlelog info for BFHL player " + aPlayer.GetVerboseName(), 7);
                     using (WebClient client = new WebClient())
@@ -46421,7 +46458,7 @@ namespace PRoConEvents
                 Log.Error("Attempted to fetch player stats info without needed info.");
                 return false;
             }
-            if (_gameVersion == GameVersion.BF3)
+            if (GameVersion == GameVersionEnum.BF3)
             {
                 using (WebClient client = new WebClient())
                 {
@@ -46620,7 +46657,7 @@ namespace PRoConEvents
                     }
                 }
             }
-            else if (_gameVersion == GameVersion.BF4)
+            else if (GameVersion == GameVersionEnum.BF4)
             {
                 using (WebClient client = new WebClient())
                 {
@@ -46859,7 +46896,7 @@ namespace PRoConEvents
                     }
                 }
             }
-            else if (_gameVersion == GameVersion.BFHL)
+            else if (GameVersion == GameVersionEnum.BFHL)
             {
                 using (WebClient client = new WebClient())
                 {
@@ -47925,7 +47962,7 @@ namespace PRoConEvents
         public void KickPlayerMessage(APlayer player, String message)
         {
             var kickDuration = 0;
-            if (_gameVersion == GameVersion.BF4)
+            if (GameVersion == GameVersionEnum.BF4)
             {
                 kickDuration = 30;
                 if (player.player_spawnedOnce)
@@ -47964,7 +48001,7 @@ namespace PRoConEvents
         public void BanKickPlayerMessage(APlayer aPlayer, String message)
         {
             Int32 kickDuration = 0;
-            if (_gameVersion == GameVersion.BF4 &&
+            if (GameVersion == GameVersionEnum.BF4 &&
                 _BanEnforcerBF4LenientKick)
             {
                 kickDuration = 30;
@@ -48482,7 +48519,7 @@ namespace PRoConEvents
 
             //Other plugins
             //1 - MULTIBalancer - With ColColonCleaner balance mods
-            if (_UseExperimentalTools && _gameVersion == GameVersion.BF4)
+            if (_UseExperimentalTools && GameVersion == GameVersionEnum.BF4)
             {
                 String externalPluginSource;
                 using (WebClient client = new WebClient())
@@ -49992,7 +50029,7 @@ namespace PRoConEvents
         public CompilerResults CompilePluginSource(String pluginSource)
         {
             String procon_path = Directory.GetParent(Application.ExecutablePath).FullName;
-            String pluginDirectory = Path.Combine(procon_path, Path.Combine("Plugins", _gameVersion.ToString()));
+            String pluginDirectory = Path.Combine(procon_path, Path.Combine("Plugins", GameVersion.ToString()));
             Dictionary<string, string> providerOptions = new Dictionary<String, String>();
             providerOptions.Add("CompilerVersion", "v3.5");
             CSharpCodeProvider cSharpCodeProvider = new CSharpCodeProvider(providerOptions);
@@ -50294,7 +50331,7 @@ namespace PRoConEvents
             {
                 try
                 {
-                    if (_plugin._gameVersion == GameVersion.BF4)
+                    if (_plugin.GameVersion == GameVersionEnum.BF4)
                     {
                         // Assault Rifles
                         var AR = new ChallengeRule(_plugin)
@@ -52759,7 +52796,7 @@ namespace PRoConEvents
                     return;
                 }
                 Plugin.Log.Debug(() => "Sending PushBullet report [" + record.command_numeric + "] on " + record.GetTargetNames(), 3);
-                String title = record.GetTargetNames() + " reported in [" + Plugin._gameVersion + "] " + Plugin._serverInfo.ServerName.Substring(0, Math.Min(15, Plugin._serverInfo.ServerName.Length - 1));
+                String title = record.GetTargetNames() + " reported in [" + Plugin.GameVersion + "] " + Plugin._serverInfo.ServerName.Substring(0, Math.Min(15, Plugin._serverInfo.ServerName.Length - 1));
                 StringBuilder bb = new StringBuilder();
                 bb.Append("AdKats Round Report [" + record.command_numeric + "]");
                 bb.AppendLine();
@@ -52886,23 +52923,19 @@ namespace PRoConEvents
 
         public class AWeaponDictionary
         {
+            public AdKats _plugin;
+
             public readonly Dictionary<String, AWeaponName> WeaponNames = new Dictionary<String, AWeaponName>();
             public readonly Dictionary<String, DamageTypes> WeaponDamageTypes = new Dictionary<String, DamageTypes>();
             public String DamageTypeEnumString = "";
             public String WeaponNameEnumString = "";
-            private GameVersion _gameVersion;
 
-            private Logger Log;
-            private Utilities Util;
-
-            public AWeaponDictionary(Logger log, Utilities util, GameVersion gameVersion, WeaponDictionary dic)
+            public AWeaponDictionary(AdKats plugin, WeaponDictionary dic)
             {
+                _plugin = plugin;
+
                 try
                 {
-                    Log = log;
-                    Util = util;
-                    _gameVersion = gameVersion;
-
                     // Populate the weapon type dictionary
                     foreach (Weapon weapon in dic)
                     {
@@ -52931,7 +52964,7 @@ namespace PRoConEvents
                 }
                 catch (Exception e)
                 {
-                    Log.HandleException(new AException("Error while creating weapon dictionary.", e));
+                    _plugin.Log.HandleException(new AException("Error while creating weapon dictionary.", e));
                 }
             }
 
@@ -52944,10 +52977,10 @@ namespace PRoConEvents
                     {
                         return false;
                     }
-                    Hashtable gameWeaponNames = (Hashtable)weaponNames[_gameVersion.ToString()];
+                    Hashtable gameWeaponNames = (Hashtable)weaponNames[_plugin.GameVersion.ToString()];
                     if (gameWeaponNames == null)
                     {
-                        Log.Error("Weapons for " + _gameVersion + " not found in weapon name library.");
+                        _plugin.Log.Error("Weapons for " + _plugin.GameVersion + " not found in weapon name library.");
                         return false;
                     }
                     foreach (DictionaryEntry currentWeapon in gameWeaponNames)
@@ -52959,11 +52992,11 @@ namespace PRoConEvents
                         //Add the weapon name
                         WeaponNames[weaponCode] = new AWeaponName()
                         {
-                            weapon_game = _gameVersion,
+                            weapon_game = _plugin.GameVersion,
                             readable_short = shortName,
                             readable_long = longName
                         };
-                        Log.Info("loaded weapon: " + weaponCode + ", with names: " + shortName + ", and " + longName);
+                        _plugin.Log.Info("loaded weapon: " + weaponCode + ", with names: " + shortName + ", and " + longName);
                     }
 
                     //Fill the weapon name enum string
@@ -52985,30 +53018,30 @@ namespace PRoConEvents
                 }
                 catch (Exception e)
                 {
-                    Log.HandleException(new AException("Error while populating weapon name cache", e));
+                    _plugin.Log.HandleException(new AException("Error while populating weapon name cache", e));
                 }
                 return true;
             }
 
             private Hashtable FetchAWeaponNames()
             {
-                Log.Debug(() => "Entering FetchAWeaponNames", 7);
+                _plugin.Log.Debug(() => "Entering FetchAWeaponNames", 7);
                 Hashtable weaponNames = null;
                 using (WebClient client = new WebClient())
                 {
                     String downloadString;
-                    Log.Debug(() => "Fetching weapon names...", 2);
+                    _plugin.Log.Debug(() => "Fetching weapon names...", 2);
                     try
                     {
-                        downloadString = Util.ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsweaponnames.json" + "?cacherand=" + Environment.TickCount);
-                        Log.Debug(() => "Weapon names fetched.", 1);
+                        downloadString = _plugin.Util.ClientDownloadTimer(client, "https://raw.github.com/AdKats/AdKats/master/adkatsweaponnames.json" + "?cacherand=" + Environment.TickCount);
+                        _plugin.Log.Debug(() => "Weapon names fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
-                            downloadString = Util.ClientDownloadTimer(client, "http://adkats.gamerethos.net/api/fetch/weaponnames" + "?cacherand=" + Environment.TickCount);
-                            Log.Debug(() => "Weapon names fetched from backup location.", 1);
+                            downloadString = _plugin.Util.ClientDownloadTimer(client, "http://adkats.gamerethos.net/api/fetch/weaponnames" + "?cacherand=" + Environment.TickCount);
+                            _plugin.Log.Debug(() => "Weapon names fetched from backup location.", 1);
                         }
                         catch (Exception)
                         {
@@ -53021,10 +53054,10 @@ namespace PRoConEvents
                     }
                     catch (Exception e)
                     {
-                        Log.HandleException(new AException("Error while parsing reputation definitions.", e));
+                        _plugin.Log.HandleException(new AException("Error while parsing reputation definitions.", e));
                     }
                 }
-                Log.Debug(() => "Exiting FetchAWeaponNames", 7);
+                _plugin.Log.Debug(() => "Exiting FetchAWeaponNames", 7);
                 return weaponNames;
             }
 
@@ -53040,7 +53073,7 @@ namespace PRoConEvents
                 }
                 catch (Exception e)
                 {
-                    Log.HandleException(new AException("Error while getting damage type.", e));
+                    _plugin.Log.HandleException(new AException("Error while getting damage type.", e));
                 }
                 return DamageTypes.None;
             }
@@ -53053,7 +53086,7 @@ namespace PRoConEvents
                 }
                 catch (Exception e)
                 {
-                    Log.HandleException(new AException("Error while getting damage type.", e));
+                    _plugin.Log.HandleException(new AException("Error while getting damage type.", e));
                 }
                 return new List<string>();
             }
@@ -53065,14 +53098,14 @@ namespace PRoConEvents
                 {
                     if (String.IsNullOrEmpty(weaponCode))
                     {
-                        Log.HandleException(new AException("weaponCode was null when fetching weapon damage type."));
+                        _plugin.Log.HandleException(new AException("weaponCode was null when fetching weapon damage type."));
                         return weaponDamage;
                     }
                     WeaponDamageTypes.TryGetValue(weaponCode, out weaponDamage);
                 }
                 catch (Exception e)
                 {
-                    Log.HandleException(new AException("Error while getting damage type for weapon code.", e));
+                    _plugin.Log.HandleException(new AException("Error while getting damage type for weapon code.", e));
                 }
                 return weaponDamage;
             }
@@ -53092,12 +53125,12 @@ namespace PRoConEvents
                             }
                         }
                     }
-                    Log.HandleException(new AException("Unable to get weapon CODE for short NAME '" + weaponShortName + "', in " + WeaponNames.Count() + " weapons."));
+                    _plugin.Log.HandleException(new AException("Unable to get weapon CODE for short NAME '" + weaponShortName + "', in " + WeaponNames.Count() + " weapons."));
                     return weaponShortName;
                 }
                 catch (Exception e)
                 {
-                    Log.HandleException(new AException("Error while getting weapon code for short name.", e));
+                    _plugin.Log.HandleException(new AException("Error while getting weapon code for short name.", e));
                 }
                 return null;
             }
@@ -53109,20 +53142,20 @@ namespace PRoConEvents
                     AWeaponName weaponName = null;
                     if (String.IsNullOrEmpty(weaponCode))
                     {
-                        Log.HandleException(new AException("weaponCode was null when fetching weapon name"));
+                        _plugin.Log.HandleException(new AException("weaponCode was null when fetching weapon name"));
                         return null;
                     }
                     WeaponNames.TryGetValue(weaponCode, out weaponName);
                     if (weaponName == null)
                     {
-                        Log.HandleException(new AException("Unable to get weapon short NAME for CODE '" + weaponCode + "', in " + WeaponNames.Count() + " weapons."));
+                        _plugin.Log.HandleException(new AException("Unable to get weapon short NAME for CODE '" + weaponCode + "', in " + WeaponNames.Count() + " weapons."));
                         return weaponCode;
                     }
                     return weaponName.readable_short;
                 }
                 catch (Exception e)
                 {
-                    Log.HandleException(new AException("Error while getting short weapon name for code.", e));
+                    _plugin.Log.HandleException(new AException("Error while getting short weapon name for code.", e));
                 }
                 return null;
             }
@@ -53134,27 +53167,27 @@ namespace PRoConEvents
                     AWeaponName weaponName = null;
                     if (String.IsNullOrEmpty(weaponCode))
                     {
-                        Log.HandleException(new AException("weaponCode was null when fetching weapon name"));
+                        _plugin.Log.HandleException(new AException("weaponCode was null when fetching weapon name"));
                         return null;
                     }
                     WeaponNames.TryGetValue(weaponCode, out weaponName);
                     if (weaponName == null)
                     {
-                        Log.HandleException(new AException("Unable to get weapon long NAME for CODE '" + weaponCode + "', in " + WeaponNames.Count() + " weapons."));
+                        _plugin.Log.HandleException(new AException("Unable to get weapon long NAME for CODE '" + weaponCode + "', in " + WeaponNames.Count() + " weapons."));
                         return weaponCode;
                     }
                     return weaponName.readable_short;
                 }
                 catch (Exception e)
                 {
-                    Log.HandleException(new AException("Error while getting long weapon name for code.", e));
+                    _plugin.Log.HandleException(new AException("Error while getting long weapon name for code.", e));
                 }
                 return null;
             }
 
             public class AWeaponName
             {
-                public GameVersion weapon_game;
+                public GameVersionEnum weapon_game;
                 public String readable_short;
                 public String readable_long;
             }
@@ -53178,9 +53211,9 @@ namespace PRoConEvents
             public EmailHandler(AdKats plugin)
             {
                 Plugin = plugin;
-                switch (Plugin._gameVersion)
+                switch (Plugin.GameVersion)
                 {
-                    case GameVersion.BF3:
+                    case GameVersionEnum.BF3:
                         CustomHTMLAddition = @"<br><a href='http://battlelog.battlefield.com/bf3/user/%player_name%/'>BF3 Battlelog Profile</a><br>
 <br><a href='http://bf3stats.com/stats_pc/%player_name%'>BF3Stats Profile</a><br>
 <br><a href='http://history.anticheatinc.com/bf3/?searchvalue=%player_name%'>AntiCheat, INC. Search</a><br>
@@ -53189,7 +53222,7 @@ namespace PRoConEvents
 <br><a href='http://www.team-des-fra.fr/CoM/bf3.php?p=%player_name%'>TeamDes Search</a><br>
 <br><a href='http://cheatometer.hedix.de/?p=%player_name%'>Hedix Search</a><br>";
                         break;
-                    case GameVersion.BF4:
+                    case GameVersionEnum.BF4:
                         CustomHTMLAddition = @"<br><a href='http://battlelog.battlefield.com/bf4/de/user/%player_name%/'>BF4 Battlelog Profile</a><br>
 <br><a href='http://bf4stats.com/pc/%player_name%'>BF4Stats Profile</a><br>
 <br><a href='http://history.anticheatinc.com/bf4/?searchvalue=%player_name%'>AntiCheat, INC. Search</a><br>
@@ -53231,8 +53264,8 @@ namespace PRoConEvents
                                 //Unable to send report email, server id unknown
                                 return;
                             }
-                            subject = record.GetTargetNames() + " reported in [" + Plugin._gameVersion + "] " + Plugin._serverInfo.ServerName;
-                            sb.Append("<h1>AdKats " + Plugin._gameVersion + " Player Report [" + record.command_numeric + "]</h1>");
+                            subject = record.GetTargetNames() + " reported in [" + Plugin.GameVersion + "] " + Plugin._serverInfo.ServerName;
+                            sb.Append("<h1>AdKats " + Plugin.GameVersion + " Player Report [" + record.command_numeric + "]</h1>");
                             sb.Append("<h2>" + Plugin._serverInfo.ServerName + "</h2>");
                             sb.Append("<h3>" + DateTime.Now + " ProCon Time</h3>");
                             sb.Append("<h3>" + record.GetSourceName() + " has reported " + record.GetTargetNames() + " for " + record.record_message + "</h3>");
@@ -54160,7 +54193,7 @@ namespace PRoConEvents
                 {
                     //Get Weapons
                     Hashtable statTable = FetchWeaponDefinitions();
-                    Hashtable gameTable = (Hashtable)statTable[Plugin._gameVersion.ToString()];
+                    Hashtable gameTable = (Hashtable)statTable[Plugin.GameVersion.ToString()];
                     if (gameTable != null && gameTable.Count > 0)
                     {
                         Dictionary<string, StatLibraryWeapon> tempWeapons = new Dictionary<String, StatLibraryWeapon>();
@@ -54193,7 +54226,7 @@ namespace PRoConEvents
                 }
                 catch (Exception e)
                 {
-                    Plugin.Log.HandleException(new AException("Error while fetching weapon stats for " + Plugin._gameVersion, e));
+                    Plugin.Log.HandleException(new AException("Error while fetching weapon stats for " + Plugin.GameVersion, e));
                 }
                 return false;
             }
