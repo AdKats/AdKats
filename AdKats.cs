@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.42
+ * Version 7.0.1.43
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.42</version_code>
+ * <version_code>7.0.1.43</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.42";
+        private const String PluginVersion = "7.0.1.43";
 
         public enum GameVersionEnum
         {
@@ -50502,34 +50502,47 @@ namespace PRoConEvents
                             return false;
                         }
                         // Default to the kill being invalid
-                        var killValid = false;
                         foreach (var detail in ChallengeDetails)
                         {
+                            if (detail.KillCount <= 0)
+                            {
+                                _plugin.Log.Info("Detail " + detail.RuleID + "|" + detail.DetailID + " had a non-positive kill count.");
+                                continue;
+                            }
                             switch (detail.Type)
                             {
                                 case Detail.DetailType.None:
-                                    _plugin.Log.Error("No kills are valid for a NONE rule type.");
-                                    return false;
+                                    _plugin.Log.Info("Damage detail " + detail.RuleID + "|" + detail.DetailID + " had a NONE rule type.");
+                                    break;
                                 case Detail.DetailType.Damage:
                                     // Check for matching damage
-                                    if (detail.WeaponCount > 0 &&
-                                        detail.KillCount > 0 &&
-                                        detail.Damage == aKill.weaponDamage)
+                                    if (detail.WeaponCount <= 0)
                                     {
-                                        return true;
+                                        _plugin.Log.Info("Damage detail " + detail.RuleID + "|" + detail.DetailID + " had non-positive weapon count.");
+                                        break;
                                     }
-                                    break;
+                                    if (detail.Damage != aKill.weaponDamage)
+                                    {
+                                        _plugin.Log.Info("Damage detail " + detail.RuleID + "|" + detail.DetailID + " did not match damage of " + aKill.ToString() + ".");
+                                        break;
+                                    }
+                                    return true;
                                 case Detail.DetailType.Weapon:
                                     // Check for matching weapon
-                                    if (detail.KillCount > 0 &&
-                                        detail.Weapon == aKill.weaponCode)
+                                    if (detail.WeaponCount <= 0)
                                     {
-                                        return true;
+                                        _plugin.Log.Info("Weapon detail " + detail.RuleID + "|" + detail.DetailID + " had non-positive weapon count.");
+                                        break;
                                     }
-                                    break;
+                                    if (detail.Weapon != aKill.weaponCode)
+                                    {
+                                        _plugin.Log.Info("Weapon detail " + detail.RuleID + "|" + detail.DetailID + " did not match weapon code of " + aKill.ToString() + ".");
+                                        break;
+                                    }
+                                    return true;
                             }
                         }
-                        _plugin.Log.Info("Rule " + Name + " does not include weapon " + aKill.weaponCode + ".");
+                        _plugin.Log.Info("Rule " + Name + " does not include kill " + aKill.ToString() + ".");
                         return false;
                     }
                     catch (Exception e)
