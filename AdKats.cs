@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.54
+ * Version 7.0.1.55
  * 16-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.54</version_code>
+ * <version_code>7.0.1.55</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.54";
+        private const String PluginVersion = "7.0.1.55";
 
         public enum GameVersionEnum
         {
@@ -50299,7 +50299,7 @@ namespace PRoConEvents
                     return "CHALLENGE ACTIVE!" + Environment.NewLine + CurrentRule.RuleInfo() + Environment.NewLine;
                 }
                 // The player is available and they have entries. Get their status.
-                var status = CurrentRule.GetCompletionStatus(Entries[aPlayer].Kills);
+                var status = CurrentRule.GetCompletionStatus(Entries[aPlayer]);
                 var info = aPlayer.GetVerboseName() + " " + CurrentRule.Name.ToUpper() + " CHALLENGE" + Environment.NewLine;
                 info += CurrentRule.RuleInfo() + Environment.NewLine;
                 info += "Completion: " + status.CompletionPercentage + "% | " + status.TotalCompletedKills + " Kills | " + status.TotalRequiredKills + " Required" + Environment.NewLine;
@@ -50641,7 +50641,7 @@ namespace PRoConEvents
                     return false;
                 }
                 
-                public EntryStatus GetCompletionStatus(List<AKill> Kills)
+                public EntryStatus GetCompletionStatus(ChallengeEntry entry)
                 {
                     try
                     {
@@ -50690,7 +50690,7 @@ namespace PRoConEvents
                             weaponBuckets[weaponBucket.WeaponCode] = weaponBucket;
                         }
 
-                        foreach (var kill in Kills.OrderBy(dKill => dKill.timestamp))
+                        foreach (var kill in entry.Kills.OrderBy(dKill => dKill.timestamp))
                         {                            
                             // See if it matches a specific weapon requirement
                             if (weaponBuckets.ContainsKey(kill.weaponCode))
@@ -50725,7 +50725,7 @@ namespace PRoConEvents
                             // Unable to assign the kill. Either we don't have a need for it, or all the slots for it are full.
                         }
 
-                        return new EntryStatus(_plugin, this, damageBuckets, weaponBuckets);
+                        return new EntryStatus(_plugin, entry, damageBuckets, weaponBuckets);
                     }
                     catch (Exception e)
                     {
@@ -50738,7 +50738,7 @@ namespace PRoConEvents
                 {
                     private AdKats _plugin;
 
-                    private ChallengeRule Rule;
+                    private ChallengeEntry Entry;
                     private Dictionary<DamageTypes, DamageBucket> DamageBuckets;
                     private Dictionary<String, WeaponBucket> WeaponBuckets;
 
@@ -50755,13 +50755,13 @@ namespace PRoConEvents
                         get; private set;
                     }
                     
-                    public EntryStatus(AdKats plugin, ChallengeRule rule, Dictionary<DamageTypes, DamageBucket> damageBuckets, Dictionary<String, WeaponBucket> weaponBuckets)
+                    public EntryStatus(AdKats plugin, ChallengeEntry entry, Dictionary<DamageTypes, DamageBucket> damageBuckets, Dictionary<String, WeaponBucket> weaponBuckets)
                     {
                         _plugin = plugin;
 
                         try
                         {
-                            Rule = rule;
+                            Entry = entry;
                             DamageBuckets = damageBuckets;
                             if (DamageBuckets == null)
                             {
@@ -50832,28 +50832,17 @@ namespace PRoConEvents
                                 {
                                     completion += " Try another weapon!";
                                 }
-                                if (damageWeaponBucket != null)
+                                if (Entry.LastCompletedWeapon == kill.weaponCode)
                                 {
-                                    if (damageWeaponBucket.Completed)
-                                    {
-                                        respond = false;
-                                    }
-                                    damageWeaponBucket.Completed = true;
+                                    respond = false;
                                 }
-                                if (weaponBucket != null)
-                                {
-                                    if (weaponBucket.Completed)
-                                    {
-                                        respond = false;
-                                    }
-                                    weaponBucket.Completed = true;
-                                }
+                                Entry.LastCompletedWeapon = kill.weaponCode;
                             }
                             if (!respond)
                             {
                                 return String.Empty;
                             }
-                            return Rule.Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + CompletionPercentage + "%]" + completion;
+                            return Entry.GetRule().Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + CompletionPercentage + "%]" + completion;
                         }
                         catch (Exception e)
                         {
@@ -50867,11 +50856,11 @@ namespace PRoConEvents
                         try
                         {
                             var status = "";
-                            if (Rule == null)
+                            if (Entry.GetRule() == null)
                             {
                                 return "ERROR4";
                             }
-                            status += "--- " + Rule.Name + " Status ---" + Environment.NewLine;
+                            status += "--- " + Entry.GetRule().Name + " Status ---" + Environment.NewLine;
                             if (!DamageBuckets.Any() && !WeaponBuckets.Any())
                             {
                                 status += "No damage or weapons defined.";
@@ -51041,6 +51030,7 @@ namespace PRoConEvents
                 private ChallengeRule OriginalRule;
                 public List<AKill> Kills;
 
+                public String LastCompletedWeapon = String.Empty;
                 public Boolean Completed;
 
                 public ChallengeEntry(AdKats plugin, AChallengeManager manager, APlayer player)
@@ -51060,6 +51050,11 @@ namespace PRoConEvents
                     {
                         _plugin.Log.HandleException(new AException("Error while creating challenge entry.", e));
                     }
+                }
+
+                public ChallengeRule GetRule()
+                {
+                    return Manager.CurrentRule;
                 }
 
                 public Boolean AddKill(AKill aKill)
@@ -51096,7 +51091,7 @@ namespace PRoConEvents
                         Kills.Add(aKill);
 
                         //Check for completion case.
-                        var status = Manager.CurrentRule.GetCompletionStatus(Kills);
+                        var status = Manager.CurrentRule.GetCompletionStatus(this);
 
                         if (status.CompletionPercentage >= 99.99)
                         {
