@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.51
+ * Version 7.0.1.52
  * 16-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.51</version_code>
+ * <version_code>7.0.1.52</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.51";
+        private const String PluginVersion = "7.0.1.52";
 
         public enum GameVersionEnum
         {
@@ -50384,8 +50384,8 @@ namespace PRoConEvents
                         DetailID = 1,
                         Type = ChallengeRule.Detail.DetailType.Damage,
                         Damage = DamageTypes.AssaultRifle,
-                        WeaponCount = 5,
-                        KillCount = 5
+                        WeaponCount = 4,
+                        KillCount = 10
                     });
                     Rules.Add(AR);
                     
@@ -50401,8 +50401,8 @@ namespace PRoConEvents
                         DetailID = 1,
                         Type = ChallengeRule.Detail.DetailType.Damage,
                         Damage = DamageTypes.Carbine,
-                        WeaponCount = 5,
-                        KillCount = 5
+                        WeaponCount = 4,
+                        KillCount = 10
                     });
                     Rules.Add(CA);
 
@@ -50418,8 +50418,8 @@ namespace PRoConEvents
                         DetailID = 1,
                         Type = ChallengeRule.Detail.DetailType.Damage,
                         Damage = DamageTypes.LMG,
-                        WeaponCount = 5,
-                        KillCount = 5
+                        WeaponCount = 4,
+                        KillCount = 10
                     });
                     Rules.Add(LMG);
 
