@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.50
+ * Version 7.0.1.51
  * 16-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.50</version_code>
+ * <version_code>7.0.1.51</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.50";
+        private const String PluginVersion = "7.0.1.51";
 
         public enum GameVersionEnum
         {
@@ -2657,6 +2657,7 @@ namespace PRoConEvents
                 if (IsActiveSettingSection(challengeSettings))
                 {
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
+                    buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Challenge System Play Status Only", typeof(Boolean), ChallengeManager.PlayStatusOnly));
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [1] Displays" + t + "Current Rule (Display)", typeof(String), ChallengeManager.GetCurrentRuleName()));
 
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2]" + t + "Placeholder", typeof(String), ""));
@@ -5822,6 +5823,17 @@ namespace PRoConEvents
                         ChallengeManager.Enabled = enabled;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Challenge System Play Status Only").Success)
+                {
+                    Boolean playStatusOnly = Boolean.Parse(strValue);
+                    if (ChallengeManager != null &&
+                        playStatusOnly != ChallengeManager.PlayStatusOnly)
+                    {
+                        ChallengeManager.PlayStatusOnly = playStatusOnly;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Challenge System Play Status Only", typeof(Boolean), ChallengeManager.PlayStatusOnly));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use NO EXPLOSIVES Limiter").Success)
@@ -15951,7 +15963,7 @@ namespace PRoConEvents
                     if (!acted &&
                         ChallengeManager != null &&
                         ChallengeManager.Enabled &&
-                        GetMatchingVerboseASPlayersOfGroup("challenge_play", aKill.killer).Any())
+                        (!ChallengeManager.PlayStatusOnly || GetMatchingVerboseASPlayersOfGroup("challenge_play", aKill.killer).Any()))
                     {
                         ChallengeManager.ProcessKill(aKill);
                     }
@@ -35220,6 +35232,7 @@ namespace PRoConEvents
                 }
                 
                 if (record.target_player != null && 
+                    ChallengeManager.PlayStatusOnly &&
                     !GetMatchingVerboseASPlayersOfGroup("challenge_play", record.target_player).Any())
                 {
                     SendMessageToSource(record, "Challenges are being tested right now. Please contact an admin for access.");
@@ -37115,6 +37128,11 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Enable", typeof(Boolean), _factionRandomizerEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Restriction", typeof(String), _factionRandomizerRestriction.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"Faction Randomizer: Allow Repeat Team Selections", typeof(Boolean), _factionRandomizerAllowRepeatSelection));
+                if (ChallengeManager != null)
+                {
+                    QueueSettingForUpload(new CPluginVariable(@"Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
+                    QueueSettingForUpload(new CPluginVariable(@"Challenge System Play Status Only", typeof(Boolean), ChallengeManager.PlayStatusOnly));
+                }
                 Log.Debug(() => "uploadAllSettings finished!", 6);
             }
             catch (Exception e)
@@ -50247,6 +50265,7 @@ namespace PRoConEvents
             private AdKats _plugin;
 
             public Boolean Enabled;
+            public Boolean PlayStatusOnly;
             public ChallengeRule CurrentRule;
             public Boolean AllowRepeatRules;
             public List<ChallengeRule> Rules;
@@ -50788,13 +50807,13 @@ namespace PRoConEvents
                             String completion = "";
                             if (weaponCompletionPercentage > 99.9)
                             {
-                                completion = " - COMPLETED!";
+                                completion = " COMPLETED!";
                                 if (CompletionPercentage < 99.9)
                                 {
                                     completion += " Use another weapon!";
                                 }
                             }
-                            return Rule.Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + CompletionPercentage + "% Total]" + completion;
+                            return Rule.Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + CompletionPercentage + "%]" + completion;
                         }
                         catch (Exception e)
                         {
