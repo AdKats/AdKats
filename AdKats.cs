@@ -35205,7 +35205,7 @@ namespace PRoConEvents
                 if (record.target_player != null && 
                     !GetMatchingVerboseASPlayersOfGroup("challenge_play", record.target_player).Any())
                 {
-                    SendMessageToSource(record, "Challenges are being tested right now. Not all players have access.");
+                    SendMessageToSource(record, "Challenges are being tested right now. Please contact an admin for access.");
                     FinalizeRecord(record);
                     return;
                 }
