@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.40
+ * Version 7.0.1.41
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.40</version_code>
+ * <version_code>7.0.1.41</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.40";
+        private const String PluginVersion = "7.0.1.41";
 
         public enum GameVersionEnum
         {
@@ -50252,7 +50252,7 @@ namespace PRoConEvents
                 if (aPlayer == null ||
                     !Entries.ContainsKey(aPlayer))
                 {
-                    return "CHALLANGE ACTIVE!" + Environment.NewLine + CurrentRule.RuleInfo();
+                    return "CHALLENGE ACTIVE!" + Environment.NewLine + CurrentRule.RuleInfo() + Environment.NewLine;
                 }
                 // The player is available and they have entries. Get their status.
                 var status = CurrentRule.GetCompletionStatus(Entries[aPlayer].Kills);
@@ -50362,29 +50362,37 @@ namespace PRoConEvents
                     });
                     Rules.Add(CA);
 
-                    // 2 DMRs
-                    var DMR = new ChallengeRule(_plugin)
+                    // 3 LMGs
+                    var LMG = new ChallengeRule(_plugin)
                     {
                         RuleID = 3,
-                        Name = "2 DMRs"
+                        Name = "3 LMGs"
                     };
-                    DMR.AddDetail(new ChallengeRule.Detail()
+                    LMG.AddDetail(new ChallengeRule.Detail()
                     {
                         RuleID = 3,
                         DetailID = 1,
                         Type = ChallengeRule.Detail.DetailType.Weapon,
-                        Weapon = "U_SKS",
-                        KillCount = 5
+                        Weapon = "U_M60E4",
+                        KillCount = 10
                     });
-                    DMR.AddDetail(new ChallengeRule.Detail()
+                    LMG.AddDetail(new ChallengeRule.Detail()
                     {
                         RuleID = 3,
                         DetailID = 2,
                         Type = ChallengeRule.Detail.DetailType.Weapon,
-                        Weapon = "U_MK11",
-                        KillCount = 5
+                        Weapon = "U_MG4",
+                        KillCount = 10
                     });
-                    Rules.Add(DMR);
+                    LMG.AddDetail(new ChallengeRule.Detail()
+                    {
+                        RuleID = 3,
+                        DetailID = 2,
+                        Type = ChallengeRule.Detail.DetailType.Weapon,
+                        Weapon = "U_Pecheneg",
+                        KillCount = 10
+                    });
+                    Rules.Add(LMG);
                 }
                 catch (Exception e)
                 {
@@ -50437,16 +50445,25 @@ namespace PRoConEvents
 
                 public String RuleInfo()
                 {
-                    String info = "Weapon Types: ";
-                    foreach (var detail in ChallengeDetails.Where(det => det.Type == Detail.DetailType.Damage))
+                    String info = "Challenge: " + Name + Environment.NewLine;
+                    var damages = ChallengeDetails.Where(det => det.Type == Detail.DetailType.Damage);
+                    if (damages.Any())
                     {
-                        info += "[" + detail.Damage.ToString() + "/" + detail.WeaponCount + " Weapons/" + detail.KillCount + " Kills] ";
+                        info += "Weapon Types: ";
+                        foreach (var detail in damages)
+                        {
+                            info += "[" + detail.Damage.ToString() + "/" + detail.WeaponCount + " Weapons/" + detail.KillCount + " Kills] ";
+                        }
+                        info += Environment.NewLine;
                     }
-                    info += Environment.NewLine;
-                    info += "Weapons: ";
-                    foreach (var detail in ChallengeDetails.Where(det => det.Type == Detail.DetailType.Damage))
+                    var weapons = ChallengeDetails.Where(det => det.Type == Detail.DetailType.Weapon);
+                    if (weapons.Any())
                     {
-                        info += "[" + detail.Weapon + "/" + detail.KillCount + "_Kills] ";
+                        info += "Weapons: ";
+                        foreach (var detail in weapons)
+                        {
+                            info += "[" + detail.Weapon + "/" + detail.KillCount + "_Kills] ";
+                        }
                     }
                     return info;
                 }
