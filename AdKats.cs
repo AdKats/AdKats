@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.52
+ * Version 7.0.1.53
  * 16-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.52</version_code>
+ * <version_code>7.0.1.53</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.52";
+        private const String PluginVersion = "7.0.1.53";
 
         public enum GameVersionEnum
         {
@@ -50782,11 +50782,13 @@ namespace PRoConEvents
                         {
                             var requiredKills = 0;
                             var completedKills = 0;
+                            WeaponBucket weaponBucket = null;
+                            WeaponBucket damageWeaponBucket = null;
                             if (WeaponBuckets.ContainsKey(kill.weaponCode))
                             {
-                                var bucket = WeaponBuckets[kill.weaponCode];
-                                requiredKills += bucket.MaxKills;
-                                completedKills += bucket.Kills.Count();
+                                weaponBucket = WeaponBuckets[kill.weaponCode];
+                                requiredKills += weaponBucket.MaxKills;
+                                completedKills += weaponBucket.Kills.Count();
                             }
 
                             if (DamageBuckets.ContainsKey(kill.weaponDamage))
@@ -50797,14 +50799,15 @@ namespace PRoConEvents
                                     _plugin.Log.Error("Damage bucket for status weapon " + kill.weaponDamage + "/" + kill.weaponCode + " did not contain the needed weapon.");
                                     return "ERROR2";
                                 }
-                                var weaponBucket = damageBucketWeapons[kill.weaponCode];
-                                requiredKills += weaponBucket.MaxKills;
-                                completedKills += weaponBucket.Kills.Count();
+                                damageWeaponBucket = damageBucketWeapons[kill.weaponCode];
+                                requiredKills += damageWeaponBucket.MaxKills;
+                                completedKills += damageWeaponBucket.Kills.Count();
                             }
                             var weaponCompletionPercentage = Math.Max(Math.Min(Math.Round(100 * (Double)completedKills / (Double)requiredKills), 100), 0);
 
                             String weaponName = _plugin.WeaponDictionary.GetShortWeaponNameByCode(kill.weaponCode);
                             String completion = "";
+                            var respond = true;
                             if (weaponCompletionPercentage > 99.9)
                             {
                                 completion = " COMPLETED!";
@@ -50812,6 +50815,26 @@ namespace PRoConEvents
                                 {
                                     completion += " Use another weapon!";
                                 }
+                                if (damageWeaponBucket != null)
+                                {
+                                    if (damageWeaponBucket.Completed)
+                                    {
+                                        respond = false;
+                                    }
+                                    damageWeaponBucket.Completed = true;
+                                }
+                                if (weaponBucket != null)
+                                {
+                                    if (weaponBucket.Completed)
+                                    {
+                                        respond = false;
+                                    }
+                                    weaponBucket.Completed = true;
+                                }
+                            }
+                            if (!respond)
+                            {
+                                return String.Empty;
                             }
                             return Rule.Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + CompletionPercentage + "%]" + completion;
                         }
@@ -50926,6 +50949,7 @@ namespace PRoConEvents
                 {
                     private AdKats _plugin;
 
+                    public Boolean Completed;
                     public String WeaponCode;
                     public List<AKill> Kills;
                     public Int32 MaxKills;
@@ -51065,8 +51089,11 @@ namespace PRoConEvents
                             Completed = true;
                             return true;
                         }
-
-                        Player.Say(status.GetStatusForKill(aKill));
+                        var killStatus = status.GetStatusForKill(aKill);
+                        if (!String.IsNullOrEmpty(killStatus))
+                        {
+                            Player.Say(killStatus);
+                        }
                         return true;
                     }
                     catch (Exception e)
