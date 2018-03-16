@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.41
+ * Version 7.0.1.42
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.41</version_code>
+ * <version_code>7.0.1.42</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.41";
+        private const String PluginVersion = "7.0.1.42";
 
         public enum GameVersionEnum
         {
@@ -35201,6 +35201,14 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
+                
+                if (record.target_player != null && 
+                    !GetMatchingVerboseASPlayersOfGroup("challenge_play", record.target_player).Any())
+                {
+                    SendMessageToSource(record, "Challenges are being tested right now. Not all players have access.");
+                    FinalizeRecord(record);
+                    return;
+                }
 
                 // Immediately get the challenge info, then go async
                 var messages = ChallengeManager.GetChallengeInfo(record.target_player).Split(
