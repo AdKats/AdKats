@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.39
+ * Version 7.0.1.40
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.39</version_code>
+ * <version_code>7.0.1.40</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.39";
+        private const String PluginVersion = "7.0.1.40";
 
         public enum GameVersionEnum
         {
@@ -2657,42 +2657,39 @@ namespace PRoConEvents
                 if (IsActiveSettingSection(challengeSettings))
                 {
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
-                    if (ChallengeManager.Enabled)
+                    buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [1] Displays" + t + "Current Rule (Display)", typeof(String), ChallengeManager.GetCurrentRuleName()));
+
+                    buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2]" + t + "Placeholder", typeof(String), ""));
+
+                    var ruleSectionPrefix = GetSettingSection(challengeSettings) + " [3] Rules" + t;
+                    buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add Rule", typeof(String), ""));
+                    foreach (var rule in ChallengeManager.Rules)
                     {
-                        buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [1] Displays" + t + "Current Rule (Display)", typeof(String), ChallengeManager.GetCurrentRuleName()));
-
-                        buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2]" + t + "Placeholder", typeof(String), ""));
-
-                        var ruleSectionPrefix = GetSettingSection(challengeSettings) + " [3] Rules" + t;
-                        buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add Rule", typeof(String), ""));
-                        foreach (var rule in ChallengeManager.Rules)
+                        var rulePrefix = ruleSectionPrefix + "CRH" + rule.RuleID + s + rule.Name + s;
+                        buildList.Add(new CPluginVariable(rulePrefix + "Delete Rule?", typeof(String), ""));
+                        foreach (var detail in rule.ChallengeDetails)
                         {
-                            var rulePrefix = ruleSectionPrefix + "CRH" + rule.RuleID + s + rule.Name + s;
-                            buildList.Add(new CPluginVariable(rulePrefix + "Delete Rule?", typeof(String), ""));
-                            foreach (var detail in rule.ChallengeDetails)
+                            if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.None)
                             {
-                                if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.None)
-                                {
-                                    Log.Error("Unable to render challenge detail " + rule.RuleID + ":" + detail.DetailID + ", it had type = None.");
-                                    continue;
-                                }
-                                var detailPrefix = rulePrefix + "CRD" + detail.DetailID + s;
-                                buildList.Add(new CPluginVariable(detailPrefix + "Type", AChallengeManager.ChallengeRule.Detail.DetailTypeEnumString, detail.Type.ToString()));
-                                if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.Damage)
-                                {
-                                    buildList.Add(new CPluginVariable(detailPrefix + "Damage Type", WeaponDictionary.DamageTypeEnumString, detail.Damage.ToString()));
-                                    buildList.Add(new CPluginVariable(detailPrefix + "Weapon Count", typeof(Int32), detail.WeaponCount));
-                                }
-                                else if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.Weapon)
-                                {
-                                    buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.WeaponNameEnumString, WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
-                                }
-                                buildList.Add(new CPluginVariable(detailPrefix + "Kill Count", typeof(Int32), detail.KillCount));
-
+                                Log.Error("Unable to render challenge detail " + rule.RuleID + ":" + detail.DetailID + ", it had type = None.");
+                                continue;
                             }
-                            buildList.Add(new CPluginVariable(rulePrefix + "Add Damage Type?", WeaponDictionary.DamageTypeEnumString, "None"));
-                            buildList.Add(new CPluginVariable(rulePrefix + "Add Weapon Code?", WeaponDictionary.WeaponNameEnumString, "None"));
+                            var detailPrefix = rulePrefix + "CRD" + detail.DetailID + s;
+                            buildList.Add(new CPluginVariable(detailPrefix + "Type", AChallengeManager.ChallengeRule.Detail.DetailTypeEnumString, detail.Type.ToString()));
+                            if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.Damage)
+                            {
+                                buildList.Add(new CPluginVariable(detailPrefix + "Damage Type", WeaponDictionary.DamageTypeEnumString, detail.Damage.ToString()));
+                                buildList.Add(new CPluginVariable(detailPrefix + "Weapon Count", typeof(Int32), detail.WeaponCount));
+                            }
+                            else if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.Weapon)
+                            {
+                                buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.WeaponNameEnumString, WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
+                            }
+                            buildList.Add(new CPluginVariable(detailPrefix + "Kill Count", typeof(Int32), detail.KillCount));
+
                         }
+                        buildList.Add(new CPluginVariable(rulePrefix + "Add Damage Type?", WeaponDictionary.DamageTypeEnumString, "None"));
+                        buildList.Add(new CPluginVariable(rulePrefix + "Add Weapon Code?", WeaponDictionary.WeaponNameEnumString, "None"));
                     }
                 }
                 lstReturn.AddRange(buildList);
@@ -50331,66 +50328,63 @@ namespace PRoConEvents
             {
                 try
                 {
-                    if (_plugin.GameVersion == GameVersionEnum.BF4)
+                    // Assault Rifles
+                    var AR = new ChallengeRule(_plugin)
                     {
-                        // Assault Rifles
-                        var AR = new ChallengeRule(_plugin)
-                        {
-                            RuleID = 1,
-                            Name = "Assault Rifles"
-                        };
-                        AR.AddDetail(new ChallengeRule.Detail()
-                        {
-                            RuleID = 1,
-                            DetailID = 1,
-                            Type = ChallengeRule.Detail.DetailType.Damage,
-                            Damage = DamageTypes.AssaultRifle,
-                            WeaponCount = 5,
-                            KillCount = 5
-                        });
-                        Rules.Add(AR);
+                        RuleID = 1,
+                        Name = "Assault Rifles"
+                    };
+                    AR.AddDetail(new ChallengeRule.Detail()
+                    {
+                        RuleID = 1,
+                        DetailID = 1,
+                        Type = ChallengeRule.Detail.DetailType.Damage,
+                        Damage = DamageTypes.AssaultRifle,
+                        WeaponCount = 5,
+                        KillCount = 5
+                    });
+                    Rules.Add(AR);
 
-                        // Carbine
-                        var CA = new ChallengeRule(_plugin)
-                        {
-                            RuleID = 2,
-                            Name = "Carbines"
-                        };
-                        CA.AddDetail(new ChallengeRule.Detail()
-                        {
-                            RuleID = 2,
-                            DetailID = 1,
-                            Type = ChallengeRule.Detail.DetailType.Damage,
-                            Damage = DamageTypes.AssaultRifle,
-                            WeaponCount = 5,
-                            KillCount = 5
-                        });
-                        Rules.Add(CA);
+                    // Carbine
+                    var CA = new ChallengeRule(_plugin)
+                    {
+                        RuleID = 2,
+                        Name = "Carbines"
+                    };
+                    CA.AddDetail(new ChallengeRule.Detail()
+                    {
+                        RuleID = 2,
+                        DetailID = 1,
+                        Type = ChallengeRule.Detail.DetailType.Damage,
+                        Damage = DamageTypes.AssaultRifle,
+                        WeaponCount = 5,
+                        KillCount = 5
+                    });
+                    Rules.Add(CA);
 
-                        // 2 DMRs
-                        var DMR = new ChallengeRule(_plugin)
-                        {
-                            RuleID = 3,
-                            Name = "2 DMRs"
-                        };
-                        DMR.AddDetail(new ChallengeRule.Detail()
-                        {
-                            RuleID = 3,
-                            DetailID = 1,
-                            Type = ChallengeRule.Detail.DetailType.Weapon,
-                            Weapon = "U_SKS",
-                            KillCount = 5
-                        });
-                        DMR.AddDetail(new ChallengeRule.Detail()
-                        {
-                            RuleID = 3,
-                            DetailID = 2,
-                            Type = ChallengeRule.Detail.DetailType.Weapon,
-                            Weapon = "U_MK11",
-                            KillCount = 5
-                        });
-                        Rules.Add(DMR);
-                    }
+                    // 2 DMRs
+                    var DMR = new ChallengeRule(_plugin)
+                    {
+                        RuleID = 3,
+                        Name = "2 DMRs"
+                    };
+                    DMR.AddDetail(new ChallengeRule.Detail()
+                    {
+                        RuleID = 3,
+                        DetailID = 1,
+                        Type = ChallengeRule.Detail.DetailType.Weapon,
+                        Weapon = "U_SKS",
+                        KillCount = 5
+                    });
+                    DMR.AddDetail(new ChallengeRule.Detail()
+                    {
+                        RuleID = 3,
+                        DetailID = 2,
+                        Type = ChallengeRule.Detail.DetailType.Weapon,
+                        Weapon = "U_MK11",
+                        KillCount = 5
+                    });
+                    Rules.Add(DMR);
                 }
                 catch (Exception e)
                 {
@@ -52996,7 +52990,6 @@ namespace PRoConEvents
                             readable_short = shortName,
                             readable_long = longName
                         };
-                        _plugin.Log.Info("loaded weapon: " + weaponCode + ", with names: " + shortName + ", and " + longName);
                     }
 
                     //Fill the weapon name enum string
