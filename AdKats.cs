@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.43
+ * Version 7.0.1.44
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.43</version_code>
+ * <version_code>7.0.1.44</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.43";
+        private const String PluginVersion = "7.0.1.44";
 
         public enum GameVersionEnum
         {
@@ -50349,10 +50349,11 @@ namespace PRoConEvents
                         Type = ChallengeRule.Detail.DetailType.Damage,
                         Damage = DamageTypes.AssaultRifle,
                         WeaponCount = 5,
-                        KillCount = 5
+                        KillCount = 10
                     });
                     Rules.Add(AR);
 
+                    /*
                     // Carbine
                     var CA = new ChallengeRule(_plugin)
                     {
@@ -50401,6 +50402,7 @@ namespace PRoConEvents
                         KillCount = 10
                     });
                     Rules.Add(LMG);
+                    */
                 }
                 catch (Exception e)
                 {
@@ -50518,12 +50520,12 @@ namespace PRoConEvents
                                     // Check for matching damage
                                     if (detail.WeaponCount <= 0)
                                     {
-                                        _plugin.Log.Info("Damage detail " + detail.RuleID + "|" + detail.DetailID + " had non-positive weapon count.");
+                                        _plugin.Log.Info("Damage detail " + detail.RuleID + "|" + detail.DetailID + "|" + detail.Damage.ToString() + " had non-positive weapon count.");
                                         break;
                                     }
                                     if (detail.Damage != aKill.weaponDamage)
                                     {
-                                        _plugin.Log.Info("Damage detail " + detail.RuleID + "|" + detail.DetailID + " did not match damage of " + aKill.ToString() + ".");
+                                        _plugin.Log.Info("Damage detail " + detail.RuleID + "|" + detail.DetailID + "|" + detail.Damage.ToString() + " did not match damage of " + aKill.ToString() + " (" + aKill.weaponDamage.ToString() + ").");
                                         break;
                                     }
                                     return true;
@@ -50531,12 +50533,12 @@ namespace PRoConEvents
                                     // Check for matching weapon
                                     if (detail.WeaponCount <= 0)
                                     {
-                                        _plugin.Log.Info("Weapon detail " + detail.RuleID + "|" + detail.DetailID + " had non-positive weapon count.");
+                                        _plugin.Log.Info("Weapon detail " + detail.RuleID + "|" + detail.DetailID + "|" + detail.Weapon.ToString() + " had non-positive weapon count.");
                                         break;
                                     }
                                     if (detail.Weapon != aKill.weaponCode)
                                     {
-                                        _plugin.Log.Info("Weapon detail " + detail.RuleID + "|" + detail.DetailID + " did not match weapon code of " + aKill.ToString() + ".");
+                                        _plugin.Log.Info("Weapon detail " + detail.RuleID + "|" + detail.DetailID + "|" + detail.Weapon.ToString() + " did not match weapon code of " + aKill.ToString() + ".");
                                         break;
                                     }
                                     return true;
