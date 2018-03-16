@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.44
+ * Version 7.0.1.45
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.44</version_code>
+ * <version_code>7.0.1.45</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.44";
+        private const String PluginVersion = "7.0.1.45";
 
         public enum GameVersionEnum
         {
@@ -35201,6 +35201,11 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
+
+                if (record.target_player == null)
+                {
+                    record.target_player = record.source_player;
+                }
                 
                 if (record.target_player != null && 
                     !GetMatchingVerboseASPlayersOfGroup("challenge_play", record.target_player).Any())
@@ -53103,6 +53108,7 @@ namespace PRoConEvents
                     {
                         return category;
                     }
+                    _plugin.Log.Info("Unable to find damage matching for '" + damageType + "'. Available damage types are: " + String.Join(", ", WeaponDamageTypes.Keys.ToArray()));
                 }
                 catch (Exception e)
                 {
