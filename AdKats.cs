@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.49
- * 15-MAR-2018
+ * Version 7.0.1.50
+ * 16-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.49</version_code>
+ * <version_code>7.0.1.50</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.49";
+        private const String PluginVersion = "7.0.1.50";
 
         public enum GameVersionEnum
         {
@@ -50387,15 +50387,15 @@ namespace PRoConEvents
                     });
                     Rules.Add(CA);
 
-                    // Carbine
+                    // LMG
                     var LMG = new ChallengeRule(_plugin)
                     {
-                        RuleID = 2,
+                        RuleID = 3,
                         Name = "LMGs"
                     };
                     LMG.AddDetail(new ChallengeRule.Detail()
                     {
-                        RuleID = 2,
+                        RuleID = 3,
                         DetailID = 1,
                         Type = ChallengeRule.Detail.DetailType.Damage,
                         Damage = DamageTypes.LMG,
@@ -50403,6 +50403,23 @@ namespace PRoConEvents
                         KillCount = 5
                     });
                     Rules.Add(LMG);
+
+                    // Handgun
+                    var Handgun = new ChallengeRule(_plugin)
+                    {
+                        RuleID = 4,
+                        Name = "Handguns"
+                    };
+                    Handgun.AddDetail(new ChallengeRule.Detail()
+                    {
+                        RuleID = 4,
+                        DetailID = 1,
+                        Type = ChallengeRule.Detail.DetailType.Damage,
+                        Damage = DamageTypes.Handgun,
+                        WeaponCount = 5,
+                        KillCount = 5
+                    });
+                    Rules.Add(Handgun);
 
                     /*
                     // 3 LMGs
@@ -50489,7 +50506,7 @@ namespace PRoConEvents
 
                 public String RuleInfo()
                 {
-                    String info = "Challenge: " + Name + Environment.NewLine;
+                    String info = "";
                     var damages = ChallengeDetails.Where(det => det.Type == Detail.DetailType.Damage);
                     if (damages.Any())
                     {
@@ -50777,7 +50794,7 @@ namespace PRoConEvents
                                     completion += " Use another weapon!";
                                 }
                             }
-                            return Rule.Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + weaponCompletionPercentage + "%][" + CompletionPercentage + "%]" + completion;
+                            return Rule.Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + CompletionPercentage + "% Total]" + completion;
                         }
                         catch (Exception e)
                         {
