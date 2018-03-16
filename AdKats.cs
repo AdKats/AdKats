@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.46
+ * Version 7.0.1.48
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.46</version_code>
+ * <version_code>7.0.1.48</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.46";
+        private const String PluginVersion = "7.0.1.48";
 
         public enum GameVersionEnum
         {
@@ -50281,7 +50281,7 @@ namespace PRoConEvents
                 }
                 // The player is available and they have entries. Get their status.
                 var status = CurrentRule.GetCompletionStatus(Entries[aPlayer].Kills);
-                var info = aPlayer.GetVerboseName() + CurrentRule.Name + " CHALLENGE" + Environment.NewLine;
+                var info = aPlayer.GetVerboseName() + " " + CurrentRule.Name.ToUpper() + " CHALLENGE" + Environment.NewLine;
                 info += CurrentRule.RuleInfo() + Environment.NewLine;
                 info += "Completion: " + status.CompletionPercentage + "% | " + status.TotalCompletedKills + " Kills | " + status.TotalRequiredKills + " Required" + Environment.NewLine;
                 info += status.ToString();
@@ -50366,11 +50366,10 @@ namespace PRoConEvents
                         Type = ChallengeRule.Detail.DetailType.Damage,
                         Damage = DamageTypes.AssaultRifle,
                         WeaponCount = 5,
-                        KillCount = 10
+                        KillCount = 5
                     });
                     Rules.Add(AR);
-
-                    /*
+                    
                     // Carbine
                     var CA = new ChallengeRule(_plugin)
                     {
@@ -50382,12 +50381,30 @@ namespace PRoConEvents
                         RuleID = 2,
                         DetailID = 1,
                         Type = ChallengeRule.Detail.DetailType.Damage,
-                        Damage = DamageTypes.AssaultRifle,
+                        Damage = DamageTypes.Carbine,
                         WeaponCount = 5,
                         KillCount = 5
                     });
                     Rules.Add(CA);
 
+                    // Carbine
+                    var LMG = new ChallengeRule(_plugin)
+                    {
+                        RuleID = 2,
+                        Name = "LMGs"
+                    };
+                    LMG.AddDetail(new ChallengeRule.Detail()
+                    {
+                        RuleID = 2,
+                        DetailID = 1,
+                        Type = ChallengeRule.Detail.DetailType.Damage,
+                        Damage = DamageTypes.LMG,
+                        WeaponCount = 5,
+                        KillCount = 5
+                    });
+                    Rules.Add(LMG);
+
+                    /*
                     // 3 LMGs
                     var LMG = new ChallengeRule(_plugin)
                     {
@@ -50489,7 +50506,7 @@ namespace PRoConEvents
                         info += "Weapons: ";
                         foreach (var detail in weapons)
                         {
-                            info += "[" + detail.Weapon + "/" + detail.KillCount + "_Kills] ";
+                            info += "[" + detail.Weapon + "/" + detail.KillCount + " Kills] ";
                         }
                     }
                     return info;
@@ -50748,7 +50765,7 @@ namespace PRoConEvents
                                 requiredKills += weaponBucket.MaxKills;
                                 completedKills += weaponBucket.Kills.Count();
                             }
-                            var weaponCompletionPercentage = Math.Max(Math.Min(Math.Round(100 * (Double)TotalCompletedKills / (Double)TotalRequiredKills), 100), 0);
+                            var weaponCompletionPercentage = Math.Max(Math.Min(Math.Round(100 * (Double)completedKills / (Double)requiredKills), 100), 0);
 
                             String weaponName = _plugin.WeaponDictionary.GetShortWeaponNameByCode(kill.weaponCode);
                             String completion = "";
@@ -50825,7 +50842,7 @@ namespace PRoConEvents
                         {
                             // Add buckets until the weapon count is reached or we run out of buckets
                             foreach (var bucket in Weapons.Values.Where(dBucket => dBucket.Kills.Count() > 0)
-                                                                 .OrderByDescending(dBucket => dBucket.Kills))
+                                                                 .OrderByDescending(dBucket => dBucket.Kills.Count()))
                             {
                                 if (buckets.Count() >= WeaponCount)
                                 {
