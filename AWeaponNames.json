@@ -1661,6 +1661,18 @@
     "U_Railgun": {
       "readable_short": "Railgun",
       "readable_long": "Rorsch MK-1"
+    },
+    "U_Groza-1": {
+      "readable_short": "Groza-1",
+      "readable_long": "Groza-1 Carbine"
+    },
+    "U_Groza-4": {
+      "readable_short": "Groza-4",
+      "readable_long": "Groza-4 PDW"
+    },
+    "U_L86A1": {
+      "readable_short": "L86A2",
+      "readable_long": "L86A2 Light Machine Gun"
     }
   }
 }
