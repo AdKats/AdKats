@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.48
+ * Version 7.0.1.49
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.48</version_code>
+ * <version_code>7.0.1.49</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.48";
+        private const String PluginVersion = "7.0.1.49";
 
         public enum GameVersionEnum
         {
@@ -50771,13 +50771,13 @@ namespace PRoConEvents
                             String completion = "";
                             if (weaponCompletionPercentage > 99.9)
                             {
-                                completion = " - WEAPON COMPLETED!";
+                                completion = " - COMPLETED!";
                                 if (CompletionPercentage < 99.9)
                                 {
-                                    completion += " Use next weapon!";
+                                    completion += " Use another weapon!";
                                 }
                             }
-                            return Rule.Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + weaponCompletionPercentage + "%]" + completion;
+                            return Rule.Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + weaponCompletionPercentage + "%][" + CompletionPercentage + "%]" + completion;
                         }
                         catch (Exception e)
                         {
@@ -50989,6 +50989,10 @@ namespace PRoConEvents
                 {
                     try
                     {
+                        if (Completed)
+                        {
+                            return false;
+                        }
                         // Check for invalid entry
                         if (aKill.killer.player_id != Player.player_id)
                         {
@@ -51020,7 +51024,7 @@ namespace PRoConEvents
                         if (status.CompletionPercentage >= 99.99)
                         {
                             var message = Player.GetVerboseName() + " just completed the " + Manager.CurrentRule.Name + " challenge! Congrats!";
-                            _plugin.AdminTellMessage(message);
+                            //_plugin.AdminTellMessage(message);
                             _plugin.AdminSayMessage(message);
                             Completed = true;
                             return true;
