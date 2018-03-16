@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.53
+ * Version 7.0.1.54
  * 16-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.53</version_code>
+ * <version_code>7.0.1.54</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.53";
+        private const String PluginVersion = "7.0.1.54";
 
         public enum GameVersionEnum
         {
@@ -50423,15 +50423,32 @@ namespace PRoConEvents
                     });
                     Rules.Add(LMG);
 
+                    // Shotgun
+                    var Shotgun = new ChallengeRule(_plugin)
+                    {
+                        RuleID = 4,
+                        Name = "Shotguns"
+                    };
+                    Shotgun.AddDetail(new ChallengeRule.Detail()
+                    {
+                        RuleID = 4,
+                        DetailID = 1,
+                        Type = ChallengeRule.Detail.DetailType.Damage,
+                        Damage = DamageTypes.Shotgun,
+                        WeaponCount = 4,
+                        KillCount = 10
+                    });
+                    Rules.Add(Shotgun);
+
                     // Handgun
                     var Handgun = new ChallengeRule(_plugin)
                     {
-                        RuleID = 4,
+                        RuleID = 5,
                         Name = "Handguns"
                     };
                     Handgun.AddDetail(new ChallengeRule.Detail()
                     {
-                        RuleID = 4,
+                        RuleID = 5,
                         DetailID = 1,
                         Type = ChallengeRule.Detail.DetailType.Damage,
                         Damage = DamageTypes.Handgun,
@@ -50813,7 +50830,7 @@ namespace PRoConEvents
                                 completion = " COMPLETED!";
                                 if (CompletionPercentage < 99.9)
                                 {
-                                    completion += " Use another weapon!";
+                                    completion += " Try another weapon!";
                                 }
                                 if (damageWeaponBucket != null)
                                 {
