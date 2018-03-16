@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.45
+ * Version 7.0.1.46
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.45</version_code>
+ * <version_code>7.0.1.46</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.45";
+        private const String PluginVersion = "7.0.1.46";
 
         public enum GameVersionEnum
         {
@@ -1055,7 +1055,7 @@ namespace PRoConEvents
             try
             {
                 //Initialize the weapon name dictionary
-                WeaponDictionary = new AWeaponDictionary(this, GetWeaponDefines());
+                WeaponDictionary = new AWeaponDictionary(this);
 
                 //Initialize the challenge manager
                 ChallengeManager = new AChallengeManager(this);
@@ -8461,6 +8461,18 @@ namespace PRoConEvents
                             else
                             {
                                 Log.Error("Failed to fetch weapon names. AdKats cannot be started.");
+                                Disable();
+                                Threading.StopWatchdog();
+                                return;
+                            }
+                            //Fetch all weapon damage types
+                            if (WeaponDictionary.PopulateWeaponDamageTypeDictionaries())
+                            {
+                                Log.Success("Fetched weapon damage types.");
+                            }
+                            else
+                            {
+                                Log.Error("Failed to fetch weapon damage types. AdKats cannot be started.");
                                 Disable();
                                 Threading.StopWatchdog();
                                 return;
@@ -52969,21 +52981,12 @@ namespace PRoConEvents
             public String DamageTypeEnumString = "";
             public String WeaponNameEnumString = "";
 
-            public AWeaponDictionary(AdKats plugin, WeaponDictionary dic)
+            public AWeaponDictionary(AdKats plugin)
             {
                 _plugin = plugin;
 
                 try
                 {
-                    // Populate the weapon type dictionary
-                    foreach (Weapon weapon in dic)
-                    {
-                        if (weapon != null && !WeaponDamageTypes.ContainsKey(weapon.Name))
-                        {
-                            WeaponDamageTypes.Add(weapon.Name, weapon.Damage);
-                        }
-                    }
-
                     //Fill the damage type setting enum string
                     Random random = new Random(Environment.TickCount);
                     DamageTypeEnumString = String.Empty;
@@ -53005,6 +53008,27 @@ namespace PRoConEvents
                 {
                     _plugin.Log.HandleException(new AException("Error while creating weapon dictionary.", e));
                 }
+            }
+
+            public Boolean PopulateWeaponDamageTypeDictionaries()
+            {
+                try
+                {
+                    // Populate the weapon type dictionary
+                    foreach (Weapon weapon in _plugin.GetWeaponDefines())
+                    {
+                        if (weapon != null && !WeaponDamageTypes.ContainsKey(weapon.Name))
+                        {
+                            WeaponDamageTypes.Add(weapon.Name, weapon.Damage);
+                        }
+                    }
+                    return WeaponDamageTypes.Any();
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while creating weapon damage dictionary.", e));
+                }
+                return false;
             }
 
             public Boolean PopulateWeaponNameDictionaries()
