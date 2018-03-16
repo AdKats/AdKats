@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.37
+ * Version 7.0.1.38
  * 15-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.37</version_code>
+ * <version_code>7.0.1.38</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.37";
+        private const String PluginVersion = "7.0.1.38";
 
         public enum GameVersion
         {
@@ -52963,6 +52963,7 @@ namespace PRoConEvents
                             readable_short = shortName,
                             readable_long = longName
                         };
+                        Log.Info("loaded weapon: " + weaponCode + ", with names: " + shortName + ", and " + longName);
                     }
 
                     //Fill the weapon name enum string
