@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.57
+ * Version 7.0.1.58
  * 16-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.57</version_code>
+ * <version_code>7.0.1.58</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.57";
+        private const String PluginVersion = "7.0.1.58";
 
         public enum GameVersionEnum
         {
@@ -2661,7 +2661,7 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Challenge System Play Status Only", typeof(Boolean), ChallengeManager.PlayStatusOnly));
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [1] Displays" + t + "Current Rule (Display)", typeof(String), ChallengeManager.GetCurrentRuleName()));
 
-                    buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2]" + t + "Placeholder", typeof(String), ""));
+                    buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2] Actions" + t + "Run Challenge Rule ID", typeof(Int32), 0));
 
                     var ruleSectionPrefix = GetSettingSection(challengeSettings) + " [3] Rules" + t;
                     buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add Rule", typeof(String), ""));
@@ -5824,6 +5824,14 @@ namespace PRoConEvents
                         ChallengeManager.Enabled = enabled;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Run Challenge Rule ID").Success)
+                {
+                    Int32 RuleID = Int32.Parse(strValue);
+                    if (ChallengeManager != null)
+                    {
+                        ChallengeManager.RunNextChallenge(RuleID);
                     }
                 }
                 else if (Regex.Match(strVariable, @"Challenge System Play Status Only").Success)
@@ -14470,7 +14478,7 @@ namespace PRoConEvents
                     Thread.Sleep(TimeSpan.FromSeconds(10));
                     if (ChallengeManager != null)
                     {
-                        ChallengeManager.RunNextChallenge();
+                        ChallengeManager.RunNextChallenge(null);
                     }
                     Threading.StopWatchdog();
                 })));
@@ -16098,7 +16106,7 @@ namespace PRoConEvents
                             ChallengeManager.Enabled &&
                             ChallengeManager.RoundRule == null)
                         {
-                            ChallengeManager.RunNextChallenge();
+                            ChallengeManager.RunNextChallenge(null);
                         }
                     }
 
@@ -20079,6 +20087,24 @@ namespace PRoConEvents
                             if (!GetMatchingASPlayersOfGroup("challenge_play", record.target_player).Any())
                             {
                                 SendMessageToSource(record, "Matching player not in challenge playing status.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_challenge_autokill":
+                            if (GetMatchingASPlayersOfGroup("challenge_autokill", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already in challenge autokill status.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_challenge_autokill_remove":
+                            if (!GetMatchingASPlayersOfGroup("challenge_autokill", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not in challenge autokill status.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -26987,6 +27013,163 @@ namespace PRoConEvents
                             }
                         }
                         break;
+                    case "player_challenge_autokill":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            String defaultReason = "Challenge Autokill Status";
+
+                            //Parse parameters using max param count
+                            String[] parameters = Util.ParseParameters(remainingMessage, 3);
+
+                            if (parameters.Length > 0)
+                            {
+                                String stringDuration = parameters[0].ToLower();
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
+                                if (stringDuration == "perm")
+                                {
+                                    //20 years in minutes
+                                    record.command_numeric = 10518984;
+                                    defaultReason = "Permanent " + defaultReason;
+                                }
+                                else
+                                {
+                                    //Default is minutes
+                                    Double recordDuration = 0.0;
+                                    Double durationMultiplier = 1.0;
+                                    if (stringDuration.EndsWith("s"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('s');
+                                        durationMultiplier = (1.0 / 60.0);
+                                    }
+                                    else if (stringDuration.EndsWith("m"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('m');
+                                        durationMultiplier = 1.0;
+                                    }
+                                    else if (stringDuration.EndsWith("h"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('h');
+                                        durationMultiplier = 60.0;
+                                    }
+                                    else if (stringDuration.EndsWith("d"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('d');
+                                        durationMultiplier = 1440.0;
+                                    }
+                                    else if (stringDuration.EndsWith("w"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('w');
+                                        durationMultiplier = 10080.0;
+                                    }
+                                    else if (stringDuration.EndsWith("y"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('y');
+                                        durationMultiplier = 525949.0;
+                                    }
+                                    if (!Double.TryParse(stringDuration, out recordDuration))
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                    if (record.command_numeric <= 0)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
+                                }
+                            }
+
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    //No parameters
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    //time
+                                    if (record.record_source != ARecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = record.source_name;
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                case 2:
+                                    //time
+                                    //player
+                                    record.target_name = parameters[1];
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                case 3:
+                                    //time
+                                    //player
+                                    //reason
+                                    record.target_name = parameters[1];
+                                    Log.Debug(() => "target: " + record.target_name, 6);
+                                    record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
+                                    if (record.record_message == null)
+                                    {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    Log.Debug(() => "" + record.record_message, 6);
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_challenge_autokill_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = Util.ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != ARecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Challenge AutoKill Status";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Challenge AutoKill Status";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, true);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     default:
                         Log.Error("Unable to complete record for " + record.command_type.command_key + ", handler not found.");
                         FinalizeRecord(record);
@@ -28283,6 +28466,12 @@ namespace PRoConEvents
                         break;
                     case "player_challenge_ignore":
                         ChallengeIgnoreTarget(record);
+                        break;
+                    case "player_challenge_autokill":
+                        ChallengeAutoKillTarget(record);
+                        break;
+                    case "player_challenge_autokill_remove":
+                        ChallengeAutoKillRemoveTarget(record);
                         break;
                     case "player_whitelistcommand":
                         CommandTargetWhitelistTarget(record);
@@ -32388,6 +32577,147 @@ namespace PRoConEvents
             Log.Debug(() => "Exiting ChallengeIgnoreTarget", 6);
         }
 
+        public void ChallengeAutoKillTarget(ARecord record)
+        {
+            Log.Debug(() => "Entering ChallengeAutoKillTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "ChallengeAutoKillTarget not available for multiple targets.");
+                    Log.Error("ChallengeAutoKillTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("challenge_autokill", record.target_player);
+                if (matchingPlayers.Count > 0)
+                {
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the challenge playing status.");
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        INSERT INTO
+	                        `adkats_specialplayers`
+                        (
+	                        `player_group`,
+	                        `player_id`,
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
+                        )
+                        VALUES
+                        (
+	                        'challenge_autokill',
+	                        @player_id,
+	                        @player_name,
+	                        UTC_TIMESTAMP(),
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                        )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            Log.Error("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 10518984)
+                        {
+                            record.command_numeric = 10518984;
+                        }
+                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                        command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
+
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
+                        if (rowsAffected > 0)
+                        {
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " challenge playing status for all servers.";
+                            SendMessageToSource(record, message);
+                            Log.Debug(() => message, 3);
+                            FetchAllAccess(true);
+                        }
+                        else
+                        {
+                            Log.Error("Unable to add player to challenge playing status. Error uploading.");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AException("Error while taking action for challenge playing status.", e);
+                Log.HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting ChallengeAutoKillTarget", 6);
+        }
+
+        public void ChallengeAutoKillRemoveTarget(ARecord record)
+        {
+            Log.Debug(() => "Entering ChallengeAutoKillRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "ChallengeAutoKillRemoveTarget not available for multiple targets.");
+                    Log.Error("ChallengeAutoKillRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("challenge_autokill", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the challenge autokill status.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (ASpecialPlayer asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from challenge autokill status.";
+                                Log.Debug(() => message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                Log.Error("Unable to remove player from challenge autokill status. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from challenge autokill status.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                Log.HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting ChallengeAutoKillRemoveTarget", 6);
+        }
+
         public void PurgeExtendedRoundStats()
         {
             Log.Debug(() => "Entering PurgeExtendedRoundStats", 6);
@@ -35251,32 +35581,75 @@ namespace PRoConEvents
                     return;
                 }
 
-                // Immediately get the challenge info, then go async
-                var messages = ChallengeManager.GetChallengeInfo(record.target_player).Split(
-                    new[] { Environment.NewLine },
-                    StringSplitOptions.None
-                );
-
-                Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                var option = record.record_message.ToLower().Trim();
+                if (option == "info")
                 {
-                    Log.Debug(() => "Starting a challenge info printer.", 5);
-                    try
+                    // Immediately get the challenge info, then go async
+                    var messages = ChallengeManager.GetChallengeInfo(record.target_player).Split(
+                        new[] { Environment.NewLine },
+                        StringSplitOptions.None
+                    );
+
+                    Threading.StartWatchdog(new Thread(new ThreadStart(delegate
                     {
-                        Thread.CurrentThread.Name = "ChallengeInfoPrinter";
-                        Threading.Wait(100);
-                        foreach (var message in messages)
+                        Log.Debug(() => "Starting a challenge info printer.", 5);
+                        try
                         {
-                            SendMessageToSource(record, message);
-                            Threading.Wait(1500);
+                            Thread.CurrentThread.Name = "ChallengeInfoPrinter";
+                            Threading.Wait(100);
+                            foreach (var message in messages)
+                            {
+                                SendMessageToSource(record, message);
+                                Threading.Wait(1500);
+                            }
                         }
-                    }
-                    catch (Exception e)
+                        catch (Exception e)
+                        {
+                            Log.HandleException(new AException("Error while printing challenge info.", e));
+                        }
+                        Log.Debug(() => "Exiting a challenge info printer.", 5);
+                        Threading.StopWatchdog();
+                    })));
+                }
+                else if (option == "autokill")
+                {
+                    if (record.target_player == null)
                     {
-                        Log.HandleException(new AException("Error while printing challenge info.", e));
+                        SendMessageToSource(record, "Cannot change autokill status without being a player.");
+                        FinalizeRecord(record);
+                        return;
                     }
-                    Log.Debug(() => "Exiting a challenge info printer.", 5);
-                    Threading.StopWatchdog();
-                })));
+                    if (GetMatchingVerboseASPlayersOfGroup("challenge_autokill", record.target_player).Any())
+                    {
+                        QueueRecordForProcessing(new ARecord
+                        {
+                            record_source = ARecord.Sources.Automated,
+                            server_id = _serverInfo.ServerID,
+                            command_type = GetCommandByKey("player_challenge_autokill_remove"),
+                            command_numeric = 0,
+                            target_name = record.target_player.player_name,
+                            target_player = record.target_player,
+                            source_name = "ChallengeManager",
+                            record_message = "Removing Challenge AutoKill Status",
+                            record_time = UtcNow()
+                        });
+                    }
+                    else
+                    {
+                        QueueRecordForProcessing(new ARecord
+                        {
+                            record_source = ARecord.Sources.Automated,
+                            server_id = _serverInfo.ServerID,
+                            command_type = GetCommandByKey("player_challenge_autokill"),
+                            command_numeric = 10518984,
+                            target_name = record.target_player.player_name,
+                            target_player = record.target_player,
+                            source_name = "ChallengeManager",
+                            record_message = "Adding Challenge AutoKill Status",
+                            record_time = UtcNow()
+                        });
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -43084,6 +43457,16 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command self_challenge", "INSERT INTO `adkats_commands` VALUES(139, 'Active', 'self_challenge', 'Log', 'Challenge', 'challenge', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(140))
+                                {
+                                    SendNonQuery("Adding command player_challenge_autokill", "INSERT INTO `adkats_commands` VALUES(140, 'Active', 'player_challenge_autokill', 'Log', 'Challenge AutoKill Status', 'challengeautokill', TRUE, 'Any')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(141))
+                                {
+                                    SendNonQuery("Adding command player_challenge_autokill_remove", "INSERT INTO `adkats_commands` VALUES(141, 'Active', 'player_challenge_autokill_remove', 'Log', 'Remove Challenge AutoKill Status', 'unchallengeautokill', TRUE, 'Any')", true);
+                                    newCommands = true;
+                                }
                                 if (newCommands)
                                 {
                                     FetchCommands();
@@ -43243,6 +43626,8 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_challenge_play"] = "A player under challenge playing status will be automatically enrolled in any active challenge.";
             _CommandDescriptionDictionary["player_challenge_ignore"] = "A player under under challenge ignoring status will not be automatically enrolled in any active challenge.";
             _CommandDescriptionDictionary["self_challenge"] = "Personal control command for the challenge system.";
+            _CommandDescriptionDictionary["player_challenge_autokill"] = "A player under challenge autokill status will be automatically slain when a challenge weapon is completed.";
+            _CommandDescriptionDictionary["player_challenge_autokill_remove"] = "Removes a player from challenge autokill status.";
         }
 
         private void FillReadableMapModeDictionaries()
@@ -50329,7 +50714,7 @@ namespace PRoConEvents
                 return info;
             }
 
-            public void RunNextChallenge()
+            public void RunNextChallenge(Int32? RuleID)
             {
                 try
                 {
@@ -50354,13 +50739,21 @@ namespace PRoConEvents
                         // Clear all existing entries
                         RoundEntries.Clear();
 
-                        // Randomize the list and pick the first unused one
-                        var rng = new Random(Environment.TickCount);
-                        ChallengeRule chosenRule = Rules.Values.Where(rule => rule.LastUsed == null).OrderBy(rule => rng.Next()).FirstOrDefault();
+                        ChallengeRule chosenRule = null;
+                        if (RuleID != null)
+                        {
+                            chosenRule = Rules.Values.FirstOrDefault(rule => rule.RuleID == RuleID);
+                        }
                         if (chosenRule == null)
                         {
-                            // None are unused, pick the one which has the longest duration since used
-                            chosenRule = Rules.Values.OrderBy(rule => rule.LastUsed).FirstOrDefault();
+                            // Randomize the list and pick the first unused one
+                            var rng = new Random(Environment.TickCount);
+                            chosenRule = Rules.Values.Where(rule => rule.LastUsed == null).OrderBy(rule => rng.Next()).FirstOrDefault();
+                            if (chosenRule == null)
+                            {
+                                // None are unused, pick the one which has the longest duration since used
+                                chosenRule = Rules.Values.OrderBy(rule => rule.LastUsed).FirstOrDefault();
+                            }
                         }
                         if (chosenRule != null)
                         {
@@ -50626,6 +51019,7 @@ namespace PRoConEvents
                     {
                         // Check for invalid kill
                         if (aKill == null ||
+                            aKill.IsTeamkill ||
                             aKill.killer == null ||
                             String.IsNullOrEmpty(aKill.weaponCode) ||
                             aKill.victim == null)
@@ -50888,6 +51282,10 @@ namespace PRoConEvents
                             {
                                 kill.killer.Yell(completion);
                             }
+                            if (_plugin.GetMatchingVerboseASPlayersOfGroup("challenge_autokill", kill.killer).Any())
+                            {
+                                _plugin.ExecuteCommand("procon.protected.send", "admin.killPlayer", kill.killer.player_name);
+                            }
                             return ;
                         }
                         catch (Exception e)
@@ -50980,7 +51378,7 @@ namespace PRoConEvents
                             var status = "Type " + Damage.ToString() + " [" + completedKills + "/" + requiredKills + "][" + completionPercentage + "%]: ";
                             if (weaponBuckets.Any())
                             {
-                                status += String.Join(", ", weaponBuckets.Select(bucket => bucket.ToString()).ToArray());
+                                status += String.Join(Environment.NewLine, weaponBuckets.Select(bucket => bucket.ToString()).ToArray());
                             }
                             else
                             {
