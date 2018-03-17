@@ -99,6 +99,11 @@
 			"group_id":19,
 			"group_key":"challenge_play",
 			"group_name":"Challenge Playing Status"
+		},
+		{
+			"group_id":20,
+			"group_key":"challenge_autokill",
+			"group_name":"Challenge AutoKill Status"
 		}
 	]
 }
