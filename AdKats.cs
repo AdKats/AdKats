@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.55
+ * Version 7.0.1.56
  * 16-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.55</version_code>
+ * <version_code>7.0.1.56</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.55";
+        private const String PluginVersion = "7.0.1.56";
 
         public enum GameVersionEnum
         {
@@ -138,6 +138,7 @@ namespace PRoConEvents
         private Utilities Util;
 
         //State
+        private Boolean _LevelLoadShutdown;
         private const Boolean FullDebug = false;
         private volatile String _pluginChangelog;
         private volatile String _pluginDescription;
@@ -2664,7 +2665,7 @@ namespace PRoConEvents
 
                     var ruleSectionPrefix = GetSettingSection(challengeSettings) + " [3] Rules" + t;
                     buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add Rule", typeof(String), ""));
-                    foreach (var rule in ChallengeManager.Rules)
+                    foreach (var rule in ChallengeManager.GetRules())
                     {
                         var rulePrefix = ruleSectionPrefix + "CRH" + rule.RuleID + s + rule.Name + s;
                         buildList.Add(new CPluginVariable(rulePrefix + "Delete Rule?", typeof(String), ""));
@@ -13876,6 +13877,10 @@ namespace PRoConEvents
             {
                 if (_pluginEnabled)
                 {
+                    if (_LevelLoadShutdown)
+                    {
+                        Environment.Exit(2232);
+                    }
                     //Upload map benefit/detriment statistics
                     PostAndResetMapBenefitStatistics();
                     //Change round state
@@ -16091,7 +16096,7 @@ namespace PRoConEvents
                         // Choose the next challenge if there is none currently assigned
                         if (ChallengeManager != null &&
                             ChallengeManager.Enabled &&
-                            ChallengeManager.CurrentRule == null)
+                            ChallengeManager.RoundRule == null)
                         {
                             ChallengeManager.RunNextChallenge();
                         }
@@ -18308,6 +18313,7 @@ namespace PRoConEvents
             Log.Debug(() => "Entering adminSay", 7);
             try
             {
+                message = message.Trim();
                 if (String.IsNullOrEmpty(message))
                 {
                     Log.Error("Attempted to say an empty message.");
@@ -18358,6 +18364,7 @@ namespace PRoConEvents
             Log.Debug(() => "Entering playerSayMessage", 7);
             try
             {
+                message = message.Trim();
                 if (String.IsNullOrEmpty(target) || String.IsNullOrEmpty(message))
                 {
                     Log.Error("target or message null in playerSayMessage");
@@ -18408,6 +18415,7 @@ namespace PRoConEvents
             Log.Debug(() => "Entering adminYell", 7);
             try
             {
+                message = message.Trim();
                 var duration = _YellDuration;
                 if (overrideYellDuration > 0)
                 {
@@ -18452,6 +18460,7 @@ namespace PRoConEvents
             Log.Debug(() => "Entering adminYell", 7);
             try
             {
+                message = message.Trim();
                 if (String.IsNullOrEmpty(message))
                 {
                     Log.Error("message null in adminYell");
@@ -18494,6 +18503,7 @@ namespace PRoConEvents
         {
             try
             {
+                message = message.Trim();
                 var spambotMessage = false;
                 if (message.Contains("[SpamBotMessage]"))
                 {
@@ -18527,6 +18537,7 @@ namespace PRoConEvents
         {
             try
             {
+                message = message.Trim();
                 var spambotMessage = false;
                 if (message.Contains("[SpamBotMessage]"))
                 {
@@ -48999,8 +49010,9 @@ namespace PRoConEvents
                                         Log.Success("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                         if (_UseExperimentalTools && !EventActive())
                                         {
-                                            Threading.Wait(1000);
-                                            Environment.Exit(2232);
+                                            // Tell the layer to reboot at round end
+                                            Log.Warn("Procon will be shut down on the next level load.");
+                                            _LevelLoadShutdown = true;
                                         }
                                     }
                                     else if (!_pluginUpdatePatched && patchedVersionInt > _currentPluginVersionInt)
@@ -50266,18 +50278,19 @@ namespace PRoConEvents
 
             public Boolean Enabled;
             public Boolean PlayStatusOnly;
-            public ChallengeRule CurrentRule;
             public Boolean AllowRepeatRules;
-            public List<ChallengeRule> Rules;
-            public Dictionary<APlayer, ChallengeEntry> Entries;
+            private Dictionary<Int32, ChallengeRule> Rules;
+            
+            public ChallengeRule RoundRule;
+            public Dictionary<APlayer, ChallengeEntry> RoundEntries;
             
             public AChallengeManager(AdKats plugin)
             {
                 _plugin = plugin;
                 try
                 {
-                    Rules = new List<ChallengeRule>();
-                    Entries = new Dictionary<APlayer, ChallengeEntry>();
+                    Rules = new Dictionary<Int32, ChallengeRule>();
+                    RoundEntries = new Dictionary<APlayer, ChallengeEntry>();
 
                     PopulateRules();
                 }
@@ -50287,21 +50300,30 @@ namespace PRoConEvents
                 }
             }
 
+            public List<ChallengeRule> GetRules()
+            {
+                if (!Rules.Any())
+                {
+                    return new List<ChallengeRule>();
+                }
+                return Rules.Values.OrderBy(rule => rule.RuleID).ToList();
+            }
+
             public String GetChallengeInfo(APlayer aPlayer)
             {
-                if (CurrentRule == null)
+                if (RoundRule == null)
                 {
-                    return "No challenge is currently active.";
+                    return "No round challenge is currently active.";
                 }
                 if (aPlayer == null ||
-                    !Entries.ContainsKey(aPlayer))
+                    !RoundEntries.ContainsKey(aPlayer))
                 {
-                    return "CHALLENGE ACTIVE!" + Environment.NewLine + CurrentRule.RuleInfo() + Environment.NewLine;
+                    return RoundRule.Name.ToUpper() + " CHALLENGE ACTIVE!" + Environment.NewLine + RoundRule.RuleInfo() + Environment.NewLine;
                 }
                 // The player is available and they have entries. Get their status.
-                var status = CurrentRule.GetCompletionStatus(Entries[aPlayer]);
-                var info = aPlayer.GetVerboseName() + " " + CurrentRule.Name.ToUpper() + " CHALLENGE" + Environment.NewLine;
-                info += CurrentRule.RuleInfo() + Environment.NewLine;
+                var status = RoundRule.GetCompletionStatus(RoundEntries[aPlayer]);
+                var info = aPlayer.GetVerboseName() + " " + RoundRule.Name.ToUpper() + " CHALLENGE" + Environment.NewLine;
+                info += RoundRule.RuleInfo() + Environment.NewLine;
                 info += "Completion: " + status.CompletionPercentage + "% | " + status.TotalCompletedKills + " Kills | " + status.TotalRequiredKills + " Required" + Environment.NewLine;
                 info += status.ToString();
                 return info;
@@ -50313,35 +50335,38 @@ namespace PRoConEvents
                 {
                     if (Enabled)
                     {
-                        var possibleRules = Rules;
                         // Exclude the current rule if desired
-                        if (CurrentRule != null &&
-                            !AllowRepeatRules &&
-                            possibleRules.Count > 1)
+                        if (RoundRule != null &&
+                            RoundEntries.Any())
                         {
-                            possibleRules = possibleRules.Where(rule => rule.RuleID != CurrentRule.RuleID).ToList();
-                        }
-                        if (CurrentRule != null &&
-                            Entries.Any())
-                        {
-                            var completed = Entries.Values.Where(entry => entry.Completed);
-                            _plugin.AdminTellMessage(CurrentRule.Name + " Challenge Ended!" + completed.Count() + " players completed it!");
+                            var completed = RoundEntries.Values.Where(entry => entry.Completed);
+                            _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Ended! " + completed.Count() + " players completed it!");
+                            if (completed.Any())
+                            {
+                                _plugin.AdminSayMessage("Winners: " + String.Join(", ", completed.Select(entry => entry.Player.GetVerboseName())));
+                            }
                             _plugin.Threading.Wait(5000);
                         }
 
                         // Remove the current rule
-                        CurrentRule = null;
+                        RoundRule = null;
                         _plugin.Threading.Wait(100);
                         // Clear all existing entries
-                        Entries.Clear();
+                        RoundEntries.Clear();
 
-                        // Randomize the list and pick the first one
+                        // Randomize the list and pick the first unused one
                         var rng = new Random(Environment.TickCount);
-                        var chosenRule = possibleRules.OrderBy(rule => rng.Next()).FirstOrDefault();
+                        ChallengeRule chosenRule = Rules.Values.Where(rule => rule.LastUsed == null).OrderBy(rule => rng.Next()).FirstOrDefault();
+                        if (chosenRule == null)
+                        {
+                            // None are unused, pick the one which has the longest duration since used
+                            chosenRule = Rules.Values.OrderBy(rule => rule.LastUsed).FirstOrDefault();
+                        }
                         if (chosenRule != null)
                         {
-                            CurrentRule = chosenRule;
-                            _plugin.AdminTellMessage(CurrentRule.Name + " Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
+                            chosenRule.LastUsed = _plugin.UtcNow();
+                            RoundRule = chosenRule;
+                            _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
                         }
                         else
                         {
@@ -50359,7 +50384,7 @@ namespace PRoConEvents
             {
                 try
                 {
-                    return CurrentRule != null ? CurrentRule.Name : "No Current Rule";
+                    return RoundRule != null ? RoundRule.Name : "No Current Rule";
                 }
                 catch (Exception e)
                 {
@@ -50376,7 +50401,7 @@ namespace PRoConEvents
                     var AR = new ChallengeRule(_plugin)
                     {
                         RuleID = 1,
-                        Name = "Assault Rifles"
+                        Name = "4 ARs"
                     };
                     AR.AddDetail(new ChallengeRule.Detail()
                     {
@@ -50387,13 +50412,13 @@ namespace PRoConEvents
                         WeaponCount = 4,
                         KillCount = 10
                     });
-                    Rules.Add(AR);
+                    Rules[AR.RuleID] = AR;
                     
                     // Carbine
                     var CA = new ChallengeRule(_plugin)
                     {
                         RuleID = 2,
-                        Name = "Carbines"
+                        Name = "4 Carbines"
                     };
                     CA.AddDetail(new ChallengeRule.Detail()
                     {
@@ -50404,13 +50429,13 @@ namespace PRoConEvents
                         WeaponCount = 4,
                         KillCount = 10
                     });
-                    Rules.Add(CA);
+                    Rules[CA.RuleID] = CA;
 
                     // LMG
                     var LMG = new ChallengeRule(_plugin)
                     {
                         RuleID = 3,
-                        Name = "LMGs"
+                        Name = "4 LMGs"
                     };
                     LMG.AddDetail(new ChallengeRule.Detail()
                     {
@@ -50421,13 +50446,13 @@ namespace PRoConEvents
                         WeaponCount = 4,
                         KillCount = 10
                     });
-                    Rules.Add(LMG);
+                    Rules[LMG.RuleID] = LMG;
 
                     // Shotgun
                     var Shotgun = new ChallengeRule(_plugin)
                     {
                         RuleID = 4,
-                        Name = "Shotguns"
+                        Name = "4 Shotguns"
                     };
                     Shotgun.AddDetail(new ChallengeRule.Detail()
                     {
@@ -50438,13 +50463,13 @@ namespace PRoConEvents
                         WeaponCount = 4,
                         KillCount = 10
                     });
-                    Rules.Add(Shotgun);
+                    Rules[Shotgun.RuleID] = Shotgun;
 
                     // Handgun
                     var Handgun = new ChallengeRule(_plugin)
                     {
                         RuleID = 5,
-                        Name = "Handguns"
+                        Name = "5 Pistols"
                     };
                     Handgun.AddDetail(new ChallengeRule.Detail()
                     {
@@ -50455,7 +50480,24 @@ namespace PRoConEvents
                         WeaponCount = 5,
                         KillCount = 5
                     });
-                    Rules.Add(Handgun);
+                    Rules[Handgun.RuleID] = Handgun;
+
+                    // Sniper
+                    var Sniper = new ChallengeRule(_plugin)
+                    {
+                        RuleID = 6,
+                        Name = "4 Snipers"
+                    };
+                    Sniper.AddDetail(new ChallengeRule.Detail()
+                    {
+                        RuleID = 6,
+                        DetailID = 1,
+                        Type = ChallengeRule.Detail.DetailType.Damage,
+                        Damage = DamageTypes.SniperRifle,
+                        WeaponCount = 4,
+                        KillCount = 10
+                    });
+                    Rules[Sniper.RuleID] = Sniper;
 
                     /*
                     // 3 LMGs
@@ -50502,14 +50544,14 @@ namespace PRoConEvents
                 try
                 {
                     if (Enabled &&
-                        CurrentRule != null &&
+                        RoundRule != null &&
                         aKill.killer != null)
                     {
                         ChallengeEntry entry;
-                        if (!Entries.TryGetValue(aKill.killer, out entry))
+                        if (!RoundEntries.TryGetValue(aKill.killer, out entry))
                         {
                             entry = new ChallengeEntry(_plugin, this, aKill.killer);
-                            Entries[aKill.killer] = entry;
+                            RoundEntries[aKill.killer] = entry;
                         }
                         entry.AddKill(aKill);
                     }
@@ -50524,7 +50566,8 @@ namespace PRoConEvents
             {
 
                 private AdKats _plugin;
-
+                
+                public DateTime? LastUsed = null;
                 public Int32 RuleID;
                 public String Name;
 
@@ -50549,7 +50592,7 @@ namespace PRoConEvents
                         info += "Weapon Types: ";
                         foreach (var detail in damages)
                         {
-                            info += "[" + detail.Damage.ToString() + "/" + detail.WeaponCount + " Weapons/" + detail.KillCount + " Kills] ";
+                            info += "[" + detail.Damage.ToString() + "/" + detail.WeaponCount + " Weapons/" + detail.KillCount + " Kills]" + Environment.NewLine;
                         }
                         info += Environment.NewLine;
                     }
@@ -50788,12 +50831,11 @@ namespace PRoConEvents
                         }
                     }
 
-                    public String GetStatusForKill(AKill kill)
+                    public void SendStatusForKill(AKill kill)
                     {
                         if (kill.weaponDamage == DamageTypes.None)
                         {
                             _plugin.Log.Error("Damage type for current kill couldn't be found, or was None.");
-                            return "ERROR1";
                         }
                         try
                         {
@@ -50814,7 +50856,6 @@ namespace PRoConEvents
                                 if (!damageBucketWeapons.ContainsKey(kill.weaponCode))
                                 {
                                     _plugin.Log.Error("Damage bucket for status weapon " + kill.weaponDamage + "/" + kill.weaponCode + " did not contain the needed weapon.");
-                                    return "ERROR2";
                                 }
                                 damageWeaponBucket = damageBucketWeapons[kill.weaponCode];
                                 requiredKills += damageWeaponBucket.MaxKills;
@@ -50827,7 +50868,7 @@ namespace PRoConEvents
                             var respond = true;
                             if (weaponCompletionPercentage > 99.9)
                             {
-                                completion = " COMPLETED!";
+                                completion = "COMPLETED!";
                                 if (CompletionPercentage < 99.9)
                                 {
                                     completion += " Try another weapon!";
@@ -50840,15 +50881,19 @@ namespace PRoConEvents
                             }
                             if (!respond)
                             {
-                                return String.Empty;
+                                return;
                             }
-                            return Entry.GetRule().Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + CompletionPercentage + "%]" + completion;
+                            kill.killer.Say(Entry.GetRule().Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + CompletionPercentage + "%] " + completion);
+                            if (!String.IsNullOrEmpty(completion))
+                            {
+                                kill.killer.Yell(completion);
+                            }
+                            return ;
                         }
                         catch (Exception e)
                         {
                             _plugin.Log.HandleException(new AException("Error getting status for kill.", e));
                         }
-                        return "ERROR3";
                     }
 
                     public override string ToString()
@@ -50932,7 +50977,7 @@ namespace PRoConEvents
                             var completedKills = weaponBuckets.Sum(weapon => weapon.Kills.Count());
                             var completionPercentage = Math.Max(Math.Min(Math.Round(100 * (Double)completedKills / (Double)requiredKills), 100), 0);
 
-                            var status = "Class " + Damage.ToString() + " [" + completedKills + "/" + requiredKills + "][" + completionPercentage + "%]: ";
+                            var status = "Type " + Damage.ToString() + " [" + completedKills + "/" + requiredKills + "][" + completionPercentage + "%]: ";
                             if (weaponBuckets.Any())
                             {
                                 status += String.Join(", ", weaponBuckets.Select(bucket => bucket.ToString()).ToArray());
@@ -51026,7 +51071,7 @@ namespace PRoConEvents
                 private AdKats _plugin;
                 private AChallengeManager Manager;
 
-                private APlayer Player;
+                public APlayer Player;
                 private ChallengeRule OriginalRule;
                 public List<AKill> Kills;
 
@@ -51044,7 +51089,7 @@ namespace PRoConEvents
                         Kills = new List<AKill>();
 
                         // Save off the original rule for confirmations later
-                        OriginalRule = manager.CurrentRule;
+                        OriginalRule = manager.RoundRule;
                     }
                     catch (Exception e)
                     {
@@ -51054,7 +51099,7 @@ namespace PRoConEvents
 
                 public ChallengeRule GetRule()
                 {
-                    return Manager.CurrentRule;
+                    return Manager.RoundRule;
                 }
 
                 public Boolean AddKill(AKill aKill)
@@ -51072,18 +51117,18 @@ namespace PRoConEvents
                             return false;
                         }
                         // Check for invalid rule
-                        if (Manager.CurrentRule == null)
+                        if (Manager.RoundRule == null)
                         {
                             _plugin.Log.Warn("Manager's rule was null when trying to add kill: " + aKill.ToString());
                             return false;
                         }
-                        if (Manager.CurrentRule != OriginalRule)
+                        if (Manager.RoundRule != OriginalRule)
                         {
-                            _plugin.Log.Warn("Manager's rule " + Manager.CurrentRule.Name + " did not match the original rule " + OriginalRule.Name + " for this challenge entry.");
+                            _plugin.Log.Warn("Manager's rule " + Manager.RoundRule.Name + " did not match the original rule " + OriginalRule.Name + " for this challenge entry.");
                             return false;
                         }
                         // Check for invalid kill
-                        if (!Manager.CurrentRule.KillValid(aKill))
+                        if (!Manager.RoundRule.KillValid(aKill))
                         {
                             return false;
                         }
@@ -51091,21 +51136,18 @@ namespace PRoConEvents
                         Kills.Add(aKill);
 
                         //Check for completion case.
-                        var status = Manager.CurrentRule.GetCompletionStatus(this);
+                        var status = Manager.RoundRule.GetCompletionStatus(this);
 
                         if (status.CompletionPercentage >= 99.99)
                         {
-                            var message = Player.GetVerboseName() + " just completed the " + Manager.CurrentRule.Name + " challenge! Congrats!";
+                            var message = Player.GetVerboseName() + " just completed the " + Manager.RoundRule.Name + " challenge! Congrats!";
                             //_plugin.AdminTellMessage(message);
                             _plugin.AdminSayMessage(message);
                             Completed = true;
                             return true;
                         }
-                        var killStatus = status.GetStatusForKill(aKill);
-                        if (!String.IsNullOrEmpty(killStatus))
-                        {
-                            Player.Say(killStatus);
-                        }
+
+                        status.SendStatusForKill(aKill);
                         return true;
                     }
                     catch (Exception e)
