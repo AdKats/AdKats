@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.58
+ * Version 7.0.1.59
  * 16-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.58</version_code>
+ * <version_code>7.0.1.59</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.58";
+        private const String PluginVersion = "7.0.1.59";
 
         public enum GameVersionEnum
         {
@@ -15880,10 +15880,6 @@ namespace PRoConEvents
                                         const string removeGadgets = "Gadgets/";
                                         const string removePrefix = "U_";
                                         String weapon = WeaponDictionary.GetShortWeaponNameByCode(aKill.weaponCode);
-                                        if (_UseExperimentalTools)
-                                        {
-                                            Log.Info("Weapon in autoadmin: " + weapon);
-                                        }
                                         Int32 index = weapon.IndexOf(removeWeapon, StringComparison.Ordinal);
                                         weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeWeapon.Length));
                                         index = weapon.IndexOf(removeGadgets, StringComparison.Ordinal);
@@ -35633,6 +35629,7 @@ namespace PRoConEvents
                             record_message = "Removing Challenge AutoKill Status",
                             record_time = UtcNow()
                         });
+                        SendMessageToSource(record, "You will no longer be slain when completing challenge weapons.");
                     }
                     else
                     {
@@ -35648,6 +35645,7 @@ namespace PRoConEvents
                             record_message = "Adding Challenge AutoKill Status",
                             record_time = UtcNow()
                         });
+                        SendMessageToSource(record, "You will now be slain when completing challenge weapons.");
                     }
                 }
             }
