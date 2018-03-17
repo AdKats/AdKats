@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.56
+ * Version 7.0.1.57
  * 16-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.56</version_code>
+ * <version_code>7.0.1.57</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.56";
+        private const String PluginVersion = "7.0.1.57";
 
         public enum GameVersionEnum
         {
@@ -50343,7 +50343,7 @@ namespace PRoConEvents
                             _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Ended! " + completed.Count() + " players completed it!");
                             if (completed.Any())
                             {
-                                _plugin.AdminSayMessage("Winners: " + String.Join(", ", completed.Select(entry => entry.Player.GetVerboseName())));
+                                _plugin.AdminSayMessage("Winners: " + String.Join(", ", completed.Select(entry => entry.Player.GetVerboseName()).ToArray()));
                             }
                             _plugin.Threading.Wait(5000);
                         }
