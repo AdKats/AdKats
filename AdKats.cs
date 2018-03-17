@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.61
+ * Version 7.0.1.62
  * 17-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.61</version_code>
+ * <version_code>7.0.1.62</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.61";
+        private const String PluginVersion = "7.0.1.62";
 
         public enum GameVersionEnum
         {
@@ -51274,12 +51274,14 @@ namespace PRoConEvents
                             String weaponName = _plugin.WeaponDictionary.GetShortWeaponNameByCode(kill.weaponCode);
                             String completion = "";
                             var respond = true;
+                            var autoKill = false;
                             if (weaponCompletionPercentage > 99.9)
                             {
                                 completion = "COMPLETED!";
                                 if (CompletionPercentage < 99.9)
                                 {
                                     completion += " Try another weapon!";
+                                    autoKill = true;
                                 }
                                 if (Entry.LastCompletedWeapon == kill.weaponCode)
                                 {
@@ -51292,13 +51294,18 @@ namespace PRoConEvents
                                 return;
                             }
                             kill.killer.Say(Entry.GetRule().Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + CompletionPercentage + "%] " + completion);
-                            if (!String.IsNullOrEmpty(completion))
+                            if (autoKill)
                             {
                                 kill.killer.Yell(completion);
                                 if (_plugin.GetMatchingVerboseASPlayersOfGroup("challenge_autokill", kill.killer).Any())
                                 {
                                     _plugin.Threading.Wait(1000);
                                     _plugin.ExecuteCommand("procon.protected.send", "admin.killPlayer", kill.killer.player_name);
+                                }
+                                else if (!Entry.AutoKillTold)
+                                {
+                                    kill.killer.Say("Want To be killed automatically when you complete a challenge weapon? Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " autokill");
+                                    Entry.AutoKillTold = true;
                                 }
                             }
                             return ;
@@ -51490,6 +51497,9 @@ namespace PRoConEvents
 
                 public String LastCompletedWeapon = String.Empty;
                 public Boolean Completed;
+
+                // Messaging
+                public Boolean AutoKillTold;
 
                 public ChallengeEntry(AdKats plugin, AChallengeManager manager, APlayer player)
                 {
