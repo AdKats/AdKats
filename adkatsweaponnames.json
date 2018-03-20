@@ -1673,6 +1673,10 @@
     "U_L86A1": {
       "readable_short": "L86A2",
       "readable_long": "L86A2 Light Machine Gun"
+    },
+    "U_SaddlegunSnp": {
+      "readable_short": "Mares Leg",
+      "readable_long": "Mares Leg Saddlegun Sniper"
     }
   }
 }
