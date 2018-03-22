@@ -2210,7 +2210,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <tr>
         <td><b>Server Countdown</b></td>
         <td>cdown</td>
-        <td>[squad/team/all] [seconds] [reason]</td>
+        <td>[seconds] [squad/team/all] [reason]</td>
         <td>
             The in-game command used for issuing countdowns on a subset of players.
         </td>
