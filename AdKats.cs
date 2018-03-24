@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.62
- * 17-MAR-2018
+ * Version 7.0.1.63
+ * 24-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.62</version_code>
+ * <version_code>7.0.1.63</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.62";
+        private const String PluginVersion = "7.0.1.63";
 
         public enum GameVersionEnum
         {
@@ -2662,7 +2662,52 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [1] Displays" + t + "Current Rule (Display)", typeof(String), ChallengeManager.GetCurrentRuleName()));
 
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2] Actions" + t + "Run Challenge Rule ID", typeof(Int32), 0));
+                    var defSectionPrefix = GetSettingSection(challengeSettings) + " [3] Definitions" + t;
+                    buildList.Add(new CPluginVariable(defSectionPrefix + "Add Definition?", typeof(String), ""));
+                    if (ChallengeManager.Definitions.Any())
+                    {
+                        foreach (var def in ChallengeManager.Definitions.Values.OrderBy(dDef => dDef.ID))
+                        {
+                            //CDH1 | 5 ARs | Change Name?
+                            //CDH1 | 5 ARs | Add Damage Type?
+                            //CDH1 | 5 ARs | Add Weapon?
+                            //CDH1 | 5 ARs | Delete Definition?
+                            //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Damage Type
+                            //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Weapon Count
+                            //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Kill Count
+                            //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Delete Detail?
+                            //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Weapon Name
+                            //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Kill Count
+                            //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Delete Detail?
 
+                            var defPrefix = defSectionPrefix + "CDH" + def.ID + s + def.Name + s;
+                            buildList.Add(new CPluginVariable(defPrefix + "Change Name?", typeof(String), def.Name));
+                            buildList.Add(new CPluginVariable(defPrefix + "Add Damage Type?", WeaponDictionary.InfantryDamageTypeEnumString, "None"));
+                            buildList.Add(new CPluginVariable(defPrefix + "Add Weapon?", WeaponDictionary.InfantryWeaponNameEnumString, "None"));
+                            buildList.Add(new CPluginVariable(defPrefix + "Delete Definition?", typeof(String), ""));
+                            foreach (var detail in def.GetDetails())
+                            {
+                                if (detail.Type == AChallengeManager.CDefinition.CDefinitionDetail.DetailType.None)
+                                {
+                                    Log.Error("Unable to render challenge definition detail " + def.ID + ":" + detail.DetailID + ". It had a type of None.");
+                                    continue;
+                                }
+                                var detailPrefix = defPrefix + "CDD" + detail.DetailID + s + detail.ToString() + s;
+                                if (detail.Type == AChallengeManager.CDefinition.CDefinitionDetail.DetailType.Damage)
+                                {
+                                    buildList.Add(new CPluginVariable(detailPrefix + "Damage Type", WeaponDictionary.InfantryDamageTypeEnumString, detail.Damage.ToString()));
+                                    buildList.Add(new CPluginVariable(detailPrefix + "Weapon Count", typeof(Int32), detail.WeaponCount));
+                                }
+                                else if (detail.Type == AChallengeManager.CDefinition.CDefinitionDetail.DetailType.Weapon)
+                                {
+                                    buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.InfantryWeaponNameEnumString, WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
+                                }
+                                buildList.Add(new CPluginVariable(detailPrefix + "Kill Count", typeof(Int32), detail.KillCount));
+                                buildList.Add(new CPluginVariable(defPrefix + "Delete Detail?", typeof(String), ""));
+                            }
+                        }
+                    }
+                    /*
                     var ruleSectionPrefix = GetSettingSection(challengeSettings) + " [3] Rules" + t;
                     buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add Rule", typeof(String), ""));
                     foreach (var rule in ChallengeManager.GetRules())
@@ -2685,14 +2730,15 @@ namespace PRoConEvents
                             }
                             else if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.Weapon)
                             {
-                                buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.WeaponNameEnumString, WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
+                                buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.InfantryWeaponNameEnumString, WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
                             }
                             buildList.Add(new CPluginVariable(detailPrefix + "Kill Count", typeof(Int32), detail.KillCount));
 
                         }
                         buildList.Add(new CPluginVariable(rulePrefix + "Add Damage Type?", WeaponDictionary.DamageTypeEnumString, "None"));
-                        buildList.Add(new CPluginVariable(rulePrefix + "Add Weapon Code?", WeaponDictionary.WeaponNameEnumString, "None"));
+                        buildList.Add(new CPluginVariable(rulePrefix + "Add Weapon Code?", WeaponDictionary.InfantryWeaponNameEnumString, "None"));
                     }
+                    */
                 }
                 lstReturn.AddRange(buildList);
             }
@@ -8307,6 +8353,141 @@ namespace PRoConEvents
                         }
                     }
                 }
+                else if (Regex.Match(strVariable, @"Add Definition?").Success)
+                {
+                    if (!String.IsNullOrEmpty(strValue))
+                    {
+                        ChallengeManager.CreateDefinition(strValue);
+                    }
+                }
+                else if (strVariable.StartsWith("CDH"))
+                {
+                    //CDH1 | 5 ARs | Change Name?
+                    //CDH1 | 5 ARs | Add Damage Type?
+                    //CDH1 | 5 ARs | Add Weapon?
+                    //CDH1 | 5 ARs | Delete Definition?
+                    //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Damage Type
+                    //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Weapon Count
+                    //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Kill Count
+                    //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Delete Detail?
+                    //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Weapon Name
+                    //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Kill Count
+                    //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Delete Detail?
+
+                    // Split the variable name on | characters using the library
+                    var variableSplit = CPluginVariable.DecodeStringArray(strVariable);
+                    var definitionIDStr = variableSplit[0].TrimStart("CDH".ToCharArray()).Trim();
+                    var defID = Int64.Parse(definitionIDStr);
+                    if (defID <= 0)
+                    {
+                        Log.Error("Definition setting had an invalid definition ID of " + defID + ".");
+                        return;
+                    }
+                    var definition = ChallengeManager.GetDefinition(defID);
+                    if (definition == null)
+                    {
+                        Log.Error("Unable to fetch definition for ID " + defID + ".");
+                        return;
+                    }
+                    var section = variableSplit[2].Trim();
+                    switch (section)
+                    {
+                        case "Change Name?":
+                            // Make sure that the new string is different from the current one
+                            if (definition.Name != strValue)
+                            {
+                                // It's different, assign it.
+                                definition.Name = strValue;
+                                definition.ModifyTime = UtcNow();
+                                // Push to the database.
+                                definition.DBPush(null);
+                            }
+                            break;
+                        case "Add Damage Type?":
+                            if (strValue != "None")
+                            {
+                                definition.CreateDetail("Damage", strValue);
+                            }
+                            break;
+                        case "Add Weapon?":
+                            if (strValue != "None")
+                            {
+                                definition.CreateDetail("Weapon", strValue);
+                            }
+                            break;
+                        case "Delete Definition?":
+                            if (strValue.ToLower().Trim() == "delete")
+                            {
+                                definition.DBDelete(null);
+                            }
+                            break;
+                        default:
+                            // None of the main sections match. Maybe we're in a detail?
+                            if (section.StartsWith("CDD"))
+                            {
+                                // Yep, we're in a detail. Parse it.
+
+                                //CDH1 | 5 ARs | Change Name?
+                                //CDH1 | 5 ARs | Add Damage Type?
+                                //CDH1 | 5 ARs | Add Weapon?
+                                //CDH1 | 5 ARs | Delete Definition?
+                                //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Damage Type
+                                //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Weapon Count
+                                //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Kill Count
+                                //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Delete Detail?
+                                //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Weapon Name
+                                //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Kill Count
+                                //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Delete Detail?
+
+                                var detailIDStr = section.TrimStart("CDD".ToCharArray()).Trim();
+                                var detailID = Int64.Parse(detailIDStr);
+                                if (detailID <= 0)
+                                {
+                                    Log.Error("Definition setting had an invalid definition ID of " + detailID + ".");
+                                    return;
+                                }
+                                var detail = definition.GetDetail(detailID);
+                                if (detail == null)
+                                {
+                                    Log.Error("Unable to fetch definition " + definition.ID + " detail for ID " + detailID + ".");
+                                    return;
+                                }
+                                var detailSection = variableSplit[4].Trim();
+
+                                switch (detailSection)
+                                {
+                                    case "Damage Type":
+                                        detail.SetDamageTypeByString(strValue);
+                                        break;
+                                    case "Weapon Count":
+                                        detail.SetWeaponCountByString(strValue);
+                                        break;
+                                    case "Weapon Name":
+                                        detail.SetWeaponNameByString(strValue);
+                                        break;
+                                    case "Kill Count":
+                                        detail.SetKillCountByString(strValue);
+                                        break;
+                                    case "Delete Detail?":
+                                        if (strValue.ToLower().Trim() == "delete")
+                                        {
+                                            detail.DBDelete(null);
+                                        }
+                                        break;
+                                    default:
+                                        Log.Error("Section " + detailSection + " not found.");
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                // Nope, no idea where we are. Get out of here.
+                                Log.Error("Unknown setting section " + section + " parsed in challenge definition section.");
+                                return;
+                            }
+                            break;
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -8474,26 +8655,14 @@ namespace PRoConEvents
 
                         if (GameVersion == GameVersionEnum.BF3 || GameVersion == GameVersionEnum.BF4)
                         {
-                            //Fetch all weapon names
-                            if (WeaponDictionary.PopulateWeaponNameDictionaries())
+                            //Fetch all weapon information
+                            if (WeaponDictionary.PopulateDictionaries())
                             {
-                                Log.Success("Fetched weapon names.");
+                                Log.Success("Fetched weapon information.");
                             }
                             else
                             {
-                                Log.Error("Failed to fetch weapon names. AdKats cannot be started.");
-                                Disable();
-                                Threading.StopWatchdog();
-                                return;
-                            }
-                            //Fetch all weapon damage types
-                            if (WeaponDictionary.PopulateWeaponDamageTypeDictionaries())
-                            {
-                                Log.Success("Fetched weapon damage types.");
-                            }
-                            else
-                            {
-                                Log.Error("Failed to fetch weapon damage types. AdKats cannot be started.");
+                                Log.Error("Failed to fetch weapon information. AdKats cannot be started.");
                                 Disable();
                                 Threading.StopWatchdog();
                                 return;
@@ -9284,26 +9453,42 @@ namespace PRoConEvents
                     lock (_AssistAttemptQueue)
                     {
                         // There are, look at the first one without pulling it
-                        if (_AssistAttemptQueue.Any())
+                        var assistRecord = _AssistAttemptQueue.Peek();
+                        if (NowDuration(assistRecord.record_creationTime).TotalMinutes > 5.0)
                         {
-                            var assistRecord = _AssistAttemptQueue.Peek();
-                            if (NowDuration(assistRecord.record_creationTime).TotalMinutes > 5.0)
+                            // If the record is more than 5 minutes old, get rid of it
+                            SendMessageToSource(assistRecord, Log.CViolet("Automatic assist has timed out. Please use !" + GetCommandByKey("self_assist").command_text + " again to re-queue yourself."));
+                            OnlineAdminSayMessage("Automatic assist timed out for " + assistRecord.GetSourceName());
+                            _AssistAttemptQueue.Dequeue();
+                            return;
+                        }
+                        else
+                        {
+                            // The record is active, see if the player can be automatically assisted
+                            if (RunAssist(assistRecord.target_player, assistRecord, null, true))
                             {
-                                // If the record is more than 5 minutes old, get rid of it
-                                SendMessageToSource(assistRecord, Log.CViolet("Automatic assist has timed out. Please use !" + GetCommandByKey("self_assist").command_text + " again to re-queue yourself."));
-                                OnlineAdminSayMessage("Automatic assist timed out for " + assistRecord.GetSourceName());
+                                QueueRecordForProcessing(assistRecord);
                                 _AssistAttemptQueue.Dequeue();
+                                _LastAutoAssist = UtcNow();
+                                return;
                             }
-                            else
-                            {
-                                // The record is active, see if the player can be automatically assisted
-                                if (RunAssist(assistRecord.target_player, assistRecord, null, true))
-                                {
-                                    QueueRecordForProcessing(assistRecord);
-                                    _AssistAttemptQueue.Dequeue();
-                                    _LastAutoAssist = UtcNow();
-                                }
-                            }
+                        }
+                        var team1Assist = _AssistAttemptQueue.FirstOrDefault(attempt => attempt.source_player != null && 
+                                                                                        attempt.source_player.fbpInfo != null && 
+                                                                                        attempt.source_player.fbpInfo.TeamID == 1);
+                        var team2Assist = _AssistAttemptQueue.FirstOrDefault(attempt => attempt.source_player != null &&
+                                                                                        attempt.source_player.fbpInfo != null &&
+                                                                                        attempt.source_player.fbpInfo.TeamID == 2);
+                        if (team1Assist != null &&
+                            team2Assist != null)
+                        {
+                            // There is a player on each team attempting to switch. Allow the swap.
+                            QueueRecordForProcessing(team1Assist);
+                            QueueRecordForProcessing(team2Assist);
+                            //The players are queued, rebuild the attempt queue without them in it
+                            _AssistAttemptQueue = new Queue<ARecord>(_AssistAttemptQueue.Where(aRec => aRec != team1Assist && 
+                                                                                                       aRec != team2Assist));
+                            _LastAutoAssist = UtcNow();
                         }
                     }
                 }
@@ -11417,8 +11602,8 @@ namespace PRoConEvents
                             weakTeam == losingTeam &&
                             // Require both high population state, and 26 or more players on each team (accounting for smaller servers)
                             _populationStatus == PopulationState.High &&
-                            weakCount >= 26 &&
-                            powerCount >= 26)
+                            weakCount >= 25 &&
+                            powerCount >= 25)
                         {
                             teamCountLeniency = 4;
                         }
@@ -13412,7 +13597,8 @@ namespace PRoConEvents
                                     var validTicketBasedNuke = config_action == AutoSurrenderAction.Nuke &&
                                                                mapUpTeam == winningTeam &&
                                                                ticketGap > _NukeWinningTeamUpTicketCount &&
-                                                               (!_NukeWinningTeamUpTicketHigh || _populationStatus == PopulationState.High);
+                                                               (!_NukeWinningTeamUpTicketHigh || _populationStatus == PopulationState.High) &&
+                                                               getNukeCount(mapUpTeam.TeamID) < 1;
                                     var validTeams = config_action == AutoSurrenderAction.Nuke ||
                                                      winningTeam == mapUpTeam;
                                     if ((validRateWindow || validTicketBasedNuke) &&
@@ -14926,7 +15112,7 @@ namespace PRoConEvents
                             DamageTypes category = DamageTypes.None;
                             if (playerKill != null && !String.IsNullOrEmpty(playerKill.DamageType))
                             {
-                                category = WeaponDictionary.ParseDamageType(playerKill.DamageType);
+                                category = WeaponDictionary.GetDamageTypeByWeaponCode(playerKill.DamageType);
                             }
                             if (!_DetectedWeaponCodes.Contains(playerKill.DamageType))
                             {
@@ -14954,7 +15140,7 @@ namespace PRoConEvents
                                 victimCPI = playerKill.Victim,
                                 weaponCode = String.IsNullOrEmpty(playerKill.DamageType) ? "NoDamageType" : playerKill.DamageType,
                                 weaponDamage = category,
-                                timestamp = playerKill.TimeOfDeath,
+                                TimeStamp = playerKill.TimeOfDeath,
                                 IsSuicide = playerKill.IsSuicide,
                                 IsHeadshot = playerKill.Headshot,
                                 IsTeamkill = (playerKill.Killer.TeamID == playerKill.Victim.TeamID),
@@ -15050,7 +15236,7 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.BKO:
                         return "BOW/KNIVES ONLY! Only Phantom Bow/Knives are allowed. NO poison/explosive arrows.";
                     case AEventOption.RuleCode.RTO:
-                        return "REPAIR TOOL ONLY! Only kills with the engineer's repair tool are allowed.";
+                        return "REPAIR TOOL ONLY! Only kills with repair tools and EOD bots are allowed.";
                     case AEventOption.RuleCode.PO:
                         return "PISTOLS ONLY! Only kills with pistols are allowed. NO G18/93R. NO Shorty 12G. NO Knives.";
                     case AEventOption.RuleCode.SO:
@@ -15200,6 +15386,8 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.RTO:
                         // REPAIR TOOL ONLY!
                         if (aKill.weaponCode != "U_Repairtool" &&
+                            aKill.weaponCode != "EODBot" &&
+                            aKill.weaponCode != "Death" &&
                             aKill.weaponCode != "DamageArea")
                         {
                             return true;
@@ -15403,7 +15591,7 @@ namespace PRoConEvents
 
                 Boolean gKillHandled = false;
                 //Update player death information
-                Log.Debug(() => "Setting " + aKill.victim.GetVerboseName() + " time of death to " + aKill.timestamp, 7);
+                Log.Debug(() => "Setting " + aKill.victim.GetVerboseName() + " time of death to " + aKill.TimeStamp, 7);
                 aKill.victim.lastDeath = UtcNow();
 
                 //Add the kill
@@ -15416,7 +15604,7 @@ namespace PRoConEvents
                     !EventActive())
                 {
                     //KPM check
-                    Int32 lowCountRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
+                    Int32 lowCountRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.TimeStamp).TotalSeconds < 60);
                     int lowCountBan =
                         ((GameVersion == GameVersionEnum.BF3) ? (25) : (20)) -
                         ((aKill.killer.fbpInfo.Rank <= 15) ? (6) : (0));
@@ -15436,7 +15624,7 @@ namespace PRoConEvents
                         });
                         return;
                     }
-                    Int32 highCountRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 120);
+                    Int32 highCountRecent = aKill.killer.LiveKills.Count(dKill => (DateTime.Now - dKill.TimeStamp).TotalSeconds < 120);
                     int highCountBan =
                         ((GameVersion == GameVersionEnum.BF3) ? (40) : (32)) -
                         ((aKill.killer.fbpInfo.Rank <= 15) ? (8) : (0));
@@ -15472,7 +15660,7 @@ namespace PRoConEvents
                         .Where(dKill =>
                             dKill.weaponDamage != DamageTypes.SniperRifle &&
                             dKill.weaponDamage != DamageTypes.DMR)
-                        .OrderByDescending(dKill => dKill.timestamp);
+                        .OrderByDescending(dKill => dKill.TimeStamp);
                     var countAll = nonSniperKills.Count();
                     if (countAll >= lowKillCount)
                     {
@@ -15654,11 +15842,11 @@ namespace PRoConEvents
                                     List<KeyValuePair<APlayer, string>> possible = new List<KeyValuePair<APlayer, String>>();
                                     List<KeyValuePair<APlayer, string>> sure = new List<KeyValuePair<APlayer, String>>();
                                     foreach (AKill cookerKill in aKill.killer.LiveKills
-                                        .Where(dKill => (aKill.timestamp - dKill.timestamp).TotalSeconds < 10.0)
-                                        .OrderBy(dKill => Math.Abs(aKill.timestamp.Subtract(dKill.timestamp).TotalMilliseconds - fuseTime)))
+                                        .Where(dKill => (aKill.TimeStamp - dKill.TimeStamp).TotalSeconds < 10.0)
+                                        .OrderBy(dKill => Math.Abs(aKill.TimeStamp.Subtract(dKill.TimeStamp).TotalMilliseconds - fuseTime)))
                                     {
                                         //Get the actual time since cooker value
-                                        Double milli = aKill.timestamp.Subtract(cookerKill.timestamp).TotalMilliseconds;
+                                        Double milli = aKill.TimeStamp.Subtract(cookerKill.TimeStamp).TotalMilliseconds;
 
                                         //Calculate the percentage probability
                                         Double probability;
@@ -24143,7 +24331,15 @@ namespace PRoConEvents
                                     FinalizeRecord(record);
                                     return;
                                 case 3:
-                                    String targetSubset = parameters[0].ToLower().Trim();
+                                    //Max 30 seconds
+                                    Int32 countdownSeconds;
+                                    if (!Int32.TryParse(parameters[0], out countdownSeconds) || countdownSeconds < 1 || countdownSeconds > 30)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration, must be 1-30. Unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    String targetSubset = parameters[1].ToLower().Trim();
                                     if (String.IsNullOrEmpty(targetSubset))
                                     {
                                         SendMessageToSource(record, "Invalid target, must be squad, team, or all. Unable to submit.");
@@ -24193,14 +24389,6 @@ namespace PRoConEvents
                                                 FinalizeRecord(record);
                                                 return;
                                         }
-                                    }
-                                    //Max 30 seconds
-                                    Int32 countdownSeconds;
-                                    if (!Int32.TryParse(parameters[1], out countdownSeconds) || countdownSeconds < 1 || countdownSeconds > 30)
-                                    {
-                                        SendMessageToSource(record, "Invalid duration, must be 1-30. Unable to submit.");
-                                        FinalizeRecord(record);
-                                        return;
                                     }
                                     record.command_numeric = countdownSeconds;
                                     String countdownMessage = parameters[2];
@@ -35577,75 +35765,86 @@ namespace PRoConEvents
                 }
 
                 var option = record.record_message.ToLower().Trim();
-                if (option == "info")
+                switch (option)
                 {
-                    // Immediately get the challenge info, then go async
-                    var messages = ChallengeManager.GetChallengeInfo(record.target_player).Split(
-                        new[] { Environment.NewLine },
-                        StringSplitOptions.None
-                    );
+                    case "help":
+                        SendMessageToSource(record, "info (or nothing) - See current challenge info.");
+                        Threading.Wait(1000);
+                        SendMessageToSource(record, "autokill - Causes you to be slain when completing challenge weapons.");
+                        Threading.Wait(1000);
+                        SendMessageToSource(record, "help - Show this message.");
+                        break;
+                    case "info":
+                        // Immediately get the challenge info, then go async
+                        var messages = ChallengeManager.GetChallengeInfo(record.target_player).Split(
+                            new[] { Environment.NewLine },
+                            StringSplitOptions.None
+                        );
 
-                    Threading.StartWatchdog(new Thread(new ThreadStart(delegate
-                    {
-                        Log.Debug(() => "Starting a challenge info printer.", 5);
-                        try
+                        Threading.StartWatchdog(new Thread(new ThreadStart(delegate
                         {
-                            Thread.CurrentThread.Name = "ChallengeInfoPrinter";
-                            Threading.Wait(100);
-                            foreach (var message in messages)
+                            Log.Debug(() => "Starting a challenge info printer.", 5);
+                            try
                             {
-                                SendMessageToSource(record, message);
-                                Threading.Wait(1500);
+                                Thread.CurrentThread.Name = "ChallengeInfoPrinter";
+                                Threading.Wait(100);
+                                foreach (var message in messages)
+                                {
+                                    SendMessageToSource(record, message);
+                                    Threading.Wait(1500);
+                                }
                             }
+                            catch (Exception e)
+                            {
+                                Log.HandleException(new AException("Error while printing challenge info.", e));
+                            }
+                            Log.Debug(() => "Exiting a challenge info printer.", 5);
+                            Threading.StopWatchdog();
+                        })));
+                        break;
+                    case "autokill":
+                        if (record.target_player == null)
+                        {
+                            SendMessageToSource(record, "Cannot change autokill status without being a player.");
+                            FinalizeRecord(record);
+                            return;
                         }
-                        catch (Exception e)
+                        if (GetMatchingVerboseASPlayersOfGroup("challenge_autokill", record.target_player).Any())
                         {
-                            Log.HandleException(new AException("Error while printing challenge info.", e));
+                            QueueRecordForProcessing(new ARecord
+                            {
+                                record_source = ARecord.Sources.Automated,
+                                server_id = _serverInfo.ServerID,
+                                command_type = GetCommandByKey("player_challenge_autokill_remove"),
+                                command_numeric = 0,
+                                target_name = record.target_player.player_name,
+                                target_player = record.target_player,
+                                source_name = "ChallengeManager",
+                                record_message = "Removing Challenge AutoKill Status",
+                                record_time = UtcNow()
+                            });
+                            SendMessageToSource(record, "You will NOT be slain when completing challenge weapons.");
                         }
-                        Log.Debug(() => "Exiting a challenge info printer.", 5);
-                        Threading.StopWatchdog();
-                    })));
-                }
-                else if (option == "autokill")
-                {
-                    if (record.target_player == null)
-                    {
-                        SendMessageToSource(record, "Cannot change autokill status without being a player.");
-                        FinalizeRecord(record);
-                        return;
-                    }
-                    if (GetMatchingVerboseASPlayersOfGroup("challenge_autokill", record.target_player).Any())
-                    {
-                        QueueRecordForProcessing(new ARecord
+                        else
                         {
-                            record_source = ARecord.Sources.Automated,
-                            server_id = _serverInfo.ServerID,
-                            command_type = GetCommandByKey("player_challenge_autokill_remove"),
-                            command_numeric = 0,
-                            target_name = record.target_player.player_name,
-                            target_player = record.target_player,
-                            source_name = "ChallengeManager",
-                            record_message = "Removing Challenge AutoKill Status",
-                            record_time = UtcNow()
-                        });
-                        SendMessageToSource(record, "You will no longer be slain when completing challenge weapons.");
-                    }
-                    else
-                    {
-                        QueueRecordForProcessing(new ARecord
-                        {
-                            record_source = ARecord.Sources.Automated,
-                            server_id = _serverInfo.ServerID,
-                            command_type = GetCommandByKey("player_challenge_autokill"),
-                            command_numeric = 10518984,
-                            target_name = record.target_player.player_name,
-                            target_player = record.target_player,
-                            source_name = "ChallengeManager",
-                            record_message = "Adding Challenge AutoKill Status",
-                            record_time = UtcNow()
-                        });
-                        SendMessageToSource(record, "You will now be slain when completing challenge weapons.");
-                    }
+                            QueueRecordForProcessing(new ARecord
+                            {
+                                record_source = ARecord.Sources.Automated,
+                                server_id = _serverInfo.ServerID,
+                                command_type = GetCommandByKey("player_challenge_autokill"),
+                                command_numeric = 10518984,
+                                target_name = record.target_player.player_name,
+                                target_player = record.target_player,
+                                source_name = "ChallengeManager",
+                                record_message = "Adding Challenge AutoKill Status",
+                                record_time = UtcNow()
+                            });
+                            SendMessageToSource(record, "You will now be slain when completing challenge weapons.");
+                        }
+                        break;
+                    default:
+                        SendMessageToSource(record, "'" + record.record_message + "' was an invalid option. Type !" + GetCommandByKey("self_challenge").command_text + " help");
+                        break;
                 }
             }
             catch (Exception e)
@@ -50676,6 +50875,113 @@ namespace PRoConEvents
             private AdKats _plugin;
 
             public Boolean Enabled;
+            public Dictionary<Int64, CDefinition> Definitions;
+
+            public CDefinition GetDefinition(Int64 defID)
+            {
+                try
+                {
+                    lock (Definitions)
+                    {
+                        if (!Definitions.Any())
+                        {
+                            return null;
+                        }
+                        return Definitions.Values.FirstOrDefault(def => def.ID == defID);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while getting definition from manager.", e));
+                }
+                return null;
+            }
+
+            protected void DeleteDefinition(Int64 defID)
+            {
+                try
+                {
+                    lock (Definitions)
+                    {
+                        CDefinition def;
+                        if (!Definitions.TryGetValue(defID, out def))
+                        {
+                            _plugin.Log.Error("No definition exists with ID " + defID + ".");
+                            return;
+                        }
+                        Definitions.Remove(defID);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while deleting definition from manager.", e));
+                }
+            }
+
+            public void CreateDefinition(String defName)
+            {
+                try
+                {
+                    lock (Definitions)
+                    {
+                        // Check if a definition exists with this name
+                        if (Definitions.Values.Any(def => def.Name == defName))
+                        {
+                            _plugin.Log.Error("Definition called " + defName + " already exists.");
+                            return;
+                        }
+                        // Create definition
+                        AddDefinition(new CDefinition(_plugin, this)
+                        {
+                            Phantom = true,
+                            Name = defName
+                        });
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while creating definition in manager.", e));
+                }
+            }
+
+            public void AddDefinition(CDefinition def)
+            {
+                try
+                {
+                    lock (Definitions)
+                    {
+                        if (def == null)
+                        {
+                            _plugin.Log.Error("Definition was null when adding to the challenge manager.");
+                            return;
+                        }
+                        if (def.ID <= 0)
+                        {
+                            // Try to push it to the database
+                            def.DBPush(null);
+                        }
+                        if (def.ID <= 0)
+                        {
+                            _plugin.Log.Error("Defintion had invalid ID when adding to the challenge manager.");
+                            return;
+                        }
+                        Definitions[def.ID] = def;
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while adding definition to manager.", e));
+                }
+            }
+
+
+
+
+
+
+
+
+
             public Boolean PlayStatusOnly;
             public Boolean AllowRepeatRules;
             private Dictionary<Int32, ChallengeRule> Rules;
@@ -50688,6 +50994,8 @@ namespace PRoConEvents
                 _plugin = plugin;
                 try
                 {
+                    Definitions = new Dictionary<Int64, CDefinition>();
+
                     Rules = new Dictionary<Int32, ChallengeRule>();
                     RoundEntries = new Dictionary<APlayer, ChallengeEntry>();
 
@@ -50757,17 +51065,20 @@ namespace PRoConEvents
                         if (RuleID != null)
                         {
                             chosenRule = Rules.Values.FirstOrDefault(rule => rule.RuleID == RuleID);
-                        }
-                        if (chosenRule == null)
-                        {
-                            // Randomize the list and pick the first unused one
-                            var rng = new Random(Environment.TickCount);
-                            chosenRule = Rules.Values.Where(rule => rule.LastUsed == null).OrderBy(rule => rng.Next()).FirstOrDefault();
                             if (chosenRule == null)
                             {
-                                // None are unused, pick the one which has the longest duration since used
-                                chosenRule = Rules.Values.OrderBy(rule => rule.LastUsed).FirstOrDefault();
+                                // They entered an invalid value
+                                _plugin.Log.Error("Invalid rule ID entered, unable to start rule.");
+                                return;
                             }
+                        }
+                        // Randomize the list and pick the first unused one
+                        var rng = new Random(Environment.TickCount);
+                        chosenRule = Rules.Values.Where(rule => rule.LastUsed.Equals(AdKats.GetEpochTime())).OrderBy(rule => rng.Next()).FirstOrDefault();
+                        if (chosenRule == null)
+                        {
+                            // None are unused, pick the one which has the longest duration since used
+                            chosenRule = Rules.Values.OrderBy(rule => rule.LastUsed).FirstOrDefault();
                         }
                         if (chosenRule != null)
                         {
@@ -50969,14 +51280,1222 @@ namespace PRoConEvents
                 }
             }
 
-            public class ChallengeRule
+            public class CDefinition
             {
+                private AdKats _plugin;
+
+                public Boolean Phantom;
+
+                private AChallengeManager Manager;
+                public Int64 ID;
+                public String Name;
+                public DateTime CreateTime;
+                public DateTime ModifyTime;
+                private List<CDefinitionDetail> Details;
+
+                public CDefinition(AdKats plugin, AChallengeManager manager)
+                {
+                    _plugin = plugin;
+                    Manager = manager;
+                    CreateTime = _plugin.UtcNow();
+                    ModifyTime = _plugin.UtcNow();
+                    Details = new List<CDefinitionDetail>();
+                }
+
+                public void SortDetails(MySqlConnection connection)
+                {
+                    try
+                    {
+                        if (ID <= 0 || Phantom)
+                        {
+                            _plugin.Log.Error("CDefinition was invalid when sorting.");
+                            return;
+                        }
+                        var localConnection = connection;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            lock (Details)
+                            {
+                                var currentID = 1;
+                                foreach (var detail in Details.OrderBy(dDetail => dDetail.DetailID))
+                                {
+                                    // Take the current ordering by detail ID and create a sequential list
+                                    detail.SetDetailID(localConnection, currentID++);
+                                    if (detail.Phantom)
+                                    {
+                                        detail.DBPush(connection);
+                                    }
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (connection == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while sorting definition details.", e));
+                    }
+                }
+
+                public List<CDefinitionDetail> GetDetails()
+                {
+                    var details = new List<CDefinitionDetail>();
+                    try
+                    {
+                        lock (Details)
+                        {
+                            details.AddRange(Details.OrderBy(det => det.DetailID).ToList());
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while getting detail from definition.", e));
+                    }
+                    return details;
+                }
+
+                public CDefinitionDetail GetDetail(Int64 detailID)
+                {
+                    try
+                    {
+                        lock (Details)
+                        {
+                            if (!Details.Any())
+                            {
+                                return null;
+                            }
+                            return Details.FirstOrDefault(detail => detail.DetailID == detailID);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while getting detail from definition.", e));
+                    }
+                    return null;
+                }
+
+                protected void DeleteDetail(Int64 detailID)
+                {
+                    try
+                    {
+                        lock (Details)
+                        {
+                            var matchingDetail = Details.FirstOrDefault(detail => detail.DetailID == detailID);
+                            if (matchingDetail == null)
+                            {
+                                _plugin.Log.Error("No detail exists with ID " + detailID + ".");
+                                return;
+                            }
+                            Details.Remove(matchingDetail);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while deleting detail from definition.", e));
+                    }
+                }
+
+                public void CreateDetail(String type, String value)
+                {
+                    try
+                    {
+                        lock (Details)
+                        {
+                            // Set the ID to 99999. This will be changed during the detail sort.
+                            var detail = new CDefinitionDetail(_plugin, this, 99999)
+                            {
+                                Phantom = true,
+                                KillCount = 1
+                            };
+                            // Find the detail type
+                            if (type == CDefinitionDetail.DetailType.Damage.ToString())
+                            {
+                                detail.Type = CDefinitionDetail.DetailType.Damage;
+                                try
+                                {
+                                    detail.Damage = (CDefinitionDetail.DetailDamage)Enum.Parse(typeof(CDefinitionDetail.DetailDamage), value);
+                                }
+                                catch(Exception e)
+                                {
+                                    _plugin.Log.Error("Unable to create Damage detail with damage type = " + value + ".");
+                                    return;
+                                }
+                            }
+                            else if (type == CDefinitionDetail.DetailType.Weapon.ToString())
+                            {
+                                detail.Type = CDefinitionDetail.DetailType.Weapon;
+                                // Confirm the weapon is valid
+                                if (_plugin.WeaponDictionary.GetDamageTypeByWeaponCode(value) == DamageTypes.None)
+                                {
+                                    _plugin.Log.Error("Unable to create Weapon detail with weapon code = " + value + ".");
+                                    return;
+                                }
+                                detail.Weapon = value;
+                            }
+                            else
+                            {
+                                _plugin.Log.Error("Invalid detail type " + type + " when creating definition detail.");
+                                return;
+                            }
+                            Details.Add(detail);
+                            // Sorting details will automatically push newly created details
+                            SortDetails(null);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while creating definition detail in manager.", e));
+                    }
+                }
+
+                public void DBPush(MySqlConnection connection)
+                {
+                    try
+                    {
+                        if (connection == null)
+                        {
+                            connection = _plugin.GetDatabaseConnection();
+                        }
+                        if (Phantom)
+                        {
+                            DBCreate(connection, true);
+                        }
+                        else
+                        {
+                            DBUpdate(connection, true);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBPush for CDefinition.", e));
+                    }
+                }
+
+                private void DBCreate(MySqlConnection con, Boolean includeDetails)
+                {
+                    try
+                    {
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                INSERT INTO 
+	                                `adkats_challenge_definition` 
+                                (
+	                                `Name`, 
+	                                `CreateTime`, 
+	                                `ModifyTime`
+                                ) 
+                                VALUES 
+                                (
+	                                @`Name`, 
+	                                @`CreateTime`, 
+	                                @`ModifyTime`
+                                )";
+                                command.Parameters.AddWithValue("@`Name`", Name);
+                                command.Parameters.AddWithValue("@`CreateTime`", CreateTime);
+                                command.Parameters.AddWithValue("@`ModifyTime`", ModifyTime);
+                                if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                {
+                                    ID = command.LastInsertedId;
+                                    // This record is no longer phantom
+                                    Phantom = false;
+                                    if (includeDetails)
+                                    {
+                                        DBPushDetails(localConnection);
+                                    }
+                                    _plugin.Log.Info("Created new CDefinition " + ID + " in database with " + Details.Count() + " details.");
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBCreate for CDefinition.", e));
+                    }
+                }
+
+                public void DBPushDetails(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (ID <= 0)
+                        {
+                            _plugin.Log.Error("ID " + ID + " was invalid when updating details for CDefinition.");
+                            return;
+                        }
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            foreach (var detail in Details)
+                            {
+                                detail.DBPush(localConnection);
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBUpdateDetails for CDefinition.", e));
+                    }
+                }
+
+                private void DBUpdate(MySqlConnection con, Boolean includeDetails)
+                {
+                    try
+                    {
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                UPDATE IGNORE 
+	                                `adkats_challenge_definition` 
+                                SET
+	                                `Name` = @`Name`,
+	                                `ModifyTime` = @`ModifyTime`
+                                WHERE
+	                                `ID` = @`ID`";
+                                command.Parameters.AddWithValue("@`Name`", Name);
+                                command.Parameters.AddWithValue("@`ModifyTime`", ModifyTime);
+                                if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                {
+                                    _plugin.Log.Info("Updated CDefinition " + ID + " to database.");
+                                    if (includeDetails)
+                                    {
+                                        DBPushDetails(con);
+                                    }
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBUpdate for CDefinition.", e));
+                    }
+                }
+                
+                public void DBRead(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (ID <= 0)
+                        {
+                            _plugin.Log.Error("ID " + ID + " was invalid when reading CDefinition.");
+                            return;
+                        }
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                  SELECT `ID`,
+                                         `Name`,
+                                         `CreateTime`,
+                                         `ModifyTime`
+                                    FROM `adkats_challenge_definition`
+                                   WHERE `ID` = @`ID`";
+                                command.Parameters.AddWithValue("@`ID`", ID);
+                                using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
+                                {
+                                    if (reader.Read())
+                                    {
+                                        Name = reader.GetString("`Name`");
+                                        CreateTime = reader.GetDateTime("`CreateTime`");
+                                        ModifyTime = reader.GetDateTime("`ModifyTime`");
+                                    }
+                                    else
+                                    {
+                                        _plugin.Log.Error("Unable to find matching CDefinition for ID " + ID);
+                                    }
+                                }
+                            }
+                            DBReadDetails(localConnection);
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBRead for CDefinition.", e));
+                    }
+                }
+
+                public void DBReadDetails(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (ID <= 0)
+                        {
+                            _plugin.Log.Error("ID " + ID + " was invalid when reading CDefinition Details.");
+                            return;
+                        }
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                  SELECT `DefID`,
+                                         `DetailID`,
+                                         `Type`,
+                                         `Damage`,
+                                         `WeaponCount`,
+                                         `Weapon`,
+                                         `KillCount`,
+                                         `CreateTime`,
+                                         `ModifyTime`
+                                    FROM `adkats_challenge_definition_detail`
+                                   WHERE `DefID` = @`DefID`";
+                                command.Parameters.AddWithValue("@`DefID`", ID);
+                                using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
+                                {
+                                    lock (Details)
+                                    {
+                                        // Clear all existing details, we are fetching them all from the DB
+                                        Details.Clear();
+                                        while (reader.Read())
+                                        {
+                                            var detailID = reader.GetInt32("`DetailID`");
+                                            CDefinitionDetail detail = Details.FirstOrDefault(dDetail => dDetail.DetailID == detailID);
+                                            if (detail == null)
+                                            {
+                                                detail = new CDefinitionDetail(_plugin, this, detailID);
+                                                Details.Add(detail);
+                                            }
+                                            detail.Type = (CDefinitionDetail.DetailType)Enum.Parse(typeof(CDefinitionDetail.DetailType), reader.GetString("`Type`"));
+                                            detail.Damage = (CDefinitionDetail.DetailDamage)Enum.Parse(typeof(CDefinitionDetail.DetailDamage), reader.GetString("`Damage`"));
+                                            detail.WeaponCount = reader.GetInt32("`WeaponCount`");
+                                            detail.Weapon = reader.GetString("`Weapon`");
+                                            detail.KillCount = reader.GetInt32("`KillCount`");
+                                            detail.CreateTime = reader.GetDateTime("`CreateTime`");
+                                            detail.ModifyTime = reader.GetDateTime("`ModifyTime`");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBReadDetails for CDefinition.", e));
+                    }
+                }
+
+                public void DBDelete(MySqlConnection con)
+                {
+                    try
+                    {
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                DELETE FROM 
+	                                `adkats_challenge_definition` 
+                                WHERE
+	                                `ID` = @`ID`;";
+                                command.Parameters.AddWithValue("@`ID`", ID);
+                                if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                {
+                                    // SUCCESS
+                                    // Clear all the details, they are removed automatically from the database
+                                    _plugin.Log.Info("Deleted challenge definition " + ID + " with " + Details.Count() + " details.");
+                                    Details.Clear();
+                                    Manager.DeleteDefinition(ID);
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBDelete for CDefinition.", e));
+                    }
+                }
+
+                public class CDefinitionDetail
+                {
+                    public enum DetailType
+                    {
+                        None,
+                        Weapon,
+                        Damage
+                    }
+                    public enum DetailDamage
+                    {
+                        None,
+                        Melee,
+                        Handgun,
+                        Assault_Rifle,
+                        Carbine,
+                        LMG,
+                        SMG,
+                        DMR,
+                        DMR_And_Sniper,
+                        Sniper_Rifle,
+                        Shotgun,
+                        Explosive
+                    }
+                    public static String DetailTypeEnumString = "enum.ChallengeTemplateDetailType(None|Weapon|Damage)";
+
+                    private AdKats _plugin;
+
+                    public Boolean Phantom;
+
+                    public CDefinition Definition
+                    {
+                        get; private set;
+                    }
+                    public Int64 DetailID
+                    {
+                        get; private set;
+                    }
+                    public DetailType Type = DetailType.None;
+                    public DetailDamage Damage = DetailDamage.None;
+                    public Int32 WeaponCount;
+                    public String Weapon;
+                    public Int32 KillCount;
+                    public DateTime CreateTime;
+                    public DateTime ModifyTime;
+
+                    public CDefinitionDetail(AdKats plugin, CDefinition definition, Int64 startingID)
+                    {
+                        _plugin = plugin;
+                        Definition = definition;
+                        DetailID = startingID;
+                        CreateTime = _plugin.UtcNow();
+                        ModifyTime = _plugin.UtcNow();
+                    }
+
+                    public void DBPush(MySqlConnection con)
+                    {
+                        try
+                        {
+                            if (con == null)
+                            {
+                                con = _plugin.GetDatabaseConnection();
+                            }
+                            if (Phantom)
+                            {
+                                DBCreate(con);
+                            }
+                            else
+                            {
+                                DBUpdate(con);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error performing DBPush for CDefinitionDetail.", e));
+                        }
+                    }
+
+                    private void DBCreate(MySqlConnection con)
+                    {
+                        try
+                        {
+                            if (Definition == null || Definition.ID <= 0 || DetailID <= 0)
+                            {
+                                _plugin.Log.Error("CDefinitionDetail was invalid when creating.");
+                                return;
+                            }
+                            var localConnection = con;
+                            if (localConnection == null)
+                            {
+                                localConnection = _plugin.GetDatabaseConnection();
+                            }
+                            try
+                            {
+                                using (MySqlCommand command = localConnection.CreateCommand())
+                                {
+                                    command.CommandText = @"
+                                    INSERT INTO 
+	                                    `adkats_challenge_definition_detail` 
+                                    (
+	                                    `DefID`, 
+	                                    `DetailID`, 
+	                                    `Type`, 
+	                                    `Damage`, 
+	                                    `WeaponCount`, 
+	                                    `Weapon`, 
+	                                    `KillCount`, 
+	                                    `CreateTime`, 
+	                                    `ModifyTime`
+                                    ) 
+                                    VALUES 
+                                    (
+	                                    @`DefID`, 
+	                                    @`DetailID`, 
+	                                    @`Type`, 
+	                                    @`Damage`, 
+	                                    @`WeaponCount`, 
+	                                    @`Weapon`, 
+	                                    @`KillCount`,
+	                                    @`CreateTime`,
+	                                    @`ModifyTime`
+                                    )
+                                    ON DUPLICATE KEY UPDATE
+	                                    `Type` = @`Type`
+                                    AND `Damage` = @`Damage`
+                                    AND `WeaponCount` = @`WeaponCount`
+                                    AND `Weapon` = @`Weapon`
+                                    AND `KillCount` = @`KillCount`
+                                    AND `CreateTime` = @`CreateTime`
+                                    AND `ModifyTime` = @`ModifyTime`";
+                                    command.Parameters.AddWithValue("@`DefID`", Definition.ID);
+                                    command.Parameters.AddWithValue("@`DetailID`", DetailID);
+                                    command.Parameters.AddWithValue("@`Type`", Type.ToString());
+                                    command.Parameters.AddWithValue("@`Damage`", Damage.ToString());
+                                    command.Parameters.AddWithValue("@`WeaponCount`", WeaponCount);
+                                    command.Parameters.AddWithValue("@`Weapon`", Weapon);
+                                    command.Parameters.AddWithValue("@`KillCount`", KillCount);
+                                    command.Parameters.AddWithValue("@`CreateTime`", CreateTime);
+                                    command.Parameters.AddWithValue("@`ModifyTime`", ModifyTime);
+                                    if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                    {
+                                        // This record is no longer phantom
+                                        Phantom = false;
+                                        _plugin.Log.Info("Created new CDefinitionDetail " + Definition.ID + ":" + DetailID + " in database.");
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                if (con == null &&
+                                    localConnection != null)
+                                {
+                                    localConnection.Dispose();
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error performing DBCreate for CDefinitionDetail.", e));
+                        }
+                    }
+
+                    private void DBUpdate(MySqlConnection con)
+                    {
+                        try
+                        {
+                            if (Definition == null || Definition.ID <= 0 || DetailID <= 0 || Phantom)
+                            {
+                                _plugin.Log.Error("CDefinitionDetail was invalid when updating.");
+                                return;
+                            }
+                            var localConnection = con;
+                            if (localConnection == null)
+                            {
+                                localConnection = _plugin.GetDatabaseConnection();
+                            }
+                            try
+                            {
+                                using (MySqlCommand command = localConnection.CreateCommand())
+                                {
+                                    command.CommandText = @"
+                                    UPDATE IGNORE 
+	                                    `adkats_challenge_definition_detail` 
+                                    SET
+	                                    `Type` = @`Type`,
+	                                    `Damage` = @`Damage`,
+	                                    `WeaponCount` = @`WeaponCount`,
+	                                    `Weapon` = @`Weapon`,
+	                                    `KillCount` = @`KillCount`,
+	                                    `CreateTime` = @`CreateTime`,
+	                                    `ModifyTime` = @`ModifyTime`
+                                    WHERE
+	                                    `DefID` = @`DefID`
+                                    AND `DetailID` = @`DetailID`";
+                                    command.Parameters.AddWithValue("@`DefID`", Definition.ID);
+                                    command.Parameters.AddWithValue("@`DetailID`", DetailID);
+                                    command.Parameters.AddWithValue("@`Type`", Type.ToString());
+                                    command.Parameters.AddWithValue("@`Damage`", Damage.ToString());
+                                    command.Parameters.AddWithValue("@`WeaponCount`", WeaponCount);
+                                    command.Parameters.AddWithValue("@`Weapon`", Weapon);
+                                    command.Parameters.AddWithValue("@`KillCount`", KillCount);
+                                    command.Parameters.AddWithValue("@`CreateTime`", CreateTime);
+                                    command.Parameters.AddWithValue("@`ModifyTime`", ModifyTime);
+                                    if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                    {
+                                        _plugin.Log.Info("Updated CDefinitionDetail " + Definition.ID + ":" + DetailID + " in database.");
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                if (con == null &&
+                                    localConnection != null)
+                                {
+                                    localConnection.Dispose();
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error performing DBUpdate for CDefinitionDetail.", e));
+                        }
+                    }
+
+                    public void DBRead(MySqlConnection con)
+                    {
+                        try
+                        {
+                            if (Definition == null || Definition.ID <= 0 || DetailID <= 0 || Phantom)
+                            {
+                                _plugin.Log.Error("CDefinitionDetail was invalid when reading.");
+                                return;
+                            }
+                            var localConnection = con;
+                            if (localConnection == null)
+                            {
+                                localConnection = _plugin.GetDatabaseConnection();
+                            }
+                            try
+                            {
+                                using (MySqlCommand command = localConnection.CreateCommand())
+                                {
+                                    command.CommandText = @"
+                                      SELECT `Type`,
+                                             `Damage`,
+                                             `WeaponCount`,
+                                             `Weapon`,
+                                             `KillCount`,
+                                             `CreateTime`,
+                                             `ModifyTime`
+                                        FROM `adkats_challenge_definition_detail`
+                                       WHERE `DefID` = @`DefID`
+                                         AND `DetailID` = @`DetailID`";
+                                    command.Parameters.AddWithValue("@`DefID`", Definition.ID);
+                                    command.Parameters.AddWithValue("@`DetailID`", DetailID);
+                                    using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
+                                    {
+                                        if (reader.Read())
+                                        {
+                                            Type = (DetailType)Enum.Parse(typeof(DetailType), reader.GetString("`Type`"));
+                                            Damage = (DetailDamage)Enum.Parse(typeof(DetailDamage), reader.GetString("`Damage`"));
+                                            WeaponCount = reader.GetInt32("`WeaponCount`");
+                                            Weapon = reader.GetString("`Weapon`");
+                                            KillCount = reader.GetInt32("`KillCount`");
+                                            CreateTime = reader.GetDateTime("`CreateTime`");
+                                            ModifyTime = reader.GetDateTime("`ModifyTime`");
+                                        }
+                                        else
+                                        {
+                                            _plugin.Log.Error("Unable to find matching CDefinitionDetail for " + Definition.ID + ":" + DetailID + ".");
+                                        }
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                if (con == null &&
+                                    localConnection != null)
+                                {
+                                    localConnection.Dispose();
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error performing DBRead for CDefinitionDetail.", e));
+                        }
+                    }
+
+                    public void DBDelete(MySqlConnection con)
+                    {
+                        try
+                        {
+                            if (Definition == null || Definition.ID <= 0 || DetailID <= 0 || Phantom)
+                            {
+                                _plugin.Log.Error("CDefinitionDetail was invalid when deleting.");
+                                return;
+                            }
+                            var localConnection = con;
+                            if (localConnection == null)
+                            {
+                                localConnection = _plugin.GetDatabaseConnection();
+                            }
+                            try
+                            {
+
+                                using (MySqlCommand command = localConnection.CreateCommand())
+                                {
+                                    command.CommandText = @"
+                                    DELETE FROM 
+                                        `adkats_challenge_definition_detail`
+                                    WHERE `DefID` = @`DefID`
+                                      AND `DetailID` = @`DetailID`;";
+                                    command.Parameters.AddWithValue("@`DefID`", Definition.ID);
+                                    command.Parameters.AddWithValue("@`DetailID`", DetailID);
+                                    if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                    {
+                                        // SUCCESS
+                                        _plugin.Log.Info("Deleted CDefinitionDetail " + Definition.ID + ":" + DetailID + ".");
+                                        Definition.DeleteDetail(DetailID);
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                if (con == null &&
+                                    localConnection != null)
+                                {
+                                    localConnection.Dispose();
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error performing DBDelete for CDefinitionDetail.", e));
+                        }
+                    }
+
+                    public void SetDetailID(MySqlConnection con, Int64 newDetailID)
+                    {
+                        try
+                        {
+                            if (newDetailID <= 0)
+                            {
+                                _plugin.Log.Error("newDetailID was invalid when changing ID.");
+                                return;
+                            }
+                            if (DetailID == newDetailID)
+                            {
+                                _plugin.Log.Info("Detail IDs were the same when changing ID.");
+                                return;
+                            }
+                            if (Phantom)
+                            {
+                                // No database link to update, simply set the new ID
+                                DetailID = newDetailID;
+                                return;
+                            }
+                            if (Definition == null || Definition.ID <= 0 || DetailID <= 0)
+                            {
+                                _plugin.Log.Error("CDefinitionDetail was invalid when changing ID.");
+                                return;
+                            }
+                            var localConnection = con;
+                            if (localConnection == null)
+                            {
+                                localConnection = _plugin.GetDatabaseConnection();
+                            }
+                            try
+                            {
+                                using (MySqlCommand command = localConnection.CreateCommand())
+                                {
+                                    command.CommandText = @"
+                                    UPDATE IGNORE 
+	                                    `adkats_challenge_definition_detail` 
+                                    SET
+	                                    `DetailID` = @`NewDetailID`
+                                    WHERE
+	                                    `DefID` = @`DefID`
+                                    AND `DetailID` = @`OldDetailID`";
+                                    command.Parameters.AddWithValue("@`DefID`", Definition.ID);
+                                    command.Parameters.AddWithValue("@`OldDetailID`", DetailID);
+                                    command.Parameters.AddWithValue("@`NewDetailID`", newDetailID);
+                                    if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                    {
+                                        DetailID = newDetailID;
+                                        _plugin.Log.Info("Changed CDefinitionDetail " + Definition.ID + ":" + DetailID + " to ID " + newDetailID + " in database.");
+                                    }
+                                    else
+                                    {
+                                        _plugin.Log.Error("Error changing CDefinitionDetail " + Definition.ID + ":" + DetailID + " to ID " + newDetailID + ".");
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                if (con == null &&
+                                    localConnection != null)
+                                {
+                                    localConnection.Dispose();
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error updating ID for CDefinitionDetail.", e));
+                        }
+                    }
+
+                    public void SetDamageTypeByString(String damageType)
+                    {
+                        try
+                        {
+                            // Confirm this is a damage type detail
+                            if (Type != DetailType.Damage)
+                            {
+                                _plugin.Log.Error("Tried to change damage type of detail when it wasn't a damage detail.");
+                                return;
+                            }
+                            if (String.IsNullOrEmpty(damageType))
+                            {
+                                _plugin.Log.Error("Damage type was empty when setting damage type by string.");
+                                return;
+                            }
+                            var newDamage = (CDefinitionDetail.DetailDamage)Enum.Parse(typeof(CDefinitionDetail.DetailDamage), damageType);
+                            if (newDamage == Damage)
+                            {
+                                _plugin.Log.Info("Old detail damage type and new damage type were the same when setting damage type by string.");
+                            }
+                            Damage = newDamage;
+                            ModifyTime = _plugin.UtcNow();
+                            DBPush(null);
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error updating damage type by string for CDefinitionDetail.", e));
+                        }
+                    }
+
+                    public void SetWeaponCountByString(String weaponCount)
+                    {
+                        try
+                        {
+                            // Confirm this is a damage type detail
+                            if (Type != DetailType.Damage)
+                            {
+                                _plugin.Log.Error("Tried to change weapon count of detail when it wasn't a damage detail.");
+                                return;
+                            }
+                            if (String.IsNullOrEmpty(weaponCount))
+                            {
+                                _plugin.Log.Error("Weapon count was empty when setting weapon count by string.");
+                                return;
+                            }
+                            var newWeaponCount = Int32.Parse(weaponCount);
+                            if (newWeaponCount != WeaponCount)
+                            {
+                                WeaponCount = newWeaponCount;
+                                ModifyTime = _plugin.UtcNow();
+                                DBPush(null);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error updating weapon count by string for CDefinitionDetail.", e));
+                        }
+                    }
+
+                    public void SetWeaponNameByString(String weaponName)
+                    {
+                        try
+                        {
+                            // Confirm this is a weapon type detail
+                            if (Type != DetailType.Weapon)
+                            {
+                                _plugin.Log.Error("Tried to change weapon name of detail when it wasn't a weapon detail.");
+                                return;
+                            }
+                            if (String.IsNullOrEmpty(weaponName))
+                            {
+                                _plugin.Log.Error("Weapon name was empty when setting weapon name by string.");
+                                return;
+                            }
+                            // Get the weapon code for this name
+                            var newWeapon = _plugin.WeaponDictionary.GetWeaponCodeByShortName(weaponName);
+                            if (String.IsNullOrEmpty(newWeapon))
+                            {
+                                _plugin.Log.Error("Error getting weapon code when setting weapon name by string.");
+                                return;
+                            }
+                            if (newWeapon != Weapon)
+                            {
+                                Weapon = newWeapon;
+                                ModifyTime = _plugin.UtcNow();
+                                DBPush(null);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error updating weapon name by string for CDefinitionDetail.", e));
+                        }
+                    }
+
+                    public void SetKillCountByString(String killCount)
+                    {
+                        try
+                        {
+                            if (String.IsNullOrEmpty(killCount))
+                            {
+                                _plugin.Log.Error("Kill count was empty when setting kill count by string.");
+                                return;
+                            }
+                            var newKillCount = Int32.Parse(killCount);
+                            if (newKillCount != KillCount)
+                            {
+                                KillCount = newKillCount;
+                                ModifyTime = _plugin.UtcNow();
+                                DBPush(null);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error updating kill count by string for CDefinitionDetail.", e));
+                        }
+                    }
+
+                    public List<DamageTypes> GetDamageTypes()
+                    {
+                        try
+                        {
+                            List<DamageTypes> damageTypes = new List<DamageTypes>();
+                            switch (Damage)
+                            {
+                                case DetailDamage.None:
+                                    damageTypes.Add(DamageTypes.None);
+                                    break;
+                                case DetailDamage.Melee:
+                                    damageTypes.Add(DamageTypes.Melee);
+                                    break;
+                                case DetailDamage.Handgun:
+                                    damageTypes.Add(DamageTypes.Handgun);
+                                    break;
+                                case DetailDamage.Assault_Rifle:
+                                    damageTypes.Add(DamageTypes.AssaultRifle);
+                                    break;
+                                case DetailDamage.Carbine:
+                                    damageTypes.Add(DamageTypes.Carbine);
+                                    break;
+                                case DetailDamage.LMG:
+                                    damageTypes.Add(DamageTypes.LMG);
+                                    break;
+                                case DetailDamage.SMG:
+                                    damageTypes.Add(DamageTypes.SMG);
+                                    break;
+                                case DetailDamage.DMR:
+                                    damageTypes.Add(DamageTypes.DMR);
+                                    break;
+                                case DetailDamage.DMR_And_Sniper:
+                                    damageTypes.Add(DamageTypes.DMR);
+                                    damageTypes.Add(DamageTypes.SniperRifle);
+                                    break;
+                                case DetailDamage.Sniper_Rifle:
+                                    damageTypes.Add(DamageTypes.SniperRifle);
+                                    break;
+                                case DetailDamage.Shotgun:
+                                    damageTypes.Add(DamageTypes.Shotgun);
+                                    break;
+                                case DetailDamage.Explosive:
+                                    damageTypes.Add(DamageTypes.Explosive);
+                                    damageTypes.Add(DamageTypes.ProjectileExplosive);
+                                    break;
+                                default:
+                                    _plugin.Log.Info("Invalid detail damage when getting damage types.");
+                                    break;
+                            }
+                            if (!damageTypes.Any())
+                            {
+                                damageTypes.Add(DamageTypes.None);
+                            }
+                            return damageTypes;
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error getting damage types for CDefinitionDetail.", e));
+                        }
+                        return null;
+                    }
+
+                    public override string ToString()
+                    {
+                        try
+                        {
+                            if (_plugin == null ||
+                                Type == DetailType.None)
+                            {
+                                return "INVALID";
+                            }
+                            var detailName = Type.ToString() + " - ";
+                            if (Type == DetailType.Damage)
+                            {
+                                detailName += Damage.ToString().Replace("_", " ");
+                            }
+                            else if (Type == DetailType.Weapon)
+                            {
+                                detailName += _plugin.WeaponDictionary.GetShortWeaponNameByCode(Weapon);
+                            }
+                            return detailName;
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error stringifying definition detail.", e));
+                        }
+                        return "ERROR";
+                    }
+                }
+            }
+
+            public class CRule
+            {
+                public enum CompletionType
+                {
+                    Rounds,
+                    Duration
+                }
+                public static String CompletionTypeEnumString = "enum.ChallengeRuleCompletionType(Rounds|Duration)";
 
                 private AdKats _plugin;
+
+                public Boolean Phantom;
+
+                public Int64 ID;
+                public AServer Server;
+                public CDefinition Definition;
+                public Boolean Enabled;
+                public String Name;
+                public Int32 Tier;
+                public CompletionType Completion;
+                public Int32 RoundCount;
+                public Int32 DurationMinutes;
+                public DateTime CreateTime;
+                public DateTime ModifyTime;
+                public DateTime RoundLastUsedTime;
+                public DateTime PersonalLastUsedTime;
+
+                public CRule(AdKats plugin)
+                {
+                    _plugin = plugin;
+                    CreateTime = _plugin.UtcNow();
+                    ModifyTime = _plugin.UtcNow();
+                    RoundLastUsedTime = AdKats.GetEpochTime();
+                    PersonalLastUsedTime = AdKats.GetEpochTime();
+                }
+            }
+
+            public class CEntry
+            {
+                private AdKats _plugin;
+
+                public Boolean Phantom;
+
+                public Int64 ID;
+                public APlayer Player;
+                public CRule Rule;
+                public Boolean Completed;
+                public Boolean Canceled;
+                public Int32 StartRound;
+                public DateTime StartTime;
+                public Dictionary<Int32, CEntryDetail> Details;
+
+                public CEntry(AdKats plugin)
+                {
+                    _plugin = plugin;
+                    StartTime = _plugin.UtcNow();
+                }
+
+                public class CEntryDetail
+                {
+                    private AdKats _plugin;
+
+                    public Boolean Phantom;
+
+                    public CEntry Entry;
+                    public Int64 DetailID;
+                    public AKill Kill;
+
+                    public CEntryDetail(AdKats plugin)
+                    {
+                        _plugin = plugin;
+                    }
+                }
+            }
+
+            public class ChallengeRule
+            {
+                private AdKats _plugin;
                 
-                public DateTime? LastUsed = null;
+                public Int32 ServerID;
                 public Int32 RuleID;
                 public String Name;
+                public DateTime LastUsed;
 
                 // Damage Based Challenge
                 public List<Detail> ChallengeDetails
@@ -50988,6 +52507,7 @@ namespace PRoConEvents
                 {
                     _plugin = plugin;
                     ChallengeDetails = new List<Detail>();
+                    LastUsed = AdKats.GetEpochTime();
                 }
 
                 public String RuleInfo()
@@ -51023,7 +52543,7 @@ namespace PRoConEvents
                     }
                     catch (Exception e)
                     {
-                        _plugin.Log.HandleException(new AException("Error while adding challeng detail.", e));
+                        _plugin.Log.HandleException(new AException("Error while adding challenge detail.", e));
                     }
                 }
 
@@ -51116,7 +52636,7 @@ namespace PRoConEvents
                                 WeaponCount = detail.WeaponCount,
                                 MaxKillsPerWeapon = detail.KillCount
                             };
-                            foreach (var weaponCode in _plugin.WeaponDictionary.GetWeaponsOfDamageType(detail.Damage))
+                            foreach (var weaponCode in _plugin.WeaponDictionary.GetWeaponCodesOfDamageType(detail.Damage))
                             {
                                 damageBucket.Weapons[weaponCode] = new WeaponBucket(_plugin)
                                 {
@@ -51141,7 +52661,7 @@ namespace PRoConEvents
                             weaponBuckets[weaponBucket.WeaponCode] = weaponBucket;
                         }
 
-                        foreach (var kill in entry.Kills.OrderBy(dKill => dKill.timestamp))
+                        foreach (var kill in entry.Kills.OrderBy(dKill => dKill.TimeStamp))
                         {                            
                             // See if it matches a specific weapon requirement
                             if (weaponBuckets.ContainsKey(kill.weaponCode))
@@ -51293,7 +52813,8 @@ namespace PRoConEvents
                             {
                                 return;
                             }
-                            kill.killer.Say(Entry.GetRule().Name + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + CompletionPercentage + "%] " + completion);
+                            var commandText = _plugin.GetCommandByKey("self_challenge").command_text;
+                            kill.killer.Say("!" + commandText + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + CompletionPercentage + "%] " + completion);
                             if (autoKill)
                             {
                                 kill.killer.Yell(completion);
@@ -51301,10 +52822,11 @@ namespace PRoConEvents
                                 {
                                     _plugin.Threading.Wait(1000);
                                     _plugin.ExecuteCommand("procon.protected.send", "admin.killPlayer", kill.killer.player_name);
+                                    kill.killer.Say("Killed automatically on weapon completion. To disable this type !" + commandText + " autokill");
                                 }
                                 else if (!Entry.AutoKillTold)
                                 {
-                                    kill.killer.Say("Want To be killed automatically when you complete a challenge weapon? Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " autokill");
+                                    kill.killer.Say("Want To be killed automatically when you complete a challenge weapon? Type !" + commandText + " autokill");
                                     Entry.AutoKillTold = true;
                                 }
                             }
@@ -51325,7 +52847,7 @@ namespace PRoConEvents
                             {
                                 return "ERROR4";
                             }
-                            status += "--- " + Entry.GetRule().Name + " Status ---" + Environment.NewLine;
+                            status += "--- Progress ---" + Environment.NewLine;
                             if (!DamageBuckets.Any() && !WeaponBuckets.Any())
                             {
                                 status += "No damage or weapons defined.";
@@ -51397,10 +52919,13 @@ namespace PRoConEvents
                             var completedKills = weaponBuckets.Sum(weapon => weapon.Kills.Count());
                             var completionPercentage = Math.Max(Math.Min(Math.Round(100 * (Double)completedKills / (Double)requiredKills), 100), 0);
 
-                            var status = "Type " + Damage.ToString() + " [" + completedKills + "/" + requiredKills + "][" + completionPercentage + "%]:" + Environment.NewLine;
+                            var status = "Type " + Damage.ToString() + " [" + completedKills + "/" + requiredKills + "][" + completionPercentage + "%]:";
                             if (weaponBuckets.Any())
                             {
-                                status += String.Join(Environment.NewLine, weaponBuckets.Select(bucket => bucket.ToString()).ToArray());
+                                foreach (var weaponString in weaponBuckets.Select(bucket => bucket.ToString()))
+                                {
+                                    status += Environment.NewLine + "-- " + weaponString;
+                                }
                             }
                             else
                             {
@@ -51474,25 +52999,31 @@ namespace PRoConEvents
                         Weapon,
                         Damage
                     }
-                    public static String DetailTypeEnumString = "enum.ChallengeRuleDetailType(None|Weapon|Damage)";
+                    public static String DetailTypeEnumString = "enum.ChallengeTemplateDetailType(None|Weapon|Damage)";
 
-                    public Int32 DetailID;
-                    public Int32 RuleID;
+                    private AdKats _plugin;
+
+                    public Boolean Phantom;
+
+                    public Int64 RuleID;
+                    public Int64 DetailID;
                     public DetailType Type = DetailType.None;
                     public DamageTypes Damage = DamageTypes.None;
                     public Int32 WeaponCount;
                     public String Weapon;
                     public Int32 KillCount;
+                    public DateTime CreateTime;
+                    public DateTime ModifyTime;
                 }
             }
 
             public class ChallengeEntry
             {
                 private AdKats _plugin;
-                private AChallengeManager Manager;
 
                 public APlayer Player;
-                private ChallengeRule OriginalRule;
+                public AChallengeManager Manager;
+                public ChallengeRule OriginalRule;
                 public List<AKill> Kills;
 
                 public String LastCompletedWeapon = String.Empty;
@@ -51942,7 +53473,7 @@ namespace PRoConEvents
             public AdKats _plugin;
 
             public String weaponCode;
-            public DamageTypes weaponDamage;
+            public DamageTypes weaponDamage = DamageTypes.None;
             public APlayer killer;
             public APlayer victim;
             public CPlayerInfo killerCPI;
@@ -51950,7 +53481,7 @@ namespace PRoConEvents
             public Boolean IsSuicide;
             public Boolean IsHeadshot;
             public Boolean IsTeamkill;
-            public DateTime timestamp;
+            public DateTime TimeStamp;
             public Int64 RoundID;
 
             public AKill(AdKats plugin)
@@ -53537,10 +55068,11 @@ namespace PRoConEvents
         {
             public AdKats _plugin;
 
-            public readonly Dictionary<String, AWeaponName> WeaponNames = new Dictionary<String, AWeaponName>();
-            public readonly Dictionary<String, DamageTypes> WeaponDamageTypes = new Dictionary<String, DamageTypes>();
-            public String DamageTypeEnumString = "";
-            public String WeaponNameEnumString = "";
+            public readonly Dictionary<String, AWeapon> Weapons = new Dictionary<String, AWeapon>();
+            public String AllDamageTypeEnumString = "";
+            public String InfantryDamageTypeEnumString = "";
+            public String AllWeaponNameEnumString = "";
+            public String InfantryWeaponNameEnumString = "";
 
             public AWeaponDictionary(AdKats plugin)
             {
@@ -53550,20 +55082,50 @@ namespace PRoConEvents
                 {
                     //Fill the damage type setting enum string
                     Random random = new Random(Environment.TickCount);
-                    DamageTypeEnumString = String.Empty;
-                    foreach (DamageTypes damageType in Enum.GetValues(typeof(DamageTypes)).Cast<DamageTypes>().OrderBy(type => type.ToString()))
+                    InfantryDamageTypeEnumString = String.Empty;
+                    foreach (DamageTypes damageType in Enum.GetValues(typeof(DamageTypes))
+                                                           .Cast<DamageTypes>()
+                                                           .Where(type => type != DamageTypes.Nonlethal &&
+                                                                          type != DamageTypes.Suicide &&
+                                                                          type != DamageTypes.VehicleAir &&
+                                                                          type != DamageTypes.VehicleHeavy &&
+                                                                          type != DamageTypes.VehicleLight &&
+                                                                          type != DamageTypes.VehiclePersonal &&
+                                                                          type != DamageTypes.VehicleStationary &&
+                                                                          type != DamageTypes.VehicleTransport &&
+                                                                          type != DamageTypes.VehicleWater)
+                                                           .OrderBy(type => type.ToString()))
                     {
-                        if (String.IsNullOrEmpty(DamageTypeEnumString))
+                        if (String.IsNullOrEmpty(InfantryDamageTypeEnumString))
                         {
-                            DamageTypeEnumString += "enum.DamageTypeEnum_" + random.Next(100000, 999999) + "(";
+                            InfantryDamageTypeEnumString += "enum.InfantryDamageTypeEnum_" + random.Next(100000, 999999) + "(";
                         }
                         else
                         {
-                            DamageTypeEnumString += "|";
+                            InfantryDamageTypeEnumString += "|";
                         }
-                        DamageTypeEnumString += damageType;
+                        InfantryDamageTypeEnumString += damageType;
                     }
-                    DamageTypeEnumString += ")";
+                    InfantryDamageTypeEnumString += ")";
+
+                    AllDamageTypeEnumString = String.Empty;
+                    foreach (DamageTypes damageType in Enum.GetValues(typeof(DamageTypes))
+                                                           .Cast<DamageTypes>()
+                                                           .Where(type => type != DamageTypes.Nonlethal &&
+                                                                          type != DamageTypes.Suicide)
+                                                           .OrderBy(type => type.ToString()))
+                    {
+                        if (String.IsNullOrEmpty(AllDamageTypeEnumString))
+                        {
+                            AllDamageTypeEnumString += "enum.AllDamageTypeEnum_" + random.Next(100000, 999999) + "(";
+                        }
+                        else
+                        {
+                            AllDamageTypeEnumString += "|";
+                        }
+                        AllDamageTypeEnumString += damageType;
+                    }
+                    AllDamageTypeEnumString += ")";
                 }
                 catch (Exception e)
                 {
@@ -53571,31 +55133,29 @@ namespace PRoConEvents
                 }
             }
 
-            public Boolean PopulateWeaponDamageTypeDictionaries()
+            public Boolean PopulateDictionaries()
             {
                 try
                 {
-                    // Populate the weapon type dictionary
+                    // Populate the weapon types
                     foreach (Weapon weapon in _plugin.GetWeaponDefines())
                     {
-                        if (weapon != null && !WeaponDamageTypes.ContainsKey(weapon.Name))
+                        if (weapon != null)
                         {
-                            WeaponDamageTypes.Add(weapon.Name, weapon.Damage);
+                            // Valid weapon, add damage type to the dictionary
+                            AWeapon dWeapon = null;
+                            if (!Weapons.TryGetValue(weapon.Name, out dWeapon))
+                            {
+                                dWeapon = new AWeapon()
+                                {
+                                    Game = _plugin.GameVersion,
+                                    Code = weapon.Name
+                                };
+                                Weapons[dWeapon.Code] = dWeapon;
+                            }
+                            dWeapon.Damage = weapon.Damage;
                         }
                     }
-                    return WeaponDamageTypes.Any();
-                }
-                catch (Exception e)
-                {
-                    _plugin.Log.HandleException(new AException("Error while creating weapon damage dictionary.", e));
-                }
-                return false;
-            }
-
-            public Boolean PopulateWeaponNameDictionaries()
-            {
-                try
-                {
                     Hashtable weaponNames = FetchAWeaponNames();
                     if (weaponNames == null)
                     {
@@ -53613,31 +55173,72 @@ namespace PRoConEvents
                         String weaponCode = (String)currentWeapon.Key;
                         String shortName = (String)((Hashtable)currentWeapon.Value)["readable_short"];
                         String longName = (String)((Hashtable)currentWeapon.Value)["readable_long"];
-                        //Add the weapon name
-                        WeaponNames[weaponCode] = new AWeaponName()
+                        AWeapon dWeapon = null;
+                        if (!Weapons.TryGetValue(weaponCode, out dWeapon))
                         {
-                            weapon_game = _plugin.GameVersion,
-                            readable_short = shortName,
-                            readable_long = longName
-                        };
+                            dWeapon = new AWeapon()
+                            {
+                                Game = _plugin.GameVersion,
+                                Code = weaponCode
+                            };
+                            Weapons[dWeapon.Code] = dWeapon;
+                        }
+                        //Add the weapon names
+                        dWeapon.Code = weaponCode;
+                        dWeapon.ShortName = shortName;
+                        dWeapon.LongName = longName;
                     }
 
                     //Fill the weapon name enum string
                     Random random = new Random(Environment.TickCount);
-                    WeaponNameEnumString = String.Empty;
-                    foreach (var weaponName in WeaponNames.Values.Select(name => name.readable_short).Distinct().OrderBy(name => name))
+                    InfantryWeaponNameEnumString = String.Empty;
+                    foreach (var weaponName in Weapons.Values.Where(weapon => weapon.Damage != DamageTypes.None &&
+                                                                              weapon.Damage != DamageTypes.Nonlethal &&
+                                                                              weapon.Damage != DamageTypes.Suicide &&
+                                                                              weapon.Damage != DamageTypes.VehicleAir &&
+                                                                              weapon.Damage != DamageTypes.VehicleHeavy &&
+                                                                              weapon.Damage != DamageTypes.VehicleLight &&
+                                                                              weapon.Damage != DamageTypes.VehiclePersonal &&
+                                                                              weapon.Damage != DamageTypes.VehicleStationary &&
+                                                                              weapon.Damage != DamageTypes.VehicleTransport &&
+                                                                              weapon.Damage != DamageTypes.VehicleWater)
+                                                             .OrderBy(weapon => weapon.Damage)
+                                                             .ThenBy(weapon => weapon.ShortName)
+                                                             .Select(name => name.ShortName)
+                                                             .Distinct())
                     {
-                        if (String.IsNullOrEmpty(WeaponNameEnumString))
+                        if (String.IsNullOrEmpty(InfantryWeaponNameEnumString))
                         {
-                            WeaponNameEnumString += "enum.DamageTypeEnum_" + random.Next(100000, 999999) + "(None|";
+                            InfantryWeaponNameEnumString += "enum.InfantryWeaponNameEnum_" + random.Next(100000, 999999) + "(None|";
                         }
                         else
                         {
-                            WeaponNameEnumString += "|";
+                            InfantryWeaponNameEnumString += "|";
                         }
-                        WeaponNameEnumString += weaponName;
+                        InfantryWeaponNameEnumString += weaponName;
                     }
-                    WeaponNameEnumString += ")";
+                    InfantryWeaponNameEnumString += ")";
+
+                    AllWeaponNameEnumString = String.Empty;
+                    foreach (var weaponName in Weapons.Values.Where(weapon => weapon.Damage != DamageTypes.None &&
+                                                                              weapon.Damage != DamageTypes.Nonlethal &&
+                                                                              weapon.Damage != DamageTypes.Suicide)
+                                                             .OrderBy(weapon => weapon.Damage)
+                                                             .ThenBy(weapon => weapon.ShortName)
+                                                             .Select(name => name.ShortName)
+                                                             .Distinct())
+                    {
+                        if (String.IsNullOrEmpty(AllWeaponNameEnumString))
+                        {
+                            AllWeaponNameEnumString += "enum.AllWeaponNameEnum_" + random.Next(100000, 999999) + "(None|";
+                        }
+                        else
+                        {
+                            AllWeaponNameEnumString += "|";
+                        }
+                        AllWeaponNameEnumString += weaponName;
+                    }
+                    AllWeaponNameEnumString += ")";
                 }
                 catch (Exception e)
                 {
@@ -53684,29 +55285,16 @@ namespace PRoConEvents
                 return weaponNames;
             }
 
-            public DamageTypes ParseDamageType(String damageType)
+            public List<String> GetWeaponCodesOfDamageType(DamageTypes damage)
             {
                 try
                 {
-                    DamageTypes category;
-                    if (WeaponDamageTypes.TryGetValue(damageType, out category))
+                    if (damage == DamageTypes.None)
                     {
-                        return category;
+                        _plugin.Log.HandleException(new AException("Damage type was None when fetching weapons of damage type."));
+                        return new List<string>();
                     }
-                    _plugin.Log.Info("Unable to find damage matching for '" + damageType + "'. Available damage types are: " + String.Join(", ", WeaponDamageTypes.Keys.ToArray()));
-                }
-                catch (Exception e)
-                {
-                    _plugin.Log.HandleException(new AException("Error while getting damage type.", e));
-                }
-                return DamageTypes.None;
-            }
-
-            public List<String> GetWeaponsOfDamageType(DamageTypes damage)
-            {
-                try
-                {
-                    return WeaponDamageTypes.Where(pair => pair.Value == damage).Select(pair => pair.Key).ToList();
+                    return Weapons.Values.Where(weapon => weapon.Damage == damage).Select(weapon => weapon.Code).ToList();
                 }
                 catch (Exception e)
                 {
@@ -53715,23 +55303,28 @@ namespace PRoConEvents
                 return new List<string>();
             }
 
-            public DamageTypes GetDamageTypeByCode(String weaponCode)
+            public DamageTypes GetDamageTypeByWeaponCode(String weaponCode)
             {
-                DamageTypes weaponDamage = DamageTypes.None;
                 try
                 {
                     if (String.IsNullOrEmpty(weaponCode))
                     {
-                        _plugin.Log.HandleException(new AException("weaponCode was null when fetching weapon damage type."));
-                        return weaponDamage;
+                        _plugin.Log.HandleException(new AException("weaponCode was empty/null when fetching weapon damage type."));
+                        return DamageTypes.None;
                     }
-                    WeaponDamageTypes.TryGetValue(weaponCode, out weaponDamage);
+                    var weapon = Weapons.Values.FirstOrDefault(dWeapon => dWeapon.Code == weaponCode);
+                    if (weapon == null)
+                    {
+                        _plugin.Log.HandleException(new AException("No matching weapon in dictionary for " + weaponCode + " when fetching damage type."));
+                        return DamageTypes.None;
+                    }
+                    return weapon.Damage;
                 }
                 catch (Exception e)
                 {
                     _plugin.Log.HandleException(new AException("Error while getting damage type for weapon code.", e));
                 }
-                return weaponDamage;
+                return DamageTypes.None;
             }
 
             public String GetWeaponCodeByShortName(String weaponShortName)
@@ -53740,17 +55333,16 @@ namespace PRoConEvents
                 {
                     if (!String.IsNullOrEmpty(weaponShortName))
                     {
-                        foreach (var pairs in WeaponNames)
+                        foreach (var weapon in Weapons.Values)
                         {
-                            if (pairs.Value != null &&
-                                pairs.Value.readable_short == weaponShortName)
+                            if (weapon != null &&
+                                weapon.ShortName == weaponShortName)
                             {
-                                return pairs.Key;
+                                return weapon.Code;
                             }
                         }
                     }
-                    _plugin.Log.HandleException(new AException("Unable to get weapon CODE for short NAME '" + weaponShortName + "', in " + WeaponNames.Count() + " weapons."));
-                    return weaponShortName;
+                    _plugin.Log.HandleException(new AException("Unable to get weapon CODE for short NAME '" + weaponShortName + "', in " + Weapons.Count() + " weapons."));
                 }
                 catch (Exception e)
                 {
@@ -53763,19 +55355,19 @@ namespace PRoConEvents
             {
                 try
                 {
-                    AWeaponName weaponName = null;
+                    AWeapon weaponName = null;
                     if (String.IsNullOrEmpty(weaponCode))
                     {
                         _plugin.Log.HandleException(new AException("weaponCode was null when fetching weapon name"));
                         return null;
                     }
-                    WeaponNames.TryGetValue(weaponCode, out weaponName);
+                    Weapons.TryGetValue(weaponCode, out weaponName);
                     if (weaponName == null)
                     {
-                        _plugin.Log.HandleException(new AException("Unable to get weapon short NAME for CODE '" + weaponCode + "', in " + WeaponNames.Count() + " weapons."));
+                        _plugin.Log.HandleException(new AException("Unable to get weapon short NAME for CODE '" + weaponCode + "', in " + Weapons.Count() + " weapons."));
                         return weaponCode;
                     }
-                    return weaponName.readable_short;
+                    return weaponName.ShortName;
                 }
                 catch (Exception e)
                 {
@@ -53788,19 +55380,19 @@ namespace PRoConEvents
             {
                 try
                 {
-                    AWeaponName weaponName = null;
+                    AWeapon weaponName = null;
                     if (String.IsNullOrEmpty(weaponCode))
                     {
                         _plugin.Log.HandleException(new AException("weaponCode was null when fetching weapon name"));
                         return null;
                     }
-                    WeaponNames.TryGetValue(weaponCode, out weaponName);
+                    Weapons.TryGetValue(weaponCode, out weaponName);
                     if (weaponName == null)
                     {
-                        _plugin.Log.HandleException(new AException("Unable to get weapon long NAME for CODE '" + weaponCode + "', in " + WeaponNames.Count() + " weapons."));
+                        _plugin.Log.HandleException(new AException("Unable to get weapon long NAME for CODE '" + weaponCode + "', in " + Weapons.Count() + " weapons."));
                         return weaponCode;
                     }
-                    return weaponName.readable_short;
+                    return weaponName.ShortName;
                 }
                 catch (Exception e)
                 {
@@ -53809,11 +55401,13 @@ namespace PRoConEvents
                 return null;
             }
 
-            public class AWeaponName
+            public class AWeapon
             {
-                public GameVersionEnum weapon_game;
-                public String readable_short;
-                public String readable_long;
+                public GameVersionEnum Game;
+                public DamageTypes Damage = DamageTypes.None;
+                public String Code;
+                public String ShortName;
+                public String LongName;
             }
         }
 
