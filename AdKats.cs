@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.68
+ * Version 7.0.1.69
  * 24-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.68</version_code>
+ * <version_code>7.0.1.69</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.68";
+        private const String PluginVersion = "7.0.1.69";
 
         public enum GameVersionEnum
         {
@@ -50951,12 +50951,12 @@ namespace PRoConEvents
                                         {
                                             def = new CDefinition(_plugin, this);
                                             def.ID = readID;
-                                            validIDs.Add(readID);
                                             Definitions.Add(def);
                                         }
                                         def.Name = reader.GetString("Name");
                                         def.CreateTime = reader.GetDateTime("CreateTime");
                                         def.ModifyTime = reader.GetDateTime("ModifyTime");
+                                        validIDs.Add(readID);
                                     }
                                     // Remove definitions as necessary
                                     foreach (var def in Definitions.Where(dDef => !validIDs.Contains(dDef.ID)).ToList())
@@ -51718,13 +51718,14 @@ namespace PRoConEvents
                             using (MySqlCommand command = localConnection.CreateCommand())
                             {
                                 command.CommandText = @"
-                                UPDATE IGNORE 
+                                UPDATE 
 	                                `adkats_challenge_definition` 
                                 SET
 	                                `Name` = @Name,
 	                                `ModifyTime` = @ModifyTime
                                 WHERE
 	                                `ID` = @ID";
+                                command.Parameters.AddWithValue("@ID", ID);
                                 command.Parameters.AddWithValue("@Name", Name);
                                 command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
                                 if (_plugin.SafeExecuteNonQuery(command) > 0)
@@ -51734,6 +51735,10 @@ namespace PRoConEvents
                                     {
                                         DBPushDetails(con);
                                     }
+                                }
+                                else
+                                {
+                                    _plugin.Log.Error("Failed to update CDefinition " + ID + " in database.");
                                 }
                             }
                         }
@@ -52106,7 +52111,7 @@ namespace PRoConEvents
                                 using (MySqlCommand command = localConnection.CreateCommand())
                                 {
                                     command.CommandText = @"
-                                    UPDATE IGNORE 
+                                    UPDATE
 	                                    `adkats_challenge_definition_detail` 
                                     SET
 	                                    `Type` = @Type,
@@ -52131,6 +52136,10 @@ namespace PRoConEvents
                                     if (_plugin.SafeExecuteNonQuery(command) > 0)
                                     {
                                         _plugin.Log.Info("Updated CDefinitionDetail " + Definition.ID + ":" + DetailID + " in database.");
+                                    }
+                                    else
+                                    {
+                                        _plugin.Log.Error("Failed to update CDefinitionDetail " + Definition.ID + ":" + DetailID + " in database.");
                                     }
                                 }
                             }
