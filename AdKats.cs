@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.72
+ * Version 7.0.1.73
  * 25-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.72</version_code>
+ * <version_code>7.0.1.73</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.72";
+        private const String PluginVersion = "7.0.1.73";
 
         public enum GameVersionEnum
         {
@@ -2706,7 +2706,7 @@ namespace PRoConEvents
                                 buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.InfantryWeaponNameEnumString, WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
                             }
                             buildList.Add(new CPluginVariable(detailPrefix + "Kill Count", typeof(Int32), detail.KillCount));
-                            buildList.Add(new CPluginVariable(defPrefix + "Delete Detail?", typeof(String), ""));
+                            buildList.Add(new CPluginVariable(detailPrefix + "Delete Detail?", typeof(String), ""));
                         }
                     }
                     /*
@@ -51606,7 +51606,7 @@ namespace PRoConEvents
                                     _plugin.Log.Error("Unable to create Weapon detail with weapon name " + value + ". No matching weapon code exists.");
                                     return;
                                 }
-                                if (_plugin.WeaponDictionary.GetDamageTypeByWeaponCode(value) == DamageTypes.None)
+                                if (_plugin.WeaponDictionary.GetDamageTypeByWeaponCode(weaponCode) == DamageTypes.None)
                                 {
                                     _plugin.Log.Error("Unable to create Weapon detail with weapon code " + weaponCode + ". No valid matching damage type exists.");
                                     return;
@@ -51893,7 +51893,7 @@ namespace PRoConEvents
                                     FROM `adkats_challenge_definition_detail`
                                    WHERE `DefID` = @DefID";
                                 command.Parameters.AddWithValue("@DefID", ID);
-                                var sortDetails = false;
+                                var deleteDetails = new List<CDefinitionDetail>();
                                 using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
                                 {
                                     lock (Details)
@@ -51922,9 +51922,7 @@ namespace PRoConEvents
                                                                            dDetail.Damage == detail.Damage))
                                                 {
                                                     _plugin.Log.Error("Detail with damage " + detail.Damage.ToString() + " already exists.");
-                                                    detail.DBDelete(localConnection);
-                                                    // We've deleted a detail. We need to re-sort the details now.
-                                                    sortDetails = true;
+                                                    deleteDetails.Add(detail);
                                                     continue;
                                                 }
                                                 detail.WeaponCount = reader.GetInt32("WeaponCount");
@@ -51946,9 +51944,7 @@ namespace PRoConEvents
                                                                            dDetail.Weapon == detail.Weapon))
                                                 {
                                                     _plugin.Log.Error("Detail with weapon " + detail.Weapon + " already exists.");
-                                                    detail.DBDelete(localConnection);
-                                                    // We've deleted a detail. We need to re-sort the details now.
-                                                    sortDetails = true;
+                                                    deleteDetails.Add(detail);
                                                     continue;
                                                 }
                                             }
@@ -51973,8 +51969,12 @@ namespace PRoConEvents
                                         // No need to clean up details, they are purged during every read.
                                     }
                                 }
-                                if (sortDetails)
+                                if (deleteDetails.Any())
                                 {
+                                    foreach (var detail in deleteDetails)
+                                    {
+                                        detail.DBDelete(localConnection);
+                                    }
                                     SortDetails(localConnection);
                                 }
                             }
