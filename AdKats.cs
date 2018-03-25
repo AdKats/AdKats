@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.66
+ * Version 7.0.1.67
  * 24-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.66</version_code>
+ * <version_code>7.0.1.67</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.66";
+        private const String PluginVersion = "7.0.1.67";
 
         public enum GameVersionEnum
         {
@@ -2664,47 +2664,44 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2] Actions" + t + "Run Challenge Rule ID", typeof(Int32), 0));
                     var defSectionPrefix = GetSettingSection(challengeSettings) + " [3] Definitions" + t;
                     buildList.Add(new CPluginVariable(defSectionPrefix + "Add Definition?", typeof(String), ""));
-                    if (ChallengeManager.Definitions.Any())
+                    foreach (var def in ChallengeManager.GetDefinitions())
                     {
-                        foreach (var def in ChallengeManager.Definitions.Values.OrderBy(dDef => dDef.ID))
-                        {
-                            //CDH1 | 5 ARs | Change Name?
-                            //CDH1 | 5 ARs | Add Damage Type?
-                            //CDH1 | 5 ARs | Add Weapon?
-                            //CDH1 | 5 ARs | Delete Definition?
-                            //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Damage Type
-                            //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Weapon Count
-                            //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Kill Count
-                            //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Delete Detail?
-                            //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Weapon Name
-                            //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Kill Count
-                            //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Delete Detail?
+                        //CDH1 | 5 ARs | Change Name?
+                        //CDH1 | 5 ARs | Add Damage Type?
+                        //CDH1 | 5 ARs | Add Weapon?
+                        //CDH1 | 5 ARs | Delete Definition?
+                        //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Damage Type
+                        //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Weapon Count
+                        //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Kill Count
+                        //CDH1 | 5 ARs | CDD1 | Damage - Assault Rifle | Delete Detail?
+                        //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Weapon Name
+                        //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Kill Count
+                        //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Delete Detail?
 
-                            var defPrefix = defSectionPrefix + "CDH" + def.ID + s + def.Name + s;
-                            buildList.Add(new CPluginVariable(defPrefix + "Change Name?", typeof(String), def.Name));
-                            buildList.Add(new CPluginVariable(defPrefix + "Add Damage Type?", WeaponDictionary.InfantryDamageTypeEnumString, "None"));
-                            buildList.Add(new CPluginVariable(defPrefix + "Add Weapon?", WeaponDictionary.InfantryWeaponNameEnumString, "None"));
-                            buildList.Add(new CPluginVariable(defPrefix + "Delete Definition?", typeof(String), ""));
-                            foreach (var detail in def.GetDetails())
+                        var defPrefix = defSectionPrefix + "CDH" + def.ID + s + def.Name + s;
+                        buildList.Add(new CPluginVariable(defPrefix + "Change Name?", typeof(String), def.Name));
+                        buildList.Add(new CPluginVariable(defPrefix + "Add Damage Type?", WeaponDictionary.InfantryDamageTypeEnumString, "None"));
+                        buildList.Add(new CPluginVariable(defPrefix + "Add Weapon?", WeaponDictionary.InfantryWeaponNameEnumString, "None"));
+                        buildList.Add(new CPluginVariable(defPrefix + "Delete Definition?", typeof(String), ""));
+                        foreach (var detail in def.GetDetails())
+                        {
+                            if (detail.Type == AChallengeManager.CDefinition.CDefinitionDetail.DetailType.None)
                             {
-                                if (detail.Type == AChallengeManager.CDefinition.CDefinitionDetail.DetailType.None)
-                                {
-                                    Log.Error("Unable to render challenge definition detail " + def.ID + ":" + detail.DetailID + ". It had a type of None.");
-                                    continue;
-                                }
-                                var detailPrefix = defPrefix + "CDD" + detail.DetailID + s + detail.ToString() + s;
-                                if (detail.Type == AChallengeManager.CDefinition.CDefinitionDetail.DetailType.Damage)
-                                {
-                                    buildList.Add(new CPluginVariable(detailPrefix + "Damage Type", WeaponDictionary.InfantryDamageTypeEnumString, detail.Damage.ToString()));
-                                    buildList.Add(new CPluginVariable(detailPrefix + "Weapon Count", typeof(Int32), detail.WeaponCount));
-                                }
-                                else if (detail.Type == AChallengeManager.CDefinition.CDefinitionDetail.DetailType.Weapon)
-                                {
-                                    buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.InfantryWeaponNameEnumString, WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
-                                }
-                                buildList.Add(new CPluginVariable(detailPrefix + "Kill Count", typeof(Int32), detail.KillCount));
-                                buildList.Add(new CPluginVariable(defPrefix + "Delete Detail?", typeof(String), ""));
+                                Log.Error("Unable to render challenge definition detail " + def.ID + ":" + detail.DetailID + ". It had a type of None.");
+                                continue;
                             }
+                            var detailPrefix = defPrefix + "CDD" + detail.DetailID + s + detail.ToString() + s;
+                            if (detail.Type == AChallengeManager.CDefinition.CDefinitionDetail.DetailType.Damage)
+                            {
+                                buildList.Add(new CPluginVariable(detailPrefix + "Damage Type", WeaponDictionary.InfantryDamageTypeEnumString, detail.Damage.ToString()));
+                                buildList.Add(new CPluginVariable(detailPrefix + "Weapon Count", typeof(Int32), detail.WeaponCount));
+                            }
+                            else if (detail.Type == AChallengeManager.CDefinition.CDefinitionDetail.DetailType.Weapon)
+                            {
+                                buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.InfantryWeaponNameEnumString, WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
+                            }
+                            buildList.Add(new CPluginVariable(detailPrefix + "Kill Count", typeof(Int32), detail.KillCount));
+                            buildList.Add(new CPluginVariable(defPrefix + "Delete Detail?", typeof(String), ""));
                         }
                     }
                     /*
@@ -36109,6 +36106,11 @@ namespace PRoConEvents
 
                         HandleUserChanges();
 
+                        if (ChallengeManager != null)
+                        {
+                            ChallengeManager.HandleRead(null);
+                        }
+
                         //Start the other threads
                         if (firstRun)
                         {
@@ -50875,7 +50877,114 @@ namespace PRoConEvents
             private AdKats _plugin;
 
             public Boolean Enabled;
-            public Dictionary<Int64, CDefinition> Definitions;
+            private List<CDefinition> Definitions;
+            private DateTime _LastDBReadAll = DateTime.UtcNow - TimeSpan.FromMinutes(30);
+
+            public void HandleRead(MySqlConnection con)
+            {
+                try
+                {
+                    var localConnection = con;
+                    if (localConnection == null)
+                    {
+                        localConnection = _plugin.GetDatabaseConnection();
+                    }
+                    try
+                    {
+                        if (_plugin.NowDuration(_LastDBReadAll).TotalMinutes > 5.0)
+                        {
+                            DBReadDefinitions(con);
+                            _LastDBReadAll = _plugin.UtcNow();
+                            _plugin.UpdateSettingPage();
+                        }
+                    }
+                    finally
+                    {
+                        if (con == null &&
+                            localConnection != null)
+                        {
+                            localConnection.Dispose();
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while reading all challenge manager DB info.", e));
+                }
+            }
+
+            public void DBReadDefinitions(MySqlConnection con)
+            {
+                try
+                {
+                    var localConnection = con;
+                    if (localConnection == null)
+                    {
+                        localConnection = _plugin.GetDatabaseConnection();
+                    }
+                    try
+                    {
+                        using (MySqlCommand command = localConnection.CreateCommand())
+                        {
+                            command.CommandText = @"
+                              SELECT `ID`,
+                                     `Name`,
+                                     `CreateTime`,
+                                     `ModifyTime`
+                                FROM `adkats_challenge_definition`
+                            ORDER BY `ID` ASC";
+                            using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
+                            {
+                                lock (Definitions)
+                                {
+                                    while (reader.Read())
+                                    {
+                                        var id = reader.GetInt32("ID");
+                                        var def = Definitions.FirstOrDefault(dDef => dDef.ID == id);
+                                        if (def == null)
+                                        {
+                                            def = new CDefinition(_plugin, this);
+                                            Definitions.Add(def);
+                                        }
+                                        def.Name = reader.GetString("Name");
+                                        def.CreateTime = reader.GetDateTime("CreateTime");
+                                        def.ModifyTime = reader.GetDateTime("ModifyTime");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        if (con == null &&
+                            localConnection != null)
+                        {
+                            localConnection.Dispose();
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error performing DBReadDetails for CDefinition.", e));
+                }
+            }
+            
+            public List<CDefinition> GetDefinitions()
+            {
+                var defs = new List<CDefinition>();
+                try
+                {
+                    lock (Definitions)
+                    {
+                        defs.AddRange(Definitions.OrderBy(def => def.ID).ToList());
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while getting list of definitions.", e));
+                }
+                return defs;
+            }
 
             public CDefinition GetDefinition(Int64 defID)
             {
@@ -50887,7 +50996,7 @@ namespace PRoConEvents
                         {
                             return null;
                         }
-                        return Definitions.Values.FirstOrDefault(def => def.ID == defID);
+                        return Definitions.FirstOrDefault(def => def.ID == defID);
                     }
                 }
                 catch (Exception e)
@@ -50903,13 +51012,13 @@ namespace PRoConEvents
                 {
                     lock (Definitions)
                     {
-                        CDefinition def;
-                        if (!Definitions.TryGetValue(defID, out def))
+                        CDefinition def = Definitions.FirstOrDefault(dDef => dDef.ID == defID);
+                        if (def == null)
                         {
                             _plugin.Log.Error("No definition exists with ID " + defID + ".");
                             return;
                         }
-                        Definitions.Remove(defID);
+                        Definitions.Remove(def);
                     }
                 }
                 catch (Exception e)
@@ -50924,12 +51033,6 @@ namespace PRoConEvents
                 {
                     lock (Definitions)
                     {
-                        // Check if a definition exists with this name
-                        if (Definitions.Values.Any(def => def.Name == defName))
-                        {
-                            _plugin.Log.Error("Definition called " + defName + " already exists.");
-                            return;
-                        }
                         // Create definition
                         AddDefinition(new CDefinition(_plugin, this)
                         {
@@ -50944,28 +51047,40 @@ namespace PRoConEvents
                 }
             }
 
-            public void AddDefinition(CDefinition def)
+            public void AddDefinition(CDefinition newDef)
             {
                 try
                 {
                     lock (Definitions)
                     {
-                        if (def == null)
+                        if (newDef == null)
                         {
                             _plugin.Log.Error("Definition was null when adding to the challenge manager.");
                             return;
                         }
-                        if (def.ID <= 0)
+                        // Check if a definition exists with this ID
+                        if (Definitions.Any(dDef => dDef.ID == newDef.ID))
+                        {
+                            _plugin.Log.Error("Definition with ID " + newDef.ID + " already exists.");
+                            return;
+                        }
+                        // Check if a definition exists with this name
+                        if (Definitions.Any(dDef => dDef.Name == newDef.Name))
+                        {
+                            _plugin.Log.Error("Definition called " + newDef.Name + " already exists.");
+                            return;
+                        }
+                        if (newDef.Phantom)
                         {
                             // Try to push it to the database
-                            def.DBPush(null);
+                            newDef.DBPush(null);
                         }
-                        if (def.ID <= 0)
+                        if (newDef.ID <= 0)
                         {
                             _plugin.Log.Error("Defintion had invalid ID when adding to the challenge manager.");
                             return;
                         }
-                        Definitions[def.ID] = def;
+                        Definitions.Add(newDef);
                     }
                 }
                 catch (Exception e)
@@ -50994,7 +51109,7 @@ namespace PRoConEvents
                 _plugin = plugin;
                 try
                 {
-                    Definitions = new Dictionary<Int64, CDefinition>();
+                    Definitions = new List<CDefinition>();
 
                     Rules = new Dictionary<Int32, ChallengeRule>();
                     RoundEntries = new Dictionary<APlayer, ChallengeEntry>();
@@ -51359,7 +51474,7 @@ namespace PRoConEvents
                     }
                     catch (Exception e)
                     {
-                        _plugin.Log.HandleException(new AException("Error while getting detail from definition.", e));
+                        _plugin.Log.HandleException(new AException("Error while getting list of details.", e));
                     }
                     return details;
                 }
@@ -51379,7 +51494,7 @@ namespace PRoConEvents
                     }
                     catch (Exception e)
                     {
-                        _plugin.Log.HandleException(new AException("Error while getting detail from definition.", e));
+                        _plugin.Log.HandleException(new AException("Error while getting detail by detail ID.", e));
                     }
                     return null;
                 }
