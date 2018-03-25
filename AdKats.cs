@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.67
+ * Version 7.0.1.68
  * 24-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.67</version_code>
+ * <version_code>7.0.1.68</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.67";
+        private const String PluginVersion = "7.0.1.68";
 
         public enum GameVersionEnum
         {
@@ -2666,6 +2666,11 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(defSectionPrefix + "Add Definition?", typeof(String), ""));
                     foreach (var def in ChallengeManager.GetDefinitions())
                     {
+                        if (def.ID <= 0)
+                        {
+                            Log.Error("Unable to render challenge definition " + def.ID + ". It had an invalid ID of " + def.ID + ".");
+                            continue;
+                        }
                         //CDH1 | 5 ARs | Change Name?
                         //CDH1 | 5 ARs | Add Damage Type?
                         //CDH1 | 5 ARs | Add Weapon?
@@ -50937,18 +50942,27 @@ namespace PRoConEvents
                             {
                                 lock (Definitions)
                                 {
+                                    var validIDs = new List<Int64>();
                                     while (reader.Read())
                                     {
-                                        var id = reader.GetInt32("ID");
-                                        var def = Definitions.FirstOrDefault(dDef => dDef.ID == id);
+                                        var readID = reader.GetInt32("ID");
+                                        var def = Definitions.FirstOrDefault(dDef => dDef.ID == readID);
                                         if (def == null)
                                         {
                                             def = new CDefinition(_plugin, this);
+                                            def.ID = readID;
+                                            validIDs.Add(readID);
                                             Definitions.Add(def);
                                         }
                                         def.Name = reader.GetString("Name");
                                         def.CreateTime = reader.GetDateTime("CreateTime");
                                         def.ModifyTime = reader.GetDateTime("ModifyTime");
+                                    }
+                                    // Remove definitions as necessary
+                                    foreach (var def in Definitions.Where(dDef => !validIDs.Contains(dDef.ID)).ToList())
+                                    {
+                                        _plugin.Log.Info("Removing definition " + def.ID + " from challenge manager. Definition was deleted from database.");
+                                        Definitions.Remove(def);
                                     }
                                 }
                             }
