@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.69
+ * Version 7.0.1.70
  * 24-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.69</version_code>
+ * <version_code>7.0.1.70</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.69";
+        private const String PluginVersion = "7.0.1.70";
 
         public enum GameVersionEnum
         {
@@ -2683,9 +2683,9 @@ namespace PRoConEvents
                         //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Kill Count
                         //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Delete Detail?
 
-                        var defPrefix = defSectionPrefix + "CDH" + def.ID + s + def.Name + s;
+                        var defPrefix = defSectionPrefix + "CDH" + def.ID + s + def.ID + " - " + def.Name + s;
                         buildList.Add(new CPluginVariable(defPrefix + "Change Name?", typeof(String), def.Name));
-                        buildList.Add(new CPluginVariable(defPrefix + "Add Damage Type?", WeaponDictionary.InfantryDamageTypeEnumString, "None"));
+                        buildList.Add(new CPluginVariable(defPrefix + "Add Damage Type?", AChallengeManager.CDefinition.DetailDamageEnumString, "None"));
                         buildList.Add(new CPluginVariable(defPrefix + "Add Weapon?", WeaponDictionary.InfantryWeaponNameEnumString, "None"));
                         buildList.Add(new CPluginVariable(defPrefix + "Delete Definition?", typeof(String), ""));
                         foreach (var detail in def.GetDetails())
@@ -2698,7 +2698,7 @@ namespace PRoConEvents
                             var detailPrefix = defPrefix + "CDD" + detail.DetailID + s + detail.ToString() + s;
                             if (detail.Type == AChallengeManager.CDefinition.CDefinitionDetail.DetailType.Damage)
                             {
-                                buildList.Add(new CPluginVariable(detailPrefix + "Damage Type", WeaponDictionary.InfantryDamageTypeEnumString, detail.Damage.ToString()));
+                                buildList.Add(new CPluginVariable(detailPrefix + "Damage Type", AChallengeManager.CDefinition.DetailDamageEnumString, detail.Damage.ToString()));
                                 buildList.Add(new CPluginVariable(detailPrefix + "Weapon Count", typeof(Int32), detail.WeaponCount));
                             }
                             else if (detail.Type == AChallengeManager.CDefinition.CDefinitionDetail.DetailType.Weapon)
@@ -50956,6 +50956,7 @@ namespace PRoConEvents
                                         def.Name = reader.GetString("Name");
                                         def.CreateTime = reader.GetDateTime("CreateTime");
                                         def.ModifyTime = reader.GetDateTime("ModifyTime");
+                                        def.DBReadDetails(localConnection);
                                         validIDs.Add(readID);
                                     }
                                     // Remove definitions as necessary
@@ -50979,7 +50980,7 @@ namespace PRoConEvents
                 }
                 catch (Exception e)
                 {
-                    _plugin.Log.HandleException(new AException("Error performing DBReadDetails for CDefinition.", e));
+                    _plugin.Log.HandleException(new AException("Error reading in definitions for challenge manager.", e));
                 }
             }
             
@@ -51413,6 +51414,9 @@ namespace PRoConEvents
             {
                 private AdKats _plugin;
 
+                public static String DetailTypeEnumString = "enum.ChallengeTemplateDetailType(None|Weapon|Damage)";
+                public static String DetailDamageEnumString = String.Empty;
+
                 public Boolean Phantom;
 
                 private AChallengeManager Manager;
@@ -51429,6 +51433,27 @@ namespace PRoConEvents
                     CreateTime = _plugin.UtcNow();
                     ModifyTime = _plugin.UtcNow();
                     Details = new List<CDefinitionDetail>();
+
+                    //Fill the damage type setting enum string, if it's not already
+                    if (DetailDamageEnumString == String.Empty)
+                    {
+                        Random random = new Random(Environment.TickCount);
+                        foreach (CDefinitionDetail.DetailDamage damageType in Enum.GetValues(typeof(CDefinitionDetail.DetailDamage))
+                                                                .Cast<CDefinitionDetail.DetailDamage>()
+                                                                .OrderBy(type => type.ToString()))
+                        {
+                            if (String.IsNullOrEmpty(DetailDamageEnumString))
+                            {
+                                DetailDamageEnumString += "enum.DetailDamageTypeEnum_" + random.Next(100000, 999999) + "(";
+                            }
+                            else
+                            {
+                                DetailDamageEnumString += "|";
+                            }
+                            DetailDamageEnumString += damageType;
+                        }
+                        DetailDamageEnumString += ")";
+                    }
                 }
 
                 public void SortDetails(MySqlConnection connection)
@@ -51550,26 +51575,33 @@ namespace PRoConEvents
                             if (type == CDefinitionDetail.DetailType.Damage.ToString())
                             {
                                 detail.Type = CDefinitionDetail.DetailType.Damage;
+                                detail.WeaponCount = 1;
                                 try
                                 {
                                     detail.Damage = (CDefinitionDetail.DetailDamage)Enum.Parse(typeof(CDefinitionDetail.DetailDamage), value);
                                 }
                                 catch(Exception e)
                                 {
-                                    _plugin.Log.Error("Unable to create Damage detail with damage type = " + value + ".");
+                                    _plugin.Log.Error("Unable to create Damage detail with damage type " + value + ".");
                                     return;
                                 }
                             }
                             else if (type == CDefinitionDetail.DetailType.Weapon.ToString())
                             {
                                 detail.Type = CDefinitionDetail.DetailType.Weapon;
+                                var weaponCode = _plugin.WeaponDictionary.GetWeaponCodeByShortName(value);
                                 // Confirm the weapon is valid
-                                if (_plugin.WeaponDictionary.GetDamageTypeByWeaponCode(value) == DamageTypes.None)
+                                if (String.IsNullOrEmpty(weaponCode))
                                 {
-                                    _plugin.Log.Error("Unable to create Weapon detail with weapon code = " + value + ".");
+                                    _plugin.Log.Error("Unable to create Weapon detail with weapon name " + value + ". No matching weapon code exists.");
                                     return;
                                 }
-                                detail.Weapon = value;
+                                if (_plugin.WeaponDictionary.GetDamageTypeByWeaponCode(value) == DamageTypes.None)
+                                {
+                                    _plugin.Log.Error("Unable to create Weapon detail with weapon code " + weaponCode + ". No valid matching damage type exists.");
+                                    return;
+                                }
+                                detail.Weapon = weaponCode;
                             }
                             else
                             {
@@ -51851,8 +51883,10 @@ namespace PRoConEvents
                                     {
                                         // Clear all existing details, we are fetching them all from the DB
                                         Details.Clear();
+                                        var validIDs = new List<Int64>();
                                         while (reader.Read())
                                         {
+                                            var upload = false;
                                             var detailID = reader.GetInt32("DetailID");
                                             CDefinitionDetail detail = Details.FirstOrDefault(dDetail => dDetail.DetailID == detailID);
                                             if (detail == null)
@@ -51863,11 +51897,30 @@ namespace PRoConEvents
                                             detail.Type = (CDefinitionDetail.DetailType)Enum.Parse(typeof(CDefinitionDetail.DetailType), reader.GetString("Type"));
                                             detail.Damage = (CDefinitionDetail.DetailDamage)Enum.Parse(typeof(CDefinitionDetail.DetailDamage), reader.GetString("Damage"));
                                             detail.WeaponCount = reader.GetInt32("WeaponCount");
+                                            if (detail.Type == CDefinitionDetail.DetailType.Damage &&
+                                                detail.WeaponCount < 1)
+                                            {
+                                                _plugin.Log.Error("Challenge detail " + this.ID + ":" + detail.DetailID + " had an invalid weapon count. Changing to 1.");
+                                                detail.WeaponCount = 1;
+                                                upload = true;
+                                            }
                                             detail.Weapon = reader.GetString("Weapon");
                                             detail.KillCount = reader.GetInt32("KillCount");
+                                            if (detail.KillCount < 1)
+                                            {
+                                                _plugin.Log.Error("Challenge detail " + this.ID + ":" + detail.DetailID + " had an invalid kill count. Changing to 1.");
+                                                detail.KillCount = 1;
+                                                upload = true;
+                                            }
                                             detail.CreateTime = reader.GetDateTime("CreateTime");
                                             detail.ModifyTime = reader.GetDateTime("ModifyTime");
+                                            if (upload)
+                                            {
+                                                detail.DBPush(localConnection);
+                                            }
+                                            validIDs.Add(detail.DetailID);
                                         }
+                                        // No need to clean up details, they are purged during every read.
                                     }
                                 }
                             }
@@ -51954,7 +52007,6 @@ namespace PRoConEvents
                         Shotgun,
                         Explosive
                     }
-                    public static String DetailTypeEnumString = "enum.ChallengeTemplateDetailType(None|Weapon|Damage)";
 
                     private AdKats _plugin;
 
@@ -52389,6 +52441,11 @@ namespace PRoConEvents
                                 return;
                             }
                             var newWeaponCount = Int32.Parse(weaponCount);
+                            if (newWeaponCount < 1)
+                            {
+                                _plugin.Log.Error("Weapon count cannot be less than 1.");
+                                newWeaponCount = 1;
+                            }
                             if (newWeaponCount != WeaponCount)
                             {
                                 WeaponCount = newWeaponCount;
@@ -52447,6 +52504,11 @@ namespace PRoConEvents
                                 return;
                             }
                             var newKillCount = Int32.Parse(killCount);
+                            if (newKillCount < 1)
+                            {
+                                _plugin.Log.Error("Kill count cannot be less than 1.");
+                                newKillCount = 1;
+                            }
                             if (newKillCount != KillCount)
                             {
                                 KillCount = newKillCount;
