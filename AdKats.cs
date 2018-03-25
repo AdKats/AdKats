@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.70
- * 24-MAR-2018
+ * Version 7.0.1.71
+ * 25-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.70</version_code>
+ * <version_code>7.0.1.71</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.70";
+        private const String PluginVersion = "7.0.1.71";
 
         public enum GameVersionEnum
         {
@@ -50938,6 +50938,7 @@ namespace PRoConEvents
                                      `ModifyTime`
                                 FROM `adkats_challenge_definition`
                             ORDER BY `ID` ASC";
+                            var defReads = new List<CDefinition>();
                             using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
                             {
                                 lock (Definitions)
@@ -50956,7 +50957,7 @@ namespace PRoConEvents
                                         def.Name = reader.GetString("Name");
                                         def.CreateTime = reader.GetDateTime("CreateTime");
                                         def.ModifyTime = reader.GetDateTime("ModifyTime");
-                                        def.DBReadDetails(localConnection);
+                                        defReads.Add(def);
                                         validIDs.Add(readID);
                                     }
                                     // Remove definitions as necessary
@@ -50966,6 +50967,11 @@ namespace PRoConEvents
                                         Definitions.Remove(def);
                                     }
                                 }
+                            }
+                            // This must be executed afterward, otherwise it would cause overlapping readers on the same connection
+                            foreach (var def in defReads)
+                            {
+                                def.DBReadDetails(localConnection);
                             }
                         }
                     }
@@ -51545,12 +51551,10 @@ namespace PRoConEvents
                         lock (Details)
                         {
                             var matchingDetail = Details.FirstOrDefault(detail => detail.DetailID == detailID);
-                            if (matchingDetail == null)
+                            if (matchingDetail != null)
                             {
-                                _plugin.Log.Error("No detail exists with ID " + detailID + ".");
-                                return;
+                                Details.Remove(matchingDetail);
                             }
-                            Details.Remove(matchingDetail);
                         }
                     }
                     catch (Exception e)
@@ -51585,6 +51589,12 @@ namespace PRoConEvents
                                     _plugin.Log.Error("Unable to create Damage detail with damage type " + value + ".");
                                     return;
                                 }
+                                if (Details.Any(dDetail => dDetail.Type == CDefinitionDetail.DetailType.Damage &&
+                                                           dDetail.Damage == detail.Damage))
+                                {
+                                    _plugin.Log.Error("Detail with damage " + detail.Damage.ToString() + " already exists.");
+                                    return;
+                                }
                             }
                             else if (type == CDefinitionDetail.DetailType.Weapon.ToString())
                             {
@@ -51599,6 +51609,12 @@ namespace PRoConEvents
                                 if (_plugin.WeaponDictionary.GetDamageTypeByWeaponCode(value) == DamageTypes.None)
                                 {
                                     _plugin.Log.Error("Unable to create Weapon detail with weapon code " + weaponCode + ". No valid matching damage type exists.");
+                                    return;
+                                }
+                                if (Details.Any(dDetail => dDetail.Type == CDefinitionDetail.DetailType.Weapon && 
+                                                           dDetail.Weapon == weaponCode))
+                                {
+                                    _plugin.Log.Error("Detail with weapon " + value + " already exists.");
                                     return;
                                 }
                                 detail.Weapon = weaponCode;
@@ -51877,25 +51893,37 @@ namespace PRoConEvents
                                     FROM `adkats_challenge_definition_detail`
                                    WHERE `DefID` = @DefID";
                                 command.Parameters.AddWithValue("@DefID", ID);
+                                var sortDetails = false;
                                 using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
                                 {
                                     lock (Details)
                                     {
                                         // Clear all existing details, we are fetching them all from the DB
                                         Details.Clear();
-                                        var validIDs = new List<Int64>();
                                         while (reader.Read())
                                         {
+                                            var add = false;
                                             var upload = false;
                                             var detailID = reader.GetInt32("DetailID");
                                             CDefinitionDetail detail = Details.FirstOrDefault(dDetail => dDetail.DetailID == detailID);
                                             if (detail == null)
                                             {
                                                 detail = new CDefinitionDetail(_plugin, this, detailID);
-                                                Details.Add(detail);
+                                                add = true;
                                             }
                                             detail.Type = (CDefinitionDetail.DetailType)Enum.Parse(typeof(CDefinitionDetail.DetailType), reader.GetString("Type"));
                                             detail.Damage = (CDefinitionDetail.DetailDamage)Enum.Parse(typeof(CDefinitionDetail.DetailDamage), reader.GetString("Damage"));
+                                            // Make sure we aren't loading in duplicate damage types
+                                            if (detail.Type == CDefinitionDetail.DetailType.Damage && 
+                                                Details.Any(dDetail => dDetail.Type == CDefinitionDetail.DetailType.Damage &&
+                                                                       dDetail.Damage == detail.Damage))
+                                            {
+                                                _plugin.Log.Error("Detail with damage " + detail.Damage.ToString() + " already exists.");
+                                                detail.DBDelete(localConnection);
+                                                // We've deleted a detail. We need to re-sort the details now.
+                                                sortDetails = true;
+                                                continue;
+                                            }
                                             detail.WeaponCount = reader.GetInt32("WeaponCount");
                                             if (detail.Type == CDefinitionDetail.DetailType.Damage &&
                                                 detail.WeaponCount < 1)
@@ -51905,6 +51933,17 @@ namespace PRoConEvents
                                                 upload = true;
                                             }
                                             detail.Weapon = reader.GetString("Weapon");
+                                            // Make sure we aren't loading in duplicate weapon codes
+                                            if (detail.Type == CDefinitionDetail.DetailType.Weapon &&
+                                                Details.Any(dDetail => dDetail.Type == CDefinitionDetail.DetailType.Weapon &&
+                                                                       dDetail.Weapon == detail.Weapon))
+                                            {
+                                                _plugin.Log.Error("Detail with weapon " + detail.Weapon + " already exists.");
+                                                detail.DBDelete(localConnection);
+                                                // We've deleted a detail. We need to re-sort the details now.
+                                                sortDetails = true;
+                                                continue;
+                                            }
                                             detail.KillCount = reader.GetInt32("KillCount");
                                             if (detail.KillCount < 1)
                                             {
@@ -51918,10 +51957,17 @@ namespace PRoConEvents
                                             {
                                                 detail.DBPush(localConnection);
                                             }
-                                            validIDs.Add(detail.DetailID);
+                                            if (add)
+                                            {
+                                                Details.Add(detail);
+                                            }
                                         }
                                         // No need to clean up details, they are purged during every read.
                                     }
+                                }
+                                if (sortDetails)
+                                {
+                                    SortDetails(localConnection);
                                 }
                             }
                         }
