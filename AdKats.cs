@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.73
+ * Version 7.0.1.75
  * 25-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.73</version_code>
+ * <version_code>7.0.1.75</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.73";
+        private const String PluginVersion = "7.0.1.75";
 
         public enum GameVersionEnum
         {
@@ -2683,7 +2683,7 @@ namespace PRoConEvents
                         //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Kill Count
                         //CDH1 | 5 ARs | CDD2 | Weapon - AEK-971 | Delete Detail?
 
-                        var defPrefix = defSectionPrefix + "CDH" + def.ID + s + def.ID + " - " + def.Name + s;
+                        var defPrefix = defSectionPrefix + "CDH" + def.ID + s + def.Name + s;
                         buildList.Add(new CPluginVariable(defPrefix + "Change Name?", typeof(String), def.Name));
                         buildList.Add(new CPluginVariable(defPrefix + "Add Damage Type?", AChallengeManager.CDefinition.DetailDamageEnumString, "None"));
                         buildList.Add(new CPluginVariable(defPrefix + "Add Weapon?", WeaponDictionary.InfantryWeaponNameEnumString, "None"));
@@ -7217,7 +7217,7 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            Log.Error("Unable to fetch role for deletion.");
+                            Log.Error("Unable to fetch role " + roleID + " for deletion.");
                         }
                     }
                 }
@@ -8357,9 +8357,10 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Add Definition?").Success)
                 {
-                    if (!String.IsNullOrEmpty(strValue))
+                    var sanitizedName = strValue.Replace("|", "");
+                    if (!String.IsNullOrEmpty(sanitizedName))
                     {
-                        ChallengeManager.CreateDefinition(strValue);
+                        ChallengeManager.CreateDefinition(sanitizedName);
                     }
                 }
                 else if (strVariable.StartsWith("CDH"))
@@ -8396,10 +8397,12 @@ namespace PRoConEvents
                     {
                         case "Change Name?":
                             // Make sure that the new string is different from the current one
-                            if (definition.Name != strValue)
+                            var sanitizedName = strValue.Replace("|", "");
+                            if (definition.Name != sanitizedName && 
+                                !String.IsNullOrEmpty(sanitizedName))
                             {
                                 // It's different, assign it.
-                                definition.Name = strValue;
+                                definition.Name = sanitizedName;
                                 definition.ModifyTime = UtcNow();
                                 // Push to the database.
                                 definition.DBPush(null);
@@ -8474,6 +8477,7 @@ namespace PRoConEvents
                                         if (strValue.ToLower().Trim() == "delete")
                                         {
                                             detail.DBDelete(null);
+                                            definition.SortDetails(null);
                                         }
                                         break;
                                     default:
@@ -38018,7 +38022,7 @@ namespace PRoConEvents
                         if (record.record_exception == null)
                         {
                             //Only call update if the record contained no errors
-                            Log.Debug(() => "UPDATING record for " + record.command_type, 5);
+                            Log.Debug(() => "UPDATING record " + record.record_id + " for " + record.command_type, 5);
                             //Update Record
                             UpdateRecord(record);
                             return false;
@@ -39359,12 +39363,12 @@ namespace PRoConEvents
                                     if (!String.IsNullOrEmpty(importedPlayer.player_name) && _PlayerDictionary.TryGetValue(importedPlayer.player_name, out currentPlayer))
                                     {
                                         currentPlayer.LastUsage = UtcNow();
-                                        Log.Debug(() => "External player is currently in the server, using existing data.", 5);
+                                        Log.Debug(() => "External player " + currentPlayer.GetVerboseName() + " is currently in the server, using existing data.", 5);
                                         record.target_player = currentPlayer;
                                     }
                                     else
                                     {
-                                        Log.Debug(() => "External player is not in the server, fetching from database.", 5);
+                                        Log.Debug(() => "External player " + importedPlayer.GetVerboseName() + " is not in the server, fetching from database.", 5);
                                         record.target_player = importedPlayer;
                                     }
                                     record.target_name = record.target_player.player_name;
@@ -39388,12 +39392,12 @@ namespace PRoConEvents
                                     APlayer currentPlayer = null;
                                     if (!String.IsNullOrEmpty(importedPlayer.player_name) && _PlayerDictionary.TryGetValue(importedPlayer.player_name, out currentPlayer))
                                     {
-                                        Log.Debug(() => "External player is currently in the server, using existing data.", 5);
+                                        Log.Debug(() => "External player " + currentPlayer.GetVerboseName() + " is currently in the server, using existing data.", 5);
                                         record.source_player = currentPlayer;
                                     }
                                     else
                                     {
-                                        Log.Debug(() => "External player is not in the server, fetching from database.", 5);
+                                        Log.Debug(() => "External player " + importedPlayer.GetVerboseName() + " is not in the server, fetching from database.", 5);
                                         record.source_player = importedPlayer;
                                     }
                                     record.target_name = record.target_player.player_name;
@@ -50939,6 +50943,7 @@ namespace PRoConEvents
                                 FROM `adkats_challenge_definition`
                             ORDER BY `ID` ASC";
                             var defReads = new List<CDefinition>();
+                            var defPushes = new List<CDefinition>();
                             using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
                             {
                                 lock (Definitions)
@@ -50955,6 +50960,21 @@ namespace PRoConEvents
                                             Definitions.Add(def);
                                         }
                                         def.Name = reader.GetString("Name");
+                                        var sanitizedName = def.Name.Replace("|", "");
+                                        if (String.IsNullOrEmpty(sanitizedName))
+                                        {
+                                            _plugin.Log.Error("Challenge definition " + readID + " contained invalid name characters.");
+                                            var rng = new Random(Environment.TickCount);
+                                            // Assume we won't hit duplicates with 1 million (welp)
+                                            def.Name = "CHG-" + def.ID + "-" + rng.Next(1000000);
+                                            defPushes.Add(def);
+                                        }
+                                        else if (def.Name != sanitizedName)
+                                        {
+                                            _plugin.Log.Error("Challenge definition " + readID + " contained invalid name characters.");
+                                            def.Name = sanitizedName;
+                                            defPushes.Add(def);
+                                        }
                                         def.CreateTime = reader.GetDateTime("CreateTime");
                                         def.ModifyTime = reader.GetDateTime("ModifyTime");
                                         defReads.Add(def);
@@ -50968,7 +50988,11 @@ namespace PRoConEvents
                                     }
                                 }
                             }
-                            // This must be executed afterward, otherwise it would cause overlapping readers on the same connection
+                            // These must be executed afterward, otherwise it would cause overlapping readers on the same connection
+                            foreach (var def in defPushes)
+                            {
+                                def.DBPush(localConnection);
+                            }
                             foreach (var def in defReads)
                             {
                                 def.DBReadDetails(localConnection);
@@ -52425,8 +52449,8 @@ namespace PRoConEvents
                                     command.Parameters.AddWithValue("@NewDetailID", newDetailID);
                                     if (_plugin.SafeExecuteNonQuery(command) > 0)
                                     {
-                                        DetailID = newDetailID;
                                         _plugin.Log.Info("Changed CDefinitionDetail " + Definition.ID + ":" + DetailID + " to ID " + newDetailID + " in database.");
+                                        DetailID = newDetailID;
                                     }
                                     else
                                     {
