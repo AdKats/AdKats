@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.71
+ * Version 7.0.1.72
  * 25-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.71</version_code>
+ * <version_code>7.0.1.72</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.71";
+        private const String PluginVersion = "7.0.1.72";
 
         public enum GameVersionEnum
         {
@@ -51912,37 +51912,45 @@ namespace PRoConEvents
                                                 add = true;
                                             }
                                             detail.Type = (CDefinitionDetail.DetailType)Enum.Parse(typeof(CDefinitionDetail.DetailType), reader.GetString("Type"));
-                                            detail.Damage = (CDefinitionDetail.DetailDamage)Enum.Parse(typeof(CDefinitionDetail.DetailDamage), reader.GetString("Damage"));
-                                            // Make sure we aren't loading in duplicate damage types
-                                            if (detail.Type == CDefinitionDetail.DetailType.Damage && 
-                                                Details.Any(dDetail => dDetail.Type == CDefinitionDetail.DetailType.Damage &&
-                                                                       dDetail.Damage == detail.Damage))
+                                            // Damage section
+                                            if (!reader.IsDBNull(3))
                                             {
-                                                _plugin.Log.Error("Detail with damage " + detail.Damage.ToString() + " already exists.");
-                                                detail.DBDelete(localConnection);
-                                                // We've deleted a detail. We need to re-sort the details now.
-                                                sortDetails = true;
-                                                continue;
+                                                detail.Damage = (CDefinitionDetail.DetailDamage)Enum.Parse(typeof(CDefinitionDetail.DetailDamage), reader.GetString("Damage"));
+                                                // Make sure we aren't loading in duplicate damage types
+                                                if (detail.Type == CDefinitionDetail.DetailType.Damage &&
+                                                    Details.Any(dDetail => dDetail.Type == CDefinitionDetail.DetailType.Damage &&
+                                                                           dDetail.Damage == detail.Damage))
+                                                {
+                                                    _plugin.Log.Error("Detail with damage " + detail.Damage.ToString() + " already exists.");
+                                                    detail.DBDelete(localConnection);
+                                                    // We've deleted a detail. We need to re-sort the details now.
+                                                    sortDetails = true;
+                                                    continue;
+                                                }
+                                                detail.WeaponCount = reader.GetInt32("WeaponCount");
+                                                if (detail.Type == CDefinitionDetail.DetailType.Damage &&
+                                                    detail.WeaponCount < 1)
+                                                {
+                                                    _plugin.Log.Error("Challenge detail " + this.ID + ":" + detail.DetailID + " had an invalid weapon count. Changing to 1.");
+                                                    detail.WeaponCount = 1;
+                                                    upload = true;
+                                                }
                                             }
-                                            detail.WeaponCount = reader.GetInt32("WeaponCount");
-                                            if (detail.Type == CDefinitionDetail.DetailType.Damage &&
-                                                detail.WeaponCount < 1)
+                                            // Weapon section
+                                            if (!reader.IsDBNull(5))
                                             {
-                                                _plugin.Log.Error("Challenge detail " + this.ID + ":" + detail.DetailID + " had an invalid weapon count. Changing to 1.");
-                                                detail.WeaponCount = 1;
-                                                upload = true;
-                                            }
-                                            detail.Weapon = reader.GetString("Weapon");
-                                            // Make sure we aren't loading in duplicate weapon codes
-                                            if (detail.Type == CDefinitionDetail.DetailType.Weapon &&
-                                                Details.Any(dDetail => dDetail.Type == CDefinitionDetail.DetailType.Weapon &&
-                                                                       dDetail.Weapon == detail.Weapon))
-                                            {
-                                                _plugin.Log.Error("Detail with weapon " + detail.Weapon + " already exists.");
-                                                detail.DBDelete(localConnection);
-                                                // We've deleted a detail. We need to re-sort the details now.
-                                                sortDetails = true;
-                                                continue;
+                                                detail.Weapon = reader.GetString("Weapon");
+                                                // Make sure we aren't loading in duplicate weapon codes
+                                                if (detail.Type == CDefinitionDetail.DetailType.Weapon &&
+                                                    Details.Any(dDetail => dDetail.Type == CDefinitionDetail.DetailType.Weapon &&
+                                                                           dDetail.Weapon == detail.Weapon))
+                                                {
+                                                    _plugin.Log.Error("Detail with weapon " + detail.Weapon + " already exists.");
+                                                    detail.DBDelete(localConnection);
+                                                    // We've deleted a detail. We need to re-sort the details now.
+                                                    sortDetails = true;
+                                                    continue;
+                                                }
                                             }
                                             detail.KillCount = reader.GetInt32("KillCount");
                                             if (detail.KillCount < 1)
