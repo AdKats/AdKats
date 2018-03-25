@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.65
+ * Version 7.0.1.66
  * 24-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.65</version_code>
+ * <version_code>7.0.1.66</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.65";
+        private const String PluginVersion = "7.0.1.66";
 
         public enum GameVersionEnum
         {
@@ -51592,12 +51592,12 @@ namespace PRoConEvents
                                 UPDATE IGNORE 
 	                                `adkats_challenge_definition` 
                                 SET
-	                                `Name` = @`Name`,
-	                                `ModifyTime` = @`ModifyTime`
+	                                `Name` = @Name,
+	                                `ModifyTime` = @ModifyTime
                                 WHERE
-	                                `ID` = @`ID`";
-                                command.Parameters.AddWithValue("@`Name`", Name);
-                                command.Parameters.AddWithValue("@`ModifyTime`", ModifyTime);
+	                                `ID` = @ID";
+                                command.Parameters.AddWithValue("@Name", Name);
+                                command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
                                 if (_plugin.SafeExecuteNonQuery(command) > 0)
                                 {
                                     _plugin.Log.Info("Updated CDefinition " + ID + " to database.");
@@ -51647,15 +51647,15 @@ namespace PRoConEvents
                                          `CreateTime`,
                                          `ModifyTime`
                                     FROM `adkats_challenge_definition`
-                                   WHERE `ID` = @`ID`";
-                                command.Parameters.AddWithValue("@`ID`", ID);
+                                   WHERE `ID` = @ID";
+                                command.Parameters.AddWithValue("@ID", ID);
                                 using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
                                 {
                                     if (reader.Read())
                                     {
-                                        Name = reader.GetString("`Name`");
-                                        CreateTime = reader.GetDateTime("`CreateTime`");
-                                        ModifyTime = reader.GetDateTime("`ModifyTime`");
+                                        Name = reader.GetString("Name");
+                                        CreateTime = reader.GetDateTime("CreateTime");
+                                        ModifyTime = reader.GetDateTime("ModifyTime");
                                     }
                                     else
                                     {
@@ -51709,8 +51709,8 @@ namespace PRoConEvents
                                          `CreateTime`,
                                          `ModifyTime`
                                     FROM `adkats_challenge_definition_detail`
-                                   WHERE `DefID` = @`DefID`";
-                                command.Parameters.AddWithValue("@`DefID`", ID);
+                                   WHERE `DefID` = @DefID";
+                                command.Parameters.AddWithValue("@DefID", ID);
                                 using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
                                 {
                                     lock (Details)
@@ -51719,20 +51719,20 @@ namespace PRoConEvents
                                         Details.Clear();
                                         while (reader.Read())
                                         {
-                                            var detailID = reader.GetInt32("`DetailID`");
+                                            var detailID = reader.GetInt32("DetailID");
                                             CDefinitionDetail detail = Details.FirstOrDefault(dDetail => dDetail.DetailID == detailID);
                                             if (detail == null)
                                             {
                                                 detail = new CDefinitionDetail(_plugin, this, detailID);
                                                 Details.Add(detail);
                                             }
-                                            detail.Type = (CDefinitionDetail.DetailType)Enum.Parse(typeof(CDefinitionDetail.DetailType), reader.GetString("`Type`"));
-                                            detail.Damage = (CDefinitionDetail.DetailDamage)Enum.Parse(typeof(CDefinitionDetail.DetailDamage), reader.GetString("`Damage`"));
-                                            detail.WeaponCount = reader.GetInt32("`WeaponCount`");
-                                            detail.Weapon = reader.GetString("`Weapon`");
-                                            detail.KillCount = reader.GetInt32("`KillCount`");
-                                            detail.CreateTime = reader.GetDateTime("`CreateTime`");
-                                            detail.ModifyTime = reader.GetDateTime("`ModifyTime`");
+                                            detail.Type = (CDefinitionDetail.DetailType)Enum.Parse(typeof(CDefinitionDetail.DetailType), reader.GetString("Type"));
+                                            detail.Damage = (CDefinitionDetail.DetailDamage)Enum.Parse(typeof(CDefinitionDetail.DetailDamage), reader.GetString("Damage"));
+                                            detail.WeaponCount = reader.GetInt32("WeaponCount");
+                                            detail.Weapon = reader.GetString("Weapon");
+                                            detail.KillCount = reader.GetInt32("KillCount");
+                                            detail.CreateTime = reader.GetDateTime("CreateTime");
+                                            detail.ModifyTime = reader.GetDateTime("ModifyTime");
                                         }
                                     }
                                 }
@@ -51770,8 +51770,8 @@ namespace PRoConEvents
                                 DELETE FROM 
 	                                `adkats_challenge_definition` 
                                 WHERE
-	                                `ID` = @`ID`;";
-                                command.Parameters.AddWithValue("@`ID`", ID);
+	                                `ID` = @ID;";
+                                command.Parameters.AddWithValue("@ID", ID);
                                 if (_plugin.SafeExecuteNonQuery(command) > 0)
                                 {
                                     // SUCCESS
@@ -51908,33 +51908,33 @@ namespace PRoConEvents
                                     ) 
                                     VALUES 
                                     (
-	                                    @`DefID`, 
-	                                    @`DetailID`, 
-	                                    @`Type`, 
-	                                    @`Damage`, 
-	                                    @`WeaponCount`, 
-	                                    @`Weapon`, 
-	                                    @`KillCount`,
-	                                    @`CreateTime`,
-	                                    @`ModifyTime`
+	                                    @DefID, 
+	                                    @DetailID, 
+	                                    @Type, 
+	                                    @Damage, 
+	                                    @WeaponCount, 
+	                                    @Weapon, 
+	                                    @KillCount,
+	                                    @CreateTime,
+	                                    @ModifyTime
                                     )
                                     ON DUPLICATE KEY UPDATE
-	                                    `Type` = @`Type`
-                                    AND `Damage` = @`Damage`
-                                    AND `WeaponCount` = @`WeaponCount`
-                                    AND `Weapon` = @`Weapon`
-                                    AND `KillCount` = @`KillCount`
-                                    AND `CreateTime` = @`CreateTime`
-                                    AND `ModifyTime` = @`ModifyTime`";
-                                    command.Parameters.AddWithValue("@`DefID`", Definition.ID);
-                                    command.Parameters.AddWithValue("@`DetailID`", DetailID);
-                                    command.Parameters.AddWithValue("@`Type`", Type.ToString());
-                                    command.Parameters.AddWithValue("@`Damage`", Damage.ToString());
-                                    command.Parameters.AddWithValue("@`WeaponCount`", WeaponCount);
-                                    command.Parameters.AddWithValue("@`Weapon`", Weapon);
-                                    command.Parameters.AddWithValue("@`KillCount`", KillCount);
-                                    command.Parameters.AddWithValue("@`CreateTime`", CreateTime);
-                                    command.Parameters.AddWithValue("@`ModifyTime`", ModifyTime);
+	                                    `Type` = @Type
+                                    AND `Damage` = @Damage
+                                    AND `WeaponCount` = @WeaponCount
+                                    AND `Weapon` = @Weapon
+                                    AND `KillCount` = @KillCount
+                                    AND `CreateTime` = @CreateTime
+                                    AND `ModifyTime` = @ModifyTime";
+                                    command.Parameters.AddWithValue("@DefID", Definition.ID);
+                                    command.Parameters.AddWithValue("@DetailID", DetailID);
+                                    command.Parameters.AddWithValue("@Type", Type.ToString());
+                                    command.Parameters.AddWithValue("@Damage", Damage.ToString());
+                                    command.Parameters.AddWithValue("@WeaponCount", WeaponCount);
+                                    command.Parameters.AddWithValue("@Weapon", Weapon);
+                                    command.Parameters.AddWithValue("@KillCount", KillCount);
+                                    command.Parameters.AddWithValue("@CreateTime", CreateTime);
+                                    command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
                                     if (_plugin.SafeExecuteNonQuery(command) > 0)
                                     {
                                         // This record is no longer phantom
@@ -51980,25 +51980,25 @@ namespace PRoConEvents
                                     UPDATE IGNORE 
 	                                    `adkats_challenge_definition_detail` 
                                     SET
-	                                    `Type` = @`Type`,
-	                                    `Damage` = @`Damage`,
-	                                    `WeaponCount` = @`WeaponCount`,
-	                                    `Weapon` = @`Weapon`,
-	                                    `KillCount` = @`KillCount`,
-	                                    `CreateTime` = @`CreateTime`,
-	                                    `ModifyTime` = @`ModifyTime`
+	                                    `Type` = @Type,
+	                                    `Damage` = @Damage,
+	                                    `WeaponCount` = @WeaponCount,
+	                                    `Weapon` = @Weapon,
+	                                    `KillCount` = @KillCount,
+	                                    `CreateTime` = @CreateTime,
+	                                    `ModifyTime` = @ModifyTime
                                     WHERE
-	                                    `DefID` = @`DefID`
-                                    AND `DetailID` = @`DetailID`";
-                                    command.Parameters.AddWithValue("@`DefID`", Definition.ID);
-                                    command.Parameters.AddWithValue("@`DetailID`", DetailID);
-                                    command.Parameters.AddWithValue("@`Type`", Type.ToString());
-                                    command.Parameters.AddWithValue("@`Damage`", Damage.ToString());
-                                    command.Parameters.AddWithValue("@`WeaponCount`", WeaponCount);
-                                    command.Parameters.AddWithValue("@`Weapon`", Weapon);
-                                    command.Parameters.AddWithValue("@`KillCount`", KillCount);
-                                    command.Parameters.AddWithValue("@`CreateTime`", CreateTime);
-                                    command.Parameters.AddWithValue("@`ModifyTime`", ModifyTime);
+	                                    `DefID` = @DefID
+                                    AND `DetailID` = @DetailID";
+                                    command.Parameters.AddWithValue("@DefID", Definition.ID);
+                                    command.Parameters.AddWithValue("@DetailID", DetailID);
+                                    command.Parameters.AddWithValue("@Type", Type.ToString());
+                                    command.Parameters.AddWithValue("@Damage", Damage.ToString());
+                                    command.Parameters.AddWithValue("@WeaponCount", WeaponCount);
+                                    command.Parameters.AddWithValue("@Weapon", Weapon);
+                                    command.Parameters.AddWithValue("@KillCount", KillCount);
+                                    command.Parameters.AddWithValue("@CreateTime", CreateTime);
+                                    command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
                                     if (_plugin.SafeExecuteNonQuery(command) > 0)
                                     {
                                         _plugin.Log.Info("Updated CDefinitionDetail " + Definition.ID + ":" + DetailID + " in database.");
@@ -52047,21 +52047,21 @@ namespace PRoConEvents
                                              `CreateTime`,
                                              `ModifyTime`
                                         FROM `adkats_challenge_definition_detail`
-                                       WHERE `DefID` = @`DefID`
-                                         AND `DetailID` = @`DetailID`";
-                                    command.Parameters.AddWithValue("@`DefID`", Definition.ID);
-                                    command.Parameters.AddWithValue("@`DetailID`", DetailID);
+                                       WHERE `DefID` = @DefID
+                                         AND `DetailID` = @DetailID";
+                                    command.Parameters.AddWithValue("@DefID", Definition.ID);
+                                    command.Parameters.AddWithValue("@DetailID", DetailID);
                                     using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
                                     {
                                         if (reader.Read())
                                         {
-                                            Type = (DetailType)Enum.Parse(typeof(DetailType), reader.GetString("`Type`"));
-                                            Damage = (DetailDamage)Enum.Parse(typeof(DetailDamage), reader.GetString("`Damage`"));
-                                            WeaponCount = reader.GetInt32("`WeaponCount`");
-                                            Weapon = reader.GetString("`Weapon`");
-                                            KillCount = reader.GetInt32("`KillCount`");
-                                            CreateTime = reader.GetDateTime("`CreateTime`");
-                                            ModifyTime = reader.GetDateTime("`ModifyTime`");
+                                            Type = (DetailType)Enum.Parse(typeof(DetailType), reader.GetString("Type"));
+                                            Damage = (DetailDamage)Enum.Parse(typeof(DetailDamage), reader.GetString("Damage"));
+                                            WeaponCount = reader.GetInt32("WeaponCount");
+                                            Weapon = reader.GetString("Weapon");
+                                            KillCount = reader.GetInt32("KillCount");
+                                            CreateTime = reader.GetDateTime("CreateTime");
+                                            ModifyTime = reader.GetDateTime("ModifyTime");
                                         }
                                         else
                                         {
@@ -52107,10 +52107,10 @@ namespace PRoConEvents
                                     command.CommandText = @"
                                     DELETE FROM 
                                         `adkats_challenge_definition_detail`
-                                    WHERE `DefID` = @`DefID`
-                                      AND `DetailID` = @`DetailID`;";
-                                    command.Parameters.AddWithValue("@`DefID`", Definition.ID);
-                                    command.Parameters.AddWithValue("@`DetailID`", DetailID);
+                                    WHERE `DefID` = @DefID
+                                      AND `DetailID` = @DetailID";
+                                    command.Parameters.AddWithValue("@DefID", Definition.ID);
+                                    command.Parameters.AddWithValue("@DetailID", DetailID);
                                     if (_plugin.SafeExecuteNonQuery(command) > 0)
                                     {
                                         // SUCCESS
@@ -52172,13 +52172,13 @@ namespace PRoConEvents
                                     UPDATE IGNORE 
 	                                    `adkats_challenge_definition_detail` 
                                     SET
-	                                    `DetailID` = @`NewDetailID`
+	                                    `DetailID` = @NewDetailID
                                     WHERE
-	                                    `DefID` = @`DefID`
-                                    AND `DetailID` = @`OldDetailID`";
-                                    command.Parameters.AddWithValue("@`DefID`", Definition.ID);
-                                    command.Parameters.AddWithValue("@`OldDetailID`", DetailID);
-                                    command.Parameters.AddWithValue("@`NewDetailID`", newDetailID);
+	                                    `DefID` = @DefID
+                                    AND `DetailID` = @OldDetailID";
+                                    command.Parameters.AddWithValue("@DefID", Definition.ID);
+                                    command.Parameters.AddWithValue("@OldDetailID", DetailID);
+                                    command.Parameters.AddWithValue("@NewDetailID", newDetailID);
                                     if (_plugin.SafeExecuteNonQuery(command) > 0)
                                     {
                                         DetailID = newDetailID;
