@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.79
+ * Version 7.0.1.80
  * 26-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.79</version_code>
+ * <version_code>7.0.1.80</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.79";
+        private const String PluginVersion = "7.0.1.80";
 
         public enum GameVersionEnum
         {
@@ -36261,7 +36261,7 @@ namespace PRoConEvents
 
                         if (ChallengeManager != null)
                         {
-                            ChallengeManager.HandleRead(null);
+                            ChallengeManager.HandleRead(null, false);
                         }
 
                         //Start the other threads
@@ -51095,7 +51095,7 @@ namespace PRoConEvents
                 return null;
             }
 
-            public void HandleRead(MySqlConnection con)
+            public void HandleRead(MySqlConnection con, Boolean bypass)
             {
                 try
                 {
@@ -51111,7 +51111,7 @@ namespace PRoConEvents
                     }
                     try
                     {
-                        if (_plugin.NowDuration(_LastDBReadAll).TotalMinutes > 5.0)
+                        if (_plugin.NowDuration(_LastDBReadAll).TotalMinutes > 5.0 || bypass)
                         {
                             DBReadDefinitions(con);
                             DBReadRules(con);
@@ -51278,6 +51278,8 @@ namespace PRoConEvents
                             return;
                         }
                         Definitions.Remove(def);
+                        // Reload everything. Deleting a definition is huge.
+                        HandleRead(null, true);
                     }
                 }
                 catch (Exception e)
@@ -51541,28 +51543,31 @@ namespace PRoConEvents
                 }
             }
 
-            public void CreateRule(String completionType)
+            public void CreateRule(String definitionName)
             {
                 try
                 {
                     lock (Rules)
                     {
                         var rule = new CRule(_plugin, this, true);
-                        if (completionType == CRule.CompletionType.Rounds.ToString())
+                        if (String.IsNullOrEmpty(definitionName))
                         {
-                            rule.Completion = CRule.CompletionType.Rounds;
-                            rule.RoundCount = 1;
-                        }
-                        else if (completionType == CRule.CompletionType.Duration.ToString())
-                        {
-                            rule.Completion = CRule.CompletionType.Duration;
-                            rule.DurationMinutes = 60;
-                        }
-                        else
-                        {
-                            _plugin.Log.Error("Invalid rule type " + completionType + " when creating challenge rule.");
+                            _plugin.Log.Error("Definition name was empty when creating challenge rule.");
                             return;
                         }
+                        var definitions = GetDefinitions();
+                        if (!definitions.Any())
+                        {
+                            _plugin.Log.Error("No definitions available when creating challenge rule.");
+                            return;
+                        }
+                        var matchingDefinition = definitions.FirstOrDefault(def => def.Name == definitionName);
+                        if (matchingDefinition == null)
+                        {
+                            _plugin.Log.Error("No matching definition when creating challenge rule.");
+                            return;
+                        }
+                        rule.Definition = matchingDefinition;
                         Rules.Add(rule);
                         rule.DBPush(null);
                     }
