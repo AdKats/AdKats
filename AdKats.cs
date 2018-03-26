@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.78
- * 25-MAR-2018
+ * Version 7.0.1.79
+ * 26-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.78</version_code>
+ * <version_code>7.0.1.79</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.78";
+        private const String PluginVersion = "7.0.1.79";
 
         public enum GameVersionEnum
         {
@@ -8538,6 +8538,14 @@ namespace PRoConEvents
                                 return;
                             }
                             break;
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Add Rule?").Success)
+                {
+                    var sanitizedName = strValue.Replace("|", "");
+                    if (!String.IsNullOrEmpty(sanitizedName))
+                    {
+                        ChallengeManager.CreateRule(sanitizedName);
                     }
                 }
                 else if (strVariable.StartsWith("CRH"))
