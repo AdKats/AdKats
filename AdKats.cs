@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.77
+ * Version 7.0.1.78
  * 25-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.77</version_code>
+ * <version_code>7.0.1.78</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.77";
+        private const String PluginVersion = "7.0.1.78";
 
         public enum GameVersionEnum
         {
@@ -2711,7 +2711,7 @@ namespace PRoConEvents
                         }
                     }
                     var ruleSectionPrefix = GetSettingSection(challengeSettings) + " [3] Rules" + t;
-                    if (definitions.Any())
+                    if (!definitions.Any())
                     {
                         // Do not display options to add rules until definitions exist
                         buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add a challenge definition first.", typeof(String), ""));
@@ -51106,6 +51106,7 @@ namespace PRoConEvents
                         if (_plugin.NowDuration(_LastDBReadAll).TotalMinutes > 5.0)
                         {
                             DBReadDefinitions(con);
+                            DBReadRules(con);
                             Loaded = true;
                             _LastDBReadAll = _plugin.UtcNow();
                             _plugin.UpdateSettingPage();
