@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.76
+ * Version 7.0.1.77
  * 25-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.76</version_code>
+ * <version_code>7.0.1.77</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.76";
+        private const String PluginVersion = "7.0.1.77";
 
         public enum GameVersionEnum
         {
@@ -34957,7 +34957,7 @@ namespace PRoConEvents
                         var validNameRecords = nameRecords.Where(rec => !String.IsNullOrEmpty(rec.record_message) && rec.record_message != record.target_player.player_name);
                         if (nameRecords.Any(rec => !String.IsNullOrEmpty(rec.record_message)))
                         {
-                            var previousNames = nameRecords.Where(rec => !String.IsNullOrEmpty(rec.record_message)).Select(rec => rec.record_message).ToList();
+                            var previousNames = nameRecords.Where(rec => !String.IsNullOrEmpty(rec.record_message)).Select(rec => rec.record_message).ToArray();
                             playerNames += ", " + String.Join(", ", previousNames);
                         }
                         SendMessageToSource(record, "Player names: " + playerNames);
