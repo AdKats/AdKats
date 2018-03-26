@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.81
+ * Version 7.0.1.82
  * 26-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.81</version_code>
+ * <version_code>7.0.1.82</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.81";
+        private const String PluginVersion = "7.0.1.82";
 
         public enum GameVersionEnum
         {
@@ -2718,7 +2718,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add Rule?", ChallengeManager.GetDefinitionEnum(true), "None"));
+                        buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add Rule?", ChallengeManager.GetDefinitionEnum(true), "NoneSelected"));
                         var rules = ChallengeManager.GetRules();
                         var defEnum = ChallengeManager.GetDefinitionEnum(false);
                         foreach (var rule in rules)
@@ -2756,11 +2756,11 @@ namespace PRoConEvents
                             }
                             else if (rule.Completion == AChallengeManager.CRule.CompletionType.Rounds)
                             {
-                                buildList.Add(new CPluginVariable(rulePrefix + "Round Count", typeof(Int32), rule.Tier));
+                                buildList.Add(new CPluginVariable(rulePrefix + "Round Count", typeof(Int32), rule.RoundCount));
                             }
                             else if (rule.Completion == AChallengeManager.CRule.CompletionType.Duration)
                             {
-                                buildList.Add(new CPluginVariable(rulePrefix + "Duration Minutes", typeof(Int32), rule.Tier));
+                                buildList.Add(new CPluginVariable(rulePrefix + "Duration Minutes", typeof(Int32), rule.DurationMinutes));
                             }
                             buildList.Add(new CPluginVariable(rulePrefix + "Delete Rule?", typeof(String), ""));
                         }
@@ -51072,11 +51072,11 @@ namespace PRoConEvents
                     var rng = new Random(Environment.TickCount);
                     var enumString = String.Empty;
                     foreach (var defName in Definitions.OrderBy(def => def.Name)
-                                                          .Select(def => def.Name))
+                                                       .Select(def => def.Name))
                     {
                         if (String.IsNullOrEmpty(enumString))
                         {
-                            enumString += "enum.ChallengeDefinitionEnum_" + rng.Next(100000, 999999) + "(" + (includeNone ? "None|" : "");
+                            enumString += "enum.ChallengeDefinitionEnum_" + rng.Next(100000, 999999) + "(" + (includeNone ? "NoneSelected|" : "");
                         }
                         else
                         {
@@ -53093,6 +53093,7 @@ namespace PRoConEvents
                     ModifyTime = _plugin.UtcNow();
                     RoundLastUsedTime = AdKats.GetEpochTime();
                     PersonalLastUsedTime = AdKats.GetEpochTime();
+                    Tier = 1;
                     RoundCount = 1;
                     DurationMinutes = 60;
                 }
@@ -53362,6 +53363,18 @@ namespace PRoConEvents
                                             push = true;
                                         }
                                         Tier = reader.GetInt32("Tier");
+                                        if (Tier < 1)
+                                        {
+                                            _plugin.Log.Error("Rule tier cannot be less than 1.");
+                                            Tier = 1;
+                                            push = true;
+                                        }
+                                        if (Tier > 10)
+                                        {
+                                            _plugin.Log.Error("Rule tier cannot be greter than 10.");
+                                            Tier = 10;
+                                            push = true;
+                                        }
                                         Completion = (CompletionType)Enum.Parse(typeof(CompletionType), reader.GetString("CompletionType"));
                                         RoundCount = reader.GetInt32("RoundCount");
                                         DurationMinutes = reader.GetInt32("DurationMinutes");
