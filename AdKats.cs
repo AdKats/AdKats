@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.82
+ * Version 7.0.1.84
  * 26-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.82</version_code>
+ * <version_code>7.0.1.84</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.82";
+        private const String PluginVersion = "7.0.1.84";
 
         public enum GameVersionEnum
         {
@@ -2718,7 +2718,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add Rule?", ChallengeManager.GetDefinitionEnum(true), "NoneSelected"));
+                        buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add Rule?", ChallengeManager.GetDefinitionEnum(true), "None"));
                         var rules = ChallengeManager.GetRules();
                         var defEnum = ChallengeManager.GetDefinitionEnum(false);
                         foreach (var rule in rules)
@@ -51076,7 +51076,7 @@ namespace PRoConEvents
                     {
                         if (String.IsNullOrEmpty(enumString))
                         {
-                            enumString += "enum.ChallengeDefinitionEnum_" + rng.Next(100000, 999999) + "(" + (includeNone ? "NoneSelected|" : "");
+                            enumString += "enum.ChallengeDefinitionEnum" + (includeNone ? "None" : "") + "_" + rng.Next(100000, 999999) + "(" + (includeNone ? "None|" : "");
                         }
                         else
                         {
@@ -51377,11 +51377,11 @@ namespace PRoConEvents
                                      `Tier`,
                                      `CompletionType`,
                                      `RoundCount`,
-                                     `DurationMinutes`
+                                     `DurationMinutes`,
                                      `CreateTime`,
                                      `ModifyTime`,
-                                     `RoundLastUsedTime`
-                                     `PersonalLastUsedTime`
+                                     `RoundLastUsedTime`,
+                                     `PersonalLastUsedTime`,
                                 FROM `adkats_challenge_rule`
                                WHERE `ServerID` = @ServerID
                             ORDER BY `DefID` ASC, `ID` ASC";
