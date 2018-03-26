@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.85
+ * Version 7.0.1.86
  * 26-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.85</version_code>
+ * <version_code>7.0.1.86</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.85";
+        private const String PluginVersion = "7.0.1.86";
 
         public enum GameVersionEnum
         {
@@ -51294,25 +51294,10 @@ namespace PRoConEvents
                 {
                     lock (Definitions)
                     {
-                        // Create definition
-                        AddDefinition(new CDefinition(_plugin, this, true)
+                        var newDef = new CDefinition(_plugin, this, true)
                         {
                             Name = defName
-                        });
-                    }
-                }
-                catch (Exception e)
-                {
-                    _plugin.Log.HandleException(new AException("Error while creating definition in manager.", e));
-                }
-            }
-
-            public void AddDefinition(CDefinition newDef)
-            {
-                try
-                {
-                    lock (Definitions)
-                    {
+                        };
                         if (newDef == null)
                         {
                             _plugin.Log.Error("Definition was null when adding to the challenge manager.");
@@ -51755,16 +51740,26 @@ namespace PRoConEvents
                     }
                 }
 
-                public void SetNameByString(String name)
+                public void SetNameByString(String newName)
                 {
                     try
                     {
+                        if (String.IsNullOrEmpty(newName))
+                        {
+                            _plugin.Log.Error("Definition name was empty when setting by string.");
+                            return;
+                        }
                         // Make sure that the new string is different from the current one
-                        var sanitizedName = name.Replace("|", "");
+                        var sanitizedName = newName.Replace("|", "");
                         if (Name != sanitizedName &&
                             !String.IsNullOrEmpty(sanitizedName))
                         {
-                            // It's different, assign it.
+                            // Check if a definition exists with this name
+                            if (Manager.GetDefinitions().Any(dDef => dDef.Name == sanitizedName))
+                            {
+                                _plugin.Log.Error("Definition called " + sanitizedName + " already exists.");
+                                return;
+                            }
                             Name = sanitizedName;
                             ModifyTime = _plugin.UtcNow();
                             // Push to the database.
@@ -53494,7 +53489,7 @@ namespace PRoConEvents
                     {
                         if (String.IsNullOrEmpty(name))
                         {
-                            _plugin.Log.Error("Name was empty when setting by string.");
+                            _plugin.Log.Error("Rule name was empty when setting by string.");
                             return;
                         }
                         // Make sure that the new string is different from the current one
@@ -53502,6 +53497,12 @@ namespace PRoConEvents
                         if (Name != sanitizedName &&
                             !String.IsNullOrEmpty(sanitizedName))
                         {
+                            // Check if a definition exists with this name
+                            if (Manager.GetRules().Any(dRule => dRule.Name == sanitizedName))
+                            {
+                                _plugin.Log.Error("Rule called " + sanitizedName + " already exists.");
+                                return;
+                            }
                             // It's different, assign it.
                             Name = sanitizedName;
                             ModifyTime = _plugin.UtcNow();
@@ -53511,7 +53512,7 @@ namespace PRoConEvents
                     }
                     catch (Exception e)
                     {
-                        _plugin.Log.HandleException(new AException("Error while setting definition name by string.", e));
+                        _plugin.Log.HandleException(new AException("Error while setting rule name by string.", e));
                     }
                 }
 
@@ -53521,7 +53522,7 @@ namespace PRoConEvents
                     {
                         if (String.IsNullOrEmpty(tier))
                         {
-                            _plugin.Log.Error("Tier was empty when setting by string.");
+                            _plugin.Log.Error("Rule tier was empty when setting by string.");
                             return;
                         }
                         var newTier = Int32.Parse(tier);
