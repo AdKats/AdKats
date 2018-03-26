@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.75
+ * Version 7.0.1.76
  * 25-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.75</version_code>
+ * <version_code>7.0.1.76</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.75";
+        private const String PluginVersion = "7.0.1.76";
 
         public enum GameVersionEnum
         {
@@ -2664,7 +2664,8 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2] Actions" + t + "Run Challenge Rule ID", typeof(Int32), 0));
                     var defSectionPrefix = GetSettingSection(challengeSettings) + " [3] Definitions" + t;
                     buildList.Add(new CPluginVariable(defSectionPrefix + "Add Definition?", typeof(String), ""));
-                    foreach (var def in ChallengeManager.GetDefinitions())
+                    var definitions = ChallengeManager.GetDefinitions();
+                    foreach (var def in definitions)
                     {
                         if (def.ID <= 0)
                         {
@@ -2707,6 +2708,61 @@ namespace PRoConEvents
                             }
                             buildList.Add(new CPluginVariable(detailPrefix + "Kill Count", typeof(Int32), detail.KillCount));
                             buildList.Add(new CPluginVariable(detailPrefix + "Delete Detail?", typeof(String), ""));
+                        }
+                    }
+                    var ruleSectionPrefix = GetSettingSection(challengeSettings) + " [3] Rules" + t;
+                    if (definitions.Any())
+                    {
+                        // Do not display options to add rules until definitions exist
+                        buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add a challenge definition first.", typeof(String), ""));
+                    }
+                    else
+                    {
+                        buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add Rule?", ChallengeManager.GetDefinitionEnum(true), "None"));
+                        var rules = ChallengeManager.GetRules();
+                        var defEnum = ChallengeManager.GetDefinitionEnum(false);
+                        foreach (var rule in rules)
+                        {
+                            if (rule.ID <= 0)
+                            {
+                                Log.Error("Unable to render challenge rule " + rule.Name + ". It had an invalid ID of " + rule.ID + ".");
+                                continue;
+                            }
+
+                            //CRH1 | 5 ARs 1 Round | Definition
+                            //CRH1 | 5 ARs 1 Round | Name
+                            //CRH1 | 5 ARs 1 Round | Enabled
+                            //CRH1 | 5 ARs 1 Round | Tier
+                            //CRH1 | 5 ARs 1 Round | Completion
+                            //CRH1 | 5 ARs 1 Round | Round Count
+                            //CRH1 | 5 ARs 1 Round | Delete Rule?
+                            //CRH2 | 5 ARs 30 Mins | Definition
+                            //CRH2 | 5 ARs 30 Mins | Name
+                            //CRH2 | 5 ARs 30 Mins | Enabled
+                            //CRH2 | 5 ARs 30 Mins | Tier
+                            //CRH2 | 5 ARs 30 Mins | Completion
+                            //CRH2 | 5 ARs 30 Mins | Duration Minutes
+                            //CRH2 | 5 ARs 30 Mins | Delete Rule?
+
+                            var rulePrefix = ruleSectionPrefix + "CRH" + rule.ID + s + rule.Name + s;
+                            buildList.Add(new CPluginVariable(rulePrefix + "Definition", defEnum, rule.Definition.Name));
+                            buildList.Add(new CPluginVariable(rulePrefix + "Name", typeof(String), rule.Name));
+                            buildList.Add(new CPluginVariable(rulePrefix + "Enabled", typeof(Boolean), rule.Enabled));
+                            buildList.Add(new CPluginVariable(rulePrefix + "Tier", typeof(Int32), rule.Tier));
+                            buildList.Add(new CPluginVariable(rulePrefix + "Completion", AChallengeManager.CRule.CompletionTypeEnumString, rule.Completion.ToString()));
+                            if (rule.Completion == AChallengeManager.CRule.CompletionType.None)
+                            {
+                                buildList.Add(new CPluginVariable(rulePrefix + "^^^SET COMPLETION TYPE^^^", typeof(String), ""));
+                            }
+                            else if (rule.Completion == AChallengeManager.CRule.CompletionType.Rounds)
+                            {
+                                buildList.Add(new CPluginVariable(rulePrefix + "Round Count", typeof(Int32), rule.Tier));
+                            }
+                            else if (rule.Completion == AChallengeManager.CRule.CompletionType.Duration)
+                            {
+                                buildList.Add(new CPluginVariable(rulePrefix + "Duration Minutes", typeof(Int32), rule.Tier));
+                            }
+                            buildList.Add(new CPluginVariable(rulePrefix + "Delete Rule?", typeof(String), ""));
                         }
                     }
                     /*
@@ -5879,7 +5935,7 @@ namespace PRoConEvents
                     Int32 RuleID = Int32.Parse(strValue);
                     if (ChallengeManager != null)
                     {
-                        ChallengeManager.RunNextChallenge(RuleID);
+                        //ChallengeManager.RunNextChallenge(RuleID);
                     }
                 }
                 else if (Regex.Match(strVariable, @"Challenge System Play Status Only").Success)
@@ -8396,17 +8452,7 @@ namespace PRoConEvents
                     switch (section)
                     {
                         case "Change Name?":
-                            // Make sure that the new string is different from the current one
-                            var sanitizedName = strValue.Replace("|", "");
-                            if (definition.Name != sanitizedName && 
-                                !String.IsNullOrEmpty(sanitizedName))
-                            {
-                                // It's different, assign it.
-                                definition.Name = sanitizedName;
-                                definition.ModifyTime = UtcNow();
-                                // Push to the database.
-                                definition.DBPush(null);
-                            }
+                            definition.SetNameByString(strValue);
                             break;
                         case "Add Damage Type?":
                             if (strValue != "None")
@@ -8492,6 +8538,74 @@ namespace PRoConEvents
                                 return;
                             }
                             break;
+                    }
+                }
+                else if (strVariable.StartsWith("CRH"))
+                {
+                    //CRH1 | 5 ARs 1 Round | Definition
+                    //CRH1 | 5 ARs 1 Round | Name
+                    //CRH1 | 5 ARs 1 Round | Enabled
+                    //CRH1 | 5 ARs 1 Round | Tier
+                    //CRH1 | 5 ARs 1 Round | Completion
+                    //CRH1 | 5 ARs 1 Round | Round Count
+                    //CRH1 | 5 ARs 1 Round | Delete Rule?
+                    //CRH2 | 5 ARs 30 Mins | Definition
+                    //CRH2 | 5 ARs 30 Mins | Name
+                    //CRH2 | 5 ARs 30 Mins | Enabled
+                    //CRH2 | 5 ARs 30 Mins | Tier
+                    //CRH2 | 5 ARs 30 Mins | Completion
+                    //CRH2 | 5 ARs 30 Mins | Duration Minutes
+                    //CRH2 | 5 ARs 30 Mins | Delete Rule?
+
+                    // Split the variable name on | characters using the library
+                    var variableSplit = CPluginVariable.DecodeStringArray(strVariable);
+                    var ruleIDStr = variableSplit[0].TrimStart("CRH".ToCharArray()).Trim();
+                    var ruleID = Int64.Parse(ruleIDStr);
+                    if (ruleID <= 0)
+                    {
+                        Log.Error("Rule setting had an invalid rule ID of " + ruleID + ".");
+                        return;
+                    }
+                    var rule = ChallengeManager.GetRule(ruleID);
+                    if (rule == null)
+                    {
+                        Log.Error("Unable to fetch rule for ID " + ruleID + ".");
+                        return;
+                    }
+                    var section = variableSplit[2].Trim();
+                    switch (section)
+                    {
+                        case "Definition":
+                            rule.SetDefinitionByString(strValue);
+                            break;
+                        case "Name":
+                            rule.SetNameByString(strValue);
+                            break;
+                        case "Enabled":
+                            rule.SetEnabledByString(strValue);
+                            break;
+                        case "Tier":
+                            rule.SetTierByString(strValue);
+                            break;
+                        case "Completion":
+                            rule.SetCompletionTypeByString(strValue);
+                            break;
+                        case "Round Count":
+                            rule.SetRoundCountByString(strValue);
+                            break;
+                        case "Duration Minutes":
+                            rule.SetDurationMinutesByString(strValue);
+                            break;
+                        case "Delete Definition?":
+                            if (strValue.ToLower().Trim() == "delete")
+                            {
+                                rule.DBDelete(null);
+                            }
+                            break;
+                        default:
+                            // No idea where we are. Get out of here.
+                            Log.Error("Unknown setting section " + section + " parsed in challenge rule section.");
+                            return;
                     }
                 }
             }
@@ -14663,6 +14777,7 @@ namespace PRoConEvents
                     Log.Error("Round over players not found/ready! Contact ColColonCleaner.");
                 }
 
+                /*
                 // Choose the next challenge if enabled
                 Threading.StartWatchdog(new Thread(new ThreadStart(delegate
                 {
@@ -14674,6 +14789,7 @@ namespace PRoConEvents
                     }
                     Threading.StopWatchdog();
                 })));
+                */
 
                 //Stat refresh
                 List<APlayer> roundPlayerObjects;
@@ -16161,6 +16277,7 @@ namespace PRoConEvents
                     Log.HandleException(new AException("Error in no explosives auto-admin.", e));
                 }
 
+                /*
                 try
                 {
                     if (!acted &&
@@ -16175,6 +16292,7 @@ namespace PRoConEvents
                 {
                     Log.HandleException(new AException("Error while running challenge kill processing.", e));
                 }
+                */
             }
             catch (Exception e)
             {
@@ -16291,6 +16409,7 @@ namespace PRoConEvents
                             StartRoundTimer();
                         }
 
+                        /*
                         // Choose the next challenge if there is none currently assigned
                         if (ChallengeManager != null &&
                             ChallengeManager.Enabled &&
@@ -16298,6 +16417,7 @@ namespace PRoConEvents
                         {
                             ChallengeManager.RunNextChallenge(null);
                         }
+                        */
                     }
 
                     if (_CommandNameDictionary.Count > 0)
@@ -19675,7 +19795,7 @@ namespace PRoConEvents
                                             NowDuration(aRecord.record_time).TotalMinutes < 5 &&
                                             aRecord.command_action.command_key != "player_report_confirm") >= 1)
                                     {
-                                        SendMessageToSource(record, "Do not have report wars. If this is urgent please contact an admin in teamspeak; @ts for the address.");
+                                        SendMessageToSource(record, "Do not have report wars. If this is urgent please contact an admin in teamspeak; !" + GetCommandByKey("self_voip").command_text + " for the address.");
                                         QueueRecordForProcessing(new ARecord
                                         {
                                             record_source = ARecord.Sources.Automated,
@@ -34722,7 +34842,7 @@ namespace PRoConEvents
                         if (_PlayerDictionary.ContainsKey(record.target_player.player_name))
                         {
                             var duration = record.target_player.player_serverplaytime + NowDuration(record.target_player.JoinTime);
-                            SendMessageToSource(record, "Time on server: " + Math.Round(duration.TotalHours, 1) + "hrs (" +  FormatTimeString(duration, 3) + ").");
+                            SendMessageToSource(record, "Time on server: " + Math.Round(duration.TotalHours, 1) + "hrs (" + FormatTimeString(duration, 3) + ").");
                         }
                         else
                         {
@@ -34832,21 +34952,35 @@ namespace PRoConEvents
                         SendMessageToSource(record, "Reputation: " + Math.Round(record.target_player.player_reputation, 2));
                         Threading.Wait(2000);
                         //Previous Names
-                        String playerNames = "No previous names.";
+                        String playerNames = record.target_player.player_name;
                         List<ARecord> nameRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changename").command_id, 1000, 50, true, false).GroupBy(nameRecord => nameRecord.record_message).Select(group => group.First()).ToList();
-                        if (nameRecords.Any())
+                        var validNameRecords = nameRecords.Where(rec => !String.IsNullOrEmpty(rec.record_message) && rec.record_message != record.target_player.player_name);
+                        if (nameRecords.Any(rec => !String.IsNullOrEmpty(rec.record_message)))
                         {
-                            playerNames = nameRecords.Aggregate(record.target_name, (current, nameRecord) => current + (", " + nameRecord.record_message));
+                            var previousNames = nameRecords.Where(rec => !String.IsNullOrEmpty(rec.record_message)).Select(rec => rec.record_message).ToList();
+                            playerNames += ", " + String.Join(", ", previousNames);
                         }
-                        SendMessageToSource(record, "Previous names: " + playerNames);
+                        SendMessageToSource(record, "Player names: " + playerNames);
                         //Previous Tags
-                        String playerTags = "No previous tags.";
-                        List<ARecord> tagRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changetag").command_id, 1000, 50, true, false).GroupBy(tagRecord => tagRecord.record_message).Select(group => group.First()).ToList();
-                        if (tagRecords.Any())
+                        String playerTags = "";
+                        List<String> playerTagList = new List<String>();
+                        if (!String.IsNullOrEmpty(record.target_player.player_clanTag))
                         {
-                            playerTags = tagRecords.Aggregate(record.target_player.player_clanTag, (current, tagRecord) => current + (", " + tagRecord.record_message));
+                            playerTagList.Add(record.target_player.player_clanTag);
                         }
-                        SendMessageToSource(record, "Previous tags: " + playerTags);
+                        List<ARecord> tagRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changetag").command_id, 1000, 50, true, false).GroupBy(tagRecord => tagRecord.record_message).Select(group => group.First()).ToList();
+                        var previousTags = tagRecords.Where(rec => !String.IsNullOrEmpty(rec.record_message) && rec.record_message != record.target_player.player_clanTag).Select(rec => rec.record_message).ToList();
+                        playerTagList.AddRange(previousTags);
+                        playerTagList = playerTagList.Distinct().ToList();
+                        if (playerTagList.Any())
+                        {
+                            playerTags = String.Join(", ", playerTagList.ToArray());
+                        }
+                        if (String.IsNullOrEmpty(playerTags))
+                        {
+                            playerTags = "No clan tags.";
+                        }
+                        SendMessageToSource(record, "Player tags: " + playerTags);
                     }
                     catch (Exception)
                     {
@@ -35781,6 +35915,7 @@ namespace PRoConEvents
                         SendMessageToSource(record, "help - Show this message.");
                         break;
                     case "info":
+                        /*
                         // Immediately get the challenge info, then go async
                         var messages = ChallengeManager.GetChallengeInfo(record.target_player).Split(
                             new[] { Environment.NewLine },
@@ -35807,6 +35942,7 @@ namespace PRoConEvents
                             Log.Debug(() => "Exiting a challenge info printer.", 5);
                             Threading.StopWatchdog();
                         })));
+                        */
                         break;
                     case "autokill":
                         if (record.target_player == null)
@@ -50885,14 +51021,81 @@ namespace PRoConEvents
         {
             private AdKats _plugin;
 
+            // Settings
             public Boolean Enabled;
+            public Boolean PlayStatusOnly;
+            public Boolean AllowRepeatRules;
+
+            // Runtime
+            private Boolean Loading;
+            private Boolean Loaded;
+            public CRule RoundRule;
             private List<CDefinition> Definitions;
+            private List<CRule> Rules;
+            private List<CEntry> Entries;
+            
+            // Timings
             private DateTime _LastDBReadAll = DateTime.UtcNow - TimeSpan.FromMinutes(30);
+
+            public AChallengeManager(AdKats plugin)
+            {
+                _plugin = plugin;
+                try
+                {
+                    Definitions = new List<CDefinition>();
+                    Rules = new List<CRule>();
+                    Entries = new List<CEntry>();
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while creating challenge manager.", e));
+                }
+            }
+
+            public String GetDefinitionEnum(Boolean includeNone)
+            {
+                try
+                {
+                    if (!Definitions.Any())
+                    {
+                        _plugin.Log.Error("Attempted to get definition enum with no definitions added.");
+                        return null;
+                    }
+                    var rng = new Random(Environment.TickCount);
+                    var enumString = String.Empty;
+                    foreach (var defName in Definitions.OrderBy(def => def.Name)
+                                                          .Select(def => def.Name))
+                    {
+                        if (String.IsNullOrEmpty(enumString))
+                        {
+                            enumString += "enum.ChallengeDefinitionEnum_" + rng.Next(100000, 999999) + "(" + (includeNone ? "None|" : "");
+                        }
+                        else
+                        {
+                            enumString += "|";
+                        }
+                        enumString += defName;
+                    }
+                    enumString += ")";
+                    return enumString;
+                }
+                catch (Exception e)
+                {
+                    Loading = false;
+                    _plugin.Log.HandleException(new AException("Error while generating definition enum.", e));
+                }
+                return null;
+            }
 
             public void HandleRead(MySqlConnection con)
             {
                 try
                 {
+                    if (Loading)
+                    {
+                        return;
+                    }
+                    Loading = true;
                     var localConnection = con;
                     if (localConnection == null)
                     {
@@ -50903,6 +51106,7 @@ namespace PRoConEvents
                         if (_plugin.NowDuration(_LastDBReadAll).TotalMinutes > 5.0)
                         {
                             DBReadDefinitions(con);
+                            Loaded = true;
                             _LastDBReadAll = _plugin.UtcNow();
                             _plugin.UpdateSettingPage();
                         }
@@ -50918,6 +51122,7 @@ namespace PRoConEvents
                 }
                 catch (Exception e)
                 {
+                    Loading = false;
                     _plugin.Log.HandleException(new AException("Error while reading all challenge manager DB info.", e));
                 }
             }
@@ -50955,7 +51160,7 @@ namespace PRoConEvents
                                         var def = Definitions.FirstOrDefault(dDef => dDef.ID == readID);
                                         if (def == null)
                                         {
-                                            def = new CDefinition(_plugin, this);
+                                            def = new CDefinition(_plugin, this, false);
                                             def.ID = readID;
                                             Definitions.Add(def);
                                         }
@@ -51079,9 +51284,8 @@ namespace PRoConEvents
                     lock (Definitions)
                     {
                         // Create definition
-                        AddDefinition(new CDefinition(_plugin, this)
+                        AddDefinition(new CDefinition(_plugin, this, true)
                         {
-                            Phantom = true,
                             Name = defName
                         });
                     }
@@ -51134,48 +51338,246 @@ namespace PRoConEvents
                 }
             }
 
-
-
-
-
-
-
-
-
-            public Boolean PlayStatusOnly;
-            public Boolean AllowRepeatRules;
-            private Dictionary<Int32, ChallengeRule> Rules;
-            
-            public ChallengeRule RoundRule;
-            public Dictionary<APlayer, ChallengeEntry> RoundEntries;
-            
-            public AChallengeManager(AdKats plugin)
+            public void DBReadRules(MySqlConnection con)
             {
-                _plugin = plugin;
                 try
                 {
-                    Definitions = new List<CDefinition>();
-
-                    Rules = new Dictionary<Int32, ChallengeRule>();
-                    RoundEntries = new Dictionary<APlayer, ChallengeEntry>();
-
-                    PopulateRules();
+                    if (_plugin._serverInfo == null ||
+                        _plugin._serverInfo.ServerID <= 0)
+                    {
+                        _plugin.Log.Error("Unable to read challenge rules. Server info invalid.");
+                        return;
+                    }
+                    var localConnection = con;
+                    if (localConnection == null)
+                    {
+                        localConnection = _plugin.GetDatabaseConnection();
+                    }
+                    try
+                    {
+                        using (MySqlCommand command = localConnection.CreateCommand())
+                        {
+                            command.CommandText = @"
+                              SELECT `ID`,
+                                     `ServerID`,
+                                     `DefID`,
+                                     `Enabled`,
+                                     `Name`,
+                                     `Tier`,
+                                     `CompletionType`,
+                                     `RoundCount`,
+                                     `DurationMinutes`
+                                     `CreateTime`,
+                                     `ModifyTime`,
+                                     `RoundLastUsedTime`
+                                     `PersonalLastUsedTime`
+                                FROM `adkats_challenge_rule`
+                               WHERE `ServerID` = @ServerID
+                            ORDER BY `DefID` ASC, `ID` ASC";
+                            command.Parameters.AddWithValue("@ServerID", _plugin._serverInfo.ServerID);
+                            var ruleDeletes = new List<CRule>();
+                            var rulePushes = new List<CRule>();
+                            using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
+                            {
+                                lock (Rules)
+                                {
+                                    var validIDs = new List<Int64>();
+                                    while (reader.Read())
+                                    {
+                                        var add = false;
+                                        var readID = reader.GetInt32("ID");
+                                        var rule = Rules.FirstOrDefault(dRule => dRule.ID == readID);
+                                        if (rule == null)
+                                        {
+                                            rule = new CRule(_plugin, this, false);
+                                            rule.ID = readID;
+                                            add = true;
+                                        }
+                                        var serverID = reader.GetInt64("ServerID");
+                                        if (_plugin._serverInfo.ServerID != serverID)
+                                        {
+                                            _plugin.Log.Error("Invalid server ID when reading challenge rule " + rule.ID + ".");
+                                            ruleDeletes.Add(rule);
+                                            continue;
+                                        }
+                                        rule.ServerID = serverID;
+                                        var definition = GetDefinition(reader.GetInt64("DefID"));
+                                        if (definition == null)
+                                        {
+                                            _plugin.Log.Error("Invalid definition value when reading challenge rule " + rule.ID + ".");
+                                            ruleDeletes.Add(rule);
+                                            continue;
+                                        }
+                                        rule.Definition = definition;
+                                        rule.Enabled = reader.GetBoolean("Enabled");
+                                        rule.Name = reader.GetString("Name");
+                                        var sanitizedName = rule.Name.Replace("|", "");
+                                        if (String.IsNullOrEmpty(sanitizedName))
+                                        {
+                                            _plugin.Log.Error("Challenge rule " + rule.ID + " contained invalid name characters.");
+                                            var rng = new Random(Environment.TickCount);
+                                            // Assume we won't hit duplicates with 1 million (welp)
+                                            rule.Name = "CHG-" + rule.ID + "-" + rng.Next(1000000);
+                                            rulePushes.Add(rule);
+                                        }
+                                        else if (rule.Name != sanitizedName)
+                                        {
+                                            _plugin.Log.Error("Challenge rule " + rule.ID + " contained invalid name characters.");
+                                            rule.Name = sanitizedName;
+                                            rulePushes.Add(rule);
+                                        }
+                                        rule.Tier = reader.GetInt32("Tier");
+                                        rule.Completion = (CRule.CompletionType)Enum.Parse(typeof(CRule.CompletionType), reader.GetString("CompletionType"));
+                                        rule.RoundCount = reader.GetInt32("RoundCount");
+                                        rule.DurationMinutes = reader.GetInt32("DurationMinutes");
+                                        rule.CreateTime = reader.GetDateTime("CreateTime");
+                                        rule.ModifyTime = reader.GetDateTime("ModifyTime");
+                                        rule.RoundLastUsedTime = reader.GetDateTime("RoundLastUsedTime");
+                                        rule.PersonalLastUsedTime = reader.GetDateTime("PersonalLastUsedTime");
+                                        validIDs.Add(readID);
+                                        if (add)
+                                        {
+                                            Rules.Add(rule);
+                                        }
+                                    }
+                                    // Remove rules as necessary
+                                    foreach (var rule in Rules.Where(dRule => !validIDs.Contains(dRule.ID)).ToList())
+                                    {
+                                        _plugin.Log.Info("Removing rule " + rule.ID + " from challenge manager. Rule was deleted from database.");
+                                        Rules.Remove(rule);
+                                    }
+                                }
+                            }
+                            // These must be executed afterward, otherwise it would cause overlapping readers on the same connection
+                            foreach (var rule in ruleDeletes)
+                            {
+                                rule.DBDelete(localConnection);
+                            }
+                            foreach (var rule in rulePushes)
+                            {
+                                rule.DBPush(localConnection);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        if (con == null &&
+                            localConnection != null)
+                        {
+                            localConnection.Dispose();
+                        }
+                    }
                 }
                 catch (Exception e)
                 {
-                    _plugin.Log.HandleException(new AException("Error while creating challenge manager.", e));
+                    _plugin.Log.HandleException(new AException("Error reading in rules for challenge manager.", e));
                 }
             }
 
-            public List<ChallengeRule> GetRules()
+            public List<CRule> GetRules()
             {
-                if (!Rules.Any())
+                var rules = new List<CRule>();
+                try
                 {
-                    return new List<ChallengeRule>();
+                    lock (Rules)
+                    {
+                        rules.AddRange(Rules.OrderBy(rule => rule.ID).ToList());
+                    }
                 }
-                return Rules.Values.OrderBy(rule => rule.RuleID).ToList();
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while getting list of rules.", e));
+                }
+                return rules;
             }
 
+            public CRule GetRule(Int64 ruleID)
+            {
+                try
+                {
+                    lock (Rules)
+                    {
+                        if (!Rules.Any())
+                        {
+                            return null;
+                        }
+                        return Rules.FirstOrDefault(rule => rule.ID == ruleID);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while getting rule from manager.", e));
+                }
+                return null;
+            }
+
+            protected void DeleteRule(Int64 ruleID)
+            {
+                try
+                {
+                    lock (Rules)
+                    {
+                        CRule rule = Rules.FirstOrDefault(dRule => dRule.ID == ruleID);
+                        if (rule == null)
+                        {
+                            _plugin.Log.Error("No rule exists with ID " + ruleID + ".");
+                            return;
+                        }
+                        Rules.Remove(rule);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while deleting rule from manager.", e));
+                }
+            }
+
+            public void CreateRule(String completionType)
+            {
+                try
+                {
+                    lock (Rules)
+                    {
+                        var rule = new CRule(_plugin, this, true);
+                        if (completionType == CRule.CompletionType.Rounds.ToString())
+                        {
+                            rule.Completion = CRule.CompletionType.Rounds;
+                            rule.RoundCount = 1;
+                        }
+                        else if (completionType == CRule.CompletionType.Duration.ToString())
+                        {
+                            rule.Completion = CRule.CompletionType.Duration;
+                            rule.DurationMinutes = 60;
+                        }
+                        else
+                        {
+                            _plugin.Log.Error("Invalid rule type " + completionType + " when creating challenge rule.");
+                            return;
+                        }
+                        Rules.Add(rule);
+                        rule.DBPush(null);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while creating definition detail in manager.", e));
+                }
+            }
+
+            public String GetCurrentRuleName()
+            {
+                try
+                {
+                    return RoundRule != null ? RoundRule.Name : "No Current Rule";
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while getting current rule name.", e));
+                }
+                return null;
+            }
+
+            /*
             public String GetChallengeInfo(APlayer aPlayer)
             {
                 if (RoundRule == null)
@@ -51202,6 +51604,15 @@ namespace PRoConEvents
                 {
                     if (Enabled)
                     {
+                        if (!Loaded)
+                        {
+                            HandleRead(null);
+                            if (!Loaded)
+                            {
+                                _plugin.Log.Error("Unable to run next challenge. Manager could not complete loading.");
+                                return;
+                            }
+                        }
                         // Exclude the current rule if desired
                         if (RoundRule != null &&
                             RoundEntries.Any())
@@ -51258,165 +51669,6 @@ namespace PRoConEvents
                 }
             }
 
-            public String GetCurrentRuleName()
-            {
-                try
-                {
-                    return RoundRule != null ? RoundRule.Name : "No Current Rule";
-                }
-                catch (Exception e)
-                {
-                    _plugin.Log.HandleException(new AException("Error while getting current rule name.", e));
-                }
-                return null;
-            }
-
-            private void PopulateRules()
-            {
-                try
-                {
-                    // Assault Rifles
-                    var AR = new ChallengeRule(_plugin)
-                    {
-                        RuleID = 1,
-                        Name = "4 ARs"
-                    };
-                    AR.AddDetail(new ChallengeRule.Detail()
-                    {
-                        RuleID = 1,
-                        DetailID = 1,
-                        Type = ChallengeRule.Detail.DetailType.Damage,
-                        Damage = DamageTypes.AssaultRifle,
-                        WeaponCount = 4,
-                        KillCount = 10
-                    });
-                    Rules[AR.RuleID] = AR;
-                    
-                    // Carbine
-                    var CA = new ChallengeRule(_plugin)
-                    {
-                        RuleID = 2,
-                        Name = "4 Carbines"
-                    };
-                    CA.AddDetail(new ChallengeRule.Detail()
-                    {
-                        RuleID = 2,
-                        DetailID = 1,
-                        Type = ChallengeRule.Detail.DetailType.Damage,
-                        Damage = DamageTypes.Carbine,
-                        WeaponCount = 4,
-                        KillCount = 10
-                    });
-                    Rules[CA.RuleID] = CA;
-
-                    // LMG
-                    var LMG = new ChallengeRule(_plugin)
-                    {
-                        RuleID = 3,
-                        Name = "4 LMGs"
-                    };
-                    LMG.AddDetail(new ChallengeRule.Detail()
-                    {
-                        RuleID = 3,
-                        DetailID = 1,
-                        Type = ChallengeRule.Detail.DetailType.Damage,
-                        Damage = DamageTypes.LMG,
-                        WeaponCount = 4,
-                        KillCount = 10
-                    });
-                    Rules[LMG.RuleID] = LMG;
-
-                    // Shotgun
-                    var Shotgun = new ChallengeRule(_plugin)
-                    {
-                        RuleID = 4,
-                        Name = "4 Shotguns"
-                    };
-                    Shotgun.AddDetail(new ChallengeRule.Detail()
-                    {
-                        RuleID = 4,
-                        DetailID = 1,
-                        Type = ChallengeRule.Detail.DetailType.Damage,
-                        Damage = DamageTypes.Shotgun,
-                        WeaponCount = 4,
-                        KillCount = 10
-                    });
-                    Rules[Shotgun.RuleID] = Shotgun;
-
-                    // Handgun
-                    var Handgun = new ChallengeRule(_plugin)
-                    {
-                        RuleID = 5,
-                        Name = "5 Pistols"
-                    };
-                    Handgun.AddDetail(new ChallengeRule.Detail()
-                    {
-                        RuleID = 5,
-                        DetailID = 1,
-                        Type = ChallengeRule.Detail.DetailType.Damage,
-                        Damage = DamageTypes.Handgun,
-                        WeaponCount = 5,
-                        KillCount = 5
-                    });
-                    Rules[Handgun.RuleID] = Handgun;
-
-                    // Sniper
-                    var Sniper = new ChallengeRule(_plugin)
-                    {
-                        RuleID = 6,
-                        Name = "4 Snipers"
-                    };
-                    Sniper.AddDetail(new ChallengeRule.Detail()
-                    {
-                        RuleID = 6,
-                        DetailID = 1,
-                        Type = ChallengeRule.Detail.DetailType.Damage,
-                        Damage = DamageTypes.SniperRifle,
-                        WeaponCount = 4,
-                        KillCount = 10
-                    });
-                    Rules[Sniper.RuleID] = Sniper;
-
-                    /*
-                    // 3 LMGs
-                    var LMG = new ChallengeRule(_plugin)
-                    {
-                        RuleID = 3,
-                        Name = "3 LMGs"
-                    };
-                    LMG.AddDetail(new ChallengeRule.Detail()
-                    {
-                        RuleID = 3,
-                        DetailID = 1,
-                        Type = ChallengeRule.Detail.DetailType.Weapon,
-                        Weapon = "U_M60E4",
-                        KillCount = 10
-                    });
-                    LMG.AddDetail(new ChallengeRule.Detail()
-                    {
-                        RuleID = 3,
-                        DetailID = 2,
-                        Type = ChallengeRule.Detail.DetailType.Weapon,
-                        Weapon = "U_MG4",
-                        KillCount = 10
-                    });
-                    LMG.AddDetail(new ChallengeRule.Detail()
-                    {
-                        RuleID = 3,
-                        DetailID = 2,
-                        Type = ChallengeRule.Detail.DetailType.Weapon,
-                        Weapon = "U_Pecheneg",
-                        KillCount = 10
-                    });
-                    Rules.Add(LMG);
-                    */
-                }
-                catch (Exception e)
-                {
-                    _plugin.Log.HandleException(new AException("Error while populating challenge rules.", e));
-                }
-            }
-
             public void ProcessKill(AKill aKill)
             {
                 try
@@ -51439,6 +51691,7 @@ namespace PRoConEvents
                     _plugin.Log.HandleException(new AException("Error while processing challenge kill.", e));
                 }
             }
+            */
 
             public class CDefinition
             {
@@ -51456,10 +51709,11 @@ namespace PRoConEvents
                 public DateTime ModifyTime;
                 private List<CDefinitionDetail> Details;
 
-                public CDefinition(AdKats plugin, AChallengeManager manager)
+                public CDefinition(AdKats plugin, AChallengeManager manager, Boolean phantom)
                 {
                     _plugin = plugin;
                     Manager = manager;
+                    Phantom = phantom;
                     CreateTime = _plugin.UtcNow();
                     ModifyTime = _plugin.UtcNow();
                     Details = new List<CDefinitionDetail>();
@@ -51483,6 +51737,28 @@ namespace PRoConEvents
                             DetailDamageEnumString += damageType;
                         }
                         DetailDamageEnumString += ")";
+                    }
+                }
+
+                public void SetNameByString(String name)
+                {
+                    try
+                    {
+                        // Make sure that the new string is different from the current one
+                        var sanitizedName = name.Replace("|", "");
+                        if (Name != sanitizedName &&
+                            !String.IsNullOrEmpty(sanitizedName))
+                        {
+                            // It's different, assign it.
+                            Name = sanitizedName;
+                            ModifyTime = _plugin.UtcNow();
+                            // Push to the database.
+                            DBPush(null);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while setting definition name by string.", e));
                     }
                 }
 
@@ -51594,9 +51870,8 @@ namespace PRoConEvents
                         lock (Details)
                         {
                             // Set the ID to 99999. This will be changed during the detail sort.
-                            var detail = new CDefinitionDetail(_plugin, this, 99999)
+                            var detail = new CDefinitionDetail(_plugin, this, 99999, true)
                             {
-                                Phantom = true,
                                 KillCount = 1
                             };
                             // Find the detail type
@@ -51855,11 +52130,27 @@ namespace PRoConEvents
                                     FROM `adkats_challenge_definition`
                                    WHERE `ID` = @ID";
                                 command.Parameters.AddWithValue("@ID", ID);
+                                var push = false;
                                 using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
                                 {
                                     if (reader.Read())
                                     {
                                         Name = reader.GetString("Name");
+                                        var sanitizedName = Name.Replace("|", "");
+                                        if (String.IsNullOrEmpty(sanitizedName))
+                                        {
+                                            _plugin.Log.Error("Challenge definition " + ID + " contained invalid name characters.");
+                                            var rng = new Random(Environment.TickCount);
+                                            // Assume we won't hit duplicates with 1 million (welp)
+                                            Name = "CHG-" + ID + "-" + rng.Next(1000000);
+                                            push = true;
+                                        }
+                                        else if (Name != sanitizedName)
+                                        {
+                                            _plugin.Log.Error("Challenge definition " + ID + " contained invalid name characters.");
+                                            Name = sanitizedName;
+                                            push = true;
+                                        }
                                         CreateTime = reader.GetDateTime("CreateTime");
                                         ModifyTime = reader.GetDateTime("ModifyTime");
                                     }
@@ -51867,6 +52158,10 @@ namespace PRoConEvents
                                     {
                                         _plugin.Log.Error("Unable to find matching CDefinition for ID " + ID);
                                     }
+                                }
+                                if (push)
+                                {
+                                    DBPush(localConnection);
                                 }
                             }
                             DBReadDetails(localConnection);
@@ -51932,7 +52227,7 @@ namespace PRoConEvents
                                             CDefinitionDetail detail = Details.FirstOrDefault(dDetail => dDetail.DetailID == detailID);
                                             if (detail == null)
                                             {
-                                                detail = new CDefinitionDetail(_plugin, this, detailID);
+                                                detail = new CDefinitionDetail(_plugin, this, detailID, false);
                                                 add = true;
                                             }
                                             detail.Type = (CDefinitionDetail.DetailType)Enum.Parse(typeof(CDefinitionDetail.DetailType), reader.GetString("Type"));
@@ -52106,11 +52401,12 @@ namespace PRoConEvents
                     public DateTime CreateTime;
                     public DateTime ModifyTime;
 
-                    public CDefinitionDetail(AdKats plugin, CDefinition definition, Int64 startingID)
+                    public CDefinitionDetail(AdKats plugin, CDefinition definition, Int64 startingID, Boolean phantom)
                     {
                         _plugin = plugin;
                         Definition = definition;
                         DetailID = startingID;
+                        Phantom = phantom;
                         CreateTime = _plugin.UtcNow();
                         ModifyTime = _plugin.UtcNow();
                     }
@@ -52319,15 +52615,54 @@ namespace PRoConEvents
                                          AND `DetailID` = @DetailID";
                                     command.Parameters.AddWithValue("@DefID", Definition.ID);
                                     command.Parameters.AddWithValue("@DetailID", DetailID);
+                                    var push = false;
+                                    var delete = false;
                                     using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
                                     {
                                         if (reader.Read())
                                         {
                                             Type = (DetailType)Enum.Parse(typeof(DetailType), reader.GetString("Type"));
-                                            Damage = (DetailDamage)Enum.Parse(typeof(DetailDamage), reader.GetString("Damage"));
-                                            WeaponCount = reader.GetInt32("WeaponCount");
-                                            Weapon = reader.GetString("Weapon");
+                                            // Damage section
+                                            if (!reader.IsDBNull(1))
+                                            {
+                                                Damage = (DetailDamage)Enum.Parse(typeof(DetailDamage), reader.GetString("Damage"));
+                                                // Make sure we aren't loading in duplicate damage types
+                                                if (Type == DetailType.Damage &&
+                                                    Definition.GetDetails().Any(dDetail => dDetail.Type == DetailType.Damage &&
+                                                                                           dDetail.Damage == Damage))
+                                                {
+                                                    _plugin.Log.Error("Detail with damage " + Damage.ToString() + " already exists.");
+                                                    delete = true;
+                                                }
+                                                WeaponCount = reader.GetInt32("WeaponCount");
+                                                if (Type == DetailType.Damage &&
+                                                    WeaponCount < 1)
+                                                {
+                                                    _plugin.Log.Error("Challenge detail " + Definition.ID + ":" + DetailID + " had an invalid weapon count. Changing to 1.");
+                                                    WeaponCount = 1;
+                                                    push = true;
+                                                }
+                                            }
+                                            // Weapon section
+                                            if (!reader.IsDBNull(3))
+                                            {
+                                                Weapon = reader.GetString("Weapon");
+                                                // Make sure we aren't loading in duplicate weapon codes
+                                                if (Type == DetailType.Weapon &&
+                                                    Definition.GetDetails().Any(dDetail => dDetail.Type == DetailType.Weapon &&
+                                                                                           dDetail.Weapon == Weapon))
+                                                {
+                                                    _plugin.Log.Error("Detail with weapon " + Weapon + " already exists.");
+                                                    delete = true;
+                                                }
+                                            }
                                             KillCount = reader.GetInt32("KillCount");
+                                            if (KillCount < 1)
+                                            {
+                                                _plugin.Log.Error("Challenge detail " + Definition.ID + ":" + DetailID + " had an invalid kill count. Changing to 1.");
+                                                KillCount = 1;
+                                                push = true;
+                                            }
                                             CreateTime = reader.GetDateTime("CreateTime");
                                             ModifyTime = reader.GetDateTime("ModifyTime");
                                         }
@@ -52335,6 +52670,15 @@ namespace PRoConEvents
                                         {
                                             _plugin.Log.Error("Unable to find matching CDefinitionDetail for " + Definition.ID + ":" + DetailID + ".");
                                         }
+                                    }
+                                    if (delete)
+                                    {
+                                        DBDelete(localConnection);
+                                        Definition.DeleteDetail(DetailID);
+                                    }
+                                    else if (push)
+                                    {
+                                        DBPush(localConnection);
                                     }
                                 }
                             }
@@ -52492,6 +52836,7 @@ namespace PRoConEvents
                             if (newDamage == Damage)
                             {
                                 _plugin.Log.Info("Old detail damage type and new damage type were the same when setting damage type by string.");
+                                return;
                             }
                             Damage = newDamage;
                             ModifyTime = _plugin.UtcNow();
@@ -52604,50 +52949,54 @@ namespace PRoConEvents
                     {
                         try
                         {
+                            // Maps detail damage to procon damage types
                             List<DamageTypes> damageTypes = new List<DamageTypes>();
-                            switch (Damage)
+                            if (Type == DetailType.Damage)
                             {
-                                case DetailDamage.None:
-                                    damageTypes.Add(DamageTypes.None);
-                                    break;
-                                case DetailDamage.Melee:
-                                    damageTypes.Add(DamageTypes.Melee);
-                                    break;
-                                case DetailDamage.Handgun:
-                                    damageTypes.Add(DamageTypes.Handgun);
-                                    break;
-                                case DetailDamage.Assault_Rifle:
-                                    damageTypes.Add(DamageTypes.AssaultRifle);
-                                    break;
-                                case DetailDamage.Carbine:
-                                    damageTypes.Add(DamageTypes.Carbine);
-                                    break;
-                                case DetailDamage.LMG:
-                                    damageTypes.Add(DamageTypes.LMG);
-                                    break;
-                                case DetailDamage.SMG:
-                                    damageTypes.Add(DamageTypes.SMG);
-                                    break;
-                                case DetailDamage.DMR:
-                                    damageTypes.Add(DamageTypes.DMR);
-                                    break;
-                                case DetailDamage.DMR_And_Sniper:
-                                    damageTypes.Add(DamageTypes.DMR);
-                                    damageTypes.Add(DamageTypes.SniperRifle);
-                                    break;
-                                case DetailDamage.Sniper_Rifle:
-                                    damageTypes.Add(DamageTypes.SniperRifle);
-                                    break;
-                                case DetailDamage.Shotgun:
-                                    damageTypes.Add(DamageTypes.Shotgun);
-                                    break;
-                                case DetailDamage.Explosive:
-                                    damageTypes.Add(DamageTypes.Explosive);
-                                    damageTypes.Add(DamageTypes.ProjectileExplosive);
-                                    break;
-                                default:
-                                    _plugin.Log.Info("Invalid detail damage when getting damage types.");
-                                    break;
+                                switch (Damage)
+                                {
+                                    case DetailDamage.None:
+                                        damageTypes.Add(DamageTypes.None);
+                                        break;
+                                    case DetailDamage.Melee:
+                                        damageTypes.Add(DamageTypes.Melee);
+                                        break;
+                                    case DetailDamage.Handgun:
+                                        damageTypes.Add(DamageTypes.Handgun);
+                                        break;
+                                    case DetailDamage.Assault_Rifle:
+                                        damageTypes.Add(DamageTypes.AssaultRifle);
+                                        break;
+                                    case DetailDamage.Carbine:
+                                        damageTypes.Add(DamageTypes.Carbine);
+                                        break;
+                                    case DetailDamage.LMG:
+                                        damageTypes.Add(DamageTypes.LMG);
+                                        break;
+                                    case DetailDamage.SMG:
+                                        damageTypes.Add(DamageTypes.SMG);
+                                        break;
+                                    case DetailDamage.DMR:
+                                        damageTypes.Add(DamageTypes.DMR);
+                                        break;
+                                    case DetailDamage.DMR_And_Sniper:
+                                        damageTypes.Add(DamageTypes.DMR);
+                                        damageTypes.Add(DamageTypes.SniperRifle);
+                                        break;
+                                    case DetailDamage.Sniper_Rifle:
+                                        damageTypes.Add(DamageTypes.SniperRifle);
+                                        break;
+                                    case DetailDamage.Shotgun:
+                                        damageTypes.Add(DamageTypes.Shotgun);
+                                        break;
+                                    case DetailDamage.Explosive:
+                                        damageTypes.Add(DamageTypes.Explosive);
+                                        damageTypes.Add(DamageTypes.ProjectileExplosive);
+                                        break;
+                                    default:
+                                        _plugin.Log.Info("Invalid detail damage when getting damage types.");
+                                        break;
+                                }
                             }
                             if (!damageTypes.Any())
                             {
@@ -52695,22 +53044,24 @@ namespace PRoConEvents
             {
                 public enum CompletionType
                 {
+                    None,
                     Rounds,
                     Duration
                 }
-                public static String CompletionTypeEnumString = "enum.ChallengeRuleCompletionType(Rounds|Duration)";
+                public static String CompletionTypeEnumString = "enum.ChallengeRuleCompletionType(None|Rounds|Duration)";
 
                 private AdKats _plugin;
 
                 public Boolean Phantom;
 
+                private AChallengeManager Manager;
                 public Int64 ID;
-                public AServer Server;
+                public Int64 ServerID;
                 public CDefinition Definition;
                 public Boolean Enabled;
                 public String Name;
                 public Int32 Tier;
-                public CompletionType Completion;
+                public CompletionType Completion = CompletionType.None;
                 public Int32 RoundCount;
                 public Int32 DurationMinutes;
                 public DateTime CreateTime;
@@ -52718,13 +53069,584 @@ namespace PRoConEvents
                 public DateTime RoundLastUsedTime;
                 public DateTime PersonalLastUsedTime;
 
-                public CRule(AdKats plugin)
+                public CRule(AdKats plugin, AChallengeManager manager, Boolean phantom)
                 {
                     _plugin = plugin;
+                    Manager = manager;
+                    Phantom = phantom;
                     CreateTime = _plugin.UtcNow();
                     ModifyTime = _plugin.UtcNow();
                     RoundLastUsedTime = AdKats.GetEpochTime();
                     PersonalLastUsedTime = AdKats.GetEpochTime();
+                    RoundCount = 1;
+                    DurationMinutes = 60;
+                }
+
+                public void DBPush(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (con == null)
+                        {
+                            con = _plugin.GetDatabaseConnection();
+                        }
+                        if (Phantom)
+                        {
+                            DBCreate(con);
+                        }
+                        else
+                        {
+                            DBUpdate(con);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBPush for CDefinitionDetail.", e));
+                    }
+                }
+
+                private void DBCreate(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (Definition == null || 
+                            Definition.ID <= 0)
+                        {
+                            _plugin.Log.Error("CRule was invalid when creating.");
+                            return;
+                        }
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                INSERT INTO 
+	                                `adkats_challenge_rule` 
+                                (
+	                                `ServerID`, 
+	                                `DefID`, 
+	                                `Enabled`, 
+	                                `Name`, 
+	                                `Tier`, 
+	                                `CompletionType`, 
+	                                `RoundCount`, 
+	                                `DurationMinutes`, 
+	                                `CreateTime`, 
+	                                `ModifyTime`, 
+	                                `RoundLastUsedTime`,
+	                                `PersonalLastUsedTime`
+                                ) 
+                                VALUES 
+                                (
+	                                @ServerID, 
+	                                @DefID, 
+	                                @Enabled, 
+	                                @Name, 
+	                                @Tier, 
+	                                @CompletionType, 
+	                                @RoundCount, 
+	                                @DurationMinutes,
+	                                @CreateTime,
+	                                @ModifyTime,
+	                                @RoundLastUsedTime,
+	                                @PersonalLastUsedTime
+                                )";
+                                if (ServerID <= 0)
+                                {
+                                    // This rule doesn't have an associated server ID, and we're creating it.
+                                    // Assign this server's ID
+                                    ServerID = _plugin._serverInfo.ServerID;
+                                }
+                                command.Parameters.AddWithValue("@ServerID", ServerID);
+                                command.Parameters.AddWithValue("@DefID", Definition.ID);
+                                command.Parameters.AddWithValue("@Enabled", Enabled);
+                                command.Parameters.AddWithValue("@Name", Name);
+                                command.Parameters.AddWithValue("@Tier", Tier);
+                                command.Parameters.AddWithValue("@CompletionType", Completion.ToString());
+                                command.Parameters.AddWithValue("@RoundCount", RoundCount);
+                                command.Parameters.AddWithValue("@DurationMinutes", DurationMinutes);
+                                command.Parameters.AddWithValue("@CreateTime", CreateTime);
+                                command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
+                                command.Parameters.AddWithValue("@RoundLastUsedTime", RoundLastUsedTime);
+                                command.Parameters.AddWithValue("@PersonalLastUsedTime", PersonalLastUsedTime);
+                                if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                {
+                                    ID = command.LastInsertedId;
+                                    // This record is no longer phantom
+                                    Phantom = false;
+                                    _plugin.Log.Info("Created new CRule " + ID + " in database.");
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBCreate for CRule.", e));
+                    }
+                }
+
+                private void DBUpdate(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (Definition == null || 
+                            Definition.ID <= 0 || 
+                            Phantom || 
+                            ID <= 0)
+                        {
+                            _plugin.Log.Error("CRule was invalid when updating.");
+                            return;
+                        }
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                UPDATE 
+	                                `adkats_challenge_rule` 
+                                SET
+	                                `DefID` = @DefID,
+	                                `Enabled` = @Enabled,
+	                                `Name` = @Name,
+	                                `Tier` = @Tier,
+	                                `CompletionType` = @CompletionType,
+	                                `RoundCount` = @RoundCount,
+	                                `DurationMinutes` = @DurationMinutes,
+	                                `ModifyTime` = @ModifyTime,
+	                                `RoundLastUsedTime` = @RoundLastUsedTime,
+	                                `PersonalLastUsedTime` = @PersonalLastUsedTime
+                                WHERE
+	                                `ID` = @ID";
+                                command.Parameters.AddWithValue("@ID", ID);
+                                command.Parameters.AddWithValue("@DefID", Definition.ID);
+                                command.Parameters.AddWithValue("@Enabled", Enabled);
+                                command.Parameters.AddWithValue("@Name", Name);
+                                command.Parameters.AddWithValue("@Tier", Tier);
+                                command.Parameters.AddWithValue("@CompletionType", Completion.ToString());
+                                command.Parameters.AddWithValue("@RoundCount", RoundCount);
+                                command.Parameters.AddWithValue("@DurationMinutes", DurationMinutes);
+                                command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
+                                command.Parameters.AddWithValue("@RoundLastUsedTime", RoundLastUsedTime);
+                                command.Parameters.AddWithValue("@PersonalLastUsedTime", PersonalLastUsedTime);
+                                if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                {
+                                    _plugin.Log.Info("Updated CRule " + ID + " in database.");
+                                }
+                                else
+                                {
+                                    _plugin.Log.Error("Failed to update CRule " + ID + " in database.");
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBUpdate for CRule.", e));
+                    }
+                }
+
+                public void DBRead(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (Definition == null ||
+                            Definition.ID <= 0 ||
+                            Phantom ||
+                            ID <= 0)
+                        {
+                            _plugin.Log.Error("CRule was invalid when reading.");
+                            return;
+                        }
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                  SELECT `ID`,
+                                         `ServerID`,
+                                         `DefID`,
+                                         `Enabled`,
+                                         `Name`,
+                                         `Tier`,
+                                         `CompletionType`,
+                                         `RoundCount`,
+                                         `DurationMinutes`
+                                         `CreateTime`,
+                                         `ModifyTime`,
+                                         `RoundLastUsedTime`
+                                         `PersonalLastUsedTime`
+                                    FROM `adkats_challenge_rule`
+                                   WHERE `ID` = @ID";
+                                command.Parameters.AddWithValue("@ID", ID);
+                                var push = false;
+                                var delete = false;
+                                using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
+                                {
+                                    if (reader.Read())
+                                    {
+                                        var serverID = reader.GetInt64("ServerID");
+                                        if (_plugin._serverInfo.ServerID != serverID)
+                                        {
+                                            _plugin.Log.Error("Invalid server ID when reading challenge rule " + ID + ".");
+                                            delete = true;
+                                        }
+                                        ServerID = serverID;
+                                        var definition = Manager.GetDefinition(reader.GetInt64("DefID"));
+                                        if (definition == null)
+                                        {
+                                            _plugin.Log.Error("Invalid definition value when reading challenge rule " + ID + ".");
+                                            delete = true;
+                                        }
+                                        Definition = definition;
+                                        Enabled = reader.GetBoolean("Enabled");
+                                        Name = reader.GetString("Name");
+                                        var sanitizedName = Name.Replace("|", "");
+                                        if (String.IsNullOrEmpty(sanitizedName))
+                                        {
+                                            _plugin.Log.Error("Challenge rule " + ID + " contained invalid name characters.");
+                                            var rng = new Random(Environment.TickCount);
+                                            // Assume we won't hit duplicates with 1 million (welp)
+                                            Name = "CHG-" + ID + "-" + rng.Next(1000000);
+                                            push = true;
+                                        }
+                                        else if (Name != sanitizedName)
+                                        {
+                                            _plugin.Log.Error("Challenge rule " + ID + " contained invalid name characters.");
+                                            Name = sanitizedName;
+                                            push = true;
+                                        }
+                                        Tier = reader.GetInt32("Tier");
+                                        Completion = (CompletionType)Enum.Parse(typeof(CompletionType), reader.GetString("CompletionType"));
+                                        RoundCount = reader.GetInt32("RoundCount");
+                                        DurationMinutes = reader.GetInt32("DurationMinutes");
+                                        CreateTime = reader.GetDateTime("CreateTime");
+                                        ModifyTime = reader.GetDateTime("ModifyTime");
+                                        RoundLastUsedTime = reader.GetDateTime("RoundLastUsedTime");
+                                        PersonalLastUsedTime = reader.GetDateTime("PersonalLastUsedTime");
+                                    }
+                                    else
+                                    {
+                                        _plugin.Log.Error("Unable to find matching CRule for " + ID + ".");
+                                        return;
+                                    }
+                                }
+                                if (delete)
+                                {
+                                    DBDelete(localConnection);
+                                }
+                                else if (push)
+                                {
+                                    DBPush(localConnection);
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBRead for CRule.", e));
+                    }
+                }
+
+                public void DBDelete(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (Definition == null ||
+                            Definition.ID <= 0 ||
+                            Phantom ||
+                            ID <= 0)
+                        {
+                            _plugin.Log.Error("CRule was invalid when reading.");
+                            return;
+                        }
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                DELETE FROM 
+	                                `adkats_challenge_rule`
+                                WHERE
+	                                `ID` = @ID";
+                                command.Parameters.AddWithValue("@ID", ID);
+                                if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                {
+                                    // SUCCESS
+                                    _plugin.Log.Info("Deleted CRule " + ID + ".");
+                                    Manager.DeleteRule(ID);
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBDelete for CRule.", e));
+                    }
+                }
+
+                public void SetEnabledByString(String enabled)
+                {
+                    try
+                    {
+                        if (String.IsNullOrEmpty(enabled))
+                        {
+                            _plugin.Log.Error("Enabled was empty when setting by string.");
+                            return;
+                        }
+                        var newEnabled = Boolean.Parse(enabled);
+                        if (newEnabled != Enabled)
+                        {
+                            Enabled = newEnabled;
+                            ModifyTime = _plugin.UtcNow();
+                            DBPush(null);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error updating tier by string for CRule.", e));
+                    }
+                }
+
+                public void SetNameByString(String name)
+                {
+                    try
+                    {
+                        if (String.IsNullOrEmpty(name))
+                        {
+                            _plugin.Log.Error("Name was empty when setting by string.");
+                            return;
+                        }
+                        // Make sure that the new string is different from the current one
+                        var sanitizedName = name.Replace("|", "");
+                        if (Name != sanitizedName &&
+                            !String.IsNullOrEmpty(sanitizedName))
+                        {
+                            // It's different, assign it.
+                            Name = sanitizedName;
+                            ModifyTime = _plugin.UtcNow();
+                            // Push to the database.
+                            DBPush(null);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while setting definition name by string.", e));
+                    }
+                }
+
+                public void SetTierByString(String tier)
+                {
+                    try
+                    {
+                        if (String.IsNullOrEmpty(tier))
+                        {
+                            _plugin.Log.Error("Tier was empty when setting by string.");
+                            return;
+                        }
+                        var newTier = Int32.Parse(tier);
+                        if (newTier < 1)
+                        {
+                            _plugin.Log.Error("Rule tier cannot be less than 1.");
+                            newTier = 1;
+                        }
+                        if (newTier > 10)
+                        {
+                            _plugin.Log.Error("Rule tier cannot be greter than 10.");
+                            newTier = 10;
+                        }
+                        if (newTier == Tier)
+                        {
+                            _plugin.Log.Info("Old tier and new tier were the same when setting by string.");
+                            return;
+                        }
+                        Tier = newTier;
+                        ModifyTime = _plugin.UtcNow();
+                        DBPush(null);
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error updating tier by string for CRule.", e));
+                    }
+                }
+
+                public void SetDefinitionByString(String definitionName)
+                {
+                    try
+                    {
+                        if (String.IsNullOrEmpty(definitionName))
+                        {
+                            _plugin.Log.Error("Definition name was empty when setting by string.");
+                            return;
+                        }
+                        var definitions = Manager.GetDefinitions();
+                        if (!definitions.Any())
+                        {
+                            _plugin.Log.Error("No definitions available when setting by string.");
+                            return;
+                        }
+                        var matchingDefinition = definitions.FirstOrDefault(def => def.Name == definitionName);
+                        if (matchingDefinition == null)
+                        {
+                            _plugin.Log.Error("No matching definition when setting by string.");
+                            return;
+                        }
+                        if (matchingDefinition.ID == Definition.ID)
+                        {
+                            _plugin.Log.Info("Old definition and new definition were the same when setting by string.");
+                            return;
+                        }
+                        Definition = matchingDefinition;
+                        ModifyTime = _plugin.UtcNow();
+                        DBPush(null);
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error updating definition by string for CRule.", e));
+                    }
+                }
+
+                public void SetCompletionTypeByString(String completionType)
+                {
+                    try
+                    {
+                        if (String.IsNullOrEmpty(completionType))
+                        {
+                            _plugin.Log.Error("Completion type was empty when setting by string.");
+                            return;
+                        }
+                        var newCompletionType = (CompletionType)Enum.Parse(typeof(CompletionType), completionType);
+                        if (newCompletionType == Completion)
+                        {
+                            _plugin.Log.Info("Old completion type and new completion type were the same when setting by string.");
+                            return;
+                        }
+                        Completion = newCompletionType;
+                        ModifyTime = _plugin.UtcNow();
+                        DBPush(null);
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error updating completion type by string for CRule.", e));
+                    }
+                }
+
+                public void SetRoundCountByString(String roundCount)
+                {
+                    try
+                    {
+                        if (Completion != CompletionType.Rounds)
+                        {
+                            _plugin.Log.Error("Rule type was not ROUNDS when trying to set rounds duration by string.");
+                            return;
+                        }
+                        if (String.IsNullOrEmpty(roundCount))
+                        {
+                            _plugin.Log.Error("Round count was empty when setting by string.");
+                            return;
+                        }
+                        var newRoundCount = Int32.Parse(roundCount);
+                        if (newRoundCount < 1)
+                        {
+                            _plugin.Log.Error("Round based rule duration cannot be less than 1 round.");
+                            newRoundCount = 1;
+                        }
+                        if (newRoundCount != RoundCount)
+                        {
+                            RoundCount = newRoundCount;
+                            ModifyTime = _plugin.UtcNow();
+                            DBPush(null);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error updating round duration by string for CRule.", e));
+                    }
+                }
+
+                public void SetDurationMinutesByString(String durationMinutes)
+                {
+                    try
+                    {
+                        if (Completion != CompletionType.Duration)
+                        {
+                            _plugin.Log.Error("Rule type was not DURATION when trying to set minute duration by string.");
+                            return;
+                        }
+                        if (String.IsNullOrEmpty(durationMinutes))
+                        {
+                            _plugin.Log.Error("Duration minutes was empty when setting by string.");
+                            return;
+                        }
+                        var newDurationMinutes = Int32.Parse(durationMinutes);
+                        if (newDurationMinutes < 1)
+                        {
+                            _plugin.Log.Error("Minute based rule duration cannot be less than 1 minute.");
+                            newDurationMinutes = 1;
+                        }
+                        if (newDurationMinutes != DurationMinutes)
+                        {
+                            DurationMinutes = newDurationMinutes;
+                            ModifyTime = _plugin.UtcNow();
+                            DBPush(null);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error updating minute duration by string for CRule.", e));
+                    }
                 }
             }
 
@@ -52766,6 +53688,7 @@ namespace PRoConEvents
                 }
             }
 
+            /*
             public class ChallengeRule
             {
                 private AdKats _plugin;
@@ -53389,6 +54312,7 @@ namespace PRoConEvents
                     return false;
                 }
             }
+            */
         }
 
         public class AEventOption
