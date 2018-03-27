@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.89
+ * Version 7.0.1.90
  * 26-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.89</version_code>
+ * <version_code>7.0.1.90</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.89";
+        private const String PluginVersion = "7.0.1.90";
 
         public enum GameVersionEnum
         {
@@ -2664,7 +2664,7 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2] Actions" + t + "Run Challenge Rule ID", typeof(Int32), 0));
                     var defSectionPrefix = GetSettingSection(challengeSettings) + " [3] Definitions" + t;
                     buildList.Add(new CPluginVariable(defSectionPrefix + "Add Definition?", typeof(String), ""));
-                    var definitions = ChallengeManager.GetDefinitions();
+                    var definitions = ChallengeManager.GetDefinitions().OrderBy(dDef => dDef.Name);
                     foreach (var def in definitions)
                     {
                         if (def.ID <= 0)
@@ -2719,7 +2719,7 @@ namespace PRoConEvents
                     else
                     {
                         buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add Rule?", ChallengeManager.GetDefinitionEnum(true), "None"));
-                        var rules = ChallengeManager.GetRules();
+                        var rules = ChallengeManager.GetRules().OrderBy(dRule => dRule.Definition.Name).ThenBy(dRule => dRule.Name);
                         var defEnum = ChallengeManager.GetDefinitionEnum(false);
                         foreach (var rule in rules)
                         {
