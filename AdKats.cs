@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.88
+ * Version 7.0.1.89
  * 26-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.88</version_code>
+ * <version_code>7.0.1.89</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.88";
+        private const String PluginVersion = "7.0.1.89";
 
         public enum GameVersionEnum
         {
@@ -51102,11 +51102,6 @@ namespace PRoConEvents
             {
                 try
                 {
-                    if (Loading)
-                    {
-                        return;
-                    }
-                    Loading = true;
                     var localConnection = con;
                     if (localConnection == null)
                     {
@@ -51116,8 +51111,16 @@ namespace PRoConEvents
                     {
                         if (_plugin.NowDuration(_LastDBReadAll).TotalMinutes > 5.0 || bypass)
                         {
+                            if (Loading)
+                            {
+                                return;
+                            }
+                            Loading = true;
+                            // -- LOAD --
                             DBReadDefinitions(con);
                             DBReadRules(con);
+                            // -- END LOAD --
+                            Loading = false;
                             Loaded = true;
                             _LastDBReadAll = _plugin.UtcNow();
                             _plugin.UpdateSettingPage();
@@ -51134,8 +51137,8 @@ namespace PRoConEvents
                 }
                 catch (Exception e)
                 {
-                    Loading = false;
                     _plugin.Log.HandleException(new AException("Error while reading all challenge manager DB info.", e));
+                    Loading = false;
                 }
             }
 
