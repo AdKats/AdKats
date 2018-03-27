@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.86
+ * Version 7.0.1.87
  * 26-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.86</version_code>
+ * <version_code>7.0.1.87</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.86";
+        private const String PluginVersion = "7.0.1.87";
 
         public enum GameVersionEnum
         {
@@ -8604,11 +8604,14 @@ namespace PRoConEvents
                         case "Duration Minutes":
                             rule.SetDurationMinutesByString(strValue);
                             break;
-                        case "Delete Definition?":
+                        case "Delete Rule?":
                             if (strValue.ToLower().Trim() == "delete")
                             {
                                 rule.DBDelete(null);
                             }
+                            break;
+                        case "^^^SET COMPLETION TYPE^^^":
+                            // Ignore this
                             break;
                         default:
                             // No idea where we are. Get out of here.
@@ -51749,22 +51752,40 @@ namespace PRoConEvents
                             _plugin.Log.Error("Definition name was empty when setting by string.");
                             return;
                         }
-                        // Make sure that the new string is different from the current one
                         var sanitizedName = newName.Replace("|", "");
-                        if (Name != sanitizedName &&
-                            !String.IsNullOrEmpty(sanitizedName))
+                        if (String.IsNullOrEmpty(sanitizedName))
                         {
-                            // Check if a definition exists with this name
-                            if (Manager.GetDefinitions().Any(dDef => dDef.Name == sanitizedName))
-                            {
-                                _plugin.Log.Error("Definition called " + sanitizedName + " already exists.");
-                                return;
-                            }
-                            Name = sanitizedName;
-                            ModifyTime = _plugin.UtcNow();
-                            // Push to the database.
-                            DBPush(null);
+                            _plugin.Log.Error("Definition name was empty when setting by string.");
+                            return;
                         }
+                        if (Name == sanitizedName)
+                        {
+                            _plugin.Log.Error("Definition name was the same when setting by string.");
+                            return;
+                        }
+                        // Check to see if the name can be parsed as an int32
+                        // This is actually an issue with the procon setting display framework
+                        // For some reason if the string is numeric, it tries to parse it as a number
+                        if (Regex.IsMatch(sanitizedName, @"^\d+$"))
+                        {
+                            // String is numeric, try to parse it.
+                            Int32 parsed;
+                            if (!Int32.TryParse(sanitizedName, out parsed))
+                            {
+                                // Can't parse it. Make it not numeric.
+                                sanitizedName += "X";
+                            }
+                        }
+                        // Check if a definition exists with this name
+                        if (Manager.GetDefinitions().Any(dDef => dDef.Name == sanitizedName))
+                        {
+                            _plugin.Log.Error("Definition called " + sanitizedName + " already exists.");
+                            return;
+                        }
+                        Name = sanitizedName;
+                        ModifyTime = _plugin.UtcNow();
+                        // Push to the database.
+                        DBPush(null);
                     }
                     catch (Exception e)
                     {
@@ -53483,32 +53504,49 @@ namespace PRoConEvents
                     }
                 }
 
-                public void SetNameByString(String name)
+                public void SetNameByString(String newName)
                 {
                     try
                     {
-                        if (String.IsNullOrEmpty(name))
+                        if (String.IsNullOrEmpty(newName))
                         {
                             _plugin.Log.Error("Rule name was empty when setting by string.");
                             return;
                         }
-                        // Make sure that the new string is different from the current one
-                        var sanitizedName = name.Replace("|", "");
-                        if (Name != sanitizedName &&
-                            !String.IsNullOrEmpty(sanitizedName))
+                        var sanitizedName = newName.Replace("|", "");
+                        if (String.IsNullOrEmpty(sanitizedName))
                         {
-                            // Check if a definition exists with this name
-                            if (Manager.GetRules().Any(dRule => dRule.Name == sanitizedName))
-                            {
-                                _plugin.Log.Error("Rule called " + sanitizedName + " already exists.");
-                                return;
-                            }
-                            // It's different, assign it.
-                            Name = sanitizedName;
-                            ModifyTime = _plugin.UtcNow();
-                            // Push to the database.
-                            DBPush(null);
+                            _plugin.Log.Error("Rule name was empty when setting by string.");
+                            return;
                         }
+                        if (Name == sanitizedName)
+                        {
+                            _plugin.Log.Error("Rule name was the same when setting by string.");
+                            return;
+                        }
+                        // Check to see if the name can be parsed as an int32
+                        // This is actually an issue with the procon setting display framework
+                        // For some reason if the string is numeric, it tries to parse it as a number
+                        if (Regex.IsMatch(sanitizedName, @"^\d+$"))
+                        {
+                            // String is numeric, try to parse it.
+                            Int32 parsed;
+                            if (!Int32.TryParse(sanitizedName, out parsed))
+                            {
+                                // Can't parse it. Make it not numeric.
+                                sanitizedName += "X";
+                            }
+                        }
+                        // Check if a definition exists with this name
+                        if (Manager.GetRules().Any(dRule => dRule.Name == sanitizedName))
+                        {
+                            _plugin.Log.Error("Rule called " + sanitizedName + " already exists.");
+                            return;
+                        }
+                        Name = sanitizedName;
+                        ModifyTime = _plugin.UtcNow();
+                        // Push to the database.
+                        DBPush(null);
                     }
                     catch (Exception e)
                     {
