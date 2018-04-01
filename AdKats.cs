@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.90
- * 26-MAR-2018
+ * Version 7.0.1.91
+ * 31-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.90</version_code>
+ * <version_code>7.0.1.91</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.90";
+        private const String PluginVersion = "7.0.1.91";
 
         public enum GameVersionEnum
         {
@@ -2659,9 +2659,9 @@ namespace PRoConEvents
                 {
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Challenge System Play Status Only", typeof(Boolean), ChallengeManager.PlayStatusOnly));
-                    buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [1] Displays" + t + "Current Rule (Display)", typeof(String), ChallengeManager.GetCurrentRuleName()));
+                    buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [1] Displays" + t + "Current Rule (Display)", typeof(String), ChallengeManager.GetRoundRuleName()));
 
-                    buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2] Actions" + t + "Run Challenge Rule ID", typeof(Int32), 0));
+                    buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2] Actions" + t + "Run Round Challenge ID", typeof(Int32), 0));
                     var defSectionPrefix = GetSettingSection(challengeSettings) + " [3] Definitions" + t;
                     buildList.Add(new CPluginVariable(defSectionPrefix + "Add Definition?", typeof(String), ""));
                     var definitions = ChallengeManager.GetDefinitions().OrderBy(dDef => dDef.Name);
@@ -2710,7 +2710,7 @@ namespace PRoConEvents
                             buildList.Add(new CPluginVariable(detailPrefix + "Delete Detail?", typeof(String), ""));
                         }
                     }
-                    var ruleSectionPrefix = GetSettingSection(challengeSettings) + " [3] Rules" + t;
+                    var ruleSectionPrefix = GetSettingSection(challengeSettings) + " [4] Rules" + t;
                     if (!definitions.Any())
                     {
                         // Do not display options to add rules until definitions exist
@@ -2765,38 +2765,6 @@ namespace PRoConEvents
                             buildList.Add(new CPluginVariable(rulePrefix + "Delete Rule?", typeof(String), ""));
                         }
                     }
-                    /*
-                    var ruleSectionPrefix = GetSettingSection(challengeSettings) + " [3] Rules" + t;
-                    buildList.Add(new CPluginVariable(ruleSectionPrefix + "Add Rule", typeof(String), ""));
-                    foreach (var rule in ChallengeManager.GetRules())
-                    {
-                        var rulePrefix = ruleSectionPrefix + "CRH" + rule.RuleID + s + rule.Name + s;
-                        buildList.Add(new CPluginVariable(rulePrefix + "Delete Rule?", typeof(String), ""));
-                        foreach (var detail in rule.ChallengeDetails)
-                        {
-                            if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.None)
-                            {
-                                Log.Error("Unable to render challenge detail " + rule.RuleID + ":" + detail.DetailID + ", it had type = None.");
-                                continue;
-                            }
-                            var detailPrefix = rulePrefix + "CRD" + detail.DetailID + s;
-                            buildList.Add(new CPluginVariable(detailPrefix + "Type", AChallengeManager.ChallengeRule.Detail.DetailTypeEnumString, detail.Type.ToString()));
-                            if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.Damage)
-                            {
-                                buildList.Add(new CPluginVariable(detailPrefix + "Damage Type", WeaponDictionary.DamageTypeEnumString, detail.Damage.ToString()));
-                                buildList.Add(new CPluginVariable(detailPrefix + "Weapon Count", typeof(Int32), detail.WeaponCount));
-                            }
-                            else if (detail.Type == AChallengeManager.ChallengeRule.Detail.DetailType.Weapon)
-                            {
-                                buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.InfantryWeaponNameEnumString, WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
-                            }
-                            buildList.Add(new CPluginVariable(detailPrefix + "Kill Count", typeof(Int32), detail.KillCount));
-
-                        }
-                        buildList.Add(new CPluginVariable(rulePrefix + "Add Damage Type?", WeaponDictionary.DamageTypeEnumString, "None"));
-                        buildList.Add(new CPluginVariable(rulePrefix + "Add Weapon Code?", WeaponDictionary.InfantryWeaponNameEnumString, "None"));
-                    }
-                    */
                 }
                 lstReturn.AddRange(buildList);
             }
@@ -5930,12 +5898,12 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Run Challenge Rule ID").Success)
+                else if (Regex.Match(strVariable, @"Run Round Challenge ID").Success)
                 {
                     Int32 RuleID = Int32.Parse(strValue);
                     if (ChallengeManager != null)
                     {
-                        //ChallengeManager.RunNextChallenge(RuleID);
+                        ChallengeManager.RunRoundChallenge(RuleID);
                     }
                 }
                 else if (Regex.Match(strVariable, @"Challenge System Play Status Only").Success)
@@ -8818,27 +8786,6 @@ namespace PRoConEvents
                         _globalTimingValid = TestGlobalTiming(false, true, out diffUTCGlobal);
                         _globalTimingOffset = diffUTCGlobal;
 
-                        //Don't directly depend on stat logger being controllable at this time, connection is unstable
-                        /*if (useDatabase)
-                        {
-                            //Confirm Stat Logger active and properly configured
-                            Log.Write("Confirming proper setup for CChatGUIDStatsLoggerBF3, please wait...");
-
-                            if (gameVersion == GameVersion.BF3)
-                            {
-                                if (confirmStatLoggerSetup())
-                                {
-                                    Log.Success("^bCChatGUIDStatsLoggerBF3^n enabled and active!");
-                                }
-                                else
-                                {
-                                    //Stat logger could not be enabled or managed
-                                    Log.Warn("The stat logger plugin could not be found or controlled. Running AdKats in backup mode.");
-                                    return;
-                                }
-                            }
-                        }*/
-
                         //Inform of IP
                         Log.Success("Server IP is " + _serverInfo.ServerIP + "");
 
@@ -9614,7 +9561,9 @@ namespace PRoConEvents
                             team2Assist != null)
                         {
                             // There is a player on each team attempting to switch. Allow the swap.
+                            AdminSayMessage(Log.CViolet(team1Assist.GetTargetNames() + " (" + Math.Round(team1Assist.target_player.GetPower(true)) + ") assist SWAP accepted, queueing."));
                             QueueRecordForProcessing(team1Assist);
+                            AdminSayMessage(Log.CViolet(team2Assist.GetTargetNames() + " (" + Math.Round(team2Assist.target_player.GetPower(true)) + ") assist SWAP accepted, queueing."));
                             QueueRecordForProcessing(team2Assist);
                             //The players are queued, rebuild the attempt queue without them in it
                             _AssistAttemptQueue = new Queue<ARecord>(_AssistAttemptQueue.Where(aRec => aRec != team1Assist && 
@@ -10347,6 +10296,29 @@ namespace PRoConEvents
             }
         }
 
+        private void RunChallengeMonitor()
+        {
+            try
+            {
+                if (ChallengeManager != null)
+                {
+                    // Fail the challenges which are controlled by duration and weren't completed
+                    var roundEntries = ChallengeManager.GetEntries().Where(entry => entry.Rule.Completion == AChallengeManager.CRule.CompletionType.Duration &&
+                                                                                    !entry.Completed &&
+                                                                                    !entry.Failed &&
+                                                                                    !entry.Canceled);
+                    foreach (var entry in roundEntries)
+                    {
+                        entry.CheckFailure(null);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error running challenge monitor.", e));
+            }
+        }
+
         private void SetupStatusMonitor()
         {
             //Create a new thread to handle keep-alive
@@ -10415,6 +10387,8 @@ namespace PRoConEvents
                                 RunVOIPMonitor();
 
                                 RunAFKMonitor();
+
+                                RunChallengeMonitor();
 
                                 if (_pluginEnabled && _threadsReady && _firstPlayerListComplete && _enforceSingleInstance)
                                 {
@@ -12439,6 +12413,14 @@ namespace PRoConEvents
                                         FetchPoints(aPlayer, false, true);
                                         //Team Power Information
                                         FetchPowerInformation(aPlayer);
+                                        if (ChallengeManager != null)
+                                        {
+                                            if (ChallengeManager.Loading)
+                                            {
+                                                Threading.Wait(5000);
+                                            }
+                                            ChallengeManager.AssignActiveEntryForPlayer(aPlayer);
+                                        }
                                         if (aPlayer.location == null || aPlayer.location.status != "success" || aPlayer.location.IP != aPlayer.player_ip)
                                         {
                                             //Update IP location
@@ -13197,7 +13179,7 @@ namespace PRoConEvents
         {
             try
             {
-                if (!_pluginEnabled || !_threadsReady || !_firstPlayerListComplete || _roundID <= 0)
+                if (!_pluginEnabled || !_threadsReady || !_firstPlayerListComplete || _roundID <= 1)
                 {
                     return;
                 }
@@ -14245,6 +14227,10 @@ namespace PRoConEvents
                     UpdateFactions();
                     getMapInfo();
                     StartRoundTicketLogger(0);
+                    if (ChallengeManager != null)
+                    {
+                        ChallengeManager.OnRoundLoaded(_roundID);
+                    }
                 }
             }
             catch (Exception e)
@@ -14324,6 +14310,16 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "100");
+                        OnlineAdminSayMessage("Event round setup complete!");
+                        break;
+                    case AEventOption.ModeCode.T200:
+                        ProcessPresetNormal();
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.T300:
@@ -14788,19 +14784,10 @@ namespace PRoConEvents
                     Log.Error("Round over players not found/ready! Contact ColColonCleaner.");
                 }
 
-                /*
-                // Choose the next challenge if enabled
-                Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                if (ChallengeManager != null)
                 {
-                    Thread.CurrentThread.Name = "ChallengeRoundEndWait";
-                    Thread.Sleep(TimeSpan.FromSeconds(10));
-                    if (ChallengeManager != null)
-                    {
-                        ChallengeManager.RunNextChallenge(null);
-                    }
-                    Threading.StopWatchdog();
-                })));
-                */
+                    ChallengeManager.OnRoundEnded(_roundID);
+                }
 
                 //Stat refresh
                 List<APlayer> roundPlayerObjects;
@@ -14836,6 +14823,7 @@ namespace PRoConEvents
                 RunFactionRandomizer();
 
                 FetchRoundID(true);
+
                 _roundState = RoundState.Ended;
                 _EventRoundPolled = false;
                 _pingKicksThisRound = 0;
@@ -15274,6 +15262,7 @@ namespace PRoConEvents
                                 weaponCode = String.IsNullOrEmpty(playerKill.DamageType) ? "NoDamageType" : playerKill.DamageType,
                                 weaponDamage = category,
                                 TimeStamp = playerKill.TimeOfDeath,
+                                UTCTimeStamp = playerKill.TimeOfDeath.ToUniversalTime(),
                                 IsSuicide = playerKill.IsSuicide,
                                 IsHeadshot = playerKill.Headshot,
                                 IsTeamkill = (playerKill.Killer.TeamID == playerKill.Victim.TeamID),
@@ -16287,23 +16276,26 @@ namespace PRoConEvents
                 {
                     Log.HandleException(new AException("Error in no explosives auto-admin.", e));
                 }
-
-                /*
+                
                 try
                 {
-                    if (!acted &&
-                        ChallengeManager != null &&
-                        ChallengeManager.Enabled &&
-                        (!ChallengeManager.PlayStatusOnly || GetMatchingVerboseASPlayersOfGroup("challenge_play", aKill.killer).Any()))
+                    if (ChallengeManager != null &&
+                        ChallengeManager.Loaded)
                     {
-                        ChallengeManager.ProcessKill(aKill);
+                        if (aKill.killer.ActiveChallenge == null)
+                        {
+                            ChallengeManager.AssignRoundChallengeIfKillValid(aKill);
+                        }
+                        if (aKill.killer.ActiveChallenge != null)
+                        {
+                            aKill.killer.ActiveChallenge.AddKill(aKill);
+                        }
                     }
                 }
                 catch (Exception e)
                 {
                     Log.HandleException(new AException("Error while running challenge kill processing.", e));
                 }
-                */
             }
             catch (Exception e)
             {
@@ -16415,20 +16407,16 @@ namespace PRoConEvents
                                 })));
                             }
                         }
+
                         if (_useRoundTimer)
                         {
                             StartRoundTimer();
                         }
 
-                        /*
-                        // Choose the next challenge if there is none currently assigned
-                        if (ChallengeManager != null &&
-                            ChallengeManager.Enabled &&
-                            ChallengeManager.RoundRule == null)
+                        if (ChallengeManager != null)
                         {
-                            ChallengeManager.RunNextChallenge(null);
+                            ChallengeManager.OnRoundPlaying(_roundID);
                         }
-                        */
                     }
 
                     if (_CommandNameDictionary.Count > 0)
@@ -16484,6 +16472,12 @@ namespace PRoConEvents
 
                     var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
                     var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
+                    if (!aPlayer.player_spawnedOnce &&
+                        ChallengeManager != null)
+                    {
+                        // Make sure that they have their challenge entry assigned if applicable
+                        ChallengeManager.AssignActiveEntryForPlayer(aPlayer);
+                    }
                     if (!aPlayer.player_spawnedOnce && startDuration - startupDuration > 120)
                     {
                         if (_ShowNewPlayerAnnouncement && aPlayer.player_new)
@@ -19957,7 +19951,7 @@ namespace PRoConEvents
                                     Int32 playerCount = GetPlayerCount();
                                     if (playerCount < _surrenderVoteMinimumPlayerCount)
                                     {
-                                        SendMessageToSource(record, _surrenderVoteMinimumPlayerCount + " players needed to start Surrender Vote. Current: " + playerCount);
+                                        SendMessageToSource(record, _surrenderVoteMinimumPlayerCount + " players needed to start surrender vote. Current: " + playerCount);
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -33402,7 +33396,7 @@ namespace PRoConEvents
                             }
                             if (record.target_name == "All")
                             {
-                                AdminTellMessage(record.record_message + " in " + countdown + "...", false);
+                                AdminTellMessage(record.record_message + " in " + countdown + "...");
                             }
                             else
                             {
@@ -33429,7 +33423,7 @@ namespace PRoConEvents
                         }
                         if (record.target_name == "All")
                         {
-                            AdminTellMessage(record.record_message + " NOW!", false);
+                            AdminTellMessage(record.record_message + " NOW!");
                         }
                         else
                         {
@@ -35926,7 +35920,6 @@ namespace PRoConEvents
                         SendMessageToSource(record, "help - Show this message.");
                         break;
                     case "info":
-                        /*
                         // Immediately get the challenge info, then go async
                         var messages = ChallengeManager.GetChallengeInfo(record.target_player).Split(
                             new[] { Environment.NewLine },
@@ -35953,7 +35946,6 @@ namespace PRoConEvents
                             Log.Debug(() => "Exiting a challenge info printer.", 5);
                             Threading.StopWatchdog();
                         })));
-                        */
                         break;
                     case "autokill":
                         if (record.target_player == null)
@@ -36258,14 +36250,8 @@ namespace PRoConEvents
                             Log.Debug(() => "Skipping DB action fetch", 7);
                         }
                         counter.Stop();
-                        //Log.Write("RunActionsFromDB took " + counter.ElapsedMilliseconds + "ms");
 
                         HandleUserChanges();
-
-                        if (ChallengeManager != null)
-                        {
-                            ChallengeManager.HandleRead(null, false);
-                        }
 
                         //Start the other threads
                         if (firstRun)
@@ -36289,6 +36275,11 @@ namespace PRoConEvents
 
                             firstRun = false;
                             _threadsReady = true;
+                        }
+
+                        if (ChallengeManager != null)
+                        {
+                            ChallengeManager.HandleRead(null, false);
                         }
 
                         counter.Reset();
@@ -51035,16 +51026,34 @@ namespace PRoConEvents
             // Settings
             public Boolean Enabled;
             public Boolean PlayStatusOnly;
-            public Boolean AllowRepeatRules;
+            public Boolean EnableServerRoundRules;
+
+            public enum ChallengeState
+            {
+                Init,
+                Loaded,
+                Playing,
+                Ended
+            }
 
             // Runtime
-            private Boolean Loading;
-            private Boolean Loaded;
-            public CRule RoundRule;
+            public Boolean Loading
+            {
+                get; private set;
+            }
+            public Boolean Loaded
+            {
+                get; private set;
+            }
             private List<CDefinition> Definitions;
             private List<CRule> Rules;
             private List<CEntry> Entries;
-            
+            private Int32 LoadedRoundID;
+            // Round Rule
+            public CRule RoundRule;
+            private ChallengeState RoundRuleState = ChallengeState.Init;
+            private List<CEntry> CompletedRoundEntries;
+
             // Timings
             private DateTime _LastDBReadAll = DateTime.UtcNow - TimeSpan.FromMinutes(30);
 
@@ -51056,6 +51065,7 @@ namespace PRoConEvents
                     Definitions = new List<CDefinition>();
                     Rules = new List<CRule>();
                     Entries = new List<CEntry>();
+                    CompletedRoundEntries = new List<CEntry>();
                 }
                 catch (Exception e)
                 {
@@ -51119,6 +51129,15 @@ namespace PRoConEvents
                             // -- LOAD --
                             DBReadDefinitions(con);
                             DBReadRules(con);
+                            DBReadEntries(con);
+                            if (_plugin._roundID <= 1)
+                            {
+                                _plugin.Log.Error("Round ID was invalid when starting challenge manager.");
+                            }
+                            else
+                            {
+                                OnRoundLoaded(_plugin._roundID);
+                            }
                             // -- END LOAD --
                             Loading = false;
                             Loaded = true;
@@ -51576,103 +51595,594 @@ namespace PRoConEvents
                 }
             }
 
-            public String GetCurrentRuleName()
+            public String GetRoundRuleName()
             {
                 try
                 {
-                    return RoundRule != null ? RoundRule.Name : "No Current Rule";
+                    return RoundRule != null ? RoundRule.Name : "No Round Rule";
                 }
                 catch (Exception e)
                 {
-                    _plugin.Log.HandleException(new AException("Error while getting current rule name.", e));
+                    _plugin.Log.HandleException(new AException("Error while getting current round rule name.", e));
                 }
                 return null;
             }
-
-            /*
-            public String GetChallengeInfo(APlayer aPlayer)
+            
+            public void DBReadEntries(MySqlConnection con)
             {
-                if (RoundRule == null)
+                try
                 {
-                    return "No round challenge is currently active.";
+                    var localConnection = con;
+                    if (localConnection == null)
+                    {
+                        localConnection = _plugin.GetDatabaseConnection();
+                    }
+                    try
+                    {
+                        using (MySqlCommand command = localConnection.CreateCommand())
+                        {
+                            command.CommandText = @"
+                              SELECT `ace`.`ID`,
+                                     `ace`.`PlayerID`,
+                                     `ace`.`RuleID`,
+                                     `ace`.`Completed`,
+                                     `ace`.`Canceled`,
+                                     `ace`.`StartRound`,
+                                     `ace`.`StartTime`,
+                                     `ace`.`CompleteTime`
+                                FROM `adkats_challenge_entry` `ace`
+                                JOIN `adkats_challenge_rule` `acr`
+                                  ON `ace`.`RuleID` = `acr`.`ID`
+                               WHERE `acr`.`ServerID` = 1
+                            ORDER BY `PlayerID` ASC, `RuleID` ASC, `ID` ASC";
+                            var entryPushes = new List<CEntry>();
+                            var entryReads = new List<CEntry>();
+                            using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
+                            {
+                                lock (Entries)
+                                {
+                                    while (reader.Read())
+                                    {
+                                        var readID = reader.GetInt64("ID");
+                                        var entry = Entries.FirstOrDefault(dEntry => dEntry.ID == readID);
+                                        if (entry != null)
+                                        {
+                                            // This entry is already loaded. Ignore it.
+                                            continue;
+                                        }
+                                        var playerID = reader.GetInt64("PlayerID");
+                                        var ruleID = reader.GetInt64("RuleID");
+                                        entry = new CEntry(_plugin, this, _plugin.FetchPlayer(false, false, false, null, playerID, null, null, null, null), GetRule(ruleID), false);
+                                        entry.ID = readID;
+                                        if (entry.Player == null)
+                                        {
+                                            _plugin.Log.Error("Unable to fetch player for Entry " + entry.ID + " and player " + playerID + ". Unable to read.");
+                                            continue;
+                                        }
+                                        if (entry.Rule == null)
+                                        {
+                                            _plugin.Log.Error("Unable to fetch rule for Entry " + entry.ID + " and rule " + ruleID + ". Unable to read.");
+                                            continue;
+                                        }
+                                        entry.Completed = reader.GetBoolean("Completed");
+                                        entry.Failed = reader.GetBoolean("Failed");
+                                        entry.Canceled = reader.GetBoolean("Canceled");
+                                        entry.StartRound = reader.GetInt32("StartRound");
+                                        entry.StartTime = reader.GetDateTime("StartTime");
+                                        entry.CompleteTime = reader.GetDateTime("CompleteTime");
+                                        if (entry.CheckFailure(null))
+                                        {
+                                            entryReads.Add(entry);
+                                        }
+                                        Entries.Add(entry);
+                                    }
+                                }
+                            }
+                            // These must be executed afterward, otherwise it would cause overlapping readers on the same connection
+                            foreach (var entry in entryReads)
+                            {
+                                entry.DBReadDetails(localConnection);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        if (con == null &&
+                            localConnection != null)
+                        {
+                            localConnection.Dispose();
+                        }
+                    }
                 }
-                if (aPlayer == null ||
-                    !RoundEntries.ContainsKey(aPlayer))
+                catch (Exception e)
                 {
-                    return RoundRule.Name.ToUpper() + " CHALLENGE ACTIVE!" + Environment.NewLine + RoundRule.RuleInfo() + Environment.NewLine;
+                    _plugin.Log.HandleException(new AException("Error reading in entries for challenge manager.", e));
                 }
-                // The player is available and they have entries. Get their status.
-                var status = RoundRule.GetCompletionStatus(RoundEntries[aPlayer]);
-                var info = aPlayer.GetVerboseName() + " " + RoundRule.Name.ToUpper() + " CHALLENGE" + Environment.NewLine;
-                info += RoundRule.RuleInfo() + Environment.NewLine;
-                info += "Completion: " + status.CompletionPercentage + "% | " + status.TotalCompletedKills + " Kills | " + status.TotalRequiredKills + " Required" + Environment.NewLine;
-                info += status.ToString();
-                return info;
             }
 
-            public void RunNextChallenge(Int32? RuleID)
+            public List<CEntry> GetEntries()
+            {
+                var entries = new List<CEntry>();
+                try
+                {
+                    lock (Entries)
+                    {
+                        entries.AddRange(Entries.OrderBy(entry => entry.ID).ToList());
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while getting list of entries.", e));
+                }
+                return entries;
+            }
+
+            public List<CEntry> GetEntriesForPlayer(APlayer player)
+            {
+                var entries = new List<CEntry>();
+                if (player.player_id <= 0)
+                {
+                    _plugin.Log.Error("Unable to get entries for player. Player did not have a valid ID.");
+                    return entries;
+                }
+                try
+                {
+                    lock (Entries)
+                    {
+                        entries.AddRange(Entries.Where(entry => entry.Player.player_id == player.player_id)
+                                                .OrderBy(entry => entry.ID)
+                                                .ToList());
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while getting list of entries for player.", e));
+                }
+                return entries;
+            }
+
+            public void AssignActiveEntryForPlayer(APlayer player)
+            {
+                try
+                {
+                    if (player.ActiveChallenge != null)
+                    {
+                        _plugin.Log.Info(player.GetVerboseName() + " already had their active entry assigned.");
+                        return;
+                    }
+                    // Order by ID so we can cancel older entries as needed
+                    var activeEntries = GetEntriesForPlayer(player).Where(entry => !entry.Canceled &&
+                                                                                   !entry.Completed &&
+                                                                                   !entry.Failed)
+                                                                   .OrderBy(entry => entry.ID)
+                                                                   .ToList();
+                    var cancelling = false;
+                    while (activeEntries.Count() > 1)
+                    {
+                        var first = activeEntries.First();
+                        // There is more than one active entry. Cancel this oldest one.
+                        first.DoCancel(null);
+                        // Remove the entry.
+                        activeEntries.Remove(first);
+                        // Repeat as needed.
+                        cancelling = true;
+                    }
+                    if (cancelling && !activeEntries.Any())
+                    {
+                        _plugin.Log.Error("We cancelled too many things!!!!");
+                    }
+                    player.ActiveChallenge = activeEntries.FirstOrDefault();
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while assigning active challenge entry for player.", e));
+                }
+            }
+
+            public void AddCompletedEntryForRound(CEntry entry)
+            {
+                try
+                {
+                    if (entry == null ||
+                        entry.ID <= 0 ||
+                        !entry.Details.Any())
+                    {
+                        _plugin.Log.Error("Tried to add completed entry when it was invalid.");
+                        return;
+                    }
+                    lock (CompletedRoundEntries)
+                    {
+                        if (CompletedRoundEntries.Contains(entry))
+                        {
+                            _plugin.Log.Error("Tried to add completed entry " + entry.ID + " for round, but it was already added.");
+                            return;
+                        }
+                        if (!entry.Completed)
+                        {
+                            _plugin.Log.Error("Tried to add completed entry " + entry.ID + " for round, but it wasn't completed.");
+                            return;
+                        }
+                        CompletedRoundEntries.Add(entry);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while adding completed round entry.", e));
+                }
+            }
+
+            public List<CEntry> GetCompletedRoundEntries()
+            {
+                try
+                {
+                    lock (CompletedRoundEntries)
+                    {
+                        return CompletedRoundEntries.ToList();
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while getting completed round entries.", e));
+                }
+                return new List<CEntry>();
+            }
+
+            public List<CEntry> GetCompletedRoundEntriesForPlayer(APlayer player)
+            {
+                try
+                {
+                    lock (CompletedRoundEntries)
+                    {
+                        return CompletedRoundEntries.Where(entry => entry.Player.player_id == player.player_id &&
+                                                                    entry.Rule == RoundRule)
+                                                    .ToList();
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while getting completed round entries for player.", e));
+                }
+                return new List<CEntry>();
+            }
+
+            public void CreateAndAssignEntry(APlayer player, CRule rule)
+            {
+                try
+                {
+                    if (player == null ||
+                        player.player_id <= 0)
+                    {
+                        _plugin.Log.Error("Player was invalid when creating entry.");
+                        return;
+                    }
+                    if (rule == null ||
+                        rule.ID <= 0 ||
+                        rule.ServerID != _plugin._serverInfo.ServerID ||
+                        rule.Phantom)
+                    {
+                        _plugin.Log.Error("Rule was invalid when creating entry.");
+                        return;
+                    }
+                    lock (Entries)
+                    {
+                        // Cancel any existing entries for the player
+                        AssignActiveEntryForPlayer(player);
+                        if (player.ActiveChallenge != null)
+                        {
+                            player.ActiveChallenge.DoCancel(null);
+                        }
+                        // Create the new entry
+                        var newEntry = new CEntry(_plugin, this, player, rule, true);
+                        newEntry.DBPush(null);
+                        if (newEntry.Phantom)
+                        {
+                            _plugin.Log.Error("Unable to create challenge entry for " + player.GetVerboseName() + ", could not upload to database.");
+                            return;
+                        }
+                        var commandText = _plugin.GetCommandByKey("self_challenge").command_text;
+                        player.Say("Now playing " + rule.Name + " challenge. For more info use !" + commandText);
+                        Entries.Add(newEntry);
+                        player.ActiveChallenge = newEntry;
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while creating and assigning challenge entry in manager.", e));
+                }
+            }
+
+            public void AssignRoundChallengeIfKillValid(AKill kill)
+            {
+                try
+                {
+                    if (RoundRule == null)
+                    {
+                        // We don't have a round rule. Nothing to do here.
+                        return;
+                    }
+                    if (kill == null ||
+                        kill.killer == null ||
+                        kill.killer.player_id <= 0)
+                    {
+                        _plugin.Log.Error("Kill was invalid when assigning round challenge.");
+                        return;
+                    }
+                    var player = kill.killer;
+                    // Check to see if they should have an active challenge already assigned
+                    if (player.ActiveChallenge == null)
+                    {
+                        AssignActiveEntryForPlayer(player);
+                    }
+                    if (player.ActiveChallenge == null)
+                    {
+                        // Only create the entry if the current kill is valid for the round rule
+                        if (RoundRule.KillValid(kill) &&
+                            // Make sure they haven't completed the round challenge already
+                            !GetCompletedRoundEntriesForPlayer(player).Any())
+                        {
+                            CreateAndAssignEntry(player, RoundRule);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while assigning challenge if kill valid.", e));
+                }
+            }
+
+            public String GetChallengeInfo(APlayer aPlayer)
+            {
+                try
+                {
+                    if (!Enabled)
+                    {
+                        return "Challenge manager not enabled.";
+                    }
+                    if (aPlayer == null ||
+                        aPlayer.player_id <= 0)
+                    {
+                        _plugin.Log.Error("Tried to get challenge info for an invalid player.");
+                        return "ERROR758";
+                    }
+                    // Get active entries for the current player.
+                    var commandText = _plugin.GetCommandByKey("self_challenge").command_text;
+                    AssignActiveEntryForPlayer(aPlayer);
+                    if (aPlayer.ActiveChallenge == null)
+                    {
+                        // They aren't playing a challenge yet.
+                        // Add them to the current round challenge automatically if one is running.
+                        if (RoundRule == null)
+                        {
+                            // No round challenge. Tell them how they can join a challenge.
+                            return "No round challenge active. Choose a challenge with !" + commandText + " list";
+                        }
+                        // We have a round rule, good, but make sure they haven't completed the round challenge already
+                        if (!GetCompletedRoundEntriesForPlayer(aPlayer).Any())
+                        {
+                            CreateAndAssignEntry(aPlayer, RoundRule);
+                        }
+                    }
+                    if (aPlayer.ActiveChallenge == null)
+                    {
+                        return "ERROR174";
+                    }
+                    // The player is available and they have entries. Get their status.
+                    var progress = aPlayer.ActiveChallenge.GetProgress();
+                    var info = aPlayer.GetVerboseName() + " " + aPlayer.ActiveChallenge.Rule.Name.ToUpper() + " CHALLENGE" + Environment.NewLine;
+                    info += aPlayer.ActiveChallenge.Rule.RuleInfo() + Environment.NewLine;
+                    info += "Status: " + progress.CompletionPercentage + "% | " + progress.TotalCompletedKills + " Kills | " + progress.TotalRequiredKills + " Required" + Environment.NewLine;
+                    info += progress.ToString();
+                    return info;
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while getting challenge info.", e));
+                }
+                return "ERROR264";
+            }
+
+            public void OnRoundEnded(Int32 roundID)
+            {
+                try
+                {
+                    if (!Enabled)
+                    {
+                        return;
+                    }
+                    // Confirm we are in valid state to end.
+                    if (RoundRuleState != ChallengeState.Playing)
+                    {
+                        // We're not, get out of here.
+                        _plugin.Log.Warn("Attempted to end challenge round when not in playing state.");
+                        return;
+                    }
+                    if (LoadedRoundID != roundID)
+                    {
+                        _plugin.Log.Error("Attempted to process challenge round end with invalid round ID " + roundID + ", original round loaded was " + LoadedRoundID);
+                        return;
+                    }
+                    // Change the state early, since we are checking against this value right away
+                    RoundRuleState = ChallengeState.Ended;
+                    // Fail the challenges which are controlled by round count and weren't completed
+                    var roundEntries = GetEntries().Where(entry => entry.Rule.Completion == CRule.CompletionType.Rounds &&
+                                                                   !entry.Completed &&
+                                                                   !entry.Failed &&
+                                                                   !entry.Canceled);
+                    foreach (var entry in roundEntries)
+                    {
+                        entry.CheckFailure(null);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while running round end logic.", e));
+                }
+                // Change the state
+                RoundRuleState = ChallengeState.Ended;
+            }
+
+            public void OnRoundLoaded(Int32 roundID)
+            {
+                try
+                {
+                    if (!Enabled)
+                    {
+                        return;
+                    }
+                    // Confirm we are in valid state to end.
+                    if (RoundRuleState != ChallengeState.Ended &&
+                        RoundRuleState != ChallengeState.Init)
+                    {
+                        // We're not, get out of here.
+                        _plugin.Log.Warn("Attempted to load challenge when not in ended or initializing state.");
+                        return;
+                    }
+                    lock (CompletedRoundEntries)
+                    {
+                        // Clear all of the completed round entries. We're starting a new list.
+                        CompletedRoundEntries.Clear();
+                    }
+                    if (EnableServerRoundRules)
+                    {
+                        // Make sure we don't have an active rule at this time.
+                        if (RoundRule != null)
+                        {
+                            _plugin.Log.Error("Unable to start new round rule. Rule " + RoundRule.ToString() + " is already running.");
+                            return;
+                        }
+                        // We want to have server-wide round rules. Grab ones which are valid for that.
+                        var roundRules = GetRules().Where(rule => rule.Enabled &&
+                                                                  rule.Completion == CRule.CompletionType.Rounds &&
+                                                                  rule.RoundCount == 1);
+                        if (!roundRules.Any())
+                        {
+                            _plugin.Log.Warn("Server-wide round rules enabled, but none available. They must be enabled, completion type Rounds, and have duration of 1 round.");
+                            return;
+                        }
+                        // Randomize the list and pick the first unused one
+                        var rng = new Random(Environment.TickCount);
+                        var chosenRule = roundRules.Where(rule => rule.RoundLastUsedTime.Equals(AdKats.GetEpochTime())).OrderBy(rule => rng.Next()).FirstOrDefault();
+                        if (chosenRule == null)
+                        {
+                            // None are unused, pick the one which has the longest duration since used
+                            chosenRule = roundRules.OrderBy(rule => rule.RoundLastUsedTime).FirstOrDefault();
+                        }
+                        if (chosenRule != null)
+                        {
+                            chosenRule.RoundLastUsedTime = _plugin.UtcNow();
+                            chosenRule.DBPush(null);
+                            RoundRule = chosenRule;
+                            if (RoundRuleState == ChallengeState.Ended)
+                            {
+                                // Delay announcing the new challenge for a few seconds
+                                _plugin.Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                                {
+                                    Thread.CurrentThread.Name = "ChallengeRoundRuleAnnounce";
+                                    Thread.Sleep(TimeSpan.FromSeconds(10));
+                                    _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
+                                    _plugin.Threading.StopWatchdog();
+                                })));
+                            }
+                        }
+                        else
+                        {
+                            _plugin.Log.Error("Unable to select server-wide round rule.");
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while running round load logic.", e));
+                }
+                LoadedRoundID = roundID;
+                RoundRuleState = ChallengeState.Loaded;
+            }
+
+            public void OnRoundPlaying(Int32 roundID)
+            {
+                try
+                {
+                    // Confirm we are in valid state to end.
+                    if (RoundRuleState != ChallengeState.Loaded)
+                    {
+                        // We're not, get out of here.
+                        _plugin.Log.Warn("Attempted to start playing challenge round when not in loaded state.");
+                        return;
+                    }
+                    if (EnableServerRoundRules && RoundRule != null)
+                    {
+                        _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
+                    }
+                    if (LoadedRoundID != roundID)
+                    {
+                        _plugin.Log.Error("Attempted to start challenge playing with invalid round ID " + roundID + ", original round loaded was " + LoadedRoundID);
+                        return;
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while running round play logic.", e));
+                }
+                RoundRuleState = ChallengeState.Playing;
+            }
+
+            public void RunRoundChallenge(Int32 RuleID)
             {
                 try
                 {
                     if (Enabled)
                     {
+                        if (Loading)
+                        {
+                            _plugin.Threading.Wait(5000);
+                        }
                         if (!Loaded)
                         {
-                            HandleRead(null);
+                            HandleRead(null, true);
                             if (!Loaded)
                             {
                                 _plugin.Log.Error("Unable to run next challenge. Manager could not complete loading.");
                                 return;
                             }
                         }
-                        // Exclude the current rule if desired
-                        if (RoundRule != null &&
-                            RoundEntries.Any())
-                        {
-                            var completed = RoundEntries.Values.Where(entry => entry.Completed);
-                            _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Ended! " + completed.Count() + " players completed it!");
-                            if (completed.Any())
-                            {
-                                _plugin.AdminSayMessage("Winners: " + String.Join(", ", completed.Select(entry => entry.Player.GetVerboseName()).ToArray()));
-                            }
-                            _plugin.Threading.Wait(5000);
-                        }
-
-                        // Remove the current rule
-                        RoundRule = null;
-                        _plugin.Threading.Wait(100);
-                        // Clear all existing entries
-                        RoundEntries.Clear();
-
-                        ChallengeRule chosenRule = null;
-                        if (RuleID != null)
-                        {
-                            chosenRule = Rules.Values.FirstOrDefault(rule => rule.RuleID == RuleID);
-                            if (chosenRule == null)
-                            {
-                                // They entered an invalid value
-                                _plugin.Log.Error("Invalid rule ID entered, unable to start rule.");
-                                return;
-                            }
-                        }
-                        // Randomize the list and pick the first unused one
-                        var rng = new Random(Environment.TickCount);
-                        chosenRule = Rules.Values.Where(rule => rule.LastUsed.Equals(AdKats.GetEpochTime())).OrderBy(rule => rng.Next()).FirstOrDefault();
+                        var chosenRule = GetRules().FirstOrDefault(rule => rule.ID == RuleID);
                         if (chosenRule == null)
                         {
-                            // None are unused, pick the one which has the longest duration since used
-                            chosenRule = Rules.Values.OrderBy(rule => rule.LastUsed).FirstOrDefault();
+                            // They entered an invalid value
+                            _plugin.Log.Error("Invalid rule ID entered, unable to start rule.");
+                            return;
                         }
-                        if (chosenRule != null)
+                        if (chosenRule.Completion != CRule.CompletionType.Rounds || chosenRule.RoundCount != 1)
                         {
-                            chosenRule.LastUsed = _plugin.UtcNow();
-                            RoundRule = chosenRule;
-                            _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
+                            // Only 1 round long, round based completion rules can be used.
+                            _plugin.Log.Error("Rule " + chosenRule.ID + " isn't round completion or doesn't have a round count of 1, unable to start rule.");
+                            return;
                         }
-                        else
+                        if (RoundRule != null)
                         {
-                            _plugin.Log.Error("Unable to select rule for challenge.");
+                            // Get the active challenges being played for the current round rule.
+                            foreach (var activeEntry in _plugin._PlayerDictionary.Values.ToList()
+                                                                .Where(dPlayer => dPlayer.ActiveChallenge != null &&
+                                                                                  dPlayer.ActiveChallenge.Rule == RoundRule)
+                                                                .Select(dPlayer => dPlayer.ActiveChallenge))
+                            {
+                                // Cancel all active entries for this rule, since it's being changed.
+                                // Perhaps we shouldn't do this? We don't have to anymore.
+                                activeEntry.DoCancel(null);
+                            }
                         }
+                        var completedEntries = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule);
+                        _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Ended! " + completedEntries.Count() + " players completed it!");
+                        if (completedEntries.Any())
+                        {
+                            _plugin.AdminSayMessage("Winners: " + String.Join(", ", completedEntries.Select(entry => entry.Player.GetVerboseName()).ToArray()));
+                        }
+                        // Remove the current rule
+                        RoundRule = null;
+                        chosenRule.RoundLastUsedTime = _plugin.UtcNow();
+                        chosenRule.DBPush(null);
+                        RoundRule = chosenRule;
+                        _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
                     }
                 }
                 catch (Exception e)
@@ -51680,30 +52190,6 @@ namespace PRoConEvents
                     _plugin.Log.HandleException(new AException("Error while running next challenge.", e));
                 }
             }
-
-            public void ProcessKill(AKill aKill)
-            {
-                try
-                {
-                    if (Enabled &&
-                        RoundRule != null &&
-                        aKill.killer != null)
-                    {
-                        ChallengeEntry entry;
-                        if (!RoundEntries.TryGetValue(aKill.killer, out entry))
-                        {
-                            entry = new ChallengeEntry(_plugin, this, aKill.killer);
-                            RoundEntries[aKill.killer] = entry;
-                        }
-                        entry.AddKill(aKill);
-                    }
-                }
-                catch (Exception e)
-                {
-                    _plugin.Log.HandleException(new AException("Error while processing challenge kill.", e));
-                }
-            }
-            */
 
             public class CDefinition
             {
@@ -53724,73 +54210,12 @@ namespace PRoConEvents
                         _plugin.Log.HandleException(new AException("Error updating minute duration by string for CRule.", e));
                     }
                 }
-            }
-
-            public class CEntry
-            {
-                private AdKats _plugin;
-
-                public Boolean Phantom;
-
-                public Int64 ID;
-                public APlayer Player;
-                public CRule Rule;
-                public Boolean Completed;
-                public Boolean Canceled;
-                public Int32 StartRound;
-                public DateTime StartTime;
-                public Dictionary<Int32, CEntryDetail> Details;
-
-                public CEntry(AdKats plugin)
-                {
-                    _plugin = plugin;
-                    StartTime = _plugin.UtcNow();
-                }
-
-                public class CEntryDetail
-                {
-                    private AdKats _plugin;
-
-                    public Boolean Phantom;
-
-                    public CEntry Entry;
-                    public Int64 DetailID;
-                    public AKill Kill;
-
-                    public CEntryDetail(AdKats plugin)
-                    {
-                        _plugin = plugin;
-                    }
-                }
-            }
-
-            /*
-            public class ChallengeRule
-            {
-                private AdKats _plugin;
-                
-                public Int32 ServerID;
-                public Int32 RuleID;
-                public String Name;
-                public DateTime LastUsed;
-
-                // Damage Based Challenge
-                public List<Detail> ChallengeDetails
-                {
-                    get; private set;
-                }
-
-                public ChallengeRule(AdKats plugin)
-                {
-                    _plugin = plugin;
-                    ChallengeDetails = new List<Detail>();
-                    LastUsed = AdKats.GetEpochTime();
-                }
 
                 public String RuleInfo()
                 {
                     String info = "";
-                    var damages = ChallengeDetails.Where(det => det.Type == Detail.DetailType.Damage);
+                    var details = Definition.GetDetails();
+                    var damages = details.Where(det => det.Type == CDefinition.CDefinitionDetail.DetailType.Damage);
                     if (damages.Any())
                     {
                         info += "Weapon Types: ";
@@ -53800,7 +54225,7 @@ namespace PRoConEvents
                         }
                         info += Environment.NewLine;
                     }
-                    var weapons = ChallengeDetails.Where(det => det.Type == Detail.DetailType.Weapon);
+                    var weapons = details.Where(det => det.Type == CDefinition.CDefinitionDetail.DetailType.Weapon);
                     if (weapons.Any())
                     {
                         info += "Weapons: ";
@@ -53812,22 +54237,17 @@ namespace PRoConEvents
                     return info;
                 }
 
-                public void AddDetail(Detail detail)
-                {
-                    try
-                    {
-                        ChallengeDetails.Add(detail);
-                    }
-                    catch (Exception e)
-                    {
-                        _plugin.Log.HandleException(new AException("Error while adding challenge detail.", e));
-                    }
-                }
-
                 public Boolean KillValid(AKill aKill)
                 {
                     try
                     {
+                        if (ID <= 0 ||
+                            Definition == null ||
+                            Definition.ID <= 0)
+                        {
+                            _plugin.Log.Error("Rule was invalid when checking for valid kill.");
+                            return false;
+                        }
                         // Check for invalid kill
                         if (aKill == null ||
                             aKill.IsTeamkill ||
@@ -53839,41 +54259,47 @@ namespace PRoConEvents
                             return false;
                         }
                         // Default to the kill being invalid
-                        foreach (var detail in ChallengeDetails)
+                        var details = Definition.GetDetails();
+                        if (!details.Any())
+                        {
+                            _plugin.Log.Error("Tried to add kill to rule " + ID + ", definition " + Definition.ID + ", when that definition had no damages/weapons.");
+                            return false;
+                        }
+                        foreach (var detail in details)
                         {
                             if (detail.KillCount <= 0)
                             {
-                                _plugin.Log.Info("Detail " + detail.RuleID + "|" + detail.DetailID + " had a non-positive kill count.");
+                                _plugin.Log.Info("Detail " + detail.Definition.ID + "|" + detail.DetailID + " had a non-positive kill count.");
                                 continue;
                             }
                             switch (detail.Type)
                             {
-                                case Detail.DetailType.None:
-                                    _plugin.Log.Info("Damage detail " + detail.RuleID + "|" + detail.DetailID + " had a NONE rule type.");
+                                case CDefinition.CDefinitionDetail.DetailType.None:
+                                    _plugin.Log.Info("Damage detail " + detail.Definition.ID + "|" + detail.DetailID + " had a NONE rule type.");
                                     break;
-                                case Detail.DetailType.Damage:
+                                case CDefinition.CDefinitionDetail.DetailType.Damage:
                                     // Check for matching damage
                                     if (detail.WeaponCount <= 0)
                                     {
-                                        _plugin.Log.Info("Damage detail " + detail.RuleID + "|" + detail.DetailID + "|" + detail.Damage.ToString() + " had non-positive weapon count.");
+                                        _plugin.Log.Info("Damage detail " + detail.Definition.ID + "|" + detail.DetailID + "|" + detail.Damage.ToString() + " had non-positive weapon count.");
                                         break;
                                     }
-                                    if (detail.Damage != aKill.weaponDamage)
+                                    if (!detail.GetDamageTypes().Contains(aKill.weaponDamage))
                                     {
-                                        _plugin.Log.Info("Damage detail " + detail.RuleID + "|" + detail.DetailID + "|" + detail.Damage.ToString() + " did not match damage of " + aKill.ToString() + " (" + aKill.weaponDamage.ToString() + ").");
+                                        _plugin.Log.Info("Damage detail " + detail.Definition.ID + "|" + detail.DetailID + "|" + detail.Damage.ToString() + " did not match damage of " + aKill.ToString() + " (" + aKill.weaponDamage.ToString() + ").");
                                         break;
                                     }
                                     return true;
-                                case Detail.DetailType.Weapon:
+                                case CDefinition.CDefinitionDetail.DetailType.Weapon:
                                     // Check for matching weapon
                                     if (detail.WeaponCount <= 0)
                                     {
-                                        _plugin.Log.Info("Weapon detail " + detail.RuleID + "|" + detail.DetailID + "|" + detail.Weapon.ToString() + " had non-positive weapon count.");
+                                        _plugin.Log.Info("Weapon detail " + detail.Definition.ID + "|" + detail.DetailID + "|" + detail.Weapon.ToString() + " had non-positive weapon count.");
                                         break;
                                     }
                                     if (detail.Weapon != aKill.weaponCode)
                                     {
-                                        _plugin.Log.Info("Weapon detail " + detail.RuleID + "|" + detail.DetailID + "|" + detail.Weapon.ToString() + " did not match weapon code of " + aKill.ToString() + ".");
+                                        _plugin.Log.Info("Weapon detail " + detail.Definition.ID + "|" + detail.DetailID + "|" + detail.Weapon.ToString() + " did not match weapon code of " + aKill.ToString() + ".");
                                         break;
                                     }
                                     return true;
@@ -53888,45 +54314,761 @@ namespace PRoConEvents
                     }
                     return false;
                 }
+
+                public override string ToString()
+                {
+                    return ID + ":" + Name;
+                }
+            }
+
+            public class CEntry
+            {
+                private AdKats _plugin;
+
+                public Boolean Phantom;
+
+                private AChallengeManager Manager;
+                public Int64 ID;
+                public APlayer Player;
+                public CRule Rule;
+                public Boolean Completed;
+                public Boolean Failed;
+                public Boolean Canceled;
+                public Int32 StartRound;
+                public DateTime StartTime;
+                public DateTime CompleteTime;
+                public List<CEntryDetail> Details;
+
+                public String LastCompletedWeapon;
+                public Boolean AutoKillTold;
+
+                public CEntry(AdKats plugin, AChallengeManager manager, APlayer player, CRule rule, Boolean phantom)
+                {
+                    _plugin = plugin;
+                    Manager = manager;
+                    Player = player;
+                    Rule = rule;
+                    Phantom = phantom;
+                    StartTime = _plugin.UtcNow();
+                    CompleteTime = AdKats.GetEpochTime();
+                }
                 
-                public EntryStatus GetCompletionStatus(ChallengeEntry entry)
+                public List<CEntryDetail> GetDetails()
+                {
+                    var details = new List<CEntryDetail>();
+                    try
+                    {
+                        lock (Details)
+                        {
+                            details.AddRange(Details.OrderBy(det => det.DetailID).ToList());
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while getting list of details.", e));
+                    }
+                    return details;
+                }
+                
+                public CEntryDetail GetDetail(Int64 detailID)
                 {
                     try
                     {
-                        if (!ChallengeDetails.Any())
+                        lock (Details)
                         {
-                            _plugin.Log.Error("Cannot return completion status, no damage types added.");
+                            if (!Details.Any())
+                            {
+                                return null;
+                            }
+                            return Details.FirstOrDefault(detail => detail.DetailID == detailID);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while getting detail by detail ID.", e));
+                    }
+                    return null;
+                }
+
+                public Boolean CheckFailure(EntryProgress progress)
+                {
+                    try
+                    {
+                        // If this entry is already closed, don't process it
+                        if (!Completed && !Failed && !Canceled)
+                        {
+                            // The entry is active
+                            // Check for round duration failure
+                            if (Rule.Completion == CRule.CompletionType.Rounds)
+                            {
+                                // Completion round is the same round if RoundCount = 1
+                                var completionRound = StartRound + Rule.RoundCount - 1;
+                                if (Manager.LoadedRoundID > completionRound || (Manager.RoundRuleState == ChallengeState.Ended &&
+                                                                                Manager.LoadedRoundID == completionRound))
+                                {
+                                    // This entry is overtime. Fail it.
+                                    DoFail(progress);
+                                    return true;
+                                }
+                            }
+                            else if (Rule.Completion == CRule.CompletionType.Duration)
+                            {
+                                var completionTime = StartTime + TimeSpan.FromMinutes(Rule.DurationMinutes);
+                                // If the current round is 
+                                if (_plugin.UtcNow() > completionTime)
+                                {
+                                    // This entry is overtime. Fail it.
+                                    DoFail(progress);
+                                    return true;
+                                }
+                            }
+                            else
+                            {
+                                _plugin.Log.Error("Unable to do validation on entry " + ID + ", completion type is invalid.");
+                                return false;
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing Validate for CEntry.", e));
+                    }
+                    return false;
+                }
+
+                public void DoFail(EntryProgress progress)
+                {
+                    try
+                    {
+                        if (ID <= 0 ||
+                            Canceled ||
+                            Completed ||
+                            Failed ||
+                            Player == null ||
+                            Player.player_id <= 0)
+                        {
+                            _plugin.Log.Error("Attempted to fail a challenge entry when it was invalid.");
+                            return;
+                        }
+                        // We're valid to fail. Continue.
+                        // Get progress.
+                        var percentage = "0%";
+                        // Only load the progress if details exist, otherwise the percentage is always 0
+                        if (Details.Any())
+                        {
+                            if (progress == null)
+                            {
+                                progress = GetProgress();
+                            }
+                            percentage = Math.Round(progress.CompletionPercentage) + "%";
+                        }
+                        _plugin.Log.Success(Player.GetVerboseName() + " FAILED a " + Rule.Name + " challenge at " + percentage + " complete.");
+                        Player.Say(Rule.Name + " challenge FAILED at " + percentage + " complete.");
+                        Canceled = true;
+                        CompleteTime = _plugin.UtcNow();
+                        DBPush(null);
+                        Player.ActiveChallenge = null;
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing Fail for CEntry.", e));
+                    }
+                }
+
+                public void DoComplete(EntryProgress progress)
+                {
+                    try
+                    {
+                        if (ID <= 0 ||
+                            Canceled ||
+                            Completed ||
+                            Failed ||
+                            Player == null ||
+                            Player.player_id <= 0)
+                        {
+                            _plugin.Log.Error("Attempted to fail a challenge entry when it was invalid.");
+                            return;
+                        }
+                        // We're valid to fail. Continue.
+                        // Get progress.
+                        var percentage = "0%";
+                        // Only load the progress if details exist, otherwise the percentage is always 0
+                        if (Details.Any())
+                        {
+                            if (progress == null)
+                            {
+                                progress = GetProgress();
+                            }
+                            percentage = Math.Round(progress.CompletionPercentage) + "%";
+                        }
+                        // Validate that they actually completed it.
+                        if (progress.CompletionPercentage < 99.999)
+                        {
+                            _plugin.Log.Error("Attempted to complete challenge without 100% completion.");
+                            return;
+                        }
+                        var message = Player.GetVerboseName() + " just completed a " + Rule.Name + " challenge! Congrats!";
+                        //_plugin.AdminTellMessage(message);
+                        _plugin.AdminSayMessage(message);
+                        Completed = true;
+                        CompleteTime = _plugin.UtcNow();
+                        DBPush(null);
+                        Manager.AddCompletedEntryForRound(this);
+                        Player.ActiveChallenge = null;
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing Fail for CEntry.", e));
+                    }
+                }
+
+                public void DoCancel(EntryProgress progress)
+                {
+                    try
+                    {
+                        if (ID <= 0 ||
+                            Canceled ||
+                            Completed ||
+                            Failed ||
+                            Player == null ||
+                            Player.player_id <= 0)
+                        {
+                            _plugin.Log.Error("Attempted to cancel a challenge entry when it was invalid.");
+                            return;
+                        }
+                        // We're valid to cancel. Continue.
+                        // Get progress.
+                        var percentage = "0%";
+                        // Only load the progress if details exist, otherwise the percentage is always 0
+                        if (Details.Any())
+                        {
+                            if (progress == null)
+                            {
+                                progress = GetProgress();
+                            }
+                            percentage = Math.Round(progress.CompletionPercentage) + "%";
+                        }
+                        _plugin.Log.Success(Player.GetVerboseName() + " CANCELLED a " + Rule.Name + " challenge at " + percentage + " complete.");
+                        Player.Say(Rule.Name + " challenge CANCELLED at " + percentage + " complete.");
+                        Canceled = true;
+                        CompleteTime = _plugin.UtcNow();
+                        DBPush(null);
+                        Player.ActiveChallenge = null;
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing Cancel for CEntry.", e));
+                    }
+                }
+
+                public void DBPush(MySqlConnection connection)
+                {
+                    try
+                    {
+                        if (connection == null)
+                        {
+                            connection = _plugin.GetDatabaseConnection();
+                        }
+                        if (Phantom)
+                        {
+                            DBCreate(connection, true);
+                        }
+                        else
+                        {
+                            DBUpdate(connection, true);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBPush for CEntry.", e));
+                    }
+                }
+
+                private void DBCreate(MySqlConnection con, Boolean includeDetails)
+                {
+                    try
+                    {
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                INSERT INTO 
+	                                `adkats_challenge_entry` 
+                                (
+	                                `PlayerID`,
+	                                `RuleID`,
+	                                `Completed`,
+	                                `Failed`,
+	                                `Canceled`,
+	                                `StartRound`,
+	                                `StartTime`,
+                                    `CompleteTime`
+                                ) 
+                                VALUES 
+                                (
+	                                @PlayerID,
+	                                @RuleID,
+	                                @Completed,
+	                                @Failed,
+	                                @Canceled,
+	                                @StartRound,
+	                                @StartTime,
+	                                @CompleteTime
+                                )";
+                                command.Parameters.AddWithValue("@PlayerID", Player.player_id);
+                                command.Parameters.AddWithValue("@RuleID", Rule.ID);
+                                command.Parameters.AddWithValue("@Completed", Completed);
+                                command.Parameters.AddWithValue("@Failed", Failed);
+                                command.Parameters.AddWithValue("@Canceled", Canceled);
+                                command.Parameters.AddWithValue("@StartRound", StartRound);
+                                command.Parameters.AddWithValue("@StartTime", StartTime);
+                                command.Parameters.AddWithValue("@CompleteTime", CompleteTime);
+                                if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                {
+                                    ID = command.LastInsertedId;
+                                    // This record is no longer phantom
+                                    Phantom = false;
+                                    _plugin.Log.Info("Created new CEntry " + ID + " in database with " + Details.Count() + " details.");
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBCreate for CEntry.", e));
+                    }
+                }
+
+                private void DBUpdate(MySqlConnection con, Boolean includeDetails)
+                {
+                    try
+                    {
+                        if (ID <= 0)
+                        {
+                            _plugin.Log.Error("ID " + ID + " was invalid when updating CEntry.");
+                            return;
+                        }
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                UPDATE 
+	                                `adkats_challenge_entry` 
+                                SET
+	                                `Completed` = @Completed,
+	                                `Failed` = @Failed,
+	                                `Canceled` = @Canceled,
+	                                `CompleteTime` = @CompleteTime
+                                WHERE
+	                                `ID` = @ID";
+                                command.Parameters.AddWithValue("@ID", ID);
+                                command.Parameters.AddWithValue("@Completed", Completed);
+                                command.Parameters.AddWithValue("@Failed", Failed);
+                                command.Parameters.AddWithValue("@Canceled", Canceled);
+                                command.Parameters.AddWithValue("@CompleteTime", CompleteTime);
+                                if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                {
+                                    _plugin.Log.Info("Updated CEntry " + ID + " in database.");
+                                }
+                                else
+                                {
+                                    _plugin.Log.Error("Failed to update CEntry " + ID + " in database.");
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBUpdate for CEntry.", e));
+                    }
+                }
+
+                public void DBRead(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (ID <= 0)
+                        {
+                            _plugin.Log.Error("ID " + ID + " was invalid when reading CEntry.");
+                            return;
+                        }
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                  SELECT `ID`,
+                                         `PlayerID`,
+                                         `RuleID`,
+                                         `Completed`,
+                                         `Failed`,
+                                         `Canceled`,
+                                         `StartRound`,
+                                         `StartTime`,
+                                         `CompleteTime`
+                                    FROM `adkats_challenge_entry`
+                                   WHERE `ID` = @`ID`";
+                                command.Parameters.AddWithValue("@ID", ID);
+                                using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
+                                {
+                                    if (reader.Read())
+                                    {
+                                        var playerID = reader.GetInt64("PlayerID");
+                                        if (Player != null)
+                                        {
+                                            // We have a player already
+                                            if (Player.player_id != playerID)
+                                            {
+                                                _plugin.Log.Error("WHAT. Entry " + ID + " changed player on the database. This should never happen.");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Player = _plugin.FetchPlayer(false, false, false, null, playerID, null, null, null, null);
+                                        }
+                                        if (Player == null)
+                                        {
+                                            _plugin.Log.Error("Unable to fetch player for Entry " + ID + " and player " + playerID + ". Unable to read.");
+                                            return;
+                                        }
+                                        var ruleID = reader.GetInt64("RuleID");
+                                        if (Rule != null)
+                                        {
+                                            // We have a rule already
+                                            if (Rule.ID != ruleID)
+                                            {
+                                                _plugin.Log.Error("NOOOO. Entry changed rule on the database. This should never happen.");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Rule = Manager.GetRule(ruleID);
+                                        }
+                                        if (Rule == null)
+                                        {
+                                            _plugin.Log.Error("Unable to fetch rule for Entry " + ID + " and rule " + ruleID + ". Unable to read.");
+                                            return;
+                                        }
+                                        Completed = reader.GetBoolean("Completed");
+                                        Failed = reader.GetBoolean("Failed");
+                                        Canceled = reader.GetBoolean("Canceled");
+                                        StartRound = reader.GetInt32("StartRound");
+                                        StartTime = reader.GetDateTime("StartTime");
+                                        CompleteTime = reader.GetDateTime("CompleteTime");
+                                    }
+                                    else
+                                    {
+                                        _plugin.Log.Error("Unable to find matching CEntry for ID " + ID);
+                                    }
+                                }
+                            }
+                            DBReadDetails(localConnection);
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBRead for CEntry.", e));
+                    }
+                }
+
+                public void DBReadDetails(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (ID <= 0)
+                        {
+                            _plugin.Log.Error("ID " + ID + " was invalid when reading CEntry details.");
+                            return;
+                        }
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                  SELECT `DetailID`,
+                                         `VictimID`,
+                                         `Weapon`,
+                                         `RoundID`,
+                                         `DetailTime`
+                                    FROM `adkats_challenge_entry_detail`
+                                   WHERE `EntryID` = @EntryID
+                                ORDER BY `DetailID` ASC";
+                                command.Parameters.AddWithValue("@EntryID", ID);
+                                using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
+                                {
+                                    lock (Details)
+                                    {
+                                        // Clear all existing details, we are fetching them all from the DB
+                                        while (reader.Read())
+                                        {
+                                            var detailID = reader.GetInt32("DetailID");
+                                            if (detailID <= 0)
+                                            {
+                                                _plugin.Log.Error("Entry detail " + ID + ":" + detailID + " was invalid, unable to load.");
+                                                continue;
+                                            }
+                                            if (GetDetails().Any(dDetail => dDetail.DetailID == detailID))
+                                            {
+                                                // This single message will be VERY spammy once the manager starts being used. Remove after testing.
+                                                _plugin.Log.Error("Entry detail " + ID + ":" + detailID + " already loaded. Skipping.");
+                                                continue;
+                                            }
+                                            var detailKiller = Player;
+                                            if (detailKiller == null)
+                                            {
+                                                _plugin.Log.Error("Killer was invalid when loading entry detail " + ID + ":" + detailID + ", unable to load.");
+                                                continue;
+                                            }
+                                            var victimID = reader.GetInt32("VictimID");
+                                            var detailVictim = _plugin.FetchPlayer(false, false, false, null, victimID, null, null, null, null);
+                                            if (detailVictim == null)
+                                            {
+                                                _plugin.Log.Error("Victim " + victimID + " was invalid when loading entry detail " + ID + ":" + detailID + ", unable to load.");
+                                                continue;
+                                            }
+                                            var detailWeaponCode = reader.GetString("Weapon");
+                                            var detailWeaponDamage = _plugin.WeaponDictionary.GetDamageTypeByWeaponCode(detailWeaponCode);
+                                            // Use damage validation to make sure the weapon is real
+                                            if (detailWeaponDamage == DamageTypes.None)
+                                            {
+                                                _plugin.Log.Error("Weapon " + detailWeaponCode + " was invalid when loading entry detail " + ID + ":" + detailID + ", unable to load.");
+                                                continue;
+                                            }
+                                            var detailRoundID = reader.GetInt32("RoundID");
+                                            if (detailRoundID <= 0)
+                                            {
+                                                _plugin.Log.Error("Round ID " + detailRoundID + " was invalid when loading entry detail " + ID + ":" + detailID + ", unable to load.");
+                                                continue;
+                                            }
+                                            var detailTime = reader.GetDateTime("DetailTime");
+                                            // Build the kill object
+                                            var kill = new AKill(_plugin)
+                                            {
+                                                killer = detailKiller,
+                                                weaponCode = detailWeaponCode,
+                                                weaponDamage = detailWeaponDamage,
+                                                victim = detailVictim,
+                                                RoundID = detailRoundID,
+                                                UTCTimeStamp = detailTime,
+                                                TimeStamp = detailTime.ToLocalTime()
+                                            };
+                                            Details.Add(new CEntryDetail(_plugin, this, detailID, kill, false));
+                                        }
+                                        _plugin.Log.Info("Filled challenge entry " + ID + ", with " + Details.Count() + " details.");
+                                    }
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBReadDetails for CEntry.", e));
+                    }
+                }
+
+                public Boolean AddKill(AKill aKill)
+                {
+                    try
+                    {
+                        lock (Details)
+                        {
+                            if (!Manager.Enabled || 
+                                !Rule.Enabled ||
+                                Completed || 
+                                Failed || 
+                                Canceled)
+                            {
+                                return false;
+                            }
+                            // Check for invalid entry
+                            if (aKill.killer.player_id != Player.player_id)
+                            {
+                                _plugin.Log.Info("Kill player " + aKill.killer.GetVerboseName() + " did not match entry player " + Player.GetVerboseName() + ".");
+                                return false;
+                            }
+                            // Check for invalid rule
+                            if (Rule == null)
+                            {
+                                _plugin.Log.Warn("Entry " + ID + " rule was null when trying to add kill: " + aKill.ToString());
+                                return false;
+                            }
+                            // Check for invalid kill
+                            if (!Rule.KillValid(aKill))
+                            {
+                                return false;
+                            }
+                            // Create the new detail ID as one more than the current max.
+                            var detailID = Details.Select(dDetail => dDetail.DetailID).DefaultIfEmpty(0).Max() + 1;
+                            if (detailID <= 0)
+                            {
+                                _plugin.Log.Error("Entry detail " + ID + ":" + detailID + " was invalid. Generated detail ID was not valid.");
+                                return false;
+                            }
+                            if (GetDetails().Any(dDetail => dDetail.DetailID == detailID))
+                            {
+                                _plugin.Log.Error("Entry detail " + ID + ":" + detailID + " already existed when adding kill. Unable to add kill.");
+                                return false;
+                            }
+                            if (aKill.killer == null || aKill.killer.player_id <= 0)
+                            {
+                                _plugin.Log.Error("Killer was invalid when adding kill to entry detail " + ID + ":" + detailID + ". Unable to add kill.");
+                                return false;
+                            }
+                            if (aKill.victim == null || aKill.victim.player_id <= 0)
+                            {
+                                _plugin.Log.Error("Victim was invalid when adding kill to entry detail " + ID + ":" + detailID + ". Unable to add kill.");
+                                return false;
+                            }
+                            // Use damage validation to make sure the weapon is real
+                            if (aKill.weaponDamage == DamageTypes.None)
+                            {
+                                _plugin.Log.Error("Weapon " + aKill.weaponCode + " was invalid when adding kill to entry detail " + ID + ":" + detailID + ". Unable to add kill.");
+                                return false;
+                            }
+                            if (aKill.RoundID <= 0)
+                            {
+                                _plugin.Log.Error("Round ID " + aKill.RoundID + " was invalid when adding kill to entry detail " + ID + ":" + detailID + ". Unable to add kill.");
+                                return false;
+                            }
+
+                            var newDetail = new CEntryDetail(_plugin, this, detailID, aKill, true);
+                            newDetail.DBPush(null);
+                            // Make sure the upload was successful before adding
+                            if (newDetail.Phantom)
+                            {
+                                _plugin.Log.Error("Challenge entry detail " + ID + ":" + detailID + " could not upload. Unable to add kill.");
+                                return false;
+                            }
+
+                            // Everything is validated. Add the kill.
+                            Details.Add(newDetail);
+
+                            //Check for completion case.
+                            var progress = GetProgress();
+
+                            if (progress.CompletionPercentage >= 99.999)
+                            {
+                                DoComplete(progress);
+                                return true;
+                            }
+
+                            progress.SendStatusForKill(aKill);
+                            return true;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while adding kill to challenge entry.", e));
+                    }
+                    return false;
+                }
+                
+                public EntryProgress GetProgress()
+                {
+                    try
+                    {
+                        if (ID <= 0 ||
+                            Rule == null ||
+                            Rule.ID <= 0 ||
+                            Rule.Definition == null ||
+                            Rule.Definition.ID <= 0)
+                        {
+                            _plugin.Log.Error("Entry was invalid when getting completion status.");
+                            return null;
+                        }
+                        var details = Rule.Definition.GetDetails();
+                        if (!details.Any())
+                        {
+                            _plugin.Log.Error("Cannot return completion status, no damage types added to definition " + Rule.Definition.ID + ".");
                             return null;
                         }
 
                         // Build the necessary buckets
-                        var damageDetails = ChallengeDetails.Where(detail => detail.Type == Detail.DetailType.Damage && 
-                                                                              detail.Damage != DamageTypes.None &&
-                                                                              detail.KillCount > 0).ToList();
                         // Damage buckets
+                        var damageDetails = details.Where(detail => detail.Type == CDefinition.CDefinitionDetail.DetailType.Damage &&
+                                                                    detail.Damage != CDefinition.CDefinitionDetail.DetailDamage.None &&
+                                                                    detail.KillCount > 0).ToList();
                         var damageBuckets = new Dictionary<DamageTypes, DamageBucket>();
                         foreach (var detail in damageDetails)
                         {
-                            var damageBucket = new DamageBucket(_plugin)
+                            // Loop over each of the damage types in the damage detail
+                            foreach (var damageType in detail.GetDamageTypes())
                             {
-                                Damage = detail.Damage,
-                                WeaponCount = detail.WeaponCount,
-                                MaxKillsPerWeapon = detail.KillCount
-                            };
-                            foreach (var weaponCode in _plugin.WeaponDictionary.GetWeaponCodesOfDamageType(detail.Damage))
-                            {
-                                damageBucket.Weapons[weaponCode] = new WeaponBucket(_plugin)
+                                var damageBucket = new DamageBucket(_plugin)
                                 {
-                                    WeaponCode = weaponCode,
-                                    MaxKills = detail.KillCount
+                                    Damage = damageType,
+                                    WeaponCount = detail.WeaponCount,
+                                    MaxKillsPerWeapon = detail.KillCount
                                 };
+                                foreach (var weaponCode in _plugin.WeaponDictionary.GetWeaponCodesOfDamageType(damageType))
+                                {
+                                    damageBucket.Weapons[weaponCode] = new WeaponBucket(_plugin)
+                                    {
+                                        WeaponCode = weaponCode,
+                                        MaxKills = detail.KillCount
+                                    };
+                                }
+                                damageBuckets[damageBucket.Damage] = damageBucket;
                             }
-                            damageBuckets[damageBucket.Damage] = damageBucket;
                         }
                         // Weapon buckets
-                        var weaponDetails = ChallengeDetails.Where(detail => detail.Type == Detail.DetailType.Weapon && 
-                                                                             !String.IsNullOrEmpty(detail.Weapon) &&
-                                                                             detail.KillCount > 0).ToList();
+                        var weaponDetails = details.Where(detail => detail.Type == CDefinition.CDefinitionDetail.DetailType.Weapon &&
+                                                                    !String.IsNullOrEmpty(detail.Weapon) &&
+                                                                    detail.KillCount > 0).ToList();
                         var weaponBuckets = new Dictionary<String, WeaponBucket>();
                         foreach (var detail in weaponDetails)
                         {
@@ -53938,8 +55080,8 @@ namespace PRoConEvents
                             weaponBuckets[weaponBucket.WeaponCode] = weaponBucket;
                         }
 
-                        foreach (var kill in entry.Kills.OrderBy(dKill => dKill.TimeStamp))
-                        {                            
+                        foreach (var kill in GetDetails().Select(dDetail => dDetail.Kill).OrderBy(dKill => dKill.TimeStamp))
+                        {
                             // See if it matches a specific weapon requirement
                             if (weaponBuckets.ContainsKey(kill.weaponCode))
                             {
@@ -53973,7 +55115,7 @@ namespace PRoConEvents
                             // Unable to assign the kill. Either we don't have a need for it, or all the slots for it are full.
                         }
 
-                        return new EntryStatus(_plugin, entry, damageBuckets, weaponBuckets);
+                        return new EntryProgress(_plugin, this, damageBuckets, weaponBuckets);
                     }
                     catch (Exception e)
                     {
@@ -53981,12 +55123,12 @@ namespace PRoConEvents
                     }
                     return null;
                 }
-                
-                public class EntryStatus
+
+                public class EntryProgress
                 {
                     private AdKats _plugin;
 
-                    private ChallengeEntry Entry;
+                    private CEntry Entry;
                     private Dictionary<DamageTypes, DamageBucket> DamageBuckets;
                     private Dictionary<String, WeaponBucket> WeaponBuckets;
 
@@ -54002,8 +55144,8 @@ namespace PRoConEvents
                     {
                         get; private set;
                     }
-                    
-                    public EntryStatus(AdKats plugin, ChallengeEntry entry, Dictionary<DamageTypes, DamageBucket> damageBuckets, Dictionary<String, WeaponBucket> weaponBuckets)
+
+                    public EntryProgress(AdKats plugin, CEntry entry, Dictionary<DamageTypes, DamageBucket> damageBuckets, Dictionary<String, WeaponBucket> weaponBuckets)
                     {
                         _plugin = plugin;
 
@@ -54072,10 +55214,10 @@ namespace PRoConEvents
                             String completion = "";
                             var respond = true;
                             var autoKill = false;
-                            if (weaponCompletionPercentage > 99.9)
+                            if (weaponCompletionPercentage >= 99.999)
                             {
                                 completion = "COMPLETED!";
-                                if (CompletionPercentage < 99.9)
+                                if (CompletionPercentage < 99.999)
                                 {
                                     completion += " Try another weapon!";
                                     autoKill = true;
@@ -54107,7 +55249,7 @@ namespace PRoConEvents
                                     Entry.AutoKillTold = true;
                                 }
                             }
-                            return ;
+                            return;
                         }
                         catch (Exception e)
                         {
@@ -54120,7 +55262,7 @@ namespace PRoConEvents
                         try
                         {
                             var status = "";
-                            if (Entry.GetRule() == null)
+                            if (Entry.Rule == null)
                             {
                                 return "ERROR4";
                             }
@@ -54142,7 +55284,7 @@ namespace PRoConEvents
                         }
                         catch (Exception e)
                         {
-                            _plugin.Log.HandleException(new AException("Error getting status string.", e));
+                            _plugin.Log.HandleException(new AException("Error getting entry status string.", e));
                         }
                         return "ERROR5";
                     }
@@ -54268,127 +55410,190 @@ namespace PRoConEvents
                     }
                 }
 
-                public class Detail
+                public class CEntryDetail
                 {
-                    public enum DetailType
-                    {
-                        None,
-                        Weapon,
-                        Damage
-                    }
-                    public static String DetailTypeEnumString = "enum.ChallengeTemplateDetailType(None|Weapon|Damage)";
-
                     private AdKats _plugin;
 
                     public Boolean Phantom;
 
-                    public Int64 RuleID;
-                    public Int64 DetailID;
-                    public DetailType Type = DetailType.None;
-                    public DamageTypes Damage = DamageTypes.None;
-                    public Int32 WeaponCount;
-                    public String Weapon;
-                    public Int32 KillCount;
-                    public DateTime CreateTime;
-                    public DateTime ModifyTime;
-                }
-            }
+                    // None of these should be changed after creation
+                    public CEntry Entry
+                    {
+                        get; private set;
+                    }
+                    public Int64 DetailID
+                    {
+                        get; private set;
+                    }
+                    public AKill Kill
+                    {
+                        get; private set;
+                    }
 
-            public class ChallengeEntry
-            {
-                private AdKats _plugin;
-
-                public APlayer Player;
-                public AChallengeManager Manager;
-                public ChallengeRule OriginalRule;
-                public List<AKill> Kills;
-
-                public String LastCompletedWeapon = String.Empty;
-                public Boolean Completed;
-
-                // Messaging
-                public Boolean AutoKillTold;
-
-                public ChallengeEntry(AdKats plugin, AChallengeManager manager, APlayer player)
-                {
-                    try
+                    public CEntryDetail(AdKats plugin, CEntry entry, Int64 detailID, AKill kill, Boolean phantom)
                     {
                         _plugin = plugin;
-                        Manager = manager;
-                        Player = player;
-
-                        Kills = new List<AKill>();
-
-                        // Save off the original rule for confirmations later
-                        OriginalRule = manager.RoundRule;
+                        Entry = entry;
+                        DetailID = detailID;
+                        Kill = kill;
+                        Phantom = phantom;
                     }
-                    catch (Exception e)
+
+                    // Done
+                    public void DBPush(MySqlConnection con)
                     {
-                        _plugin.Log.HandleException(new AException("Error while creating challenge entry.", e));
+                        try
+                        {
+                            var localConnection = con;
+                            if (localConnection == null)
+                            {
+                                localConnection = _plugin.GetDatabaseConnection();
+                            }
+                            try
+                            {
+                                using (MySqlCommand command = localConnection.CreateCommand())
+                                {
+                                    command.CommandText = @"
+                                    INSERT INTO 
+	                                    `adkats_challenge_entry_detail` 
+                                    (
+	                                    `EntryID`, 
+	                                    `DetailID`, 
+	                                    `VictimID`, 
+	                                    `Weapon`, 
+	                                    `RoundID`, 
+	                                    `DetailTime`
+                                    ) 
+                                    VALUES 
+                                    (
+	                                    @EntryID, 
+	                                    @DetailID, 
+	                                    @VictimID, 
+	                                    @Weapon, 
+	                                    @RoundID, 
+	                                    @DetailTime
+                                    )";
+                                    command.Parameters.AddWithValue("@EntryID", Entry.ID);
+                                    command.Parameters.AddWithValue("@DetailID", DetailID);
+                                    command.Parameters.AddWithValue("@VictimID", Kill.victim.player_id);
+                                    command.Parameters.AddWithValue("@Weapon", Kill.weaponCode);
+                                    command.Parameters.AddWithValue("@RoundID", Kill.RoundID);
+                                    command.Parameters.AddWithValue("@DetailTime", Kill.UTCTimeStamp);
+                                    if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                    {
+                                        // This record is no longer phantom
+                                        Phantom = false;
+                                        _plugin.Log.Info("Created new CEntryDetail " + Entry.ID + ":" + DetailID + " in database.");
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                if (con == null &&
+                                    localConnection != null)
+                                {
+                                    localConnection.Dispose();
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error performing DBPush for CEntryDetail.", e));
+                        }
                     }
-                }
-
-                public ChallengeRule GetRule()
-                {
-                    return Manager.RoundRule;
-                }
-
-                public Boolean AddKill(AKill aKill)
-                {
-                    try
+                    
+                    public void DBRead(MySqlConnection con)
                     {
-                        if (Completed)
+                        try
                         {
-                            return false;
+                            if (Entry == null ||
+                                Entry.ID <= 0 ||
+                                Entry.Player == null ||
+                                DetailID <= 0)
+                            {
+                                _plugin.Log.Error("Challenge entry detail was invalid when reading.");
+                                return;
+                            }
+                            var localConnection = con;
+                            if (localConnection == null)
+                            {
+                                localConnection = _plugin.GetDatabaseConnection();
+                            }
+                            try
+                            {
+                                using (MySqlCommand command = localConnection.CreateCommand())
+                                {
+                                    command.CommandText = @"
+                                      SELECT `VictimID`,
+                                             `Weapon`,
+                                             `RoundID`,
+                                             `DetailTime`
+                                        FROM `adkats_challenge_entry_detail`
+                                       WHERE `EntryID` = @EntryID
+                                         AND `DetailID` = @DetailID";
+                                    command.Parameters.AddWithValue("@EntryID", Entry.ID);
+                                    command.Parameters.AddWithValue("@DetailID", DetailID);
+                                    using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
+                                    {
+                                        if (reader.Read())
+                                        {
+                                            var victimID = reader.GetInt32("VictimID");
+                                            var detailVictim = _plugin.FetchPlayer(false, false, false, null, victimID, null, null, null, null);
+                                            if (detailVictim == null)
+                                            {
+                                                _plugin.Log.Error("Victim " + victimID + " was invalid when loading entry detail " + Entry.ID + ":" + DetailID + ", unable to load.");
+                                                return;
+                                            }
+                                            var detailWeaponCode = reader.GetString("Weapon");
+                                            var detailWeaponDamage = _plugin.WeaponDictionary.GetDamageTypeByWeaponCode(detailWeaponCode);
+                                            // Use damage validation to make sure the weapon is real
+                                            if (detailWeaponDamage == DamageTypes.None)
+                                            {
+                                                _plugin.Log.Error("Weapon " + detailWeaponCode + " was invalid when loading entry detail " + Entry.ID + ":" + DetailID + ", unable to load.");
+                                                return;
+                                            }
+                                            var detailRoundID = reader.GetInt32("RoundID");
+                                            if (detailRoundID <= 0)
+                                            {
+                                                _plugin.Log.Error("Round ID " + detailRoundID + " was invalid when loading entry detail " + Entry.ID + ":" + DetailID + ", unable to load.");
+                                                return;
+                                            }
+                                            var detailTime = reader.GetDateTime("DetailTime");
+                                            // Build the kill object
+                                            var kill = new AKill(_plugin)
+                                            {
+                                                killer = Entry.Player,
+                                                weaponCode = detailWeaponCode,
+                                                weaponDamage = detailWeaponDamage,
+                                                victim = detailVictim,
+                                                RoundID = detailRoundID,
+                                                UTCTimeStamp = detailTime,
+                                                TimeStamp = detailTime.ToLocalTime()
+                                            };
+                                        }
+                                        else
+                                        {
+                                            _plugin.Log.Error("Unable to find matching CEntryDetail " + Entry.ID + ":" + DetailID + ".");
+                                        }
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                if (con == null &&
+                                    localConnection != null)
+                                {
+                                    localConnection.Dispose();
+                                }
+                            }
                         }
-                        // Check for invalid entry
-                        if (aKill.killer.player_id != Player.player_id)
+                        catch (Exception e)
                         {
-                            _plugin.Log.Info("Kill player " + aKill.killer.GetVerboseName() + " did not match entry player " + Player.GetVerboseName() + ".");
-                            return false;
+                            _plugin.Log.HandleException(new AException("Error performing DBRead for CEntryDetail.", e));
                         }
-                        // Check for invalid rule
-                        if (Manager.RoundRule == null)
-                        {
-                            _plugin.Log.Warn("Manager's rule was null when trying to add kill: " + aKill.ToString());
-                            return false;
-                        }
-                        if (Manager.RoundRule != OriginalRule)
-                        {
-                            _plugin.Log.Warn("Manager's rule " + Manager.RoundRule.Name + " did not match the original rule " + OriginalRule.Name + " for this challenge entry.");
-                            return false;
-                        }
-                        // Check for invalid kill
-                        if (!Manager.RoundRule.KillValid(aKill))
-                        {
-                            return false;
-                        }
-                        // Everything is validated. Add the kill.
-                        Kills.Add(aKill);
-
-                        //Check for completion case.
-                        var status = Manager.RoundRule.GetCompletionStatus(this);
-
-                        if (status.CompletionPercentage >= 99.99)
-                        {
-                            var message = Player.GetVerboseName() + " just completed the " + Manager.RoundRule.Name + " challenge! Congrats!";
-                            //_plugin.AdminTellMessage(message);
-                            _plugin.AdminSayMessage(message);
-                            Completed = true;
-                            return true;
-                        }
-
-                        status.SendStatusForKill(aKill);
-                        return true;
                     }
-                    catch (Exception e)
-                    {
-                        _plugin.Log.HandleException(new AException("Error while adding kill to challenge entry.", e));
-                    }
-                    return false;
                 }
             }
-            */
         }
 
         public class AEventOption
@@ -54398,6 +55603,7 @@ namespace PRoConEvents
                 UNKNOWN,
                 RESET,
                 T100,
+                T200,
                 T300,
                 T400,
                 R200,
@@ -54416,6 +55622,7 @@ namespace PRoConEvents
             };
             public static readonly Dictionary<ModeCode, String> ModeNames = new Dictionary<ModeCode, String> {
                 {ModeCode.T100, "TDM 100"},
+                {ModeCode.T200, "TDM 200"},
                 {ModeCode.T300, "TDM 300"},
                 {ModeCode.T400, "TDM 400"},
                 {ModeCode.R200, "Rush 200"},
@@ -54760,6 +55967,7 @@ namespace PRoConEvents
             public Boolean IsHeadshot;
             public Boolean IsTeamkill;
             public DateTime TimeStamp;
+            public DateTime UTCTimeStamp;
             public Int64 RoundID;
 
             public AKill(AdKats plugin)
@@ -54935,6 +56143,8 @@ namespace PRoConEvents
             public IPAPILocation location = null;
             public Boolean update_playerUpdated = true;
             public Boolean player_new = false;
+
+            public AChallengeManager.CEntry ActiveChallenge = null;
 
             public Boolean loadout_valid = true;
             public Boolean loadout_spawnValid = true;
