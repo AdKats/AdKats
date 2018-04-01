@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.103
+ * Version 7.0.1.104
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.103</version_code>
+ * <version_code>7.0.1.104</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.103";
+        private const String PluginVersion = "7.0.1.104";
 
         public enum GameVersionEnum
         {
@@ -51128,12 +51128,14 @@ namespace PRoConEvents
                         _plugin.Log.Success("DISABLING CHALLENGE MANAGER");
                         CancelActiveRoundRule(false);
                         ChallengeRoundState = ChallengeState.Init;
+                        Enabled = enable;
                     }
                     else if (!Enabled && enable)
                     {
                         _plugin.Log.Success("ENABLING CHALLENGE MANAGER");
                         if (Loaded)
                         {
+                            Enabled = enable;
                             if (_plugin._roundID <= 1)
                             {
                                 _plugin.Log.Error("Round ID was invalid when starting challenge manager.");
@@ -51150,6 +51152,7 @@ namespace PRoConEvents
                         }
                         else if (Loading)
                         {
+                            Enabled = enable;
                             _plugin.Log.Warn("Manager not loaded yet. Setting to trigger load.");
                             TriggerLoad = true;
                         }
@@ -51159,7 +51162,6 @@ namespace PRoConEvents
                             return;
                         }
                     }
-                    Enabled = enable;
                 }
                 catch (Exception e)
                 {
