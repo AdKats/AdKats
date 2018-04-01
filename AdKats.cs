@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.91
+ * Version 7.0.1.92
  * 31-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.91</version_code>
+ * <version_code>7.0.1.92</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.91";
+        private const String PluginVersion = "7.0.1.92";
 
         public enum GameVersionEnum
         {
@@ -2655,10 +2655,11 @@ namespace PRoConEvents
             var challengeSettings = "C32";
             try
             {
-                if (IsActiveSettingSection(challengeSettings))
+                if (IsActiveSettingSection(challengeSettings) && ChallengeManager != null)
                 {
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Challenge System Play Status Only", typeof(Boolean), ChallengeManager.PlayStatusOnly));
+                    buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Use Server-Wide Round Rules", typeof(Boolean), ChallengeManager.EnableServerRoundRules));
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [1] Displays" + t + "Current Rule (Display)", typeof(String), ChallengeManager.GetRoundRuleName()));
 
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + " [2] Actions" + t + "Run Round Challenge ID", typeof(Int32), 0));
@@ -5894,6 +5895,10 @@ namespace PRoConEvents
                         enabled != ChallengeManager.Enabled)
                     {
                         ChallengeManager.Enabled = enabled;
+                        if (!ChallengeManager.Enabled)
+                        {
+                            ChallengeManager.CancelActiveRoundRuleEntries();
+                        }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
                     }
@@ -5915,6 +5920,17 @@ namespace PRoConEvents
                         ChallengeManager.PlayStatusOnly = playStatusOnly;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Challenge System Play Status Only", typeof(Boolean), ChallengeManager.PlayStatusOnly));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Use Server-Wide Round Rules").Success)
+                {
+                    Boolean useRoundRules = Boolean.Parse(strValue);
+                    if (ChallengeManager != null &&
+                        useRoundRules != ChallengeManager.EnableServerRoundRules)
+                    {
+                        ChallengeManager.EnableServerRoundRules = useRoundRules;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Use Server-Wide Round Rules", typeof(Boolean), ChallengeManager.EnableServerRoundRules));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use NO EXPLOSIVES Limiter").Success)
@@ -37861,6 +37877,7 @@ namespace PRoConEvents
                 {
                     QueueSettingForUpload(new CPluginVariable(@"Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
                     QueueSettingForUpload(new CPluginVariable(@"Challenge System Play Status Only", typeof(Boolean), ChallengeManager.PlayStatusOnly));
+                    QueueSettingForUpload(new CPluginVariable(@"Use Server-Wide Round Rules", typeof(Boolean), ChallengeManager.EnableServerRoundRules));
                 }
                 Log.Debug(() => "uploadAllSettings finished!", 6);
             }
@@ -51907,7 +51924,13 @@ namespace PRoConEvents
                         _plugin.Log.Error("Kill was invalid when assigning round challenge.");
                         return;
                     }
+
                     var player = kill.killer;
+                    // Check whitelisting case
+                    if (PlayStatusOnly && !_plugin.GetMatchingVerboseASPlayersOfGroup("challenge_play", player).Any())
+                    {
+                        return;
+                    }
                     // Check to see if they should have an active challenge already assigned
                     if (player.ActiveChallenge == null)
                     {
@@ -51927,6 +51950,30 @@ namespace PRoConEvents
                 catch (Exception e)
                 {
                     _plugin.Log.HandleException(new AException("Error while assigning challenge if kill valid.", e));
+                }
+            }
+
+            public void CancelActiveRoundRuleEntries()
+            {
+                try
+                {
+                    if (RoundRule != null)
+                    {
+                        // Get the active challenges being played for the current round rule.
+                        foreach (var activeEntry in _plugin._PlayerDictionary.Values.ToList()
+                                                            .Where(dPlayer => dPlayer.ActiveChallenge != null &&
+                                                                              dPlayer.ActiveChallenge.Rule == RoundRule)
+                                                            .Select(dPlayer => dPlayer.ActiveChallenge))
+                        {
+                            // Cancel all active entries for this rule, since it's being changed.
+                            // Perhaps we shouldn't do this? We don't have to anymore.
+                            activeEntry.DoCancel(null);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while cancelling active round rule entries.", e));
                 }
             }
 
@@ -52158,19 +52205,7 @@ namespace PRoConEvents
                             _plugin.Log.Error("Rule " + chosenRule.ID + " isn't round completion or doesn't have a round count of 1, unable to start rule.");
                             return;
                         }
-                        if (RoundRule != null)
-                        {
-                            // Get the active challenges being played for the current round rule.
-                            foreach (var activeEntry in _plugin._PlayerDictionary.Values.ToList()
-                                                                .Where(dPlayer => dPlayer.ActiveChallenge != null &&
-                                                                                  dPlayer.ActiveChallenge.Rule == RoundRule)
-                                                                .Select(dPlayer => dPlayer.ActiveChallenge))
-                            {
-                                // Cancel all active entries for this rule, since it's being changed.
-                                // Perhaps we shouldn't do this? We don't have to anymore.
-                                activeEntry.DoCancel(null);
-                            }
-                        }
+                        CancelActiveRoundRuleEntries();
                         var completedEntries = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule);
                         _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Ended! " + completedEntries.Count() + " players completed it!");
                         if (completedEntries.Any())
