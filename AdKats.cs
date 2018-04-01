@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.99
+ * Version 7.0.1.100
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.99</version_code>
+ * <version_code>7.0.1.100</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.99";
+        private const String PluginVersion = "7.0.1.100";
 
         public enum GameVersionEnum
         {
@@ -5915,11 +5915,7 @@ namespace PRoConEvents
                     if (ChallengeManager != null &&
                         enabled != ChallengeManager.Enabled)
                     {
-                        ChallengeManager.Enabled = enabled;
-                        if (!ChallengeManager.Enabled)
-                        {
-                            ChallengeManager.CancelActiveRoundRule();
-                        }
+                        ChallengeManager.SetEnabled(enabled);
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
                     }
@@ -51094,6 +51090,7 @@ namespace PRoConEvents
             {
                 get; private set;
             }
+            private Boolean TriggerLoad;
             private List<CDefinition> Definitions;
             private List<CRule> Rules;
             private List<CEntry> Entries;
@@ -51120,6 +51117,41 @@ namespace PRoConEvents
                 {
                     _plugin.Log.HandleException(new AException("Error while creating challenge manager.", e));
                 }
+            }
+
+            public void SetEnabled(Boolean enabled)
+            {
+                try
+                {
+                    if (Enabled && !enabled)
+                    {
+                        CancelActiveRoundRule();
+                    }
+                    else if (!Enabled && enabled)
+                    {
+                        if (Loaded)
+                        {
+                            if (_plugin._roundID <= 1)
+                            {
+                                _plugin.Log.Error("Round ID was invalid when starting challenge manager.");
+                            }
+                            else
+                            {
+                                OnRoundLoaded(_plugin._roundID);
+                            }
+                        }
+                        else
+                        {
+                            TriggerLoad = true;
+                        }
+                    }
+                    Enabled = enabled;
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while reading all challenge manager DB info.", e));
+                }
+
             }
 
             public String GetDefinitionEnum(Boolean includeNone)
@@ -51179,7 +51211,7 @@ namespace PRoConEvents
                             DBReadDefinitions(con);
                             DBReadRules(con);
                             DBReadEntries(con);
-                            if (!Loaded)
+                            if (TriggerLoad)
                             {
                                 if (_plugin._roundID <= 1)
                                 {
@@ -51189,6 +51221,7 @@ namespace PRoConEvents
                                 {
                                     OnRoundLoaded(_plugin._roundID);
                                 }
+                                TriggerLoad = false;
                             }
                             // -- END LOAD --
                             Loading = false;
