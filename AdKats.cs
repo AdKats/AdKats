@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.98
+ * Version 7.0.1.99
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.98</version_code>
+ * <version_code>7.0.1.99</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.98";
+        private const String PluginVersion = "7.0.1.99";
 
         public enum GameVersionEnum
         {
@@ -2664,7 +2664,6 @@ namespace PRoConEvents
                     var displaySectionPrefix = GetSettingSection(challengeSettings) + " [1] Displays" + t;
                     var roundRule = ChallengeManager.RoundRule;
                     var roundRuleName = roundRule != null ? roundRule.Name : "No Round Rule";
-                    buildList.Add(new CPluginVariable(displaySectionPrefix + "Current Server-Wide Round Rule (Display)", typeof(String), roundRuleName));
                     var activeEntries = _PlayerDictionary.Values.ToList().Where(aPlayer => aPlayer.ActiveChallenge != null)
                                                                          .Select(aPlayer => aPlayer.ActiveChallenge)
                                                                          .OrderBy(entry => entry.Rule.Name)
@@ -2675,8 +2674,11 @@ namespace PRoConEvents
                     {
                         roundRuleEntries.AddRange(activeEntries.Where(entry => entry.Rule == roundRule));
                     }
-                    buildList.Add(new CPluginVariable(displaySectionPrefix + "Active Entries (Display)", typeof(String[]), activeEntries.Select(entry => entry.ToString()).ToArray()));
-                    buildList.Add(new CPluginVariable(displaySectionPrefix + "Active Round Rule Entries (Display)", typeof(String[]), roundRuleEntries.Select(entry => entry.ToString()).ToArray()));
+                    var activeEntriesArray = activeEntries.Select(entry => entry.ToString()).ToArray();
+                    buildList.Add(new CPluginVariable(displaySectionPrefix + "[" + activeEntriesArray.Count() + "] Active Entries (Display)", typeof(String[]), activeEntriesArray));
+                    buildList.Add(new CPluginVariable(displaySectionPrefix + "Current Server-Wide Round Rule (Display)", typeof(String), roundRuleName));
+                    var activeRoundEntriesArray = roundRuleEntries.Select(entry => entry.ToString()).ToArray();
+                    buildList.Add(new CPluginVariable(displaySectionPrefix + "[" + activeRoundEntriesArray.Count() + "] Active Round Rule Entries (Display)", typeof(String[]), activeRoundEntriesArray));
                     // ACTIONS
                     var actionSectionPrefix = GetSettingSection(challengeSettings) + " [2] Actions" + t;
                     buildList.Add(new CPluginVariable(actionSectionPrefix + "Run Round Challenge ID", typeof(Int32), 0));
@@ -52138,7 +52140,7 @@ namespace PRoConEvents
                     {
                         return;
                     }
-                    _plugin.Log.Success("Challenge mananger round load triggered for round " + roundID);
+                    _plugin.Log.Warn("Challenge mananger round load triggered for round " + roundID);
                     // Confirm we are in valid state to end.
                     if (ChallengeRoundState != ChallengeState.Ended &&
                         ChallengeRoundState != ChallengeState.Init)
@@ -54454,7 +54456,6 @@ namespace PRoConEvents
                     StartTime = _plugin.UtcNow();
                     CompleteTime = AdKats.GetEpochTime();
                     Details = new List<CEntryDetail>();
-                    RefreshProgress(null);
                 }
                 
                 public List<CEntryDetail> GetDetails()
@@ -54889,6 +54890,7 @@ namespace PRoConEvents
                                         StartRound = reader.GetInt32("StartRound");
                                         StartTime = reader.GetDateTime("StartTime");
                                         CompleteTime = reader.GetDateTime("CompleteTime");
+                                        RefreshProgress(null);
                                     }
                                     else
                                     {
@@ -55004,7 +55006,7 @@ namespace PRoConEvents
                                             changed = true;
                                         }
                                         _plugin.Log.Info("Filled challenge entry " + ID + ", with " + Details.Count() + " details.");
-                                        if (changed)
+                                        if (changed && !Canceled && !Failed)
                                         {
                                             RefreshProgress(null);
                                         }
