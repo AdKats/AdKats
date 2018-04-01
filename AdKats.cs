@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.92
+ * Version 7.0.1.93
  * 31-MAR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.92</version_code>
+ * <version_code>7.0.1.93</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.92";
+        private const String PluginVersion = "7.0.1.93";
 
         public enum GameVersionEnum
         {
@@ -5897,7 +5897,7 @@ namespace PRoConEvents
                         ChallengeManager.Enabled = enabled;
                         if (!ChallengeManager.Enabled)
                         {
-                            ChallengeManager.CancelActiveRoundRuleEntries();
+                            ChallengeManager.CancelActiveRoundRule();
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
@@ -5908,6 +5908,12 @@ namespace PRoConEvents
                     Int32 RuleID = Int32.Parse(strValue);
                     if (ChallengeManager != null)
                     {
+                        if (!ChallengeManager.Enabled)
+                        {
+                            Log.Error("Unable to run challenge rule. Challenge system not enabled.");
+                            return;
+                        }
+                        Log.Info("Attempting to run challenge rule " + RuleID);
                         ChallengeManager.RunRoundChallenge(RuleID);
                     }
                 }
@@ -51953,7 +51959,7 @@ namespace PRoConEvents
                 }
             }
 
-            public void CancelActiveRoundRuleEntries()
+            public void CancelActiveRoundRule()
             {
                 try
                 {
@@ -51969,6 +51975,14 @@ namespace PRoConEvents
                             // Perhaps we shouldn't do this? We don't have to anymore.
                             activeEntry.DoCancel(null);
                         }
+                        var completedEntries = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule);
+                        _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Ended! " + completedEntries.Count() + " players completed it!");
+                        if (completedEntries.Any())
+                        {
+                            _plugin.AdminSayMessage("Winners: " + String.Join(", ", completedEntries.Select(entry => entry.Player.GetVerboseName()).ToArray()));
+                        }
+                        // Remove the current rule
+                        RoundRule = null;
                     }
                 }
                 catch (Exception e)
@@ -52205,15 +52219,7 @@ namespace PRoConEvents
                             _plugin.Log.Error("Rule " + chosenRule.ID + " isn't round completion or doesn't have a round count of 1, unable to start rule.");
                             return;
                         }
-                        CancelActiveRoundRuleEntries();
-                        var completedEntries = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule);
-                        _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Ended! " + completedEntries.Count() + " players completed it!");
-                        if (completedEntries.Any())
-                        {
-                            _plugin.AdminSayMessage("Winners: " + String.Join(", ", completedEntries.Select(entry => entry.Player.GetVerboseName()).ToArray()));
-                        }
-                        // Remove the current rule
-                        RoundRule = null;
+                        CancelActiveRoundRule();
                         chosenRule.RoundLastUsedTime = _plugin.UtcNow();
                         chosenRule.DBPush(null);
                         RoundRule = chosenRule;
