@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.101
+ * Version 7.0.1.102
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.101</version_code>
+ * <version_code>7.0.1.102</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.101";
+        private const String PluginVersion = "7.0.1.102";
 
         public enum GameVersionEnum
         {
@@ -51125,7 +51125,7 @@ namespace PRoConEvents
                 {
                     if (Enabled && !enabled)
                     {
-                        CancelActiveRoundRule();
+                        CancelActiveRoundRule(false);
                         ChallengeRoundState = ChallengeState.Init;
                     }
                     else if (!Enabled && enabled)
@@ -52035,7 +52035,7 @@ namespace PRoConEvents
                 }
             }
 
-            public void CancelActiveRoundRule()
+            public void CancelActiveRoundRule(Boolean fail)
             {
                 try
                 {
@@ -52049,7 +52049,14 @@ namespace PRoConEvents
                         {
                             // Cancel all active entries for this rule, since it's being changed.
                             // Perhaps we shouldn't do this? We don't have to anymore.
-                            activeEntry.DoCancel();
+                            if (fail)
+                            {
+                                activeEntry.DoFail();
+                            }
+                            else
+                            {
+                                activeEntry.DoCancel();
+                            }
                         }
                         var completedEntries = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule);
                         _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Ended! " + completedEntries.Count() + " players completed it!");
@@ -52150,7 +52157,7 @@ namespace PRoConEvents
                     // Wait for any round-end messages to fire
                     _plugin.Threading.Wait(5000);
                     // Cancel the active round rule first so those failures show up before anything else
-                    CancelActiveRoundRule();
+                    CancelActiveRoundRule(true);
                     // Fail the challenges which are controlled by round count and weren't completed
                     var roundEntries = GetEntries().Where(entry => entry.Rule.Completion == CRule.CompletionType.Rounds &&
                                                                    !entry.Completed &&
@@ -52325,7 +52332,7 @@ namespace PRoConEvents
                             _plugin.Log.Error("Rule " + chosenRule.ToString() + " isn't round completion or doesn't have a round count of 1, unable to start rule.");
                             return;
                         }
-                        CancelActiveRoundRule();
+                        CancelActiveRoundRule(false);
                         chosenRule.RoundLastUsedTime = _plugin.UtcNow();
                         chosenRule.DBPush(null);
                         RoundRule = chosenRule;
