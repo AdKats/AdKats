@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.105
+ * Version 7.0.1.106
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.105</version_code>
+ * <version_code>7.0.1.106</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.105";
+        private const String PluginVersion = "7.0.1.106";
 
         public enum GameVersionEnum
         {
@@ -55098,33 +55098,35 @@ namespace PRoConEvents
                 {
                     try
                     {
+                        if (!Manager.Enabled ||
+                            !Rule.Enabled ||
+                            Completed ||
+                            Failed ||
+                            Canceled)
+                        {
+                            _plugin.Log.Info("Entry " + ID + " was invalid when adding kill.");
+                            return false;
+                        }
+                        // Check for invalid entry
+                        if (aKill.killer.player_id != Player.player_id)
+                        {
+                            _plugin.Log.Info("Kill player " + aKill.killer.GetVerboseName() + " did not match entry player " + Player.GetVerboseName() + ".");
+                            return false;
+                        }
+                        // Check for invalid rule
+                        if (Rule == null)
+                        {
+                            _plugin.Log.Warn("Entry " + ID + " rule was null when trying to add kill: " + aKill.ToString());
+                            return false;
+                        }
+                        // Check for invalid kill
+                        if (!Rule.KillValid(aKill))
+                        {
+                            _plugin.Log.Info("Kill " + aKill.ToString() + " was invalid for rule " + Rule.ToString());
+                            return false;
+                        }
                         lock (Details)
                         {
-                            if (!Manager.Enabled || 
-                                !Rule.Enabled ||
-                                Completed || 
-                                Failed || 
-                                Canceled)
-                            {
-                                return false;
-                            }
-                            // Check for invalid entry
-                            if (aKill.killer.player_id != Player.player_id)
-                            {
-                                _plugin.Log.Info("Kill player " + aKill.killer.GetVerboseName() + " did not match entry player " + Player.GetVerboseName() + ".");
-                                return false;
-                            }
-                            // Check for invalid rule
-                            if (Rule == null)
-                            {
-                                _plugin.Log.Warn("Entry " + ID + " rule was null when trying to add kill: " + aKill.ToString());
-                                return false;
-                            }
-                            // Check for invalid kill
-                            if (!Rule.KillValid(aKill))
-                            {
-                                return false;
-                            }
                             // Create the new detail ID as one more than the current max.
                             var detailID = Details.Select(dDetail => dDetail.DetailID).DefaultIfEmpty(0).Max() + 1;
                             if (detailID <= 0)
