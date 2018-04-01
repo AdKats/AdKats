@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.104
+ * Version 7.0.1.105
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.104</version_code>
+ * <version_code>7.0.1.105</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.104";
+        private const String PluginVersion = "7.0.1.105";
 
         public enum GameVersionEnum
         {
@@ -51770,6 +51770,10 @@ namespace PRoConEvents
                                 entry.DBReadDetails(localConnection);
                                 // Check to see if the entry has failed
                                 entry.CheckFailure();
+                                if (entry.Progress == null)
+                                {
+                                    entry.RefreshProgress(null);
+                                }
                             }
                         }
                     }
@@ -51990,6 +51994,7 @@ namespace PRoConEvents
                             var commandText = _plugin.GetCommandByKey("self_challenge").command_text;
                             player.Say("Now playing " + rule.Name + " challenge. For more info use !" + commandText);
                         }
+                        newEntry.RefreshProgress(null);
                         Entries.Add(newEntry);
                         player.ActiveChallenge = newEntry;
                     }
@@ -55066,7 +55071,7 @@ namespace PRoConEvents
                                             changed = true;
                                         }
                                         _plugin.Log.Info("Filled challenge entry " + ID + ", with " + Details.Count() + " details.");
-                                        if (changed && !Canceled && !Failed)
+                                        if (changed)
                                         {
                                             RefreshProgress(null);
                                         }
