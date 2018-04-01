@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.102
+ * Version 7.0.1.103
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.102</version_code>
+ * <version_code>7.0.1.103</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.102";
+        private const String PluginVersion = "7.0.1.103";
 
         public enum GameVersionEnum
         {
@@ -51119,17 +51119,19 @@ namespace PRoConEvents
                 }
             }
 
-            public void SetEnabled(Boolean enabled)
+            public void SetEnabled(Boolean enable)
             {
                 try
                 {
-                    if (Enabled && !enabled)
+                    if (Enabled && !enable)
                     {
+                        _plugin.Log.Success("DISABLING CHALLENGE MANAGER");
                         CancelActiveRoundRule(false);
                         ChallengeRoundState = ChallengeState.Init;
                     }
-                    else if (!Enabled && enabled)
+                    else if (!Enabled && enable)
                     {
+                        _plugin.Log.Success("ENABLING CHALLENGE MANAGER");
                         if (Loaded)
                         {
                             if (_plugin._roundID <= 1)
@@ -51146,12 +51148,18 @@ namespace PRoConEvents
                                 }
                             }
                         }
-                        else
+                        else if (Loading)
                         {
+                            _plugin.Log.Warn("Manager not loaded yet. Setting to trigger load.");
                             TriggerLoad = true;
                         }
+                        else
+                        {
+                            _plugin.Log.Error("Unable to enable. Manager could not complete loading.");
+                            return;
+                        }
                     }
-                    Enabled = enabled;
+                    Enabled = enable;
                 }
                 catch (Exception e)
                 {
@@ -55146,7 +55154,7 @@ namespace PRoConEvents
                             // We're good so far. Now make sure the kill increases progression.
                             var oldProgress = Progress;
                             RefreshProgress(aKill);
-                            if (Progress.CompletionPercentage <= oldProgress.CompletionPercentage)
+                            if (oldProgress != null && Progress.CompletionPercentage <= oldProgress.CompletionPercentage)
                             {
                                 // New percentage was not greater than the old percentage
                                 return false;
