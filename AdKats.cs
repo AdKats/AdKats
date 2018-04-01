@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.96
+ * Version 7.0.1.97
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.96</version_code>
+ * <version_code>7.0.1.97</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.96";
+        private const String PluginVersion = "7.0.1.97";
 
         public enum GameVersionEnum
         {
@@ -51652,6 +51652,7 @@ namespace PRoConEvents
                                      `ace`.`PlayerID`,
                                      `ace`.`RuleID`,
                                      `ace`.`Completed`,
+                                     `ace`.`Failed`,
                                      `ace`.`Canceled`,
                                      `ace`.`StartRound`,
                                      `ace`.`StartTime`,
@@ -51871,7 +51872,7 @@ namespace PRoConEvents
                 return new List<CEntry>();
             }
 
-            public void CreateAndAssignEntry(APlayer player, CRule rule)
+            public void CreateAndAssignEntry(APlayer player, CRule rule, Boolean verbose)
             {
                 try
                 {
@@ -51920,8 +51921,11 @@ namespace PRoConEvents
                             _plugin.Log.Error("Unable to create challenge entry for " + player.GetVerboseName() + ", could not upload to database.");
                             return;
                         }
-                        var commandText = _plugin.GetCommandByKey("self_challenge").command_text;
-                        player.Say("Now playing " + rule.Name + " challenge. For more info use !" + commandText);
+                        if (verbose)
+                        {
+                            var commandText = _plugin.GetCommandByKey("self_challenge").command_text;
+                            player.Say("Now playing " + rule.Name + " challenge. For more info use !" + commandText);
+                        }
                         Entries.Add(newEntry);
                         player.ActiveChallenge = newEntry;
                     }
@@ -51967,7 +51971,7 @@ namespace PRoConEvents
                             // Make sure they haven't completed the round challenge already
                             !GetCompletedRoundEntriesForPlayer(player).Any())
                         {
-                            CreateAndAssignEntry(player, RoundRule);
+                            CreateAndAssignEntry(player, RoundRule, true);
                         }
                     }
                 }
@@ -52038,7 +52042,7 @@ namespace PRoConEvents
                         // We have a round rule, good, but make sure they haven't completed the round challenge already
                         if (!GetCompletedRoundEntriesForPlayer(aPlayer).Any())
                         {
-                            CreateAndAssignEntry(aPlayer, RoundRule);
+                            CreateAndAssignEntry(aPlayer, RoundRule, false);
                         }
                     }
                     if (aPlayer.ActiveChallenge == null)
@@ -54584,7 +54588,7 @@ namespace PRoConEvents
                             _plugin.Log.Error("Attempted to complete challenge without 100% completion.");
                             return;
                         }
-                        var message = Player.GetVerboseName() + " just completed a " + Rule.Name + " challenge! Congrats!";
+                        var message = Player.GetVerboseName() + " finished a " + Rule.Name + " challenge! Congrats!";
                         //_plugin.AdminTellMessage(message);
                         _plugin.AdminSayMessage(message);
                         Completed = true;
