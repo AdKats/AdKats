@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.94
+ * Version 7.0.1.96
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.94</version_code>
+ * <version_code>7.0.1.96</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.94";
+        private const String PluginVersion = "7.0.1.96";
 
         public enum GameVersionEnum
         {
@@ -51074,7 +51074,7 @@ namespace PRoConEvents
             private Int32 LoadedRoundID;
             // Round Rule
             public CRule RoundRule;
-            private ChallengeState RoundRuleState = ChallengeState.Init;
+            private ChallengeState ChallengeRoundState = ChallengeState.Init;
             private List<CEntry> CompletedRoundEntries;
 
             // Timings
@@ -51153,13 +51153,16 @@ namespace PRoConEvents
                             DBReadDefinitions(con);
                             DBReadRules(con);
                             DBReadEntries(con);
-                            if (_plugin._roundID <= 1)
+                            if (!Loaded)
                             {
-                                _plugin.Log.Error("Round ID was invalid when starting challenge manager.");
-                            }
-                            else
-                            {
-                                OnRoundLoaded(_plugin._roundID);
+                                if (_plugin._roundID <= 1)
+                                {
+                                    _plugin.Log.Error("Round ID was invalid when starting challenge manager.");
+                                }
+                                else
+                                {
+                                    OnRoundLoaded(_plugin._roundID);
+                                }
                             }
                             // -- END LOAD --
                             Loading = false;
@@ -51675,7 +51678,8 @@ namespace PRoConEvents
                                         }
                                         var playerID = reader.GetInt64("PlayerID");
                                         var ruleID = reader.GetInt64("RuleID");
-                                        entry = new CEntry(_plugin, this, _plugin.FetchPlayer(false, false, false, null, playerID, null, null, null, null), GetRule(ruleID), false);
+                                        var startRound = reader.GetInt32("StartRound");
+                                        entry = new CEntry(_plugin, this, _plugin.FetchPlayer(false, false, false, null, playerID, null, null, null, null), GetRule(ruleID), startRound, false);
                                         entry.ID = readID;
                                         if (entry.Player == null)
                                         {
@@ -51690,7 +51694,6 @@ namespace PRoConEvents
                                         entry.Completed = reader.GetBoolean("Completed");
                                         entry.Failed = reader.GetBoolean("Failed");
                                         entry.Canceled = reader.GetBoolean("Canceled");
-                                        entry.StartRound = reader.GetInt32("StartRound");
                                         entry.StartTime = reader.GetDateTime("StartTime");
                                         entry.CompleteTime = reader.GetDateTime("CompleteTime");
                                         if (entry.CheckFailure(null))
@@ -51886,6 +51889,21 @@ namespace PRoConEvents
                         _plugin.Log.Error("Rule was invalid when creating entry.");
                         return;
                     }
+                    if (!rule.Enabled)
+                    {
+                        _plugin.Log.Error("Rule " + rule.ToString() + " was not enabled when creating entry.");
+                        return;
+                    }
+                    if (ChallengeRoundState != ChallengeState.Playing)
+                    {
+                        _plugin.Log.Error("Round state was invalid when assigning entry.");
+                        return;
+                    }
+                    if (LoadedRoundID <= 1)
+                    {
+                        _plugin.Log.Error("Loaded round ID was invalid when assigning entry.");
+                        return;
+                    }
                     lock (Entries)
                     {
                         // Cancel any existing entries for the player
@@ -51895,7 +51913,7 @@ namespace PRoConEvents
                             player.ActiveChallenge.DoCancel(null);
                         }
                         // Create the new entry
-                        var newEntry = new CEntry(_plugin, this, player, rule, true);
+                        var newEntry = new CEntry(_plugin, this, player, rule, LoadedRoundID, true);
                         newEntry.DBPush(null);
                         if (newEntry.Phantom)
                         {
@@ -52028,10 +52046,10 @@ namespace PRoConEvents
                         return "ERROR174";
                     }
                     // The player is available and they have entries. Get their status.
-                    var progress = aPlayer.ActiveChallenge.GetProgress();
+                    var progress = aPlayer.ActiveChallenge.GetProgress(null);
                     var info = aPlayer.GetVerboseName() + " " + aPlayer.ActiveChallenge.Rule.Name.ToUpper() + " CHALLENGE" + Environment.NewLine;
                     info += aPlayer.ActiveChallenge.Rule.RuleInfo() + Environment.NewLine;
-                    info += "Status: " + progress.CompletionPercentage + "% | " + progress.TotalCompletedKills + " Kills | " + progress.TotalRequiredKills + " Required" + Environment.NewLine;
+                    info += "Status: " + Math.Round(progress.CompletionPercentage) + "% | " + progress.TotalCompletedKills + " Kills | " + progress.TotalRequiredKills + " Required" + Environment.NewLine;
                     info += progress.ToString();
                     return info;
                 }
@@ -52051,7 +52069,7 @@ namespace PRoConEvents
                         return;
                     }
                     // Confirm we are in valid state to end.
-                    if (RoundRuleState != ChallengeState.Playing)
+                    if (ChallengeRoundState != ChallengeState.Playing)
                     {
                         // We're not, get out of here.
                         _plugin.Log.Warn("Attempted to end challenge round when not in playing state.");
@@ -52063,12 +52081,13 @@ namespace PRoConEvents
                         return;
                     }
                     // Change the state early, since we are checking against this value right away
-                    RoundRuleState = ChallengeState.Ended;
+                    ChallengeRoundState = ChallengeState.Ended;
                     // Fail the challenges which are controlled by round count and weren't completed
                     var roundEntries = GetEntries().Where(entry => entry.Rule.Completion == CRule.CompletionType.Rounds &&
                                                                    !entry.Completed &&
                                                                    !entry.Failed &&
                                                                    !entry.Canceled);
+                    _plugin.Threading.Wait(5000);
                     foreach (var entry in roundEntries)
                     {
                         entry.CheckFailure(null);
@@ -52078,8 +52097,10 @@ namespace PRoConEvents
                 {
                     _plugin.Log.HandleException(new AException("Error while running round end logic.", e));
                 }
-                // Change the state
-                RoundRuleState = ChallengeState.Ended;
+                finally
+                {
+                    ChallengeRoundState = ChallengeState.Ended;
+                }
             }
 
             public void OnRoundLoaded(Int32 roundID)
@@ -52091,8 +52112,8 @@ namespace PRoConEvents
                         return;
                     }
                     // Confirm we are in valid state to end.
-                    if (RoundRuleState != ChallengeState.Ended &&
-                        RoundRuleState != ChallengeState.Init)
+                    if (ChallengeRoundState != ChallengeState.Ended &&
+                        ChallengeRoundState != ChallengeState.Init)
                     {
                         // We're not, get out of here.
                         _plugin.Log.Warn("Attempted to load challenge when not in ended or initializing state.");
@@ -52133,7 +52154,7 @@ namespace PRoConEvents
                             chosenRule.RoundLastUsedTime = _plugin.UtcNow();
                             chosenRule.DBPush(null);
                             RoundRule = chosenRule;
-                            if (RoundRuleState == ChallengeState.Ended)
+                            if (ChallengeRoundState == ChallengeState.Ended)
                             {
                                 // Delay announcing the new challenge for a few seconds
                                 _plugin.Threading.StartWatchdog(new Thread(new ThreadStart(delegate
@@ -52155,8 +52176,11 @@ namespace PRoConEvents
                 {
                     _plugin.Log.HandleException(new AException("Error while running round load logic.", e));
                 }
-                LoadedRoundID = roundID;
-                RoundRuleState = ChallengeState.Loaded;
+                finally
+                {
+                    LoadedRoundID = roundID;
+                    ChallengeRoundState = ChallengeState.Loaded;
+                }
             }
 
             public void OnRoundPlaying(Int32 roundID)
@@ -52164,7 +52188,7 @@ namespace PRoConEvents
                 try
                 {
                     // Confirm we are in valid state to end.
-                    if (RoundRuleState != ChallengeState.Loaded)
+                    if (ChallengeRoundState != ChallengeState.Loaded)
                     {
                         // We're not, get out of here.
                         _plugin.Log.Warn("Attempted to start playing challenge round when not in loaded state.");
@@ -52184,7 +52208,10 @@ namespace PRoConEvents
                 {
                     _plugin.Log.HandleException(new AException("Error while running round play logic.", e));
                 }
-                RoundRuleState = ChallengeState.Playing;
+                finally
+                {
+                    ChallengeRoundState = ChallengeState.Playing;
+                }
             }
 
             public void RunRoundChallenge(Int32 RuleID)
@@ -52210,13 +52237,19 @@ namespace PRoConEvents
                         if (chosenRule == null)
                         {
                             // They entered an invalid value
-                            _plugin.Log.Error("Invalid rule ID entered, unable to start rule.");
+                            _plugin.Log.Error("Invalid rule ID entered. Unable to start rule.");
+                            return;
+                        }
+                        if (!chosenRule.Enabled)
+                        {
+                            // They entered an invalid value
+                            _plugin.Log.Error("Rule " + chosenRule.ToString() + " is not enabled. Unable to start rule.");
                             return;
                         }
                         if (chosenRule.Completion != CRule.CompletionType.Rounds || chosenRule.RoundCount != 1)
                         {
                             // Only 1 round long, round based completion rules can be used.
-                            _plugin.Log.Error("Rule " + chosenRule.ID + " isn't round completion or doesn't have a round count of 1, unable to start rule.");
+                            _plugin.Log.Error("Rule " + chosenRule.ToString() + " isn't round completion or doesn't have a round count of 1, unable to start rule.");
                             return;
                         }
                         CancelActiveRoundRule();
@@ -54327,7 +54360,6 @@ namespace PRoConEvents
                                     }
                                     if (!detail.GetDamageTypes().Contains(aKill.weaponDamage))
                                     {
-                                        _plugin.Log.Info("Damage detail " + detail.Definition.ID + "|" + detail.DetailID + "|" + detail.Damage.ToString() + " did not match damage of " + aKill.ToString() + " (" + aKill.weaponDamage.ToString() + ").");
                                         break;
                                     }
                                     return true;
@@ -54340,13 +54372,11 @@ namespace PRoConEvents
                                     }
                                     if (detail.Weapon != aKill.weaponCode)
                                     {
-                                        _plugin.Log.Info("Weapon detail " + detail.Definition.ID + "|" + detail.DetailID + "|" + detail.Weapon.ToString() + " did not match weapon code of " + aKill.ToString() + ".");
                                         break;
                                     }
                                     return true;
                             }
                         }
-                        _plugin.Log.Info("Rule " + Name + " does not include kill " + aKill.ToString() + ".");
                         return false;
                     }
                     catch (Exception e)
@@ -54383,13 +54413,18 @@ namespace PRoConEvents
                 public String LastCompletedWeapon;
                 public Boolean AutoKillTold;
 
-                public CEntry(AdKats plugin, AChallengeManager manager, APlayer player, CRule rule, Boolean phantom)
+                public CEntry(AdKats plugin, AChallengeManager manager, APlayer player, CRule rule, Int32 startingRound, Boolean phantom)
                 {
                     _plugin = plugin;
                     Manager = manager;
                     Player = player;
                     Rule = rule;
                     Phantom = phantom;
+                    StartRound = startingRound;
+                    if (StartRound <= 1)
+                    {
+                        throw new ArgumentException("Error creating CEntry. Starting round number was invalid.");
+                    }
                     StartTime = _plugin.UtcNow();
                     CompleteTime = AdKats.GetEpochTime();
                     Details = new List<CEntryDetail>();
@@ -54445,7 +54480,7 @@ namespace PRoConEvents
                             {
                                 // Completion round is the same round if RoundCount = 1
                                 var completionRound = StartRound + Rule.RoundCount - 1;
-                                if (Manager.LoadedRoundID > completionRound || (Manager.RoundRuleState == ChallengeState.Ended &&
+                                if (Manager.LoadedRoundID > completionRound || (Manager.ChallengeRoundState == ChallengeState.Ended &&
                                                                                 Manager.LoadedRoundID == completionRound))
                                 {
                                     // This entry is overtime. Fail it.
@@ -54500,7 +54535,7 @@ namespace PRoConEvents
                         {
                             if (progress == null)
                             {
-                                progress = GetProgress();
+                                progress = GetProgress(null);
                             }
                             percentage = Math.Round(progress.CompletionPercentage) + "%";
                         }
@@ -54539,7 +54574,7 @@ namespace PRoConEvents
                         {
                             if (progress == null)
                             {
-                                progress = GetProgress();
+                                progress = GetProgress(null);
                             }
                             percentage = Math.Round(progress.CompletionPercentage) + "%";
                         }
@@ -54586,7 +54621,7 @@ namespace PRoConEvents
                         {
                             if (progress == null)
                             {
-                                progress = GetProgress();
+                                progress = GetProgress(null);
                             }
                             percentage = Math.Round(progress.CompletionPercentage) + "%";
                         }
@@ -55026,6 +55061,14 @@ namespace PRoConEvents
                                 _plugin.Log.Error("Round ID " + aKill.RoundID + " was invalid when adding kill to entry detail " + ID + ":" + detailID + ". Unable to add kill.");
                                 return false;
                             }
+                            // We're good so far. Now make sure the kill increases progression.
+                            var currentProgress = GetProgress(null);
+                            var newProgress = GetProgress(aKill);
+                            if (newProgress.CompletionPercentage <= currentProgress.CompletionPercentage)
+                            {
+                                // New percentage was not greater than the old percentage
+                                return false;
+                            }
 
                             var newDetail = new CEntryDetail(_plugin, this, detailID, aKill, true);
                             newDetail.DBPush(null);
@@ -55039,16 +55082,13 @@ namespace PRoConEvents
                             // Everything is validated. Add the kill.
                             Details.Add(newDetail);
 
-                            //Check for completion case.
-                            var progress = GetProgress();
-
-                            if (progress.CompletionPercentage >= 99.999)
+                            if (newProgress.CompletionPercentage >= 99.999)
                             {
-                                DoComplete(progress);
+                                DoComplete(newProgress);
                                 return true;
                             }
 
-                            progress.SendStatusForKill(aKill);
+                            newProgress.SendStatusForKill(aKill);
                             return true;
                         }
                     }
@@ -55059,7 +55099,7 @@ namespace PRoConEvents
                     return false;
                 }
                 
-                public EntryProgress GetProgress()
+                public EntryProgress GetProgress(AKill includeKill)
                 {
                     try
                     {
@@ -55122,7 +55162,12 @@ namespace PRoConEvents
                             weaponBuckets[weaponBucket.WeaponCode] = weaponBucket;
                         }
 
-                        foreach (var kill in GetDetails().Select(dDetail => dDetail.Kill).OrderBy(dKill => dKill.TimeStamp))
+                        var detailKills = GetDetails().Select(dDetail => dDetail.Kill).ToList();
+                        if (includeKill != null)
+                        {
+                            detailKills.Add(includeKill);
+                        }
+                        foreach (var kill in detailKills.OrderBy(dKill => dKill.TimeStamp))
                         {
                             // See if it matches a specific weapon requirement
                             if (weaponBuckets.ContainsKey(kill.weaponCode))
@@ -55212,7 +55257,7 @@ namespace PRoConEvents
                             TotalCompletedKills = damageBuckets.Values.Sum(bucket => bucket.GetWeapons().Sum(weapon => weapon.Kills.Count())) + weaponBuckets.Values.Sum(weapon => weapon.Kills.Count());
 
                             // Total completion percentage
-                            CompletionPercentage = Math.Max(Math.Min(Math.Round(100 * (Double)TotalCompletedKills / (Double)TotalRequiredKills), 100), 0);
+                            CompletionPercentage = Math.Max(Math.Min(100 * (Double)TotalCompletedKills / (Double)TotalRequiredKills, 100), 0);
                         }
                         catch (Exception e)
                         {
@@ -55250,7 +55295,7 @@ namespace PRoConEvents
                                 requiredKills += damageWeaponBucket.MaxKills;
                                 completedKills += damageWeaponBucket.Kills.Count();
                             }
-                            var weaponCompletionPercentage = Math.Max(Math.Min(Math.Round(100 * (Double)completedKills / (Double)requiredKills), 100), 0);
+                            var weaponCompletionPercentage = Math.Max(Math.Min(100 * (Double)completedKills / (Double)requiredKills, 100), 0);
 
                             String weaponName = _plugin.WeaponDictionary.GetShortWeaponNameByCode(kill.weaponCode);
                             String completion = "";
@@ -55275,7 +55320,7 @@ namespace PRoConEvents
                                 return;
                             }
                             var commandText = _plugin.GetCommandByKey("self_challenge").command_text;
-                            kill.killer.Say("!" + commandText + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + CompletionPercentage + "%] " + completion);
+                            kill.killer.Say("!" + commandText + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + Math.Round(CompletionPercentage) + "%] " + completion);
                             if (autoKill)
                             {
                                 kill.killer.Yell(completion);
@@ -55378,9 +55423,9 @@ namespace PRoConEvents
                             var requiredKills = WeaponCount * MaxKillsPerWeapon;
                             var weaponBuckets = GetWeapons();
                             var completedKills = weaponBuckets.Sum(weapon => weapon.Kills.Count());
-                            var completionPercentage = Math.Max(Math.Min(Math.Round(100 * (Double)completedKills / (Double)requiredKills), 100), 0);
+                            var completionPercentage = Math.Max(Math.Min(100 * (Double)completedKills / (Double)requiredKills, 100), 0);
 
-                            var status = "Type " + Damage.ToString() + " [" + completedKills + "/" + requiredKills + "][" + completionPercentage + "%]:";
+                            var status = "Type " + Damage.ToString() + " [" + completedKills + "/" + requiredKills + "][" + Math.Round(completionPercentage) + "%]:";
                             if (weaponBuckets.Any())
                             {
                                 foreach (var weaponString in weaponBuckets.Select(bucket => bucket.ToString()))
@@ -55439,10 +55484,10 @@ namespace PRoConEvents
                         try
                         {
                             var completedKills = Kills.Count();
-                            var completionPercentage = Math.Max(Math.Min(Math.Round(100 * (Double)completedKills / (Double)MaxKills), 100), 0);
+                            var completionPercentage = Math.Max(Math.Min(100 * (Double)completedKills / (Double)MaxKills, 100), 0);
                             var weaponName = _plugin.WeaponDictionary.GetShortWeaponNameByCode(WeaponCode);
 
-                            return weaponName + " [" + completedKills + "/" + MaxKills + "][" + completionPercentage + "%]";
+                            return weaponName + " [" + completedKills + "/" + MaxKills + "][" + Math.Round(completionPercentage) + "%]";
                         }
                         catch (Exception e)
                         {
