@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.100
+ * Version 7.0.1.101
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.100</version_code>
+ * <version_code>7.0.1.101</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.100";
+        private const String PluginVersion = "7.0.1.101";
 
         public enum GameVersionEnum
         {
@@ -51126,6 +51126,7 @@ namespace PRoConEvents
                     if (Enabled && !enabled)
                     {
                         CancelActiveRoundRule();
+                        ChallengeRoundState = ChallengeState.Init;
                     }
                     else if (!Enabled && enabled)
                     {
@@ -51138,6 +51139,11 @@ namespace PRoConEvents
                             else
                             {
                                 OnRoundLoaded(_plugin._roundID);
+                                if (_plugin._roundState == RoundState.Playing)
+                                {
+                                    // We're already playing. Trigger playing state.
+                                    OnRoundPlaying(_plugin._roundID);
+                                }
                             }
                         }
                         else
@@ -52250,6 +52256,10 @@ namespace PRoConEvents
             {
                 try
                 {
+                    if (!Enabled)
+                    {
+                        return;
+                    }
                     // Confirm we are in valid state to end.
                     if (ChallengeRoundState != ChallengeState.Loaded)
                     {
