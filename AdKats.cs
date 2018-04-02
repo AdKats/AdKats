@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.106
+ * Version 7.0.1.107
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.106</version_code>
+ * <version_code>7.0.1.107</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.106";
+        private const String PluginVersion = "7.0.1.107";
 
         public enum GameVersionEnum
         {
@@ -52148,12 +52148,12 @@ namespace PRoConEvents
 
             public void OnRoundEnded(Int32 roundID)
             {
+                if (!Enabled)
+                {
+                    return;
+                }
                 try
                 {
-                    if (!Enabled)
-                    {
-                        return;
-                    }
                     // Confirm we are in valid state to end.
                     if (ChallengeRoundState != ChallengeState.Playing)
                     {
@@ -52195,12 +52195,12 @@ namespace PRoConEvents
 
             public void OnRoundLoaded(Int32 roundID)
             {
+                if (!Enabled)
+                {
+                    return;
+                }
                 try
                 {
-                    if (!Enabled)
-                    {
-                        return;
-                    }
                     _plugin.Log.Warn("Challenge mananger round load triggered for round " + roundID);
                     // Confirm we are in valid state to end.
                     if (ChallengeRoundState != ChallengeState.Ended &&
@@ -52276,12 +52276,12 @@ namespace PRoConEvents
 
             public void OnRoundPlaying(Int32 roundID)
             {
+                if (!Enabled)
+                {
+                    return;
+                }
                 try
                 {
-                    if (!Enabled)
-                    {
-                        return;
-                    }
                     // Confirm we are in valid state to end.
                     if (ChallengeRoundState != ChallengeState.Loaded)
                     {
