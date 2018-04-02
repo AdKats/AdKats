@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.107
+ * Version 7.0.1.108
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.107</version_code>
+ * <version_code>7.0.1.108</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.107";
+        private const String PluginVersion = "7.0.1.108";
 
         public enum GameVersionEnum
         {
@@ -51150,16 +51150,11 @@ namespace PRoConEvents
                                 }
                             }
                         }
-                        else if (Loading)
+                        else
                         {
                             Enabled = enable;
                             _plugin.Log.Warn("Manager not loaded yet. Setting to trigger load.");
                             TriggerLoad = true;
-                        }
-                        else
-                        {
-                            _plugin.Log.Error("Unable to enable. Manager could not complete loading.");
-                            return;
                         }
                     }
                 }
@@ -51167,7 +51162,6 @@ namespace PRoConEvents
                 {
                     _plugin.Log.HandleException(new AException("Error while reading all challenge manager DB info.", e));
                 }
-
             }
 
             public String GetDefinitionEnum(Boolean includeNone)
@@ -51236,6 +51230,11 @@ namespace PRoConEvents
                                 else
                                 {
                                     OnRoundLoaded(_plugin._roundID);
+                                    if (_plugin._roundState == RoundState.Playing)
+                                    {
+                                        // We're already playing. Trigger playing state.
+                                        OnRoundPlaying(_plugin._roundID);
+                                    }
                                 }
                                 TriggerLoad = false;
                             }
