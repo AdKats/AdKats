@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.109
+ * Version 7.0.1.110
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.109</version_code>
+ * <version_code>7.0.1.110</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.109";
+        private const String PluginVersion = "7.0.1.110";
 
         public enum GameVersionEnum
         {
@@ -51706,6 +51706,7 @@ namespace PRoConEvents
                     }
                     try
                     {
+                        var startTime = _plugin.UtcNow();
                         using (MySqlCommand command = localConnection.CreateCommand())
                         {
                             command.CommandText = @"
@@ -51775,6 +51776,7 @@ namespace PRoConEvents
                                 }
                             }
                         }
+                        _plugin.Log.Success("CHALLENGE entries loaded in " + _plugin.NowDuration(startTime).TotalMilliseconds + "ms.");
                     }
                     finally
                     {
@@ -54153,6 +54155,11 @@ namespace PRoConEvents
                         var newEnabled = Boolean.Parse(enabled);
                         if (newEnabled != Enabled)
                         {
+                            if (newEnabled && !Definition.GetDetails().Any())
+                            {
+                                _plugin.Log.Error("Cannot enable rule " + Name + ", associated definition " + Definition.Name + " has no damages/weapons added.");
+                                return;
+                            }
                             Enabled = newEnabled;
                             ModifyTime = _plugin.UtcNow();
                             DBPush(null);
@@ -54420,7 +54427,7 @@ namespace PRoConEvents
                             String.IsNullOrEmpty(aKill.weaponCode) ||
                             aKill.victim == null)
                         {
-                            _plugin.Log.Info("Kill was invalid for challenge rule " + Name + ".");
+                            _plugin.Log.Info("Kill was invalid when checking for valid kill.");
                             return false;
                         }
                         // Default to the kill being invalid
@@ -55120,7 +55127,7 @@ namespace PRoConEvents
                         // Check for invalid kill
                         if (!Rule.KillValid(aKill))
                         {
-                            _plugin.Log.Info("Kill " + aKill.ToString() + " was invalid for rule " + Rule.ToString());
+                            _plugin.Log.Info("Kill " + aKill.ToString() + " (" + aKill.weaponDamage.ToString() + ") was invalid for rule " + Rule.ToString());
                             return false;
                         }
                         lock (Details)
