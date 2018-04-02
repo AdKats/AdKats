@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.111
- * 1-APR-2018
+ * Version 7.0.1.112
+ * 2-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.111</version_code>
+ * <version_code>7.0.1.112</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.111";
+        private const String PluginVersion = "7.0.1.112";
 
         public enum GameVersionEnum
         {
@@ -14872,6 +14872,15 @@ namespace PRoConEvents
                     aPlayer.RequiredTeam = null;
                     aPlayer.RequiredSquad = -1;
                     aPlayer.player_spawnedRound = false;
+                }
+
+                if (_UseExperimentalTools)
+                {
+                    // This might look a little odd, but since AdKats is first in the 
+                    // plugin loading list and the endround events are fired sync instead
+                    // of async I can artificially delay other plugins from acting on the
+                    // end round event for a few seconds. Obviously this is experimental.
+                    Threading.Wait(5000);
                 }
             }
             catch (Exception e)
@@ -36076,6 +36085,11 @@ namespace PRoConEvents
                                     ChallengeManager.CreateAndAssignEntry(record.target_player, selected, true);
                                     break;
                                 }
+                                else
+                                {
+                                    SendMessageToSource(record, "Challenge " + parseID + " does not exist. To see the list type !" + GetCommandByKey("self_challenge").command_text + " list");
+                                    break;
+                                }
                             }
                             else if (split[0].Contains("#"))
                             {
@@ -52200,12 +52214,12 @@ namespace PRoConEvents
 
             public void OnRoundEnded(Int32 roundID)
             {
-                if (!Enabled)
-                {
-                    return;
-                }
                 try
                 {
+                    if (!Enabled)
+                    {
+                        return;
+                    }
                     // Confirm we are in valid state to end.
                     if (ChallengeRoundState != ChallengeState.Playing)
                     {
@@ -52218,43 +52232,45 @@ namespace PRoConEvents
                         _plugin.Log.Error("Attempted to process challenge round end with invalid round ID " + roundID + ", original round loaded was " + LoadedRoundID);
                         return;
                     }
-                    // Change the state early, since we are checking against this value right away
-                    ChallengeRoundState = ChallengeState.Ended;
-
-                    // Wait for any round-end messages to fire
-                    Thread.Sleep(6000);
-                    // Cancel the active round rule first so those failures show up before anything else
-                    CancelActiveRoundRule(true);
-                    // Fail the challenges which are controlled by round count and weren't completed
-                    var roundEntries = GetEntries().Where(entry => entry.Rule.Completion == CRule.CompletionType.Rounds &&
-                                                                   !entry.Completed &&
-                                                                   !entry.Failed &&
-                                                                   !entry.Canceled);
-                    foreach (var entry in roundEntries)
+                    
+                    // This needs to be done async to prevent AdKats from blocking the main procon event thread
+                    _plugin.Threading.StartWatchdog(new Thread(new ThreadStart(delegate
                     {
-                        entry.CheckFailure();
-                    }
+                        Thread.CurrentThread.Name = "ChallengeRoundEnd";
+                        // Wait for any round-end messages to fire
+                        Thread.Sleep(TimeSpan.FromSeconds(10));
+                        // Trigger the state change
+                        ChallengeRoundState = ChallengeState.Ended;
+                        // Cancel the active round rule first so those failures show up before anything else
+                        CancelActiveRoundRule(true);
+                        // Fail the challenges which are controlled by round count and weren't completed
+                        var roundEntries = GetEntries().Where(entry => entry.Rule.Completion == CRule.CompletionType.Rounds &&
+                                                                       !entry.Completed &&
+                                                                       !entry.Failed &&
+                                                                       !entry.Canceled);
+                        foreach (var entry in roundEntries)
+                        {
+                            entry.CheckFailure();
+                        }
+                        _plugin.Threading.StopWatchdog();
+                    })));
                 }
                 catch (Exception e)
                 {
                     _plugin.Log.HandleException(new AException("Error while running round end logic.", e));
                 }
-                finally
-                {
-                    ChallengeRoundState = ChallengeState.Ended;
-                }
             }
 
             public void OnRoundLoaded(Int32 roundID)
             {
-                if (!Enabled)
-                {
-                    return;
-                }
                 try
                 {
+                    if (!Enabled)
+                    {
+                        return;
+                    }
                     _plugin.Log.Warn("Challenge mananger round load triggered for round " + roundID);
-                    // Confirm we are in valid state to end.
+                    // Confirm we are in valid state to load.
                     if (ChallengeRoundState != ChallengeState.Ended &&
                         ChallengeRoundState != ChallengeState.Init)
                     {
@@ -52303,7 +52319,7 @@ namespace PRoConEvents
                                 _plugin.Threading.StartWatchdog(new Thread(new ThreadStart(delegate
                                 {
                                     Thread.CurrentThread.Name = "ChallengeRoundRuleAnnounce";
-                                    Thread.Sleep(TimeSpan.FromSeconds(10));
+                                    Thread.Sleep(TimeSpan.FromSeconds(20));
                                     _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
                                     _plugin.Threading.StopWatchdog();
                                 })));
@@ -52314,27 +52330,24 @@ namespace PRoConEvents
                             _plugin.Log.Error("Unable to select server-wide round rule.");
                         }
                     }
+                    LoadedRoundID = roundID;
+                    ChallengeRoundState = ChallengeState.Loaded;
                 }
                 catch (Exception e)
                 {
                     _plugin.Log.HandleException(new AException("Error while running round load logic.", e));
                 }
-                finally
-                {
-                    LoadedRoundID = roundID;
-                    ChallengeRoundState = ChallengeState.Loaded;
-                }
             }
 
             public void OnRoundPlaying(Int32 roundID)
             {
-                if (!Enabled)
-                {
-                    return;
-                }
                 try
                 {
-                    // Confirm we are in valid state to end.
+                    if (!Enabled)
+                    {
+                        return;
+                    }
+                    // Confirm we are in valid state to play.
                     if (ChallengeRoundState != ChallengeState.Loaded)
                     {
                         // We're not, get out of here.
@@ -52350,14 +52363,11 @@ namespace PRoConEvents
                         _plugin.Log.Error("Attempted to start challenge playing with invalid round ID " + roundID + ", original round loaded was " + LoadedRoundID);
                         return;
                     }
+                    ChallengeRoundState = ChallengeState.Playing;
                 }
                 catch (Exception e)
                 {
                     _plugin.Log.HandleException(new AException("Error while running round play logic.", e));
-                }
-                finally
-                {
-                    ChallengeRoundState = ChallengeState.Playing;
                 }
             }
 
@@ -55604,7 +55614,7 @@ namespace PRoConEvents
                             }
                             else
                             {
-                                status += "No weapons used yet.";
+                                status += Environment.NewLine + "No weapons used yet.";
                             }
                             return status;
                         }
