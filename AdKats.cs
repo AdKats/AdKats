@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.110
+ * Version 7.0.1.111
  * 1-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.110</version_code>
+ * <version_code>7.0.1.111</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.110";
+        private const String PluginVersion = "7.0.1.111";
 
         public enum GameVersionEnum
         {
@@ -35952,16 +35952,43 @@ namespace PRoConEvents
                 switch (option)
                 {
                     case "help":
-                        SendMessageToSource(record, "info (or nothing) - See current challenge info.");
+                        SendMessageToSource(record, "info - See current challenge info.");
                         Threading.Wait(1000);
                         SendMessageToSource(record, "list - See the list of available challenges.");
+                        Threading.Wait(1000);
+                        SendMessageToSource(record, "# - Start this challenge for yourself.");
                         Threading.Wait(1000);
                         SendMessageToSource(record, "autokill - Causes you to be slain when completing challenge weapons.");
                         Threading.Wait(1000);
                         SendMessageToSource(record, "help - Show this message.");
                         break;
                     case "list":
-                        SendMessageToSource(record, "Challenge listing not available yet. Please check back soon.");
+                        // Immediately get the rule list, then go async
+                        var rules = ChallengeManager.GetRules().Where(rule => rule.Enabled && 
+                                                                              rule.Definition.GetDetails().Any())
+                                                               .OrderBy(rule => rule.Tier)
+                                                               .ThenBy(rule => rule.Name)
+                                                               .Select(rule => rule.ToString());
+                        var commandText = GetCommandByKey("self_challenge").command_text;
+
+                        Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                        {
+                            try
+                            {
+                                Thread.CurrentThread.Name = "ChallengeRulePrinter";
+                                Threading.Wait(100);
+                                foreach (var ruleString in rules)
+                                {
+                                    SendMessageToSource(record, "!" + commandText + " " + ruleString);
+                                    Threading.Wait(1500);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Log.HandleException(new AException("Error while printing challenge rules.", e));
+                            }
+                            Threading.StopWatchdog();
+                        })));
                         break;
                     case "info":
                         // Immediately get the challenge info, then go async
@@ -36032,6 +36059,30 @@ namespace PRoConEvents
                         }
                         break;
                     default:
+                        var split = option.Split(' ');
+                        if (split.Any())
+                        {
+                            Int32 parseID;
+                            if (Int32.TryParse(split[0], out parseID))
+                            {
+                                // They entered a number. See if it's a challenge ID, and if so, assign it to them.
+                                var selectRules = ChallengeManager.GetRules().Where(rule => rule.Enabled &&
+                                                                                            rule.Definition.GetDetails().Any())
+                                                                             .OrderBy(rule => rule.Tier)
+                                                                             .ThenBy(rule => rule.Name);
+                                var selected = selectRules.FirstOrDefault(rule => rule.ID == parseID);
+                                if (selected != null)
+                                {
+                                    ChallengeManager.CreateAndAssignEntry(record.target_player, selected, true);
+                                    break;
+                                }
+                            }
+                            else if (split[0].Contains("#"))
+                            {
+                                SendMessageToSource(record, "You need to enter the challenge number from the list. For example !" + GetCommandByKey("self_challenge").command_text + " 1");
+                                break;
+                            }
+                        }
                         SendMessageToSource(record, "'" + record.record_message + "' was an invalid option. Type !" + GetCommandByKey("self_challenge").command_text + " help");
                         break;
                 }
@@ -52171,7 +52222,7 @@ namespace PRoConEvents
                     ChallengeRoundState = ChallengeState.Ended;
 
                     // Wait for any round-end messages to fire
-                    _plugin.Threading.Wait(5000);
+                    Thread.Sleep(6000);
                     // Cancel the active round rule first so those failures show up before anything else
                     CancelActiveRoundRule(true);
                     // Fail the challenges which are controlled by round count and weren't completed
@@ -54486,7 +54537,7 @@ namespace PRoConEvents
 
                 public override string ToString()
                 {
-                    return ID + ":" + Name;
+                    return ID + " (Tier " + Tier + " / " + Name + ")";
                 }
             }
 
