@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.112
+ * Version 7.0.1.113
  * 2-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.112</version_code>
+ * <version_code>7.0.1.113</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.112";
+        private const String PluginVersion = "7.0.1.113";
 
         public enum GameVersionEnum
         {
@@ -35963,6 +35963,8 @@ namespace PRoConEvents
                     case "help":
                         SendMessageToSource(record, "info - See current challenge info.");
                         Threading.Wait(1000);
+                        SendMessageToSource(record, "p - See current challenge progress, without description.");
+                        Threading.Wait(1000);
                         SendMessageToSource(record, "list - See the list of available challenges.");
                         Threading.Wait(1000);
                         SendMessageToSource(record, "# - Start this challenge for yourself.");
@@ -36001,7 +36003,7 @@ namespace PRoConEvents
                         break;
                     case "info":
                         // Immediately get the challenge info, then go async
-                        var messages = ChallengeManager.GetChallengeInfo(record.target_player).Split(
+                        var infoMessages = ChallengeManager.GetChallengeInfo(record.target_player, true).Split(
                             new[] { Environment.NewLine },
                             StringSplitOptions.None
                         );
@@ -36013,7 +36015,7 @@ namespace PRoConEvents
                             {
                                 Thread.CurrentThread.Name = "ChallengeInfoPrinter";
                                 Threading.Wait(100);
-                                foreach (var message in messages)
+                                foreach (var message in infoMessages)
                                 {
                                     SendMessageToSource(record, message);
                                     Threading.Wait(1500);
@@ -36024,6 +36026,34 @@ namespace PRoConEvents
                                 Log.HandleException(new AException("Error while printing challenge info.", e));
                             }
                             Log.Debug(() => "Exiting a challenge info printer.", 5);
+                            Threading.StopWatchdog();
+                        })));
+                        break;
+                    case "p":
+                        // Immediately get the challenge progress, then go async
+                        var progressMessages = ChallengeManager.GetChallengeInfo(record.target_player, false).Split(
+                            new[] { Environment.NewLine },
+                            StringSplitOptions.None
+                        );
+
+                        Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                        {
+                            Log.Debug(() => "Starting a challenge progress printer.", 5);
+                            try
+                            {
+                                Thread.CurrentThread.Name = "ChallengeProgressPrinter";
+                                Threading.Wait(100);
+                                foreach (var message in progressMessages)
+                                {
+                                    SendMessageToSource(record, message);
+                                    Threading.Wait(1500);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Log.HandleException(new AException("Error while printing challenge progress.", e));
+                            }
+                            Log.Debug(() => "Exiting a challenge progress printer.", 5);
                             Threading.StopWatchdog();
                         })));
                         break;
@@ -52155,7 +52185,7 @@ namespace PRoConEvents
                 }
             }
 
-            public String GetChallengeInfo(APlayer aPlayer)
+            public String GetChallengeInfo(APlayer aPlayer, Boolean includeDescription)
             {
                 try
                 {
@@ -52200,7 +52230,10 @@ namespace PRoConEvents
                     // The player is available and they have entries.
                     var challenge = aPlayer.ActiveChallenge;
                     var info = aPlayer.GetVerboseName() + " " + challenge.Rule.Name.ToUpper() + " CHALLENGE" + Environment.NewLine;
-                    info += challenge.Rule.RuleInfo() + Environment.NewLine;
+                    if (includeDescription)
+                    {
+                        info += challenge.Rule.RuleInfo() + Environment.NewLine;
+                    }
                     info += "Status: " + Math.Round(challenge.Progress.CompletionPercentage) + "% | " + challenge.Progress.TotalCompletedKills + " Kills | " + challenge.Progress.TotalRequiredKills + " Required" + Environment.NewLine;
                     info += challenge.Progress.ToString();
                     return info;
@@ -52286,48 +52319,53 @@ namespace PRoConEvents
                     if (EnableServerRoundRules)
                     {
                         // Make sure we don't have an active rule at this time.
-                        if (RoundRule != null)
+                        if (RoundRule == null)
                         {
-                            _plugin.Log.Error("Unable to start new round rule. Rule " + RoundRule.ToString() + " is already running.");
-                            return;
-                        }
-                        // We want to have server-wide round rules. Grab ones which are valid for that.
-                        var roundRules = GetRules().Where(rule => rule.Enabled &&
-                                                                  rule.Completion == CRule.CompletionType.Rounds &&
-                                                                  rule.RoundCount == 1);
-                        if (!roundRules.Any())
-                        {
-                            _plugin.Log.Warn("Server-wide round rules enabled, but none available. They must be enabled, completion type Rounds, and have duration of 1 round.");
-                            return;
-                        }
-                        // Randomize the list and pick the first unused one
-                        var rng = new Random(Environment.TickCount);
-                        var chosenRule = roundRules.Where(rule => rule.RoundLastUsedTime.Equals(AdKats.GetEpochTime())).OrderBy(rule => rng.Next()).FirstOrDefault();
-                        if (chosenRule == null)
-                        {
-                            // None are unused, pick the one which has the longest duration since used
-                            chosenRule = roundRules.OrderBy(rule => rule.RoundLastUsedTime).FirstOrDefault();
-                        }
-                        if (chosenRule != null)
-                        {
-                            chosenRule.RoundLastUsedTime = _plugin.UtcNow();
-                            chosenRule.DBPush(null);
-                            RoundRule = chosenRule;
-                            if (ChallengeRoundState == ChallengeState.Ended)
+                            // We want to have server-wide round rules. Grab ones which are valid for that.
+                            var roundRules = GetRules().Where(rule => rule.Enabled &&
+                                                                      rule.Tier == 1 &&
+                                                                      rule.Completion == CRule.CompletionType.Rounds &&
+                                                                      rule.RoundCount == 1);
+                            if (roundRules.Any())
                             {
-                                // Delay announcing the new challenge for a few seconds
-                                _plugin.Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                                // Randomize the list and pick the first unused one
+                                var rng = new Random(Environment.TickCount);
+                                var chosenRule = roundRules.Where(rule => rule.RoundLastUsedTime.Equals(AdKats.GetEpochTime())).OrderBy(rule => rng.Next()).FirstOrDefault();
+                                if (chosenRule == null)
                                 {
-                                    Thread.CurrentThread.Name = "ChallengeRoundRuleAnnounce";
-                                    Thread.Sleep(TimeSpan.FromSeconds(20));
-                                    _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
-                                    _plugin.Threading.StopWatchdog();
-                                })));
+                                    // None are unused, pick the one which has the longest duration since used
+                                    chosenRule = roundRules.OrderBy(rule => rule.RoundLastUsedTime).FirstOrDefault();
+                                }
+                                if (chosenRule != null)
+                                {
+                                    chosenRule.RoundLastUsedTime = _plugin.UtcNow();
+                                    chosenRule.DBPush(null);
+                                    RoundRule = chosenRule;
+                                    if (ChallengeRoundState == ChallengeState.Ended)
+                                    {
+                                        // Delay announcing the new challenge for a few seconds
+                                        _plugin.Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                                        {
+                                            Thread.CurrentThread.Name = "ChallengeRoundRuleAnnounce";
+                                            Thread.Sleep(TimeSpan.FromSeconds(20));
+                                            _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
+                                            _plugin.Threading.StopWatchdog();
+                                        })));
+                                    }
+                                }
+                                else
+                                {
+                                    _plugin.Log.Error("Unable to select server-wide round rule.");
+                                }
+                            }
+                            else
+                            {
+                                _plugin.Log.Warn("Server-wide round rules enabled, but none available. They must be enabled, completion type Rounds, and have duration of 1 round.");
                             }
                         }
                         else
                         {
-                            _plugin.Log.Error("Unable to select server-wide round rule.");
+                            _plugin.Log.Error("Unable to start new round rule. Rule " + RoundRule.ToString() + " is already running.");
                         }
                     }
                     LoadedRoundID = roundID;
@@ -52354,14 +52392,14 @@ namespace PRoConEvents
                         _plugin.Log.Warn("Attempted to start playing challenge round when not in loaded state.");
                         return;
                     }
-                    if (EnableServerRoundRules && RoundRule != null)
-                    {
-                        _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
-                    }
                     if (LoadedRoundID != roundID)
                     {
                         _plugin.Log.Error("Attempted to start challenge playing with invalid round ID " + roundID + ", original round loaded was " + LoadedRoundID);
                         return;
+                    }
+                    if (EnableServerRoundRules && RoundRule != null)
+                    {
+                        _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
                     }
                     ChallengeRoundState = ChallengeState.Playing;
                 }
@@ -52390,6 +52428,11 @@ namespace PRoConEvents
                                 return;
                             }
                         }
+                        if (!EnableServerRoundRules)
+                        {
+                            _plugin.Log.Error("Server-wide round rules not enabled. Unable to start rule.");
+                            return;
+                        }
                         var chosenRule = GetRules().FirstOrDefault(rule => rule.ID == RuleID);
                         if (chosenRule == null)
                         {
@@ -52401,6 +52444,12 @@ namespace PRoConEvents
                         {
                             // They entered an invalid value
                             _plugin.Log.Error("Rule " + chosenRule.ToString() + " is not enabled. Unable to start rule.");
+                            return;
+                        }
+                        if (chosenRule.Tier != 1)
+                        {
+                            // They entered an invalid value
+                            _plugin.Log.Error("Rule " + chosenRule.ToString() + " is not a tier 1 rule. Unable to start rule.");
                             return;
                         }
                         if (chosenRule.Completion != CRule.CompletionType.Rounds || chosenRule.RoundCount != 1)
