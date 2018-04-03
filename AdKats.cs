@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.113
+ * Version 7.0.1.114
  * 2-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.113</version_code>
+ * <version_code>7.0.1.114</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.113";
+        private const String PluginVersion = "7.0.1.114";
 
         public enum GameVersionEnum
         {
@@ -10278,7 +10278,7 @@ namespace PRoConEvents
                     }
                     if (_nukeAutoSlayActiveDuration > 0)
                     {
-                        if (duration.TotalSeconds < _nukeAutoSlayActiveDuration)
+                        if (duration.TotalSeconds < _nukeAutoSlayActiveDuration && _roundState == RoundState.Playing)
                         {
                             if (!_nukeAutoSlayActive)
                             {
@@ -35962,15 +35962,15 @@ namespace PRoConEvents
                 {
                     case "help":
                         SendMessageToSource(record, "info - See current challenge info.");
-                        Threading.Wait(1000);
+                        Threading.Wait(1600);
                         SendMessageToSource(record, "p - See current challenge progress, without description.");
-                        Threading.Wait(1000);
+                        Threading.Wait(1600);
                         SendMessageToSource(record, "list - See the list of available challenges.");
-                        Threading.Wait(1000);
+                        Threading.Wait(1600);
                         SendMessageToSource(record, "# - Start this challenge for yourself.");
-                        Threading.Wait(1000);
+                        Threading.Wait(1600);
                         SendMessageToSource(record, "autokill - Causes you to be slain when completing challenge weapons.");
-                        Threading.Wait(1000);
+                        Threading.Wait(1600);
                         SendMessageToSource(record, "help - Show this message.");
                         break;
                     case "list":
@@ -52185,7 +52185,7 @@ namespace PRoConEvents
                 }
             }
 
-            public String GetChallengeInfo(APlayer aPlayer, Boolean includeDescription)
+            public String GetChallengeInfo(APlayer aPlayer, Boolean description)
             {
                 try
                 {
@@ -52229,13 +52229,18 @@ namespace PRoConEvents
                     }
                     // The player is available and they have entries.
                     var challenge = aPlayer.ActiveChallenge;
-                    var info = aPlayer.GetVerboseName() + " " + challenge.Rule.Name.ToUpper() + " CHALLENGE" + Environment.NewLine;
-                    if (includeDescription)
+                    var info = "";
+                    if (description)
                     {
+                        info += aPlayer.GetVerboseName() + " " + challenge.Rule.Name.ToUpper() + " CHALLENGE" + Environment.NewLine;
                         info += challenge.Rule.RuleInfo() + Environment.NewLine;
+                        info += "To see your progress type: !" + commandText + " p";
                     }
-                    info += "Status: " + Math.Round(challenge.Progress.CompletionPercentage) + "% | " + challenge.Progress.TotalCompletedKills + " Kills | " + challenge.Progress.TotalRequiredKills + " Required" + Environment.NewLine;
-                    info += challenge.Progress.ToString();
+                    else
+                    {
+                        info += "Status: " + Math.Round(challenge.Progress.CompletionPercentage) + "% | " + challenge.Progress.TotalCompletedKills + " Kills | " + challenge.Progress.TotalRequiredKills + " Required" + Environment.NewLine;
+                        info += challenge.Progress.ToString();
+                    }
                     return info;
                 }
                 catch (Exception e)
@@ -55275,14 +55280,6 @@ namespace PRoConEvents
                                 _plugin.Log.Error("Round ID " + aKill.RoundID + " was invalid when adding kill to entry detail " + ID + ":" + detailID + ". Unable to add kill.");
                                 return false;
                             }
-                            // We're good so far. Now make sure the kill increases progression.
-                            var oldProgress = Progress;
-                            RefreshProgress(aKill);
-                            if (oldProgress != null && Progress.CompletionPercentage <= oldProgress.CompletionPercentage)
-                            {
-                                // New percentage was not greater than the old percentage
-                                return false;
-                            }
 
                             var newDetail = new CEntryDetail(_plugin, this, detailID, aKill, true);
                             newDetail.DBPush(null);
@@ -55295,6 +55292,9 @@ namespace PRoConEvents
 
                             // Everything is validated. Add the kill.
                             Details.Add(newDetail);
+
+                            // Refresh the progress
+                            RefreshProgress(null);
 
                             if (Progress.CompletionPercentage >= 99.999)
                             {
