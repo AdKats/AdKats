@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.117
+ * Version 7.0.1.118
  * 3-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.117</version_code>
+ * <version_code>7.0.1.118</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.117";
+        private const String PluginVersion = "7.0.1.118";
 
         public enum GameVersionEnum
         {
@@ -53947,7 +53947,7 @@ namespace PRoConEvents
                     Duration,
                     Deaths
                 }
-                public static String CompletionTypeEnumString = "enum.ChallengeRuleCompletionType(None|Rounds|Duration)";
+                public static String CompletionTypeEnumString = "enum.ChallengeRuleCompletionType(None|Rounds|Duration|Deaths)";
 
                 private AdKats _plugin;
 
@@ -54640,7 +54640,7 @@ namespace PRoConEvents
                         info += "Weapon Types: ";
                         foreach (var detail in damages)
                         {
-                            info += "[" + detail.Damage.ToString() + "/" + detail.WeaponCount + " Weapons/" + detail.KillCount + " Kills]" + Environment.NewLine;
+                            info += "[" + detail.Damage.ToString().Replace("_", " ") + "/" + detail.WeaponCount + " Weapons/" + detail.KillCount + " Kills]" + Environment.NewLine;
                         }
                         info += Environment.NewLine;
                     }
@@ -55965,7 +55965,7 @@ namespace PRoConEvents
                             var completedKills = weaponBuckets.Sum(weapon => weapon.Kills.Count());
                             var completionPercentage = Math.Max(Math.Min(100 * (Double)completedKills / (Double)requiredKills, 100), 0);
 
-                            var status = "Type " + Damage.ToString() + " [" + completedKills + "/" + requiredKills + "][" + Math.Round(completionPercentage) + "%]:";
+                            var status = "Type " + Damage.ToString().Replace("_", " ") + " [" + completedKills + "/" + requiredKills + "][" + Math.Round(completionPercentage) + "%]:";
                             if (weaponBuckets.Any())
                             {
                                 foreach (var weaponString in weaponBuckets.Select(bucket => bucket.ToString()))
