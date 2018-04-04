@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.114
- * 2-APR-2018
+ * Version 7.0.1.116
+ * 3-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.114</version_code>
+ * <version_code>7.0.1.116</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.114";
+        private const String PluginVersion = "7.0.1.116";
 
         public enum GameVersionEnum
         {
@@ -2783,6 +2783,10 @@ namespace PRoConEvents
                             else if (rule.Completion == AChallengeManager.CRule.CompletionType.Duration)
                             {
                                 buildList.Add(new CPluginVariable(rulePrefix + "Duration Minutes", typeof(Int32), rule.DurationMinutes));
+                            }
+                            else if (rule.Completion == AChallengeManager.CRule.CompletionType.Deaths)
+                            {
+                                buildList.Add(new CPluginVariable(rulePrefix + "Death Count", typeof(Int32), rule.DeathCount));
                             }
                             buildList.Add(new CPluginVariable(rulePrefix + "Delete Rule?", typeof(String), ""));
                         }
@@ -8610,6 +8614,9 @@ namespace PRoConEvents
                             break;
                         case "Duration Minutes":
                             rule.SetDurationMinutesByString(strValue);
+                            break;
+                        case "Death Count":
+                            rule.SetDeathCountByString(strValue);
                             break;
                         case "Delete Rule?":
                             if (strValue.ToLower().Trim() == "delete")
@@ -16338,6 +16345,10 @@ namespace PRoConEvents
                         {
                             aKill.killer.ActiveChallenge.AddKill(aKill);
                         }
+                        if (aKill.victim.ActiveChallenge == null)
+                        {
+                            aKill.victim.ActiveChallenge.AddDeath(aKill);
+                        }
                     }
                 }
                 catch (Exception e)
@@ -16662,6 +16673,11 @@ namespace PRoConEvents
                             PlayerTellMessage(aPlayer.player_name, _lastNukeTeam.TeamKey + " nuke active for " + Math.Round(endDuration.TotalSeconds, 1) + " seconds!");
                             ExecuteCommand("procon.protected.send", "admin.killPlayer", aPlayer.player_name);
                         }
+                    }
+
+                    if (aPlayer.ActiveChallenge == null)
+                    {
+                        aPlayer.ActiveChallenge.AddSpawn(aPlayer);
                     }
                 }
             }
@@ -51583,6 +51599,7 @@ namespace PRoConEvents
                                      `CompletionType`,
                                      `RoundCount`,
                                      `DurationMinutes`,
+                                     `DeathCount`,
                                      `CreateTime`,
                                      `ModifyTime`,
                                      `RoundLastUsedTime`,
@@ -51646,6 +51663,7 @@ namespace PRoConEvents
                                         rule.Completion = (CRule.CompletionType)Enum.Parse(typeof(CRule.CompletionType), reader.GetString("CompletionType"));
                                         rule.RoundCount = reader.GetInt32("RoundCount");
                                         rule.DurationMinutes = reader.GetInt32("DurationMinutes");
+                                        rule.DeathCount = reader.GetInt32("DeathCount");
                                         rule.CreateTime = reader.GetDateTime("CreateTime");
                                         rule.ModifyTime = reader.GetDateTime("ModifyTime");
                                         rule.RoundLastUsedTime = reader.GetDateTime("RoundLastUsedTime");
@@ -51861,13 +51879,16 @@ namespace PRoConEvents
                             // These must be executed afterward, otherwise it would cause overlapping readers on the same connection
                             foreach (var entry in entryChecks)
                             {
-                                // Read in the details
-                                entry.DBReadDetails(localConnection);
                                 // Check to see if the entry has failed
                                 entry.CheckFailure();
-                                if (entry.Progress == null)
+                                // Read in the details and refresh progress only if we care about it
+                                if (!entry.Completed && !entry.Canceled && !entry.Failed)
                                 {
-                                    entry.RefreshProgress(null);
+                                    entry.DBReadDetails(localConnection);
+                                    if (entry.Progress == null)
+                                    {
+                                        entry.RefreshProgress(null);
+                                    }
                                 }
                             }
                         }
@@ -52229,16 +52250,70 @@ namespace PRoConEvents
                     }
                     // The player is available and they have entries.
                     var challenge = aPlayer.ActiveChallenge;
+                    var completionTimeString = "Challenge Ends: ";
+                    if (challenge.Rule.Completion == CRule.CompletionType.Rounds)
+                    {
+                        // Completion round is the same round if RoundCount = 1
+                        var completionRoundID = challenge.StartRound + challenge.Rule.RoundCount;
+                        var remainingRounds = completionRoundID - LoadedRoundID;
+                        if (remainingRounds == 1)
+                        {
+                            completionTimeString += "End of this round.";
+                        }
+                        else if (remainingRounds == 2)
+                        {
+                            completionTimeString += "End of next round.";
+                        }
+                        else
+                        {
+                            completionTimeString += remainingRounds + "rounds from now.";
+                        }
+                    }
+                    else if (challenge.Rule.Completion == CRule.CompletionType.Duration)
+                    {
+                        var completionTime = challenge.StartTime + TimeSpan.FromMinutes(challenge.Rule.DurationMinutes);
+                        var completionDuration = _plugin.NowDuration(completionTime);
+
+                        if (_plugin.UtcNow() > completionTime)
+                        {
+                            completionTimeString += "In a few seconds.";
+                        }
+                        else
+                        {
+                            completionTimeString += "In " + Math.Round(completionDuration.TotalMinutes, 1) + " (" + _plugin.FormatTimeString(completionDuration, 3) + ")";
+                        }
+                    }
+                    else if (challenge.Rule.Completion == CRule.CompletionType.Deaths)
+                    {
+                        var deaths = challenge.Progress.Deaths.Count();
+                        var deathsRemaining = challenge.Rule.DeathCount - deaths;
+
+                        if (deathsRemaining <= 0)
+                        {
+                            completionTimeString += "ERROR17592";
+                        }
+                        else
+                        {
+                            completionTimeString += "If you get " + deathsRemaining + " " + (deaths > 0 ? "more " : "") + "deaths.";
+                        }
+                    }
+                    else
+                    {
+                        completionTimeString += "ERROR28217";
+                    }
+                    completionTimeString += Environment.NewLine;
                     var info = "";
                     if (description)
                     {
                         info += aPlayer.GetVerboseName() + " " + challenge.Rule.Name.ToUpper() + " CHALLENGE" + Environment.NewLine;
+                        info += completionTimeString;
                         info += challenge.Rule.RuleInfo() + Environment.NewLine;
                         info += "To see your progress type: !" + commandText + " p";
                     }
                     else
                     {
                         info += "Status: " + Math.Round(challenge.Progress.CompletionPercentage) + "% | " + challenge.Progress.TotalCompletedKills + " Kills | " + challenge.Progress.TotalRequiredKills + " Required" + Environment.NewLine;
+                        info += completionTimeString;
                         info += challenge.Progress.ToString();
                     }
                     return info;
@@ -52704,6 +52779,20 @@ namespace PRoConEvents
                                 {
                                     _plugin.Log.Error("Detail with damage " + detail.Damage.ToString() + " already exists.");
                                     return;
+                                }
+                                // Check to see if any of the internal damage types are already added
+                                var existingDamageTypes = new List<DamageTypes>();
+                                foreach (var damageTypeList in Details.Select(dDetail => dDetail.GetDamageTypes()))
+                                {
+                                    existingDamageTypes.AddRange(damageTypeList);
+                                }
+                                foreach (var damageType in existingDamageTypes)
+                                {
+                                    if (detail.GetDamageTypes().Contains(damageType))
+                                    {
+                                        _plugin.Log.Error("Detail with internal damage " + damageType + " already exists.");
+                                        return;
+                                    }
                                 }
                             }
                             else if (type == CDefinitionDetail.DetailType.Weapon.ToString())
@@ -53855,7 +53944,8 @@ namespace PRoConEvents
                 {
                     None,
                     Rounds,
-                    Duration
+                    Duration,
+                    Deaths
                 }
                 public static String CompletionTypeEnumString = "enum.ChallengeRuleCompletionType(None|Rounds|Duration)";
 
@@ -53873,6 +53963,7 @@ namespace PRoConEvents
                 public CompletionType Completion = CompletionType.None;
                 public Int32 RoundCount;
                 public Int32 DurationMinutes;
+                public Int32 DeathCount;
                 public DateTime CreateTime;
                 public DateTime ModifyTime;
                 public DateTime RoundLastUsedTime;
@@ -53890,6 +53981,7 @@ namespace PRoConEvents
                     Tier = 1;
                     RoundCount = 1;
                     DurationMinutes = 60;
+                    DeathCount = 1;
                 }
 
                 public void DBPush(MySqlConnection con)
@@ -53946,6 +54038,7 @@ namespace PRoConEvents
 	                                `CompletionType`, 
 	                                `RoundCount`, 
 	                                `DurationMinutes`, 
+	                                `DeathCount`, 
 	                                `CreateTime`, 
 	                                `ModifyTime`, 
 	                                `RoundLastUsedTime`,
@@ -53959,8 +54052,9 @@ namespace PRoConEvents
 	                                @Name, 
 	                                @Tier, 
 	                                @CompletionType, 
-	                                @RoundCount, 
+                                    @RoundCount, 
 	                                @DurationMinutes,
+                                    @DeathCount,
 	                                @CreateTime,
 	                                @ModifyTime,
 	                                @RoundLastUsedTime,
@@ -53980,6 +54074,7 @@ namespace PRoConEvents
                                 command.Parameters.AddWithValue("@CompletionType", Completion.ToString());
                                 command.Parameters.AddWithValue("@RoundCount", RoundCount);
                                 command.Parameters.AddWithValue("@DurationMinutes", DurationMinutes);
+                                command.Parameters.AddWithValue("@DeathCount", DeathCount);
                                 command.Parameters.AddWithValue("@CreateTime", CreateTime);
                                 command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
                                 command.Parameters.AddWithValue("@RoundLastUsedTime", RoundLastUsedTime);
@@ -54039,6 +54134,7 @@ namespace PRoConEvents
 	                                `CompletionType` = @CompletionType,
 	                                `RoundCount` = @RoundCount,
 	                                `DurationMinutes` = @DurationMinutes,
+	                                `DeathCount` = @DeathCount,
 	                                `ModifyTime` = @ModifyTime,
 	                                `RoundLastUsedTime` = @RoundLastUsedTime,
 	                                `PersonalLastUsedTime` = @PersonalLastUsedTime
@@ -54052,6 +54148,7 @@ namespace PRoConEvents
                                 command.Parameters.AddWithValue("@CompletionType", Completion.ToString());
                                 command.Parameters.AddWithValue("@RoundCount", RoundCount);
                                 command.Parameters.AddWithValue("@DurationMinutes", DurationMinutes);
+                                command.Parameters.AddWithValue("@DeathCount", DeathCount);
                                 command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
                                 command.Parameters.AddWithValue("@RoundLastUsedTime", RoundLastUsedTime);
                                 command.Parameters.AddWithValue("@PersonalLastUsedTime", PersonalLastUsedTime);
@@ -54110,10 +54207,11 @@ namespace PRoConEvents
                                          `Tier`,
                                          `CompletionType`,
                                          `RoundCount`,
-                                         `DurationMinutes`
+                                         `DurationMinutes`,
+                                         `DeathCount`,
                                          `CreateTime`,
                                          `ModifyTime`,
-                                         `RoundLastUsedTime`
+                                         `RoundLastUsedTime`,
                                          `PersonalLastUsedTime`
                                     FROM `adkats_challenge_rule`
                                    WHERE `ID` = @ID";
@@ -54171,6 +54269,7 @@ namespace PRoConEvents
                                         Completion = (CompletionType)Enum.Parse(typeof(CompletionType), reader.GetString("CompletionType"));
                                         RoundCount = reader.GetInt32("RoundCount");
                                         DurationMinutes = reader.GetInt32("DurationMinutes");
+                                        DeathCount = reader.GetInt32("DeathCount");
                                         CreateTime = reader.GetDateTime("CreateTime");
                                         ModifyTime = reader.GetDateTime("ModifyTime");
                                         RoundLastUsedTime = reader.GetDateTime("RoundLastUsedTime");
@@ -54498,6 +54597,39 @@ namespace PRoConEvents
                     }
                 }
 
+                public void SetDeathCountByString(String deathCount)
+                {
+                    try
+                    {
+                        if (Completion != CompletionType.Deaths)
+                        {
+                            _plugin.Log.Error("Rule type was not DEATHS when trying to set rounds duration by string.");
+                            return;
+                        }
+                        if (String.IsNullOrEmpty(deathCount))
+                        {
+                            _plugin.Log.Error("Death count was empty when setting by string.");
+                            return;
+                        }
+                        var newDeathCount = Int32.Parse(deathCount);
+                        if (newDeathCount < 1)
+                        {
+                            _plugin.Log.Error("Death based rule duration cannot be less than 1 death.");
+                            newDeathCount = 1;
+                        }
+                        if (newDeathCount != DeathCount)
+                        {
+                            DeathCount = newDeathCount;
+                            ModifyTime = _plugin.UtcNow();
+                            DBPush(null);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error updating death duration by string for CRule.", e));
+                    }
+                }
+
                 public String RuleInfo()
                 {
                     String info = "";
@@ -54626,6 +54758,7 @@ namespace PRoConEvents
 
                 public String LastCompletedWeapon;
                 public Boolean AutoKillTold;
+                public Boolean Died;
 
                 public CEntry(AdKats plugin, AChallengeManager manager, APlayer player, CRule rule, Int32 startingRound, Boolean phantom)
                 {
@@ -54713,6 +54846,7 @@ namespace PRoConEvents
                                     return;
                                 }
                             }
+                            // Ignore death count based checks, those are handled on the death event itself
                             else
                             {
                                 _plugin.Log.Error("Unable to do validation on entry " + ID + ", completion type is invalid.");
@@ -54796,9 +54930,10 @@ namespace PRoConEvents
                             _plugin.Log.Error("Attempted to complete challenge without 100% completion.");
                             return;
                         }
-                        var message = Player.GetVerboseName() + " finished a " + Rule.Name + " challenge! Congrats!";
                         //_plugin.AdminTellMessage(message);
-                        _plugin.AdminSayMessage(message);
+                        _plugin.AdminSayMessage("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
+                        _plugin.AdminSayMessage(Player.GetVerboseName() + " finished a " + Rule.Name + " challenge! Congrats!");
+                        _plugin.AdminSayMessage("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
                         Completed = true;
                         CompleteTime = _plugin.UtcNow();
                         DBPush(null);
@@ -55165,7 +55300,7 @@ namespace PRoConEvents
                                             var detailWeaponCode = reader.GetString("Weapon");
                                             var detailWeaponDamage = _plugin.WeaponDictionary.GetDamageTypeByWeaponCode(detailWeaponCode);
                                             // Use damage validation to make sure the weapon is real
-                                            if (detailWeaponDamage == DamageTypes.None)
+                                            if (detailWeaponDamage == DamageTypes.None && detailWeaponCode != "Death")
                                             {
                                                 _plugin.Log.Error("Weapon " + detailWeaponCode + " was invalid when loading entry detail " + ID + ":" + detailID + ", unable to load.");
                                                 continue;
@@ -55251,7 +55386,7 @@ namespace PRoConEvents
                             var detailID = Details.Select(dDetail => dDetail.DetailID).DefaultIfEmpty(0).Max() + 1;
                             if (detailID <= 0)
                             {
-                                _plugin.Log.Error("Entry detail " + ID + ":" + detailID + " was invalid. Generated detail ID was not valid.");
+                                _plugin.Log.Error("Entry detail " + ID + ":" + detailID + " was invalid. Generated detail ID was not valid. Unable to add kill.");
                                 return false;
                             }
                             if (GetDetails().Any(dDetail => dDetail.DetailID == detailID))
@@ -55281,6 +55416,14 @@ namespace PRoConEvents
                                 return false;
                             }
 
+                            // We're good so far. Now make sure the kill is meaningful.
+                            // Meaningful being adding it to an available damage/weapon bucket
+                            if (!RefreshProgress(aKill))
+                            {
+                                // Kill was not meaningful
+                                return false;
+                            }
+
                             var newDetail = new CEntryDetail(_plugin, this, detailID, aKill, true);
                             newDetail.DBPush(null);
                             // Make sure the upload was successful before adding
@@ -55292,9 +55435,6 @@ namespace PRoConEvents
 
                             // Everything is validated. Add the kill.
                             Details.Add(newDetail);
-
-                            // Refresh the progress
-                            RefreshProgress(null);
 
                             if (Progress.CompletionPercentage >= 99.999)
                             {
@@ -55312,11 +55452,146 @@ namespace PRoConEvents
                     }
                     return false;
                 }
-                
-                public void RefreshProgress(AKill includeKill)
+
+                public void AddDeath(AKill aKill)
                 {
                     try
                     {
+                        if (!Manager.Enabled ||
+                            !Rule.Enabled ||
+                            Completed ||
+                            Failed ||
+                            Canceled)
+                        {
+                            _plugin.Log.Info("Entry " + ID + " was invalid when adding death.");
+                            return;
+                        }
+                        // Check for invalid entry
+                        if (aKill.victim == null || aKill.victim.player_id != Player.player_id)
+                        {
+                            _plugin.Log.Info("Victim player " + aKill.victim.GetVerboseName() + " did not match entry player " + Player.GetVerboseName() + ".");
+                            return;
+                        }
+                        // Check for invalid rule
+                        if (Rule == null)
+                        {
+                            _plugin.Log.Warn("Entry " + ID + " rule was null when trying to add death: " + aKill.ToString());
+                            return;
+                        }
+                        if (Died)
+                        {
+                            _plugin.Log.Info("Victim player " + aKill.victim.GetVerboseName() + " already died without spawning. Not assigning another death.");
+                            return;
+                        }
+                        lock (Details)
+                        {
+                            // Create the new detail ID as one more than the current max.
+                            var detailID = Details.Select(dDetail => dDetail.DetailID).DefaultIfEmpty(0).Max() + 1;
+                            if (detailID <= 0)
+                            {
+                                _plugin.Log.Error("Entry detail " + ID + ":" + detailID + " was invalid. Generated detail ID was not valid. Unable to add death.");
+                                return;
+                            }
+                            if (GetDetails().Any(dDetail => dDetail.DetailID == detailID))
+                            {
+                                _plugin.Log.Error("Entry detail " + ID + ":" + detailID + " already existed when adding death. Unable to add death.");
+                                return;
+                            }
+                            if (aKill.killer == null)
+                            {
+                                // The killer player was null. This is likely an admin kill.
+                                return;
+                            }
+                            if (aKill.killer == aKill.victim || aKill.IsSuicide)
+                            {
+                                // They suicided.
+                                return;
+                            }
+                            if (aKill.RoundID <= 0)
+                            {
+                                _plugin.Log.Error("Round ID " + aKill.RoundID + " was invalid when adding death to entry detail " + ID + ":" + detailID + ". Unable to add death.");
+                                return;
+                            }
+
+                            // Change the kill code to Death
+                            aKill.weaponCode = "Death";
+                            aKill.weaponDamage = DamageTypes.None;
+
+                            var newDetail = new CEntryDetail(_plugin, this, detailID, aKill, true);
+                            newDetail.DBPush(null);
+                            // Make sure the upload was successful before adding
+                            if (newDetail.Phantom)
+                            {
+                                _plugin.Log.Error("Challenge entry detail " + ID + ":" + detailID + " could not upload. Unable to add death.");
+                                return;
+                            }
+
+                            // Everything is validated. Add the death.
+                            Details.Add(newDetail);
+
+                            RefreshProgress(null);
+
+                            // We only care about responding to the death if this is a death based challenge
+                            if (Rule.Completion == CRule.CompletionType.Deaths)
+                            {
+                                var deaths = Progress.Deaths.Count();
+                                var deathsRemaining = Rule.DeathCount - deaths;
+                                if (Progress.Deaths.Count() >= Rule.DeathCount)
+                                {
+                                    DoFail();
+                                    return;
+                                }
+                                Player.Say("You have " + deathsRemaining + " death(s) remaining for " + Rule.Name + " challenge.");
+                                Died = true;
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while adding death to challenge entry.", e));
+                    }
+                }
+
+                public void AddSpawn(APlayer player)
+                {
+                    try
+                    {
+                        if (!Manager.Enabled ||
+                            !Rule.Enabled ||
+                            Completed ||
+                            Failed ||
+                            Canceled)
+                        {
+                            _plugin.Log.Info("Entry " + ID + " was invalid when adding spawn.");
+                            return;
+                        }
+                        // Check for invalid entry
+                        if (player == null || player.player_id != Player.player_id)
+                        {
+                            _plugin.Log.Info("Spawn player " + player.GetVerboseName() + " did not match entry player " + Player.GetVerboseName() + ".");
+                            return;
+                        }
+                        // Check for invalid rule
+                        if (Rule == null)
+                        {
+                            _plugin.Log.Warn("Entry " + ID + " rule was null when trying to add spawn.");
+                            return;
+                        }
+                        // Reset the flag so they are allowed to accept deaths again.
+                        Died = false;
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error while adding spawn to challenge entry.", e));
+                    }
+                }
+
+                public Boolean RefreshProgress(AKill includeKill)
+                {
+                    try
+                    {
+                        var killMeaningful = true;
+
                         if (ID <= 0 ||
                             Rule == null ||
                             Rule.ID <= 0 ||
@@ -55324,13 +55599,13 @@ namespace PRoConEvents
                             Rule.Definition.ID <= 0)
                         {
                             _plugin.Log.Error("Entry was invalid when refreshing progress.");
-                            return;
+                            return false;
                         }
                         var details = Rule.Definition.GetDetails();
                         if (!details.Any())
                         {
                             _plugin.Log.Error("Cannot refresh progress, no damage types added to definition " + Rule.Definition.ID + ".");
-                            return;
+                            return false;
                         }
 
                         // Build the necessary buckets
@@ -55338,34 +55613,38 @@ namespace PRoConEvents
                         var damageDetails = details.Where(detail => detail.Type == CDefinition.CDefinitionDetail.DetailType.Damage &&
                                                                     detail.Damage != CDefinition.CDefinitionDetail.DetailDamage.None &&
                                                                     detail.KillCount > 0).ToList();
-                        var damageBuckets = new Dictionary<DamageTypes, DamageBucket>();
+                        var damageBuckets = new List<DamageBucket>();
                         foreach (var detail in damageDetails)
                         {
-                            // Loop over each of the damage types in the damage detail
+                            var damageBucket = new DamageBucket(_plugin)
+                            {
+                                Damage = detail.Damage,
+                                WeaponCount = detail.WeaponCount,
+                                MaxKillsPerWeapon = detail.KillCount
+                            };
+                            var weaponCodes = new List<String>();
                             foreach (var damageType in detail.GetDamageTypes())
                             {
-                                var damageBucket = new DamageBucket(_plugin)
+                                weaponCodes.AddRange(_plugin.WeaponDictionary.GetWeaponCodesOfDamageType(damageType));
+                            }
+                            foreach (var weaponCode in weaponCodes)
+                            {
+                                damageBucket.Weapons[weaponCode] = new WeaponBucket(_plugin)
                                 {
-                                    Damage = damageType,
-                                    WeaponCount = detail.WeaponCount,
-                                    MaxKillsPerWeapon = detail.KillCount
+                                    WeaponCode = weaponCode,
+                                    MaxKills = detail.KillCount
                                 };
-                                foreach (var weaponCode in _plugin.WeaponDictionary.GetWeaponCodesOfDamageType(damageType))
-                                {
-                                    damageBucket.Weapons[weaponCode] = new WeaponBucket(_plugin)
-                                    {
-                                        WeaponCode = weaponCode,
-                                        MaxKills = detail.KillCount
-                                    };
-                                }
-                                damageBuckets[damageBucket.Damage] = damageBucket;
+                            }
+                            if (!damageBuckets.Contains(damageBucket))
+                            {
+                                damageBuckets.Add(damageBucket);
                             }
                         }
                         // Weapon buckets
                         var weaponDetails = details.Where(detail => detail.Type == CDefinition.CDefinitionDetail.DetailType.Weapon &&
                                                                     !String.IsNullOrEmpty(detail.Weapon) &&
                                                                     detail.KillCount > 0).ToList();
-                        var weaponBuckets = new Dictionary<String, WeaponBucket>();
+                        var weaponBuckets = new List<WeaponBucket>();
                         foreach (var detail in weaponDetails)
                         {
                             var weaponBucket = new WeaponBucket(_plugin)
@@ -55373,8 +55652,12 @@ namespace PRoConEvents
                                 WeaponCode = detail.Weapon,
                                 MaxKills = detail.KillCount
                             };
-                            weaponBuckets[weaponBucket.WeaponCode] = weaponBucket;
+                            if (!weaponBuckets.Contains(weaponBucket))
+                            {
+                                weaponBuckets.Add(weaponBucket);
+                            }
                         }
+                        var deathBucket = new List<AKill>();
 
                         var detailKills = GetDetails().Select(dDetail => dDetail.Kill).ToList();
                         if (includeKill != null)
@@ -55383,43 +55666,66 @@ namespace PRoConEvents
                         }
                         foreach (var kill in detailKills.OrderBy(dKill => dKill.TimeStamp))
                         {
-                            // See if it matches a specific weapon requirement
-                            if (weaponBuckets.ContainsKey(kill.weaponCode))
+                            if (kill.weaponCode == "Death" && kill.weaponDamage == DamageTypes.None)
                             {
-                                // It does. See if we can assign the kill to the damage type.
-                                if (weaponBuckets[kill.weaponCode].AddKill(kill))
+                                deathBucket.Add(kill);
+                                continue;
+                            }
+
+                            // See if it matches a specific weapon requirement
+                            if (weaponBuckets.Any())
+                            {
+                                var matchingWeaponBucket = weaponBuckets.FirstOrDefault(bucket => bucket.WeaponCode == kill.weaponCode);
+                                if (matchingWeaponBucket != null)
                                 {
-                                    // Kill added, get out
-                                    continue;
+                                    // It does. See if we can assign the kill to the damage type.
+                                    if (matchingWeaponBucket.AddKill(kill))
+                                    {
+                                        // Kill added, get out
+                                        continue;
+                                    }
                                 }
                             }
 
                             // Couldn't assign the kill to a specific weapon requirement
                             // Check if the current rule has a need for this kill's damage type
                             // A weapon can thankfully only belong to one damage type
-                            if (damageBuckets.ContainsKey(kill.weaponDamage))
+                            if (damageBuckets.Any())
                             {
-                                // It does. See if we can assign the kill to the damage type.
-                                var damageWeapons = damageBuckets[kill.weaponDamage].Weapons;
-                                if (!damageWeapons.ContainsKey(kill.weaponCode))
+                                var matchingDamageBucket = damageBuckets.FirstOrDefault(bucket => bucket.Weapons.Values.Any(weapon => weapon.WeaponCode == kill.weaponCode));
+                                if (matchingDamageBucket != null)
                                 {
-                                    _plugin.Log.Error("Damage bucket for " + kill.weaponDamage + "/" + kill.weaponCode + " did not contain the needed weapon.");
-                                    continue;
-                                }
-                                if (damageWeapons[kill.weaponCode].AddKill(kill))
-                                {
-                                    // Kill added, get out
-                                    continue;
+                                    // It does. See if we can assign the kill to the damage type.
+                                    if (!matchingDamageBucket.Weapons.ContainsKey(kill.weaponCode))
+                                    {
+                                        _plugin.Log.Error("Damage bucket for " + kill.weaponDamage + "/" + kill.weaponCode + " did not contain the needed weapon.");
+                                        continue;
+                                    }
+                                    if (matchingDamageBucket.Weapons[kill.weaponCode].AddKill(kill))
+                                    {
+                                        // Kill added, get out
+                                        continue;
+                                    }
                                 }
                             }
                             // Unable to assign the kill. Either we don't have a slot for it, or all the slots for it are full.
+                            if (includeKill != null && includeKill == kill)
+                            {
+                                // We are testing a kill and it couldn't be added anywhere
+                                killMeaningful = false;
+                            }
                         }
-                        Progress = new EntryProgress(_plugin, this, damageBuckets, weaponBuckets);
+                        Progress = new EntryProgress(_plugin, this, damageBuckets, weaponBuckets, deathBucket);
+                        if (includeKill != null)
+                        {
+                            return killMeaningful;
+                        }
                     }
                     catch (Exception e)
                     {
                         _plugin.Log.HandleException(new AException("Error while getting challenge rule completion status.", e));
                     }
+                    return false;
                 }
 
                 public override string ToString()
@@ -55444,8 +55750,9 @@ namespace PRoConEvents
                     private AdKats _plugin;
 
                     private CEntry Entry;
-                    private Dictionary<DamageTypes, DamageBucket> DamageBuckets;
-                    private Dictionary<String, WeaponBucket> WeaponBuckets;
+                    private List<DamageBucket> DamageBuckets;
+                    private List<WeaponBucket> WeaponBuckets;
+                    public List<AKill> Deaths;
 
                     public Int32 TotalRequiredKills
                     {
@@ -55460,7 +55767,7 @@ namespace PRoConEvents
                         get; private set;
                     }
 
-                    public EntryProgress(AdKats plugin, CEntry entry, Dictionary<DamageTypes, DamageBucket> damageBuckets, Dictionary<String, WeaponBucket> weaponBuckets)
+                    public EntryProgress(AdKats plugin, CEntry entry, List<DamageBucket> damageBuckets, List<WeaponBucket> weaponBuckets, List<AKill> deaths)
                     {
                         _plugin = plugin;
 
@@ -55470,19 +55777,24 @@ namespace PRoConEvents
                             DamageBuckets = damageBuckets;
                             if (DamageBuckets == null)
                             {
-                                DamageBuckets = new Dictionary<DamageTypes, DamageBucket>();
+                                DamageBuckets = new List<DamageBucket>();
                             }
                             WeaponBuckets = weaponBuckets;
                             if (WeaponBuckets == null)
                             {
-                                WeaponBuckets = new Dictionary<String, WeaponBucket>();
+                                WeaponBuckets = new List<WeaponBucket>();
+                            }
+                            Deaths = deaths;
+                            if (Deaths == null)
+                            {
+                                Deaths = new List<AKill>();
                             }
 
                             // Total for all required kills
-                            TotalRequiredKills = DamageBuckets.Values.Sum(bucket => bucket.WeaponCount * bucket.MaxKillsPerWeapon) + WeaponBuckets.Values.Sum(bucket => bucket.MaxKills);
+                            TotalRequiredKills = DamageBuckets.Sum(bucket => bucket.WeaponCount * bucket.MaxKillsPerWeapon) + WeaponBuckets.Sum(bucket => bucket.MaxKills);
 
                             // Total for all completed kills
-                            TotalCompletedKills = damageBuckets.Values.Sum(bucket => bucket.GetWeapons().Sum(weapon => weapon.Kills.Count())) + weaponBuckets.Values.Sum(weapon => weapon.Kills.Count());
+                            TotalCompletedKills = damageBuckets.Sum(bucket => bucket.GetWeapons().Sum(weapon => weapon.Kills.Count())) + weaponBuckets.Sum(weapon => weapon.Kills.Count());
 
                             // Total completion percentage
                             CompletionPercentage = Math.Max(Math.Min(100 * (Double)TotalCompletedKills / (Double)TotalRequiredKills, 100), 0);
@@ -55503,26 +55815,26 @@ namespace PRoConEvents
                         {
                             var requiredKills = 0;
                             var completedKills = 0;
-                            WeaponBucket weaponBucket = null;
-                            WeaponBucket damageWeaponBucket = null;
-                            if (WeaponBuckets.ContainsKey(kill.weaponCode))
+                            WeaponBucket weaponBucket = WeaponBuckets.FirstOrDefault(bucket => bucket.WeaponCode == kill.weaponCode);
+
+                            if (weaponBucket != null)
                             {
-                                weaponBucket = WeaponBuckets[kill.weaponCode];
                                 requiredKills += weaponBucket.MaxKills;
                                 completedKills += weaponBucket.Kills.Count();
                             }
 
-                            if (DamageBuckets.ContainsKey(kill.weaponDamage))
+                            WeaponBucket damageWeaponBucket = null;
+                            foreach (var damageBucket in DamageBuckets)
                             {
-                                var damageBucketWeapons = DamageBuckets[kill.weaponDamage].Weapons;
-                                if (!damageBucketWeapons.ContainsKey(kill.weaponCode))
+                                if (damageBucket.Weapons.ContainsKey(kill.weaponCode))
                                 {
-                                    _plugin.Log.Error("Damage bucket for status weapon " + kill.weaponDamage + "/" + kill.weaponCode + " did not contain the needed weapon.");
+                                    damageWeaponBucket = damageBucket.Weapons[kill.weaponCode];
+                                    requiredKills += damageWeaponBucket.MaxKills;
+                                    completedKills += damageWeaponBucket.Kills.Count();
+                                    break;
                                 }
-                                damageWeaponBucket = damageBucketWeapons[kill.weaponCode];
-                                requiredKills += damageWeaponBucket.MaxKills;
-                                completedKills += damageWeaponBucket.Kills.Count();
                             }
+
                             var weaponCompletionPercentage = Math.Max(Math.Min(100 * (Double)completedKills / (Double)requiredKills, 100), 0);
 
                             String weaponName = _plugin.WeaponDictionary.GetShortWeaponNameByCode(kill.weaponCode);
@@ -55587,11 +55899,11 @@ namespace PRoConEvents
                                 status += "No damage or weapons defined.";
                                 return status;
                             }
-                            foreach (var weapon in WeaponBuckets.Values)
+                            foreach (var weapon in WeaponBuckets)
                             {
                                 status += weapon.ToString() + Environment.NewLine;
                             }
-                            foreach (var damage in DamageBuckets.Values)
+                            foreach (var damage in DamageBuckets)
                             {
                                 status += damage.ToString() + Environment.NewLine;
                             }
@@ -55609,7 +55921,7 @@ namespace PRoConEvents
                 {
                     private AdKats _plugin;
 
-                    public DamageTypes Damage;
+                    public CDefinition.CDefinitionDetail.DetailDamage Damage;
                     public Int32 WeaponCount;
                     public Int32 MaxKillsPerWeapon;
                     public Dictionary<String, WeaponBucket> Weapons;
@@ -55617,7 +55929,7 @@ namespace PRoConEvents
                     public DamageBucket(AdKats plugin)
                     {
                         _plugin = plugin;
-                        Damage = DamageTypes.None;
+                        Damage = CDefinition.CDefinitionDetail.DetailDamage.None;
                         Weapons = new Dictionary<String, WeaponBucket>();
                     }
 
@@ -55861,7 +56173,7 @@ namespace PRoConEvents
                                             var detailWeaponCode = reader.GetString("Weapon");
                                             var detailWeaponDamage = _plugin.WeaponDictionary.GetDamageTypeByWeaponCode(detailWeaponCode);
                                             // Use damage validation to make sure the weapon is real
-                                            if (detailWeaponDamage == DamageTypes.None)
+                                            if (detailWeaponDamage == DamageTypes.None && detailWeaponCode != "Death")
                                             {
                                                 _plugin.Log.Error("Weapon " + detailWeaponCode + " was invalid when loading entry detail " + Entry.ID + ":" + DetailID + ", unable to load.");
                                                 return;
