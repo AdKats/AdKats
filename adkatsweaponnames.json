@@ -1677,6 +1677,10 @@
     "U_SaddlegunSnp": {
       "readable_short": "Mares Leg",
       "readable_long": "Mares Leg Saddlegun Sniper"
+    },
+    "Melee": {
+      "readable_short": "Knife",
+      "readable_long": "Knife"
     }
   }
 }
