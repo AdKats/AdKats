@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.119
+ * Version 7.0.1.120
  * 4-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.119</version_code>
+ * <version_code>7.0.1.120</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.119";
+        private const String PluginVersion = "7.0.1.120";
 
         public enum GameVersionEnum
         {
@@ -54846,7 +54846,10 @@ namespace PRoConEvents
                                     return;
                                 }
                             }
-                            // Ignore death count based checks, those are handled on the death event itself
+                            else if (Rule.Completion == CRule.CompletionType.Deaths)
+                            {
+                                // Ignore death count based checks, those are handled on the death event itself
+                            }
                             else
                             {
                                 _plugin.Log.Error("Unable to do validation on entry " + ID + ", completion type is invalid.");
@@ -55607,6 +55610,7 @@ namespace PRoConEvents
                             _plugin.Log.Error("Cannot refresh progress, no damage types added to definition " + Rule.Definition.ID + ".");
                             return false;
                         }
+                        _plugin.Log.Info("Entry " + ID + " started calculating progress.");
 
                         // Build the necessary buckets
                         // Damage buckets
@@ -55719,13 +55723,14 @@ namespace PRoConEvents
                                 killMeaningful = false;
                             }
                         }
-                        _plugin.Log.Warn("Entry " + ID + " finished calculating progress.");
                         Progress = new EntryProgress(_plugin, this, damageBuckets, weaponBuckets, deathBucket);
                         if (includeKill != null)
                         {
                             _plugin.Log.Success("Entry " + ID + " kill meaningful [" + killMeaningful + "] " + includeKill.ToString() + ".");
+                            _plugin.Log.Info("Entry " + ID + " finished calculating progress.");
                             return killMeaningful;
                         }
+                        _plugin.Log.Info("Entry " + ID + " finished calculating progress.");
                     }
                     catch (Exception e)
                     {
@@ -58274,6 +58279,17 @@ namespace PRoConEvents
                                 Weapons[dWeapon.Code] = dWeapon;
                             }
                             dWeapon.Damage = weapon.Damage;
+                            // Fixing invalid weapon damages
+                            if (dWeapon.Code == "dlSHTR")
+                            {
+                                // This is the phantom bow. Change it to sniper rifle damage type.
+                                dWeapon.Damage = DamageTypes.SniperRifle;
+                            }
+                            if (dWeapon.Code.ToLower() == "roadkill")
+                            {
+                                // ToLower needed because of different values between bf3/bf4
+                                dWeapon.Damage = DamageTypes.Impact;
+                            }
                         }
                     }
                     Hashtable weaponNames = FetchAWeaponNames();
