@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.118
- * 3-APR-2018
+ * Version 7.0.1.119
+ * 4-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.118</version_code>
+ * <version_code>7.0.1.119</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.118";
+        private const String PluginVersion = "7.0.1.119";
 
         public enum GameVersionEnum
         {
@@ -54887,7 +54887,7 @@ namespace PRoConEvents
                         }
                         _plugin.Log.Success(Player.GetVerboseName() + " FAILED a " + Rule.Name + " challenge at " + percentage + " complete.");
                         Player.Say(Rule.Name + " challenge FAILED at " + percentage + " complete.");
-                        Canceled = true;
+                        Failed = true;
                         CompleteTime = _plugin.UtcNow();
                         DBPush(null);
                         Player.ActiveChallenge = null;
@@ -55668,6 +55668,7 @@ namespace PRoConEvents
                         {
                             if (kill.weaponCode == "Death" && kill.weaponDamage == DamageTypes.None)
                             {
+                                _plugin.Log.Success("Entry " + ID + " DEATH bucket " + kill.weaponCode + " added kill " + kill.ToString() + ".");
                                 deathBucket.Add(kill);
                                 continue;
                             }
@@ -55681,6 +55682,7 @@ namespace PRoConEvents
                                     // It does. See if we can assign the kill to the damage type.
                                     if (matchingWeaponBucket.AddKill(kill))
                                     {
+                                        _plugin.Log.Success("Entry " + ID + " WEAPON bucket " + kill.weaponCode + " added kill " + kill.ToString() + ".");
                                         // Kill added, get out
                                         continue;
                                     }
@@ -55690,34 +55692,38 @@ namespace PRoConEvents
                             // Couldn't assign the kill to a specific weapon requirement
                             // Check if the current rule has a need for this kill's damage type
                             // A weapon can thankfully only belong to one damage type
-                            if (damageBuckets.Any())
+                            DamageBucket matchingDamageBucket = null;
+                            foreach (var bucket in damageBuckets)
                             {
-                                var matchingDamageBucket = damageBuckets.FirstOrDefault(bucket => bucket.Weapons.Values.Any(weapon => weapon.WeaponCode == kill.weaponCode));
-                                if (matchingDamageBucket != null)
+                                if (bucket.Weapons.ContainsKey(kill.weaponCode))
                                 {
-                                    // It does. See if we can assign the kill to the damage type.
-                                    if (!matchingDamageBucket.Weapons.ContainsKey(kill.weaponCode))
-                                    {
-                                        _plugin.Log.Error("Damage bucket for " + kill.weaponDamage + "/" + kill.weaponCode + " did not contain the needed weapon.");
-                                        continue;
-                                    }
-                                    if (matchingDamageBucket.Weapons[kill.weaponCode].AddKill(kill))
-                                    {
-                                        // Kill added, get out
-                                        continue;
-                                    }
+                                    matchingDamageBucket = bucket;
+                                    break;
                                 }
                             }
-                            // Unable to assign the kill. Either we don't have a slot for it, or all the slots for it are full.
+                            if (matchingDamageBucket != null)
+                            {
+                                // It does. See if we can assign the kill to the damage type.
+                                if (matchingDamageBucket.Weapons[kill.weaponCode].AddKill(kill))
+                                {
+                                    _plugin.Log.Success("Entry " + ID + " DAMAGE bucket " + matchingDamageBucket.Damage + "/" + kill.weaponCode + " added kill " + kill.ToString() + ".");
+                                    // Kill added, get out
+                                    continue;
+                                }
+                            }
+                            _plugin.Log.Warn("Entry " + ID + " could not find a valid bucket for kill " + kill.ToString());
+                            // Unable to assign the kill. Either we don't have a slot for it, or all the slots for it are full..
                             if (includeKill != null && includeKill == kill)
                             {
                                 // We are testing a kill and it couldn't be added anywhere
                                 killMeaningful = false;
                             }
                         }
+                        _plugin.Log.Warn("Entry " + ID + " finished calculating progress.");
                         Progress = new EntryProgress(_plugin, this, damageBuckets, weaponBuckets, deathBucket);
                         if (includeKill != null)
                         {
+                            _plugin.Log.Success("Entry " + ID + " kill meaningful [" + killMeaningful + "] " + includeKill.ToString() + ".");
                             return killMeaningful;
                         }
                     }
