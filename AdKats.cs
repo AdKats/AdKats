@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.122
+ * Version 7.0.1.123
  * 4-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.122</version_code>
+ * <version_code>7.0.1.123</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.122";
+        private const String PluginVersion = "7.0.1.123";
 
         public enum GameVersionEnum
         {
@@ -55466,7 +55466,7 @@ namespace PRoConEvents
                     return false;
                 }
 
-                public void AddDeath(AKill aKill)
+                public void AddDeath(AKill inputKill)
                 {
                     try
                     {
@@ -55480,20 +55480,20 @@ namespace PRoConEvents
                             return;
                         }
                         // Check for invalid entry
-                        if (aKill.victim == null || aKill.victim.player_id != Player.player_id)
+                        if (inputKill.victim == null || inputKill.victim.player_id != Player.player_id)
                         {
-                            _plugin.Log.Info("Victim player " + aKill.victim.GetVerboseName() + " did not match entry player " + Player.GetVerboseName() + ".");
+                            _plugin.Log.Info("Victim player " + inputKill.victim.GetVerboseName() + " did not match entry player " + Player.GetVerboseName() + ".");
                             return;
                         }
                         // Check for invalid rule
                         if (Rule == null)
                         {
-                            _plugin.Log.Warn("Entry " + ID + " rule was null when trying to add death: " + aKill.ToString());
+                            _plugin.Log.Warn("Entry " + ID + " rule was null when trying to add death: " + inputKill.ToString());
                             return;
                         }
                         if (Died)
                         {
-                            _plugin.Log.Info("Victim player " + aKill.victim.GetVerboseName() + " already died without spawning. Not assigning another death.");
+                            _plugin.Log.Info("Victim player " + inputKill.victim.GetVerboseName() + " already died without spawning. Not assigning another death.");
                             return;
                         }
                         lock (Details)
@@ -55510,27 +55510,39 @@ namespace PRoConEvents
                                 _plugin.Log.Error("Entry detail " + ID + ":" + detailID + " already existed when adding death. Unable to add death.");
                                 return;
                             }
-                            if (aKill.killer == null)
+                            if (inputKill.killer == null)
                             {
                                 // The killer player was null. This is likely an admin kill.
                                 return;
                             }
-                            if (aKill.killer == aKill.victim || aKill.IsSuicide)
+                            if (inputKill.killer == inputKill.victim || inputKill.IsSuicide)
                             {
                                 // They suicided.
                                 return;
                             }
-                            if (aKill.RoundID <= 0)
+                            if (inputKill.RoundID <= 0)
                             {
-                                _plugin.Log.Error("Round ID " + aKill.RoundID + " was invalid when adding death to entry detail " + ID + ":" + detailID + ". Unable to add death.");
+                                _plugin.Log.Error("Round ID " + inputKill.RoundID + " was invalid when adding death to entry detail " + ID + ":" + detailID + ". Unable to add death.");
                                 return;
                             }
 
+                            // Need to make a new kill object
                             // Change the kill code to Death
-                            aKill.weaponCode = "Death";
-                            aKill.weaponDamage = DamageTypes.None;
+                            var death = new AKill(_plugin)
+                            {
+                                killer = inputKill.killer,
+                                weaponCode = "Death",
+                                weaponDamage = DamageTypes.None,
+                                victim = inputKill.victim,
+                                IsHeadshot = inputKill.IsHeadshot,
+                                IsSuicide = inputKill.IsSuicide,
+                                IsTeamkill = inputKill.IsTeamkill,
+                                RoundID = inputKill.RoundID,
+                                TimeStamp = inputKill.TimeStamp,
+                                UTCTimeStamp = inputKill.UTCTimeStamp
+                            };
 
-                            var newDetail = new CEntryDetail(_plugin, this, detailID, aKill, true);
+                            var newDetail = new CEntryDetail(_plugin, this, detailID, death, true);
                             newDetail.DBPush(null);
                             // Make sure the upload was successful before adding
                             if (newDetail.Phantom)
