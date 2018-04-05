@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.121
+ * Version 7.0.1.122
  * 4-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.121</version_code>
+ * <version_code>7.0.1.122</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.121";
+        private const String PluginVersion = "7.0.1.122";
 
         public enum GameVersionEnum
         {
@@ -35974,6 +35974,7 @@ namespace PRoConEvents
                 }
 
                 var option = record.record_message.ToLower().Trim();
+                var commandText = GetCommandByKey("self_challenge").command_text;
                 switch (option)
                 {
                     case "help":
@@ -35996,7 +35997,6 @@ namespace PRoConEvents
                                                                .OrderBy(rule => rule.Tier)
                                                                .ThenBy(rule => rule.Name)
                                                                .Select(rule => rule.ToString());
-                        var commandText = GetCommandByKey("self_challenge").command_text;
 
                         Threading.StartWatchdog(new Thread(new ThreadStart(delegate
                         {
@@ -36128,22 +36128,29 @@ namespace PRoConEvents
                                 var selected = selectRules.FirstOrDefault(rule => rule.ID == parseID);
                                 if (selected != null)
                                 {
+                                    // Make sure they aren't overwriting their current challenge
+                                    if (record.target_player.ActiveChallenge != null &&
+                                        record.target_player.ActiveChallenge.Rule.ID == selected.ID)
+                                    {
+                                        record.target_player.Say("You are already playing a " + selected.Name + " challenge. To see your progress type !" + commandText + " p");
+                                        break;
+                                    }
                                     ChallengeManager.CreateAndAssignEntry(record.target_player, selected, true);
                                     break;
                                 }
                                 else
                                 {
-                                    SendMessageToSource(record, "Challenge " + parseID + " does not exist. To see the list type !" + GetCommandByKey("self_challenge").command_text + " list");
+                                    SendMessageToSource(record, "Challenge " + parseID + " does not exist. To see the list type !" + commandText + " list");
                                     break;
                                 }
                             }
                             else if (split[0].Contains("#"))
                             {
-                                SendMessageToSource(record, "You need to enter the challenge number from the list. For example !" + GetCommandByKey("self_challenge").command_text + " 1");
+                                SendMessageToSource(record, "You need to enter the challenge number from the list. For example !" + commandText + " 1");
                                 break;
                             }
                         }
-                        SendMessageToSource(record, "'" + record.record_message + "' was an invalid option. Type !" + GetCommandByKey("self_challenge").command_text + " help");
+                        SendMessageToSource(record, "'" + record.record_message + "' was an invalid option. Type !" + commandText + " help");
                         break;
                 }
             }
@@ -54640,7 +54647,9 @@ namespace PRoConEvents
                         info += "Weapon Types: ";
                         foreach (var detail in damages)
                         {
-                            info += "[" + detail.Damage.ToString().Replace("_", " ") + "/" + detail.WeaponCount + " Weapons/" + detail.KillCount + " Kills]" + Environment.NewLine;
+                            var weaponS = detail.WeaponCount > 1 ? "s" : "";
+                            var killS = detail.KillCount > 1 ? "s" : "";
+                            info += "[" + detail.Damage.ToString().Replace("_", " ") + "/" + detail.WeaponCount + " Weapon" + weaponS + "/" + detail.KillCount + " Kill" + killS + "]" + Environment.NewLine;
                         }
                         info += Environment.NewLine;
                     }
@@ -54650,7 +54659,8 @@ namespace PRoConEvents
                         info += "Weapons: ";
                         foreach (var detail in weapons)
                         {
-                            info += "[" + _plugin.WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon) + "/" + detail.KillCount + " Kills] " + Environment.NewLine;
+                            var killS = detail.KillCount > 1 ? "s" : "";
+                            info += "[" + _plugin.WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon) + "/" + detail.KillCount + " Kill" + killS + "] " + Environment.NewLine;
                         }
                     }
                     return info;
@@ -55672,7 +55682,6 @@ namespace PRoConEvents
                         {
                             if (kill.weaponCode == "Death" && kill.weaponDamage == DamageTypes.None)
                             {
-                                _plugin.Log.Success("Entry " + ID + " DEATH bucket " + kill.weaponCode + " added kill " + kill.ToString() + ".");
                                 deathBucket.Add(kill);
                                 continue;
                             }
@@ -55723,6 +55732,7 @@ namespace PRoConEvents
                                 killMeaningful = false;
                             }
                         }
+                        _plugin.Log.Success("Entry " + ID + " has " + deathBucket.Count() + " DEATHS logged.");
                         Progress = new EntryProgress(_plugin, this, damageBuckets, weaponBuckets, deathBucket);
                         if (includeKill != null)
                         {
