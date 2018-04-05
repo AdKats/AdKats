@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.123
+ * Version 7.0.1.124
  * 4-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.123</version_code>
+ * <version_code>7.0.1.124</version_code>
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.123";
+        private const String PluginVersion = "7.0.1.124";
 
         public enum GameVersionEnum
         {
@@ -54945,8 +54945,9 @@ namespace PRoConEvents
                         }
                         //_plugin.AdminTellMessage(message);
                         _plugin.AdminSayMessage("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
-                        _plugin.AdminSayMessage(Player.GetVerboseName() + " finished a " + Rule.Name + " challenge! Congrats!");
-                        _plugin.AdminSayMessage("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
+                        _plugin.AdminSayMessage(Player.GetVerboseName() + " finished tier " + Rule.Tier +  " challenge:");
+                        _plugin.AdminSayMessage(Rule.Name + "! Congrats!");
+                        //_plugin.AdminSayMessage("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
                         Completed = true;
                         CompleteTime = _plugin.UtcNow();
                         DBPush(null);
@@ -55566,7 +55567,8 @@ namespace PRoConEvents
                                     DoFail();
                                     return;
                                 }
-                                Player.Say("You have " + deathsRemaining + " death(s) remaining for " + Rule.Name + " challenge.");
+                                var deathS = deathsRemaining > 1 ? "s" : "";
+                                Player.Say("You have " + deathsRemaining + " death" + deathS + " remaining for " + Rule.Name + " challenge.");
                                 Died = true;
                             }
                         }
