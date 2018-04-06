@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.124
- * 4-APR-2018
+ * Version 7.0.1.125
+ * 5-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.124</version_code>
+ * <version_code>7.0.1.125</version_code>
  */
 
 using System;
@@ -65,8 +65,9 @@ namespace PRoConEvents
 {
     public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
     {
+
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.124";
+        private const String PluginVersion = "7.0.1.125";
 
         public enum GameVersionEnum
         {
@@ -9581,7 +9582,7 @@ namespace PRoConEvents
                         if (NowDuration(assistRecord.record_creationTime).TotalMinutes > 5.0)
                         {
                             // If the record is more than 5 minutes old, get rid of it
-                            SendMessageToSource(assistRecord, Log.CViolet("Automatic assist has timed out. Please use !" + GetCommandByKey("self_assist").command_text + " again to re-queue yourself."));
+                            SendMessageToSource(assistRecord, Log.CViolet("Automatic assist has timed out. Please use " + GetChatCommandByKey("self_assist") + " again to re-queue yourself."));
                             OnlineAdminSayMessage("Automatic assist timed out for " + assistRecord.GetSourceName());
                             _AssistAttemptQueue.Dequeue();
                             return;
@@ -11645,7 +11646,7 @@ namespace PRoConEvents
                                         ProconChatWrite(Log.CViolet(message));
                                     }
                                 }
-                                PlayerTellMessage(aPlayer.player_name, Log.CViolet("You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch."));
+                                PlayerTellMessage(aPlayer.player_name, Log.CViolet("You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using " + GetChatCommandByKey("self_assist") + " to switch."));
                                 aPlayer.lastSwitchMessage = UtcNow();
                             }
                             moveAccepted = false;
@@ -11827,7 +11828,7 @@ namespace PRoConEvents
                                 {
                                     ProconChatWrite(message);
                                 }
-                                aPlayer.Say(Log.CViolet("Unswitched back to " + weakTeam.GetTeamIDKey() + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch."));
+                                aPlayer.Say(Log.CViolet("Unswitched back to " + weakTeam.GetTeamIDKey() + ". Try using " + GetChatCommandByKey("self_assist") + " to switch."));
                                 moveAccepted = false;
                                 Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
@@ -12537,7 +12538,7 @@ namespace PRoConEvents
                                                             ProconChatWrite(Log.FBold(message));
                                                         }
                                                     }
-                                                    PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using !" + GetCommandByKey("self_assist").command_text + " to switch.");
+                                                    PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using " + GetChatCommandByKey("self_assist") + " to switch.");
                                                     aPlayer.lastSwitchMessage = UtcNow();
                                                 }
                                                 Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
@@ -16481,7 +16482,7 @@ namespace PRoConEvents
                     if (_CommandNameDictionary.Count > 0)
                     {
                         //Handle TeamSwap notifications
-                        String command = GetCommandByKey("self_teamswap").command_text;
+                        String command = GetChatCommandByKey("self_teamswap");
                         aPlayer.lastSpawn = UtcNow();
                         aPlayer.lastAction = UtcNow();
 
@@ -16514,7 +16515,7 @@ namespace PRoConEvents
                                 }
                                 if (_EnableAdminAssistantPerk)
                                 {
-                                    adminAssistantMessage += "You can use the !" + command + " command.";
+                                    adminAssistantMessage += "You can use the " + command + " command.";
                                 }
                             }
                             PlayerSayMessage(soldierName, adminAssistantMessage);
@@ -16565,7 +16566,7 @@ namespace PRoConEvents
                                         var expiringGroups = groups.Where(group => NowDuration(group.player_expiration).TotalDays < _PerkExpirationNotifyDays);
                                         if (expiringGroups.Any())
                                         {
-                                            PlayerTellMessage(aPlayer.player_name, "You have perks expiring soon. Use !" + GetCommandByKey("player_perks").command_text + " to see your perks!");
+                                            PlayerTellMessage(aPlayer.player_name, "You have perks expiring soon. Use " + GetChatCommandByKey("player_perks") + " to see your perks!");
                                             Threading.Wait(TimeSpan.FromSeconds(_YellDuration));
                                         }
                                     }
@@ -19864,7 +19865,7 @@ namespace PRoConEvents
                                             NowDuration(aRecord.record_time).TotalMinutes < 5 &&
                                             aRecord.command_action.command_key != "player_report_confirm") >= 1)
                                     {
-                                        SendMessageToSource(record, "Do not have report wars. If this is urgent please contact an admin in teamspeak; !" + GetCommandByKey("self_voip").command_text + " for the address.");
+                                        SendMessageToSource(record, "Do not have report wars. If this is urgent please contact an admin in teamspeak; " + GetChatCommandByKey("self_voip") + " for the address.");
                                         QueueRecordForProcessing(new ARecord
                                         {
                                             record_source = ARecord.Sources.Automated,
@@ -19994,7 +19995,7 @@ namespace PRoConEvents
                                 }
                                 if (record.source_player != null && record.source_player.player_type == PlayerType.Spectator && !PlayerIsAdmin(record.source_player))
                                 {
-                                    SendMessageToSource(record, "You cannot use !" + GetCommandByKey("self_surrender").command_text + " or !" + GetCommandByKey("self_votenext").command_text + " as a spectator.");
+                                    SendMessageToSource(record, "You cannot use " + GetChatCommandByKey("self_surrender") + " or " + GetChatCommandByKey("self_votenext") + " as a spectator.");
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -20006,7 +20007,7 @@ namespace PRoConEvents
                                 }
                                 if (_surrenderVoteList.Contains(record.source_name))
                                 {
-                                    SendMessageToSource(record, "You already voted! You can cancel your vote with @" + GetCommandByKey("command_cancel").command_text);
+                                    SendMessageToSource(record, "You already voted! You can cancel your vote with " + GetChatCommandByKey("command_cancel"));
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -20126,13 +20127,13 @@ namespace PRoConEvents
                                 }
                                 if (record.source_player != null && PlayerIsWinning(record.source_player))
                                 {
-                                    AdminSayMessage("You cannot use !" + GetCommandByKey("self_nosurrender").command_text + " from the winning team.");
+                                    AdminSayMessage("You cannot use " + GetChatCommandByKey("self_nosurrender") + " from the winning team.");
                                     FinalizeRecord(record);
                                     return;
                                 }
                                 if (record.source_player != null && record.source_player.player_type == PlayerType.Spectator && !PlayerIsAdmin(record.source_player))
                                 {
-                                    SendMessageToSource(record, "You cannot use !" + GetCommandByKey("self_nosurrender").command_text + " as a spectator.");
+                                    SendMessageToSource(record, "You cannot use " + GetChatCommandByKey("self_nosurrender") + " as a spectator.");
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -20708,7 +20709,7 @@ namespace PRoConEvents
                 {
                     // They entered a format consistent with the xVoteMap voting method. !2, /2, etc
                     // Reformat the text so AdKats understands it as the vote command
-                    commandString = GetCommandByKey("poll_vote").command_text;
+                    commandString = GetChatCommandByKey("poll_vote");
                     // Set the parameter for the vote command to the number they entered
                     remainingMessage = resultVote.ToString();
                 }
@@ -23451,14 +23452,14 @@ namespace PRoConEvents
 
                             if (record.source_player != null && record.source_player.player_type == PlayerType.Spectator)
                             {
-                                SendMessageToSource(record, "You cannot use !" + GetCommandByKey("player_join").command_text + " as a spectator.");
+                                SendMessageToSource(record, "You cannot use " + GetChatCommandByKey("player_join") + " as a spectator.");
                                 FinalizeRecord(record);
                                 return;
                             }
 
                             if (record.source_player != null && (record.source_player.player_type == PlayerType.CommanderMobile || record.source_player.player_type == PlayerType.CommanderPC))
                             {
-                                SendMessageToSource(record, "You cannot use !" + GetCommandByKey("player_join").command_text + " as a commander.");
+                                SendMessageToSource(record, "You cannot use " + GetChatCommandByKey("player_join") + " as a commander.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -23500,14 +23501,14 @@ namespace PRoConEvents
 
                             if (record.source_player != null && record.source_player.player_type == PlayerType.Spectator)
                             {
-                                SendMessageToSource(record, "You cannot use !" + GetCommandByKey("player_pull").command_text + " as a spectator.");
+                                SendMessageToSource(record, "You cannot use " + GetChatCommandByKey("player_pull") + " as a spectator.");
                                 FinalizeRecord(record);
                                 return;
                             }
 
                             if (record.source_player != null && (record.source_player.player_type == PlayerType.CommanderMobile || record.source_player.player_type == PlayerType.CommanderPC))
                             {
-                                SendMessageToSource(record, "You cannot use !" + GetCommandByKey("player_pull").command_text + " as a commander.");
+                                SendMessageToSource(record, "You cannot use " + GetChatCommandByKey("player_pull") + " as a commander.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -23550,7 +23551,7 @@ namespace PRoConEvents
                     case "player_report":
                         {
                             //Get the command text for report
-                            String command = GetCommandByKey("player_report").command_text;
+                            String command = GetChatCommandByKey("player_report");
 
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
@@ -23560,11 +23561,11 @@ namespace PRoConEvents
                             switch (parameters.Length)
                             {
                                 case 0:
-                                    SendMessageToSource(record, "Format must be: !" + command + " playername reason");
+                                    SendMessageToSource(record, "Format must be: " + command + " playername reason");
                                     FinalizeRecord(record);
                                     return;
                                 case 1:
-                                    SendMessageToSource(record, "Format must be: !" + command + " playername reason");
+                                    SendMessageToSource(record, "Format must be: " + command + " playername reason");
                                     FinalizeRecord(record);
                                     return;
                                 case 2:
@@ -23598,7 +23599,7 @@ namespace PRoConEvents
                     case "player_calladmin":
                         {
                             //Get the command text for call admin
-                            String command = GetCommandByKey("player_calladmin").command_text;
+                            String command = GetChatCommandByKey("player_calladmin");
 
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
@@ -23608,11 +23609,11 @@ namespace PRoConEvents
                             switch (parameters.Length)
                             {
                                 case 0:
-                                    SendMessageToSource(record, "Format must be: !" + command + " playername reason");
+                                    SendMessageToSource(record, "Format must be: " + command + " playername reason");
                                     FinalizeRecord(record);
                                     return;
                                 case 1:
-                                    SendMessageToSource(record, "Format must be: !" + command + " playername reason");
+                                    SendMessageToSource(record, "Format must be: " + command + " playername reason");
                                     FinalizeRecord(record);
                                     return;
                                 case 2:
@@ -24740,7 +24741,7 @@ namespace PRoConEvents
                                         }
                                         else
                                         {
-                                            record.record_message = "Invalid PreMessage ID or command name. !" + GetCommandByKey("self_help").command_text + " for command list. Valid PreMessage IDs are 1-" + _PreMessageList.Count;
+                                            record.record_message = "Invalid PreMessage ID or command name. " + GetChatCommandByKey("self_help") + " for command list. Valid PreMessage IDs are 1-" + _PreMessageList.Count;
                                         }
                                     }
                                     SendMessageToSource(record, record.record_message);
@@ -27228,7 +27229,7 @@ namespace PRoConEvents
                                 Int32 requiredVotes = (Int32)((GetPlayerCount() / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                                 OnlineAdminSayMessage(record.GetSourceName() + " removed their surrender vote.");
-                                AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use !" + GetCommandByKey("self_surrender").command_text + ", !" + GetCommandByKey("self_votenext").command_text + ", or !" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                                AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use " + GetChatCommandByKey("self_surrender") + ", " + GetChatCommandByKey("self_votenext") + ", or " + GetChatCommandByKey("self_nosurrender") + " to vote.");
                                 AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                             }
                         }
@@ -32375,7 +32376,7 @@ namespace PRoConEvents
                     //Check for player access to change teams
                     if (record.target_player.fbpInfo.TeamID != sourcePlayer.fbpInfo.TeamID && !HasAccess(record.source_player, GetCommandByKey("self_teamswap")))
                     {
-                        SendMessageToSource(record, "Target player is not on your team, you need !" + GetCommandByKey("self_teamswap").command_text + " access to join them.");
+                        SendMessageToSource(record, "Target player is not on your team, you need " + GetChatCommandByKey("self_teamswap") + " access to join them.");
                     }
                     else
                     {
@@ -34292,7 +34293,7 @@ namespace PRoConEvents
                 }
                 if (_surrenderVoteList.Contains(record.source_name))
                 {
-                    SendMessageToSource(record, "You already voted! You can cancel your vote with !" + GetCommandByKey("command_cancel").command_text);
+                    SendMessageToSource(record, "You already voted! You can cancel your vote with " + GetChatCommandByKey("command_cancel"));
                     FinalizeRecord(record);
                     return;
                 }
@@ -34434,11 +34435,11 @@ namespace PRoConEvents
                     SendMessageToSource(record, "You voted to end the round!");
                     if (voteEnabled)
                     {
-                        AdminTellMessage("Surrender Vote started! Use !" + GetCommandByKey("self_surrender").command_text + ", !" + GetCommandByKey("self_votenext").command_text + ", or !" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                        AdminTellMessage("Surrender Vote started! Use " + GetChatCommandByKey("self_surrender") + ", " + GetChatCommandByKey("self_votenext") + ", or " + GetChatCommandByKey("self_nosurrender") + " to vote.");
                     }
                     else
                     {
-                        AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use !" + GetCommandByKey("self_surrender").command_text + ", !" + GetCommandByKey("self_votenext").command_text + ", or !" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                        AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use " + GetChatCommandByKey("self_surrender") + ", " + GetChatCommandByKey("self_votenext") + ", or " + GetChatCommandByKey("self_nosurrender") + " to vote.");
                         AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                     }
                     OnlineAdminSayMessage(record.GetSourceName() + " voted for round surrender.");
@@ -34506,7 +34507,7 @@ namespace PRoConEvents
                 Int32 requiredVotes = (Int32)((GetPlayerCount() / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 SendMessageToSource(record, "You voted against ending the round!");
-                AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use !" + GetCommandByKey("self_surrender").command_text + ", !" + GetCommandByKey("self_votenext").command_text + ", or !" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use " + GetChatCommandByKey("self_surrender") + ", " + GetChatCommandByKey("self_votenext") + ", or " + GetChatCommandByKey("self_nosurrender") + " to vote.");
                 AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                 OnlineAdminSayMessage(record.GetSourceName() + " voted against round surrender.");
             }
@@ -35974,39 +35975,59 @@ namespace PRoConEvents
                 }
 
                 var option = record.record_message.ToLower().Trim();
-                var commandText = GetCommandByKey("self_challenge").command_text;
-                switch (option)
+                var commandText = GetChatCommandByKey("self_challenge");
+                if (option == "help")
                 {
-                    case "help":
-                        SendMessageToSource(record, "info - See current challenge info.");
-                        Threading.Wait(1600);
-                        SendMessageToSource(record, "p - See current challenge progress, without description.");
-                        Threading.Wait(1600);
-                        SendMessageToSource(record, "list - See the list of available challenges.");
-                        Threading.Wait(1600);
-                        SendMessageToSource(record, "# - Start this challenge for yourself.");
-                        Threading.Wait(1600);
-                        SendMessageToSource(record, "autokill - Causes you to be slain when completing challenge weapons.");
-                        Threading.Wait(1600);
-                        SendMessageToSource(record, "help - Show this message.");
-                        break;
-                    case "list":
-                        // Immediately get the rule list, then go async
-                        var rules = ChallengeManager.GetRules().Where(rule => rule.Enabled && 
-                                                                              rule.Definition.GetDetails().Any())
-                                                               .OrderBy(rule => rule.Tier)
-                                                               .ThenBy(rule => rule.Name)
-                                                               .Select(rule => rule.ToString());
-
+                    var waitMS = 1600;
+                    SendMessageToSource(record, "info - See current challenge info.");
+                    Threading.Wait(waitMS);
+                    SendMessageToSource(record, "p - See current challenge progress, without description.");
+                    Threading.Wait(waitMS);
+                    SendMessageToSource(record, "list - See the list of available challenges.");
+                    Threading.Wait(waitMS);
+                    SendMessageToSource(record, "# - Start this challenge for yourself.");
+                    Threading.Wait(waitMS);
+                    SendMessageToSource(record, "autokill - Causes you to be slain when completing challenge weapons.");
+                    Threading.Wait(waitMS);
+                    SendMessageToSource(record, "help - Show this message.");
+                }
+                else if (option == "list" || option.StartsWith("list "))
+                {
+                    var split = option.Split(' ');
+                    Int32 tier = 0;
+                    if (split.Count() >= 2)
+                    {
+                        Int32.TryParse(split[1], out tier);
+                    }
+                    if (tier < 0)
+                    {
+                        tier = 0;
+                    }
+                    if (tier > 10)
+                    {
+                        tier = 10;
+                    }
+                    // Immediately get the rule list, then go async
+                    var rules = ChallengeManager.GetRules().Where(rule => rule.Enabled &&
+                                                                          rule.Definition.GetDetails().Any())
+                                                           .OrderBy(rule => rule.Tier)
+                                                           .ThenBy(rule => rule.Name).ToList();
+                    if (tier != 0)
+                    {
+                        rules = rules.Where(rule => rule.Tier == tier).ToList();
+                    }
+                    var ruleStrings = rules.Select(rule => rule.ToString());
+                    if (ruleStrings.Any())
+                    {
                         Threading.StartWatchdog(new Thread(new ThreadStart(delegate
                         {
                             try
                             {
                                 Thread.CurrentThread.Name = "ChallengeRulePrinter";
                                 Threading.Wait(100);
-                                foreach (var ruleString in rules)
+                                foreach (var ruleString in ruleStrings)
                                 {
-                                    SendMessageToSource(record, "!" + commandText + " " + ruleString);
+                                    SendMessageToSource(record, "" + commandText + " " + ruleString);
                                     Threading.Wait(1500);
                                 }
                             }
@@ -36016,142 +36037,149 @@ namespace PRoConEvents
                             }
                             Threading.StopWatchdog();
                         })));
-                        break;
-                    case "info":
-                        // Immediately get the challenge info, then go async
-                        var infoMessages = ChallengeManager.GetChallengeInfo(record.target_player, true).Split(
-                            new[] { Environment.NewLine },
-                            StringSplitOptions.None
-                        );
+                    }
+                    else
+                    {
+                        SendMessageToSource(record, "No rules are available" + (tier != 0 ? " at tier " + tier : "") + ".");
+                    }
+                }
+                else if (option == "info")
+                {
+                    // Immediately get the challenge info, then go async
+                    var infoMessages = ChallengeManager.GetChallengeInfo(record.target_player, true).Split(
+                        new[] { Environment.NewLine },
+                        StringSplitOptions.None
+                    );
 
-                        Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                    Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                    {
+                        Log.Debug(() => "Starting a challenge info printer.", 5);
+                        try
                         {
-                            Log.Debug(() => "Starting a challenge info printer.", 5);
-                            try
+                            Thread.CurrentThread.Name = "ChallengeInfoPrinter";
+                            Threading.Wait(100);
+                            foreach (var message in infoMessages)
                             {
-                                Thread.CurrentThread.Name = "ChallengeInfoPrinter";
-                                Threading.Wait(100);
-                                foreach (var message in infoMessages)
-                                {
-                                    SendMessageToSource(record, message);
-                                    Threading.Wait(1500);
-                                }
+                                SendMessageToSource(record, message);
+                                Threading.Wait(1500);
                             }
-                            catch (Exception e)
-                            {
-                                Log.HandleException(new AException("Error while printing challenge info.", e));
-                            }
-                            Log.Debug(() => "Exiting a challenge info printer.", 5);
-                            Threading.StopWatchdog();
-                        })));
-                        break;
-                    case "p":
-                        // Immediately get the challenge progress, then go async
-                        var progressMessages = ChallengeManager.GetChallengeInfo(record.target_player, false).Split(
-                            new[] { Environment.NewLine },
-                            StringSplitOptions.None
-                        );
+                        }
+                        catch (Exception e)
+                        {
+                            Log.HandleException(new AException("Error while printing challenge info.", e));
+                        }
+                        Log.Debug(() => "Exiting a challenge info printer.", 5);
+                        Threading.StopWatchdog();
+                    })));
+                }
+                else if (option == "p")
+                {
+                    // Immediately get the challenge progress, then go async
+                    var progressMessages = ChallengeManager.GetChallengeInfo(record.target_player, false).Split(
+                        new[] { Environment.NewLine },
+                        StringSplitOptions.None
+                    );
 
-                        Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                    Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                    {
+                        Log.Debug(() => "Starting a challenge progress printer.", 5);
+                        try
                         {
-                            Log.Debug(() => "Starting a challenge progress printer.", 5);
-                            try
+                            Thread.CurrentThread.Name = "ChallengeProgressPrinter";
+                            Threading.Wait(100);
+                            foreach (var message in progressMessages)
                             {
-                                Thread.CurrentThread.Name = "ChallengeProgressPrinter";
-                                Threading.Wait(100);
-                                foreach (var message in progressMessages)
-                                {
-                                    SendMessageToSource(record, message);
-                                    Threading.Wait(1500);
-                                }
+                                SendMessageToSource(record, message);
+                                Threading.Wait(1500);
                             }
-                            catch (Exception e)
-                            {
-                                Log.HandleException(new AException("Error while printing challenge progress.", e));
-                            }
-                            Log.Debug(() => "Exiting a challenge progress printer.", 5);
-                            Threading.StopWatchdog();
-                        })));
-                        break;
-                    case "autokill":
-                        if (record.target_player == null)
-                        {
-                            SendMessageToSource(record, "Cannot change autokill status without being a player.");
-                            FinalizeRecord(record);
-                            return;
                         }
-                        if (GetMatchingVerboseASPlayersOfGroup("challenge_autokill", record.target_player).Any())
+                        catch (Exception e)
                         {
-                            QueueRecordForProcessing(new ARecord
-                            {
-                                record_source = ARecord.Sources.Automated,
-                                server_id = _serverInfo.ServerID,
-                                command_type = GetCommandByKey("player_challenge_autokill_remove"),
-                                command_numeric = 0,
-                                target_name = record.target_player.player_name,
-                                target_player = record.target_player,
-                                source_name = "ChallengeManager",
-                                record_message = "Removing Challenge AutoKill Status",
-                                record_time = UtcNow()
-                            });
-                            SendMessageToSource(record, "You will NOT be slain when completing challenge weapons.");
+                            Log.HandleException(new AException("Error while printing challenge progress.", e));
                         }
-                        else
+                        Log.Debug(() => "Exiting a challenge progress printer.", 5);
+                        Threading.StopWatchdog();
+                    })));
+                }
+                else if (option == "autokill")
+                {
+                    if (record.target_player == null)
+                    {
+                        SendMessageToSource(record, "Cannot change autokill status without being a player.");
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    if (GetMatchingVerboseASPlayersOfGroup("challenge_autokill", record.target_player).Any())
+                    {
+                        QueueRecordForProcessing(new ARecord
                         {
-                            QueueRecordForProcessing(new ARecord
-                            {
-                                record_source = ARecord.Sources.Automated,
-                                server_id = _serverInfo.ServerID,
-                                command_type = GetCommandByKey("player_challenge_autokill"),
-                                command_numeric = 10518984,
-                                target_name = record.target_player.player_name,
-                                target_player = record.target_player,
-                                source_name = "ChallengeManager",
-                                record_message = "Adding Challenge AutoKill Status",
-                                record_time = UtcNow()
-                            });
-                            SendMessageToSource(record, "You will now be slain when completing challenge weapons.");
-                        }
-                        break;
-                    default:
-                        var split = option.Split(' ');
-                        if (split.Any())
+                            record_source = ARecord.Sources.Automated,
+                            server_id = _serverInfo.ServerID,
+                            command_type = GetCommandByKey("player_challenge_autokill_remove"),
+                            command_numeric = 0,
+                            target_name = record.target_player.player_name,
+                            target_player = record.target_player,
+                            source_name = "ChallengeManager",
+                            record_message = "Removing Challenge AutoKill Status",
+                            record_time = UtcNow()
+                        });
+                        SendMessageToSource(record, "You will NOT be slain when completing challenge weapons.");
+                    }
+                    else
+                    {
+                        QueueRecordForProcessing(new ARecord
                         {
-                            Int32 parseID;
-                            if (Int32.TryParse(split[0], out parseID))
+                            record_source = ARecord.Sources.Automated,
+                            server_id = _serverInfo.ServerID,
+                            command_type = GetCommandByKey("player_challenge_autokill"),
+                            command_numeric = 10518984,
+                            target_name = record.target_player.player_name,
+                            target_player = record.target_player,
+                            source_name = "ChallengeManager",
+                            record_message = "Adding Challenge AutoKill Status",
+                            record_time = UtcNow()
+                        });
+                        SendMessageToSource(record, "You will now be slain when completing challenge weapons.");
+                    }
+                }
+                else
+                {
+                    var split = option.Split(' ');
+                    if (split.Any())
+                    {
+                        Int32 parseID;
+                        if (Int32.TryParse(split[0], out parseID))
+                        {
+                            // They entered a number. See if it's a challenge ID, and if so, assign it to them.
+                            var selectRules = ChallengeManager.GetRules().Where(rule => rule.Enabled &&
+                                                                                        rule.Definition.GetDetails().Any())
+                                                                         .OrderBy(rule => rule.Tier)
+                                                                         .ThenBy(rule => rule.Name);
+                            var selected = selectRules.FirstOrDefault(rule => rule.ID == parseID);
+                            if (selected != null)
                             {
-                                // They entered a number. See if it's a challenge ID, and if so, assign it to them.
-                                var selectRules = ChallengeManager.GetRules().Where(rule => rule.Enabled &&
-                                                                                            rule.Definition.GetDetails().Any())
-                                                                             .OrderBy(rule => rule.Tier)
-                                                                             .ThenBy(rule => rule.Name);
-                                var selected = selectRules.FirstOrDefault(rule => rule.ID == parseID);
-                                if (selected != null)
+                                // Make sure they aren't overwriting their current challenge
+                                if (record.target_player.ActiveChallenge != null &&
+                                    record.target_player.ActiveChallenge.Rule.ID == selected.ID)
                                 {
-                                    // Make sure they aren't overwriting their current challenge
-                                    if (record.target_player.ActiveChallenge != null &&
-                                        record.target_player.ActiveChallenge.Rule.ID == selected.ID)
-                                    {
-                                        record.target_player.Say("You are already playing a " + selected.Name + " challenge. To see your progress type !" + commandText + " p");
-                                        break;
-                                    }
-                                    ChallengeManager.CreateAndAssignEntry(record.target_player, selected, true);
-                                    break;
+                                    record.target_player.Say("You are already playing a " + selected.Name + " challenge. To see your progress type " + commandText + " p");
                                 }
                                 else
                                 {
-                                    SendMessageToSource(record, "Challenge " + parseID + " does not exist. To see the list type !" + commandText + " list");
-                                    break;
+                                    ChallengeManager.CreateAndAssignEntry(record.target_player, selected, true);
                                 }
                             }
-                            else if (split[0].Contains("#"))
+                            else
                             {
-                                SendMessageToSource(record, "You need to enter the challenge number from the list. For example !" + commandText + " 1");
-                                break;
+                                SendMessageToSource(record, "Challenge " + parseID + " does not exist. To see the list type " + commandText + " list");
                             }
                         }
-                        SendMessageToSource(record, "'" + record.record_message + "' was an invalid option. Type !" + commandText + " help");
-                        break;
+                        else if (split[0].Contains("#"))
+                        {
+                            SendMessageToSource(record, "You need to enter the challenge number from the list. For example " + commandText + " 1");
+                        }
+                    }
+                    SendMessageToSource(record, "'" + record.record_message + "' was an invalid option. Type " + commandText + " help");
                 }
             }
             catch (Exception e)
@@ -48555,6 +48583,23 @@ namespace PRoConEvents
             return false;
         }
 
+        public String GetChatCommandByKey(String commandKey)
+        {
+            try
+            {
+                var command = GetCommandByKey(commandKey);
+                if (command != null)
+                {
+                    return "!" + command.command_text;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching chat command by key.", e));
+            }
+            return "ERROR48610";
+        }
+
         public ACommand GetCommandByKey(String commandKey)
         {
             ACommand command = null;
@@ -52115,8 +52160,8 @@ namespace PRoConEvents
                         }
                         if (verbose)
                         {
-                            var commandText = _plugin.GetCommandByKey("self_challenge").command_text;
-                            player.Say("Now playing " + rule.Name + " challenge. For more info use !" + commandText);
+                            var commandText = _plugin.GetChatCommandByKey("self_challenge");
+                            player.Say("Now playing " + rule.Name + " challenge. For more info use " + commandText);
                         }
                         newEntry.RefreshProgress(null);
                         Entries.Add(newEntry);
@@ -52198,7 +52243,8 @@ namespace PRoConEvents
                             }
                         }
                         var completedEntries = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule);
-                        _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Ended! " + completedEntries.Count() + " players completed it!");
+                        var playerS = completedEntries.Count() > 1 ? "s" : "";
+                        _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Ended! " + completedEntries.Count() + " player" + playerS + " completed it!");
                         if (completedEntries.Any())
                         {
                             _plugin.AdminSayMessage("Winners: " + String.Join(", ", completedEntries.Select(entry => entry.Player.GetVerboseName()).ToArray()));
@@ -52228,7 +52274,7 @@ namespace PRoConEvents
                         return "ERROR758";
                     }
                     // Get active entries for the current player.
-                    var commandText = _plugin.GetCommandByKey("self_challenge").command_text;
+                    var commandText = _plugin.GetChatCommandByKey("self_challenge");
                     AssignActiveEntryForPlayer(aPlayer);
                     var completedRoundEntry = GetCompletedRoundEntryForPlayer(aPlayer);
                     if (aPlayer.ActiveChallenge == null)
@@ -52238,7 +52284,7 @@ namespace PRoConEvents
                         if (RoundRule == null)
                         {
                             // No round challenge. Tell them how they can join a challenge.
-                            return "No round challenge active. Choose a new challenge with !" + commandText + " list";
+                            return "No round challenge active. Choose a new challenge with " + commandText + " list";
                         }
                         // We have a round rule, good, but make sure they haven't completed the round challenge already
                         if (completedRoundEntry == null)
@@ -52253,7 +52299,7 @@ namespace PRoConEvents
                     }
                     if (aPlayer.ActiveChallenge == null)
                     {
-                        return completedRoundEntryString + "Choose a new challenge with !" + commandText + " list";
+                        return completedRoundEntryString + "Choose a new challenge with " + commandText + " list";
                     }
                     // The player is available and they have entries.
                     var challenge = aPlayer.ActiveChallenge;
@@ -52315,7 +52361,7 @@ namespace PRoConEvents
                         info += aPlayer.GetVerboseName() + " " + challenge.Rule.Name.ToUpper() + " CHALLENGE" + Environment.NewLine;
                         info += completionTimeString;
                         info += challenge.Rule.RuleInfo() + Environment.NewLine;
-                        info += "To see your progress type: !" + commandText + " p";
+                        info += "To see your progress type: " + commandText + " p";
                     }
                     else
                     {
@@ -52435,7 +52481,7 @@ namespace PRoConEvents
                                         {
                                             Thread.CurrentThread.Name = "ChallengeRoundRuleAnnounce";
                                             Thread.Sleep(TimeSpan.FromSeconds(20));
-                                            _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
+                                            _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.");
                                             _plugin.Threading.StopWatchdog();
                                         })));
                                     }
@@ -52486,7 +52532,7 @@ namespace PRoConEvents
                     }
                     if (EnableServerRoundRules && RoundRule != null)
                     {
-                        _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
+                        _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.");
                     }
                     ChallengeRoundState = ChallengeState.Playing;
                 }
@@ -52549,7 +52595,7 @@ namespace PRoConEvents
                         chosenRule.RoundLastUsedTime = _plugin.UtcNow();
                         chosenRule.DBPush(null);
                         RoundRule = chosenRule;
-                        _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Starting! Type !" + _plugin.GetCommandByKey("self_challenge").command_text + " for more info.");
+                        _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.");
                     }
                 }
                 catch (Exception e)
@@ -54684,7 +54730,7 @@ namespace PRoConEvents
                             String.IsNullOrEmpty(aKill.weaponCode) ||
                             aKill.victim == null)
                         {
-                            _plugin.Log.Info("Kill was invalid when checking for valid kill.");
+                            _plugin.Log.Error("Kill was invalid when checking for valid kill.");
                             return false;
                         }
                         // Default to the kill being invalid
@@ -54698,19 +54744,19 @@ namespace PRoConEvents
                         {
                             if (detail.KillCount <= 0)
                             {
-                                _plugin.Log.Info("Detail " + detail.Definition.ID + "|" + detail.DetailID + " had a non-positive kill count.");
+                                _plugin.Log.Error("Challenge definition detail " + detail.Definition.ID + "|" + detail.DetailID + " had a non-positive kill count.");
                                 continue;
                             }
                             switch (detail.Type)
                             {
                                 case CDefinition.CDefinitionDetail.DetailType.None:
-                                    _plugin.Log.Info("Damage detail " + detail.Definition.ID + "|" + detail.DetailID + " had a NONE rule type.");
+                                    _plugin.Log.Error("Challenge definition damage detail " + detail.Definition.ID + "|" + detail.DetailID + " had a NONE rule type.");
                                     break;
                                 case CDefinition.CDefinitionDetail.DetailType.Damage:
                                     // Check for matching damage
                                     if (detail.WeaponCount <= 0)
                                     {
-                                        _plugin.Log.Info("Damage detail " + detail.Definition.ID + "|" + detail.DetailID + "|" + detail.Damage.ToString() + " had non-positive weapon count.");
+                                        _plugin.Log.Error("Challenge definition damage detail " + detail.Definition.ID + "|" + detail.DetailID + "|" + detail.Damage.ToString() + " had non-positive weapon count.");
                                         break;
                                     }
                                     if (!detail.GetDamageTypes().Contains(aKill.weaponDamage))
@@ -54720,11 +54766,6 @@ namespace PRoConEvents
                                     return true;
                                 case CDefinition.CDefinitionDetail.DetailType.Weapon:
                                     // Check for matching weapon
-                                    if (detail.WeaponCount <= 0)
-                                    {
-                                        _plugin.Log.Info("Weapon detail " + detail.Definition.ID + "|" + detail.DetailID + "|" + detail.Weapon.ToString() + " had non-positive weapon count.");
-                                        break;
-                                    }
                                     if (detail.Weapon != aKill.weaponCode)
                                     {
                                         break;
@@ -54947,7 +54988,7 @@ namespace PRoConEvents
                         _plugin.AdminSayMessage("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
                         _plugin.AdminSayMessage(Player.GetVerboseName() + " finished tier " + Rule.Tier +  " challenge:");
                         _plugin.AdminSayMessage(Rule.Name + "! Congrats!");
-                        //_plugin.AdminSayMessage("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
+                        _plugin.AdminSayMessage("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
                         Completed = true;
                         CompleteTime = _plugin.UtcNow();
                         DBPush(null);
@@ -55894,8 +55935,8 @@ namespace PRoConEvents
                             {
                                 return;
                             }
-                            var commandText = _plugin.GetCommandByKey("self_challenge").command_text;
-                            kill.killer.Say("!" + commandText + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + Math.Round(CompletionPercentage) + "%] " + completion);
+                            var commandText = _plugin.GetChatCommandByKey("self_challenge");
+                            kill.killer.Say("" + commandText + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + Math.Round(CompletionPercentage) + "%] " + completion);
                             if (autoKill)
                             {
                                 kill.killer.Yell(completion);
@@ -55903,11 +55944,11 @@ namespace PRoConEvents
                                 {
                                     _plugin.Threading.Wait(1000);
                                     _plugin.ExecuteCommand("procon.protected.send", "admin.killPlayer", kill.killer.player_name);
-                                    kill.killer.Say("Killed automatically on weapon completion. To disable this type !" + commandText + " autokill");
+                                    kill.killer.Say("Killed automatically on weapon completion. To disable this type " + commandText + " autokill");
                                 }
                                 else if (!Entry.AutoKillTold)
                                 {
-                                    kill.killer.Say("Want To be killed automatically when you complete a challenge weapon? Type !" + commandText + " autokill");
+                                    kill.killer.Say("Want To be killed automatically when you complete a challenge weapon? Type " + commandText + " autokill");
                                     Entry.AutoKillTold = true;
                                 }
                             }
@@ -55928,7 +55969,6 @@ namespace PRoConEvents
                             {
                                 return "ERROR4";
                             }
-                            status += "--- Progress ---" + Environment.NewLine;
                             if (!DamageBuckets.Any() && !WeaponBuckets.Any())
                             {
                                 status += "No damage or weapons defined.";
