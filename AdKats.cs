@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.128
+ * Version 7.0.1.129
  * 6-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.128</version_code>
+ * <version_code>7.0.1.129</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.128";
+        private const String PluginVersion = "7.0.1.129";
 
         public enum GameVersionEnum
         {
@@ -2726,7 +2726,7 @@ namespace PRoConEvents
                             }
                             else if (detail.Type == AChallengeManager.CDefinition.CDefinitionDetail.DetailType.Weapon)
                             {
-                                buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.InfantryWeaponNameEnumString, WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
+                                buildList.Add(new CPluginVariable(detailPrefix + "Weapon Name", WeaponDictionary.InfantryWeaponNameEnumString, WeaponDictionary.GetDamageTypeByWeaponCode(detail.Weapon) + "\\" + WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon)));
                             }
                             buildList.Add(new CPluginVariable(detailPrefix + "Kill Count", typeof(Int32), detail.KillCount));
                             buildList.Add(new CPluginVariable(detailPrefix + "Delete Detail?", typeof(String), ""));
@@ -16335,7 +16335,8 @@ namespace PRoConEvents
                 
                 try
                 {
-                    if (ChallengeManager != null &&
+                    if (!acted &&
+                        ChallengeManager != null &&
                         ChallengeManager.Loaded)
                     {
                         if (aKill.killer.ActiveChallenge == null)
@@ -58423,7 +58424,8 @@ namespace PRoConEvents
                     //Fill the weapon name enum string
                     Random random = new Random(Environment.TickCount);
                     InfantryWeaponNameEnumString = String.Empty;
-                    foreach (var weaponName in Weapons.Values.Where(weapon => weapon.Damage != DamageTypes.None &&
+                    foreach (var weaponName in Weapons.Values.Where(weapon => !String.IsNullOrEmpty(weapon.ShortName) &&
+                                                                              weapon.Damage != DamageTypes.None &&
                                                                               weapon.Damage != DamageTypes.Nonlethal &&
                                                                               weapon.Damage != DamageTypes.Suicide &&
                                                                               weapon.Damage != DamageTypes.VehicleAir &&
@@ -58451,7 +58453,8 @@ namespace PRoConEvents
                     InfantryWeaponNameEnumString += ")";
 
                     AllWeaponNameEnumString = String.Empty;
-                    foreach (var weaponName in Weapons.Values.Where(weapon => weapon.Damage != DamageTypes.None &&
+                    foreach (var weaponName in Weapons.Values.Where(weapon => !String.IsNullOrEmpty(weapon.ShortName) &&
+                                                                              weapon.Damage != DamageTypes.None &&
                                                                               weapon.Damage != DamageTypes.Nonlethal &&
                                                                               weapon.Damage != DamageTypes.Suicide)
                                                              .OrderBy(weapon => weapon.Damage)
