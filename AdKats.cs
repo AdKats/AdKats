@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.129
+ * Version 7.0.1.130
  * 6-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.129</version_code>
+ * <version_code>7.0.1.130</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.129";
+        private const String PluginVersion = "7.0.1.130";
 
         public enum GameVersionEnum
         {
@@ -10053,7 +10053,7 @@ namespace PRoConEvents
                             var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
                             if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator && NowDuration(aPlayer.VoipJoinTime).TotalMinutes > 15.0)
                             {
-                                var playerName = aPlayer.GetVerboseName();
+                                var playerName = aPlayer.player_name;
                                 var username = aPlayer.TSClientObject.TsName;
                                 var playerUsername = playerName + (
                                         aPlayer.player_name.ToLower() != username.ToLower() &&
@@ -10145,7 +10145,7 @@ namespace PRoConEvents
                             var startupDuration = TimeSpan.FromSeconds(_startupDurations.Average(span => span.TotalSeconds)).TotalSeconds;
                             if (startDuration - startupDuration > 120 && aPlayer.player_type != PlayerType.Spectator && NowDuration(aPlayer.VoipJoinTime).TotalMinutes > 15.0)
                             {
-                                var playerName = aPlayer.GetVerboseName();
+                                var playerName = aPlayer.player_name;
                                 var username = aPlayer.DiscordObject.Name;
                                 var playerUsername = playerName + (
                                         aPlayer.player_name.ToLower() != username.ToLower() &&
@@ -51323,7 +51323,6 @@ namespace PRoConEvents
                         else
                         {
                             Enabled = enable;
-                            _plugin.Log.Warn("Manager not loaded yet. Setting to trigger load.");
                             TriggerLoad = true;
                         }
                     }
@@ -52013,7 +52012,7 @@ namespace PRoConEvents
             {
                 try
                 {
-                    if (player.ActiveChallenge != null)
+                    if (player.ActiveChallenge != null && _plugin._UseExperimentalTools)
                     {
                         _plugin.Log.Info(player.GetVerboseName() + " already had their active entry assigned.");
                         return;
@@ -52467,7 +52466,10 @@ namespace PRoConEvents
                     {
                         return;
                     }
-                    _plugin.Log.Warn("Challenge mananger round load triggered for round " + roundID);
+                    if (_plugin._UseExperimentalTools)
+                    {
+                        _plugin.Log.Warn("Challenge mananger round load triggered for round " + roundID);
+                    }
                     // Confirm we are in valid state to load.
                     if (ChallengeRoundState != ChallengeState.Ended &&
                         ChallengeRoundState != ChallengeState.Init)
@@ -53061,7 +53063,6 @@ namespace PRoConEvents
                                 command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
                                 if (_plugin.SafeExecuteNonQuery(command) > 0)
                                 {
-                                    _plugin.Log.Info("Updated CDefinition " + ID + " to database.");
                                     if (includeDetails)
                                     {
                                         DBPushDetails(con);
@@ -53542,11 +53543,7 @@ namespace PRoConEvents
                                     command.Parameters.AddWithValue("@KillCount", KillCount);
                                     command.Parameters.AddWithValue("@CreateTime", CreateTime);
                                     command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
-                                    if (_plugin.SafeExecuteNonQuery(command) > 0)
-                                    {
-                                        _plugin.Log.Info("Updated CDefinitionDetail " + Definition.ID + ":" + DetailID + " in database.");
-                                    }
-                                    else
+                                    if (_plugin.SafeExecuteNonQuery(command) <= 0)
                                     {
                                         _plugin.Log.Error("Failed to update CDefinitionDetail " + Definition.ID + ":" + DetailID + " in database.");
                                     }
@@ -53776,7 +53773,6 @@ namespace PRoConEvents
                                     command.Parameters.AddWithValue("@NewDetailID", newDetailID);
                                     if (_plugin.SafeExecuteNonQuery(command) > 0)
                                     {
-                                        _plugin.Log.Info("Changed CDefinitionDetail " + Definition.ID + ":" + DetailID + " to ID " + newDetailID + " in database.");
                                         DetailID = newDetailID;
                                     }
                                     else
@@ -54237,11 +54233,7 @@ namespace PRoConEvents
                                 command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
                                 command.Parameters.AddWithValue("@RoundLastUsedTime", RoundLastUsedTime);
                                 command.Parameters.AddWithValue("@PersonalLastUsedTime", PersonalLastUsedTime);
-                                if (_plugin.SafeExecuteNonQuery(command) > 0)
-                                {
-                                    _plugin.Log.Info("Updated CRule " + ID + " in database.");
-                                }
-                                else
+                                if (_plugin.SafeExecuteNonQuery(command) <= 0)
                                 {
                                     _plugin.Log.Error("Failed to update CRule " + ID + " in database.");
                                 }
@@ -54971,7 +54963,6 @@ namespace PRoConEvents
                             }
                             percentage = Math.Round(Progress.CompletionPercentage) + "%";
                         }
-                        _plugin.Log.Success(Player.GetVerboseName() + " FAILED a " + Rule.Name + " challenge at " + percentage + " complete.");
                         Player.Say(Rule.Name + " challenge FAILED at " + percentage + " complete.");
                         Failed = true;
                         CompleteTime = _plugin.UtcNow();
@@ -55059,7 +55050,6 @@ namespace PRoConEvents
                             }
                             percentage = Math.Round(Progress.CompletionPercentage) + "%";
                         }
-                        _plugin.Log.Success(Player.GetVerboseName() + " CANCELLED a " + Rule.Name + " challenge at " + percentage + " complete.");
                         Player.Say(Rule.Name + " challenge CANCELLED at " + percentage + " complete.");
                         Canceled = true;
                         CompleteTime = _plugin.UtcNow();
@@ -55196,11 +55186,7 @@ namespace PRoConEvents
                                 command.Parameters.AddWithValue("@Failed", Failed);
                                 command.Parameters.AddWithValue("@Canceled", Canceled);
                                 command.Parameters.AddWithValue("@CompleteTime", CompleteTime);
-                                if (_plugin.SafeExecuteNonQuery(command) > 0)
-                                {
-                                    _plugin.Log.Info("Updated CEntry " + ID + " in database.");
-                                }
-                                else
+                                if (_plugin.SafeExecuteNonQuery(command) <= 0)
                                 {
                                     _plugin.Log.Error("Failed to update CEntry " + ID + " in database.");
                                 }
@@ -55707,7 +55693,6 @@ namespace PRoConEvents
                             _plugin.Log.Error("Cannot refresh progress, no damage types added to definition " + Rule.Definition.ID + ".");
                             return false;
                         }
-                        _plugin.Log.Info("Entry " + ID + " started calculating progress.");
 
                         // Build the necessary buckets
                         // Damage buckets
@@ -55782,7 +55767,6 @@ namespace PRoConEvents
                                     // It does. See if we can assign the kill to the damage type.
                                     if (matchingWeaponBucket.AddKill(kill))
                                     {
-                                        _plugin.Log.Success("Entry " + ID + " WEAPON bucket " + kill.weaponCode + " added kill " + kill.ToString() + ".");
                                         // Kill added, get out
                                         continue;
                                     }
@@ -55806,12 +55790,10 @@ namespace PRoConEvents
                                 // It does. See if we can assign the kill to the damage type.
                                 if (matchingDamageBucket.Weapons[kill.weaponCode].AddKill(kill))
                                 {
-                                    _plugin.Log.Success("Entry " + ID + " DAMAGE bucket " + matchingDamageBucket.Damage + "/" + kill.weaponCode + " added kill " + kill.ToString() + ".");
                                     // Kill added, get out
                                     continue;
                                 }
                             }
-                            _plugin.Log.Warn("Entry " + ID + " could not find a valid bucket for kill " + kill.ToString());
                             // Unable to assign the kill. Either we don't have a slot for it, or all the slots for it are full..
                             if (includeKill != null && includeKill == kill)
                             {
@@ -55819,15 +55801,11 @@ namespace PRoConEvents
                                 killMeaningful = false;
                             }
                         }
-                        _plugin.Log.Success("Entry " + ID + " has " + deathBucket.Count() + " DEATHS logged.");
                         Progress = new EntryProgress(_plugin, this, damageBuckets, weaponBuckets, deathBucket);
                         if (includeKill != null)
                         {
-                            _plugin.Log.Success("Entry " + ID + " kill meaningful [" + killMeaningful + "] " + includeKill.ToString() + ".");
-                            _plugin.Log.Info("Entry " + ID + " finished calculating progress.");
                             return killMeaningful;
                         }
-                        _plugin.Log.Info("Entry " + ID + " finished calculating progress.");
                     }
                     catch (Exception e)
                     {
