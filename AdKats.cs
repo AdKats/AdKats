@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.127
- * 5-APR-2018
+ * Version 7.0.1.128
+ * 6-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.127</version_code>
+ * <version_code>7.0.1.128</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.127";
+        private const String PluginVersion = "7.0.1.128";
 
         public enum GameVersionEnum
         {
@@ -51295,7 +51295,7 @@ namespace PRoConEvents
                     if (Enabled && !enable)
                     {
                         _plugin.Log.Success("DISABLING CHALLENGE MANAGER");
-                        CancelActiveRoundRule(false);
+                        CancelActiveRoundRule();
                         ChallengeRoundState = ChallengeState.Init;
                         Enabled = enable;
                     }
@@ -52225,7 +52225,23 @@ namespace PRoConEvents
                 }
             }
 
-            public void CancelActiveRoundRule(Boolean fail)
+            public void CancelActiveRoundRule()
+            {
+                try
+                {
+                    if (RoundRule != null)
+                    {
+                        // Remove the current rule
+                        RoundRule = null;
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while cancelling active round rule entries.", e));
+                }
+            }
+
+            public void FailActiveRoundRule()
             {
                 try
                 {
@@ -52234,26 +52250,11 @@ namespace PRoConEvents
                         // Get the active challenges being played for the current round rule.
                         foreach (var activeEntry in _plugin._PlayerDictionary.Values.ToList()
                                                             .Where(dPlayer => dPlayer.ActiveChallenge != null &&
-                                                                              dPlayer.ActiveChallenge.Rule == RoundRule)
+                                                                                dPlayer.ActiveChallenge.Rule == RoundRule)
                                                             .Select(dPlayer => dPlayer.ActiveChallenge))
                         {
                             // Cancel all active entries for this rule, since it's being changed.
-                            // Perhaps we shouldn't do this? We don't have to anymore.
-                            if (fail)
-                            {
-                                activeEntry.DoFail();
-                            }
-                            else
-                            {
-                                activeEntry.DoCancel();
-                            }
-                        }
-                        var completedEntries = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule);
-                        var playerS = completedEntries.Count() > 1 ? "s" : "";
-                        _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Ended! " + completedEntries.Count() + " player" + playerS + " completed it!");
-                        if (completedEntries.Any())
-                        {
-                            _plugin.AdminSayMessage("Winners: " + String.Join(", ", completedEntries.Select(entry => entry.Player.GetVerboseName()).ToArray()));
+                            activeEntry.DoFail();
                         }
                         // Remove the current rule
                         RoundRule = null;
@@ -52261,7 +52262,7 @@ namespace PRoConEvents
                 }
                 catch (Exception e)
                 {
-                    _plugin.Log.HandleException(new AException("Error while cancelling active round rule entries.", e));
+                    _plugin.Log.HandleException(new AException("Error while failing active round rule entries.", e));
                 }
             }
 
@@ -52410,11 +52411,35 @@ namespace PRoConEvents
                     {
                         Thread.CurrentThread.Name = "ChallengeRoundEnd";
                         // Wait for any round-end messages to fire
-                        Thread.Sleep(TimeSpan.FromSeconds(10));
+                        _plugin.Threading.Wait(TimeSpan.FromSeconds(15));
+                        List<CEntry> completedPersonalChallenges;
+                        List<CEntry> completedRoundRuleChallenges;
+                        if (RoundRule != null)
+                        {
+                            completedRoundRuleChallenges = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule).ToList();
+                            completedPersonalChallenges = GetCompletedRoundEntries().Where(entry => entry.Rule != RoundRule).ToList();
+                            // Congrats to the winners
+                            var completedRoundRuleEntries = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule);
+                            var playerS = completedRoundRuleEntries.Count() != 1 ? "s" : "";
+                            _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Ended! " + completedRoundRuleEntries.Count() + " player" + playerS + " completed it!");
+                            if (completedRoundRuleEntries.Any())
+                            {
+                                _plugin.AdminSayMessage("Round Winners: " + String.Join(", ", completedRoundRuleEntries.Select(entry => entry.Player.GetVerboseName()).ToArray()));
+                            }
+                        }
+                        else
+                        {
+                            completedPersonalChallenges = GetCompletedRoundEntries();
+                        }
+                        if (completedPersonalChallenges.Any())
+                        {
+                            _plugin.Threading.Wait(TimeSpan.FromSeconds(3));
+                            _plugin.AdminSayMessage("Personal Winners: " + String.Join(", ", completedPersonalChallenges.Select(entry => entry.Player.GetVerboseName() + " [" + entry.Rule.Name + "]" + Environment.NewLine).ToArray()));
+                        }
                         // Trigger the state change
                         ChallengeRoundState = ChallengeState.Ended;
-                        // Cancel the active round rule first so those failures show up before anything else
-                        CancelActiveRoundRule(true);
+                        // Fail the active round rule if applicable
+                        FailActiveRoundRule();
                         // Fail the challenges which are controlled by round count and weren't completed
                         var roundEntries = GetEntries().Where(entry => entry.Rule.Completion == CRule.CompletionType.Rounds &&
                                                                        !entry.Completed &&
@@ -52597,7 +52622,7 @@ namespace PRoConEvents
                             _plugin.Log.Error("Rule " + chosenRule.ToString() + " isn't round completion or doesn't have a round count of 1, unable to start rule.");
                             return;
                         }
-                        CancelActiveRoundRule(false);
+                        CancelActiveRoundRule();
                         chosenRule.RoundLastUsedTime = _plugin.UtcNow();
                         chosenRule.DBPush(null);
                         RoundRule = chosenRule;
@@ -52857,7 +52882,7 @@ namespace PRoConEvents
                             else if (type == CDefinitionDetail.DetailType.Weapon.ToString())
                             {
                                 detail.Type = CDefinitionDetail.DetailType.Weapon;
-                                var weaponCode = _plugin.WeaponDictionary.GetWeaponCodeByShortName(value);
+                                var weaponCode = _plugin.WeaponDictionary.GetWeaponCodeByShortName(value.Split('\\')[1]);
                                 // Confirm the weapon is valid
                                 if (String.IsNullOrEmpty(weaponCode))
                                 {
@@ -53855,7 +53880,7 @@ namespace PRoConEvents
                                 return;
                             }
                             // Get the weapon code for this name
-                            var newWeapon = _plugin.WeaponDictionary.GetWeaponCodeByShortName(weaponName);
+                            var newWeapon = _plugin.WeaponDictionary.GetWeaponCodeByShortName(weaponName.Split('\\')[1]);
                             if (String.IsNullOrEmpty(newWeapon))
                             {
                                 _plugin.Log.Error("Error getting weapon code when setting weapon name by string.");
@@ -54699,8 +54724,8 @@ namespace PRoConEvents
                         info += "Weapon Types: ";
                         foreach (var detail in damages)
                         {
-                            var weaponS = detail.WeaponCount > 1 ? "s" : "";
-                            var killS = detail.KillCount > 1 ? "s" : "";
+                            var weaponS = detail.WeaponCount != 1 ? "s" : "";
+                            var killS = detail.KillCount != 1 ? "s" : "";
                             info += "[" + detail.Damage.ToString().Replace("_", " ") + "/" + detail.WeaponCount + " Weapon" + weaponS + "/" + detail.KillCount + " Kill" + killS + "]" + Environment.NewLine;
                         }
                         info += Environment.NewLine;
@@ -54711,7 +54736,7 @@ namespace PRoConEvents
                         info += "Weapons: ";
                         foreach (var detail in weapons)
                         {
-                            var killS = detail.KillCount > 1 ? "s" : "";
+                            var killS = detail.KillCount != 1 ? "s" : "";
                             info += "[" + _plugin.WeaponDictionary.GetShortWeaponNameByCode(detail.Weapon) + "/" + detail.KillCount + " Kill" + killS + "] " + Environment.NewLine;
                         }
                     }
@@ -55614,7 +55639,7 @@ namespace PRoConEvents
                                     DoFail();
                                     return;
                                 }
-                                var deathS = deathsRemaining > 1 ? "s" : "";
+                                var deathS = deathsRemaining != 1 ? "s" : "";
                                 Player.Say("You have " + deathsRemaining + " death" + deathS + " remaining for " + Rule.Name + " challenge.");
                                 Died = true;
                             }
@@ -58410,7 +58435,7 @@ namespace PRoConEvents
                                                                               weapon.Damage != DamageTypes.VehicleWater)
                                                              .OrderBy(weapon => weapon.Damage)
                                                              .ThenBy(weapon => weapon.ShortName)
-                                                             .Select(name => name.ShortName)
+                                                             .Select(weapon => weapon.Damage.ToString() + "\\" + weapon.ShortName)
                                                              .Distinct())
                     {
                         if (String.IsNullOrEmpty(InfantryWeaponNameEnumString))
@@ -58431,7 +58456,7 @@ namespace PRoConEvents
                                                                               weapon.Damage != DamageTypes.Suicide)
                                                              .OrderBy(weapon => weapon.Damage)
                                                              .ThenBy(weapon => weapon.ShortName)
-                                                             .Select(name => name.ShortName)
+                                                             .Select(weapon => weapon.Damage.ToString() + "\\" + weapon.ShortName)
                                                              .Distinct())
                     {
                         if (String.IsNullOrEmpty(AllWeaponNameEnumString))
