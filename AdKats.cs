@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.126
+ * Version 7.0.1.127
  * 5-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.126</version_code>
+ * <version_code>7.0.1.127</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.126";
+        private const String PluginVersion = "7.0.1.127";
 
         public enum GameVersionEnum
         {
@@ -35979,17 +35979,19 @@ namespace PRoConEvents
                 if (option == "help")
                 {
                     var waitMS = 1600;
-                    SendMessageToSource(record, "info - See current challenge info.");
+                    SendMessageToSource(record, commandText + " info (Current challenge info.)");
                     Threading.Wait(waitMS);
-                    SendMessageToSource(record, "p - See current challenge progress, without description.");
+                    SendMessageToSource(record, commandText + " p (Current challenge progress.)");
                     Threading.Wait(waitMS);
-                    SendMessageToSource(record, "list - See the list of available challenges.");
+                    SendMessageToSource(record, commandText + " list (List of available challenges.)");
                     Threading.Wait(waitMS);
-                    SendMessageToSource(record, "# - Start this challenge for yourself.");
+                    SendMessageToSource(record, commandText + " list # (List of available tier # challenges.");
                     Threading.Wait(waitMS);
-                    SendMessageToSource(record, "autokill - Causes you to be slain when completing challenge weapons.");
+                    SendMessageToSource(record, commandText + " # (Start challenge #.)");
                     Threading.Wait(waitMS);
-                    SendMessageToSource(record, "help - Show this message.");
+                    SendMessageToSource(record, commandText + " autokill (Toggle being automatically slain when completing challenge weapons.)");
+                    Threading.Wait(waitMS);
+                    SendMessageToSource(record, commandText + " help (Show this help message.)");
                 }
                 else if (option == "list" || option.StartsWith("list "))
                 {
