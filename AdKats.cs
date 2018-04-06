@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.125
+ * Version 7.0.1.126
  * 5-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.125</version_code>
+ * <version_code>7.0.1.126</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.125";
+        private const String PluginVersion = "7.0.1.126";
 
         public enum GameVersionEnum
         {
@@ -36040,7 +36040,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        SendMessageToSource(record, "No rules are available" + (tier != 0 ? " at tier " + tier : "") + ".");
+                        SendMessageToSource(record, "No challenges are available" + (tier != 0 ? " at tier " + tier : "") + ".");
                     }
                 }
                 else if (option == "info")
@@ -36163,20 +36163,24 @@ namespace PRoConEvents
                                     record.target_player.ActiveChallenge.Rule.ID == selected.ID)
                                 {
                                     record.target_player.Say("You are already playing a " + selected.Name + " challenge. To see your progress type " + commandText + " p");
+                                    return;
                                 }
                                 else
                                 {
                                     ChallengeManager.CreateAndAssignEntry(record.target_player, selected, true);
+                                    return;
                                 }
                             }
                             else
                             {
                                 SendMessageToSource(record, "Challenge " + parseID + " does not exist. To see the list type " + commandText + " list");
+                                return;
                             }
                         }
                         else if (split[0].Contains("#"))
                         {
                             SendMessageToSource(record, "You need to enter the challenge number from the list. For example " + commandText + " 1");
+                            return;
                         }
                     }
                     SendMessageToSource(record, "'" + record.record_message + "' was an invalid option. Type " + commandText + " help");
