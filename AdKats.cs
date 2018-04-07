@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.130
+ * Version 7.0.1.131
  * 6-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.130</version_code>
+ * <version_code>7.0.1.131</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.130";
+        private const String PluginVersion = "7.0.1.131";
 
         public enum GameVersionEnum
         {
@@ -51950,7 +51950,10 @@ namespace PRoConEvents
                                 }
                             }
                         }
-                        _plugin.Log.Success("CHALLENGE entries loaded in " + _plugin.NowDuration(startTime).TotalMilliseconds + "ms.");
+                        if (_plugin._UseExperimentalTools)
+                        {
+                            _plugin.Log.Success("CHALLENGE entries loaded in " + _plugin.NowDuration(startTime).TotalMilliseconds + "ms.");
+                        }
                     }
                     finally
                     {
@@ -52515,7 +52518,11 @@ namespace PRoConEvents
                                         {
                                             Thread.CurrentThread.Name = "ChallengeRoundRuleAnnounce";
                                             Thread.Sleep(TimeSpan.FromSeconds(20));
-                                            _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.");
+                                            // Only tell players about the new challenge if they don't already have a challenge assigned
+                                            foreach (var player in _plugin._PlayerDictionary.Values.ToList().Where(player => player.ActiveChallenge == null))
+                                            {
+                                                _plugin.PlayerTellMessage(player.player_name, RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.", false, 1);
+                                            }
                                             _plugin.Threading.StopWatchdog();
                                         })));
                                     }
@@ -52566,7 +52573,11 @@ namespace PRoConEvents
                     }
                     if (EnableServerRoundRules && RoundRule != null)
                     {
-                        _plugin.AdminTellMessage(RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.");
+                        // Only tell players about the new challenge if they don't already have a challenge assigned
+                        foreach (var player in _plugin._PlayerDictionary.Values.ToList().Where(player => player.ActiveChallenge == null))
+                        {
+                            _plugin.PlayerTellMessage(player.player_name, RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.", false, 1);
+                        }
                     }
                     ChallengeRoundState = ChallengeState.Playing;
                 }
@@ -52629,7 +52640,11 @@ namespace PRoConEvents
                         chosenRule.RoundLastUsedTime = _plugin.UtcNow();
                         chosenRule.DBPush(null);
                         RoundRule = chosenRule;
-                        _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.");
+                        // Only tell players about the new challenge if they don't already have a challenge assigned
+                        foreach (var player in _plugin._PlayerDictionary.Values.ToList().Where(player => player.ActiveChallenge == null))
+                        {
+                            _plugin.PlayerTellMessage(player.player_name, RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.", false, 1);
+                        }
                     }
                 }
                 catch (Exception e)
@@ -54749,12 +54764,16 @@ namespace PRoConEvents
                         }
                         // Check for invalid kill
                         if (aKill == null ||
-                            aKill.IsTeamkill ||
                             aKill.killer == null ||
                             String.IsNullOrEmpty(aKill.weaponCode) ||
                             aKill.victim == null)
                         {
                             _plugin.Log.Error("Kill was invalid when checking for valid kill.");
+                            return false;
+                        }
+                        // Silently cancel on teamkills
+                        if (aKill.IsTeamkill)
+                        {
                             return false;
                         }
                         // Default to the kill being invalid
@@ -55450,7 +55469,6 @@ namespace PRoConEvents
                         // Check for invalid kill
                         if (!Rule.KillValid(aKill))
                         {
-                            _plugin.Log.Info("Kill " + aKill.ToString() + " (" + aKill.weaponDamage.ToString() + ") was invalid for rule " + Rule.ToString());
                             return false;
                         }
                         lock (Details)
