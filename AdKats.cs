@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.133
+ * Version 7.0.1.134
  * 6-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.133</version_code>
+ * <version_code>7.0.1.134</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.133";
+        private const String PluginVersion = "7.0.1.134";
 
         public enum GameVersionEnum
         {
@@ -55652,7 +55652,7 @@ namespace PRoConEvents
                             {
                                 var completionTime = StartTime + TimeSpan.FromMinutes(Rule.DurationMinutes);
                                 var completionDuration = _plugin.NowDuration(completionTime);
-                                Player.Say(commandText + " You have " + Math.Round(completionDuration.TotalMinutes) + "m remaining.");
+                                Player.Say(commandText + " You have " + _plugin.FormatTimeString(completionDuration, 3) + " remaining.");
                             }
                         }
                     }
