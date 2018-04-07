@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.131
+ * Version 7.0.1.132
  * 6-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.131</version_code>
+ * <version_code>7.0.1.132</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.131";
+        private const String PluginVersion = "7.0.1.132";
 
         public enum GameVersionEnum
         {
@@ -52343,7 +52343,7 @@ namespace PRoConEvents
                         }
                         else
                         {
-                            completionTimeString += "In " + Math.Round(completionDuration.TotalMinutes, 1) + " (" + _plugin.FormatTimeString(completionDuration, 3) + ")";
+                            completionTimeString += "In " + Math.Round(completionDuration.TotalMinutes, 1) + "m (" + _plugin.FormatTimeString(completionDuration, 3) + ")";
                         }
                     }
                     else if (challenge.Rule.Completion == CRule.CompletionType.Deaths)
@@ -55571,7 +55571,12 @@ namespace PRoConEvents
                         }
                         if (Died)
                         {
-                            _plugin.Log.Info("Victim player " + inputKill.victim.GetVerboseName() + " already died without spawning. Not assigning another death.");
+                            if (Rule.Completion == CRule.CompletionType.Duration)
+                            {
+                                var completionTime = StartTime + TimeSpan.FromMinutes(Rule.DurationMinutes);
+                                var completionDuration = _plugin.NowDuration(completionTime);
+                                Player.Say("You have " + Math.Round(completionDuration.TotalMinutes, 1) + "m remaining for " + Rule.Name + " challenge.");
+                            }
                             return;
                         }
                         lock (Details)
@@ -55634,7 +55639,7 @@ namespace PRoConEvents
 
                             RefreshProgress(null);
 
-                            // We only care about responding to the death if this is a death based challenge
+                            // We only care about responding to the death if this is a death or time based challenge
                             if (Rule.Completion == CRule.CompletionType.Deaths)
                             {
                                 var deaths = Progress.Deaths.Count();
@@ -55647,6 +55652,12 @@ namespace PRoConEvents
                                 var deathS = deathsRemaining != 1 ? "s" : "";
                                 Player.Say("You have " + deathsRemaining + " death" + deathS + " remaining for " + Rule.Name + " challenge.");
                                 Died = true;
+                            }
+                            else if (Rule.Completion == CRule.CompletionType.Duration)
+                            {
+                                var completionTime = StartTime + TimeSpan.FromMinutes(Rule.DurationMinutes);
+                                var completionDuration = _plugin.NowDuration(completionTime);
+                                Player.Say("You have " + Math.Round(completionDuration.TotalMinutes, 1) + "m remaining for " + Rule.Name + " challenge.");
                             }
                         }
                     }
