@@ -104,6 +104,11 @@
 			"group_id":20,
 			"group_key":"challenge_autokill",
 			"group_name":"Challenge AutoKill Status"
+		},
+		{
+			"group_id":21,
+			"group_key":"challenge_ignore",
+			"group_name":"Challenge Ignoring Status"
 		}
 	]
 }
