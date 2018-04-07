@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.132
+ * Version 7.0.1.133
  * 6-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.132</version_code>
+ * <version_code>7.0.1.133</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.132";
+        private const String PluginVersion = "7.0.1.133";
 
         public enum GameVersionEnum
         {
@@ -52437,7 +52437,7 @@ namespace PRoConEvents
                         if (completedPersonalChallenges.Any())
                         {
                             _plugin.Threading.Wait(TimeSpan.FromSeconds(3));
-                            _plugin.AdminSayMessage("Personal Winners: " + String.Join(", ", completedPersonalChallenges.Select(entry => entry.Player.GetVerboseName() + " [" + entry.Rule.Name + "]" + Environment.NewLine).ToArray()));
+                            _plugin.AdminSayMessage("Personal Winners: " + String.Join(Environment.NewLine, completedPersonalChallenges.Select(entry => entry.Player.GetVerboseName() + " [" + entry.Rule.Name + "]").ToArray()));
                         }
                         // Trigger the state change
                         ChallengeRoundState = ChallengeState.Ended;
@@ -55571,12 +55571,6 @@ namespace PRoConEvents
                         }
                         if (Died)
                         {
-                            if (Rule.Completion == CRule.CompletionType.Duration)
-                            {
-                                var completionTime = StartTime + TimeSpan.FromMinutes(Rule.DurationMinutes);
-                                var completionDuration = _plugin.NowDuration(completionTime);
-                                Player.Say("You have " + Math.Round(completionDuration.TotalMinutes, 1) + "m remaining for " + Rule.Name + " challenge.");
-                            }
                             return;
                         }
                         lock (Details)
@@ -55640,6 +55634,7 @@ namespace PRoConEvents
                             RefreshProgress(null);
 
                             // We only care about responding to the death if this is a death or time based challenge
+                            var commandText = _plugin.GetChatCommandByKey("self_challenge");
                             if (Rule.Completion == CRule.CompletionType.Deaths)
                             {
                                 var deaths = Progress.Deaths.Count();
@@ -55650,14 +55645,14 @@ namespace PRoConEvents
                                     return;
                                 }
                                 var deathS = deathsRemaining != 1 ? "s" : "";
-                                Player.Say("You have " + deathsRemaining + " death" + deathS + " remaining for " + Rule.Name + " challenge.");
+                                Player.Say(commandText + " You have " + deathsRemaining + " death" + deathS + " remaining.");
                                 Died = true;
                             }
                             else if (Rule.Completion == CRule.CompletionType.Duration)
                             {
                                 var completionTime = StartTime + TimeSpan.FromMinutes(Rule.DurationMinutes);
                                 var completionDuration = _plugin.NowDuration(completionTime);
-                                Player.Say("You have " + Math.Round(completionDuration.TotalMinutes, 1) + "m remaining for " + Rule.Name + " challenge.");
+                                Player.Say(commandText + " You have " + Math.Round(completionDuration.TotalMinutes) + "m remaining.");
                             }
                         }
                     }
