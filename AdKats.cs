@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.134
- * 6-APR-2018
+ * Version 7.0.1.135
+ * 7-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.134</version_code>
+ * <version_code>7.0.1.135</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.134";
+        private const String PluginVersion = "7.0.1.135";
 
         public enum GameVersionEnum
         {
@@ -16567,7 +16567,7 @@ namespace PRoConEvents
                                         var expiringGroups = groups.Where(group => NowDuration(group.player_expiration).TotalDays < _PerkExpirationNotifyDays);
                                         if (expiringGroups.Any())
                                         {
-                                            PlayerTellMessage(aPlayer.player_name, "You have perks expiring soon. Use " + GetChatCommandByKey("player_perks") + " to see your perks!");
+                                            PlayerTellMessage(aPlayer.player_name, "You have perks expiring soon. Use " + GetChatCommandByKey("player_perks") + " to see your perks.");
                                             Threading.Wait(TimeSpan.FromSeconds(_YellDuration));
                                         }
                                     }
@@ -17368,6 +17368,44 @@ namespace PRoConEvents
                 Log.HandleException(new AException("Error while fetching matching special players.", e));
             }
             Log.Debug(() => "Exiting GetOnlinePlayersOfGroup", 6);
+            return null;
+        }
+
+        public Dictionary<String, APlayer> GetOnlinePlayerDictionaryWithoutGroup(String specialPlayerGroup)
+        {
+            Dictionary<String, APlayer> onlinePlayersWithoutGroup = new Dictionary<String, APlayer>();
+            Log.Debug(() => "Entering GetOnlinePlayerDictionaryWithoutGroup", 6);
+            try
+            {
+                List<APlayer> onlinePlayerObjects = _PlayerDictionary.Values.ToList();
+                foreach (APlayer aPlayer in onlinePlayerObjects)
+                {
+                    if (!GetMatchingVerboseASPlayersOfGroup(specialPlayerGroup, aPlayer).Any())
+                    {
+                        onlinePlayersWithoutGroup[aPlayer.player_name] = aPlayer;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while fetching matching special players.", e));
+            }
+            Log.Debug(() => "Exiting GetOnlinePlayerDictionaryWithoutGroup", 6);
+            return onlinePlayersWithoutGroup;
+        }
+
+        public List<APlayer> GetOnlinePlayersWithoutGroup(String specialPlayerGroup)
+        {
+            Log.Debug(() => "Entering GetOnlinePlayersWithoutGroup", 6);
+            try
+            {
+                return GetOnlinePlayerDictionaryWithoutGroup(specialPlayerGroup).Values.ToList();
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while fetching online players without group.", e));
+            }
+            Log.Debug(() => "Exiting GetOnlinePlayersWithoutGroup", 6);
             return null;
         }
 
@@ -20463,10 +20501,28 @@ namespace PRoConEvents
                             }
                             Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
-                        case "player_challenge_ignore":
+                        case "player_challenge_play_remove":
                             if (!GetMatchingASPlayersOfGroup("challenge_play", record.target_player).Any())
                             {
                                 SendMessageToSource(record, "Matching player not in challenge playing status.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_challenge_ignore":
+                            if (GetMatchingASPlayersOfGroup("challenge_ignore", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already in challenge ignoring status.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_challenge_ignore_remove":
+                            if (!GetMatchingASPlayersOfGroup("challenge_ignore", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not in challenge ignoring status.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -27357,7 +27413,7 @@ namespace PRoConEvents
                             }
                         }
                         break;
-                    case "player_challenge_ignore":
+                    case "player_challenge_play_remove":
                         {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
@@ -27373,12 +27429,169 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    record.record_message = "Challenge Ignore Status";
+                                    record.record_message = "Removing Challenge Playing Status";
                                     record.target_name = record.source_name;
                                     CompleteTargetInformation(record, true, true, false);
                                     break;
                                 case 1:
-                                    record.record_message = "Challenge Ignore Status";
+                                    record.record_message = "Removing Challenge Playing Status";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, true);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_challenge_ignore":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            String defaultReason = "Challenge Ignoring Status";
+
+                            //Parse parameters using max param count
+                            String[] parameters = Util.ParseParameters(remainingMessage, 3);
+
+                            if (parameters.Length > 0)
+                            {
+                                String stringDuration = parameters[0].ToLower();
+                                Log.Debug(() => "Raw Duration: " + stringDuration, 6);
+                                if (stringDuration == "perm")
+                                {
+                                    //20 years in minutes
+                                    record.command_numeric = 10518984;
+                                    defaultReason = "Permanent " + defaultReason;
+                                }
+                                else
+                                {
+                                    //Default is minutes
+                                    Double recordDuration = 0.0;
+                                    Double durationMultiplier = 1.0;
+                                    if (stringDuration.EndsWith("s"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('s');
+                                        durationMultiplier = (1.0 / 60.0);
+                                    }
+                                    else if (stringDuration.EndsWith("m"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('m');
+                                        durationMultiplier = 1.0;
+                                    }
+                                    else if (stringDuration.EndsWith("h"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('h');
+                                        durationMultiplier = 60.0;
+                                    }
+                                    else if (stringDuration.EndsWith("d"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('d');
+                                        durationMultiplier = 1440.0;
+                                    }
+                                    else if (stringDuration.EndsWith("w"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('w');
+                                        durationMultiplier = 10080.0;
+                                    }
+                                    else if (stringDuration.EndsWith("y"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('y');
+                                        durationMultiplier = 525949.0;
+                                    }
+                                    if (!Double.TryParse(stringDuration, out recordDuration))
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                    if (record.command_numeric <= 0)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
+                                }
+                            }
+
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    //No parameters
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    //time
+                                    if (record.record_source != ARecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = record.source_name;
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                case 2:
+                                    //time
+                                    //player
+                                    record.target_name = parameters[1];
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                case 3:
+                                    //time
+                                    //player
+                                    //reason
+                                    record.target_name = parameters[1];
+                                    Log.Debug(() => "target: " + record.target_name, 6);
+                                    record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
+                                    if (record.record_message == null)
+                                    {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    Log.Debug(() => "" + record.record_message, 6);
+                                    CompleteTargetInformation(record, false, true, true);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_challenge_ignore_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = Util.ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != ARecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing Challenge Ignoring Status";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing Challenge Ignoring Status";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
@@ -28844,8 +29057,14 @@ namespace PRoConEvents
                     case "player_challenge_play":
                         ChallengePlayTarget(record);
                         break;
+                    case "player_challenge_play_remove":
+                        ChallengePlayRemoveTarget(record);
+                        break;
                     case "player_challenge_ignore":
                         ChallengeIgnoreTarget(record);
+                        break;
+                    case "player_challenge_ignore_remove":
+                        ChallengeIgnoreRemoveTarget(record);
                         break;
                     case "player_challenge_autokill":
                         ChallengeAutoKillTarget(record);
@@ -32897,9 +33116,9 @@ namespace PRoConEvents
             Log.Debug(() => "Exiting ChallengePlayTarget", 6);
         }
 
-        public void ChallengeIgnoreTarget(ARecord record)
+        public void ChallengePlayRemoveTarget(ARecord record)
         {
-            Log.Debug(() => "Entering ChallengeIgnoreTarget", 6);
+            Log.Debug(() => "Entering ChallengePlayRemoveTarget", 6);
             try
             {
                 //Case for multiple targets
@@ -32954,7 +33173,148 @@ namespace PRoConEvents
                 Log.HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
+            Log.Debug(() => "Exiting ChallengePlayRemoveTarget", 6);
+        }
+
+        public void ChallengeIgnoreTarget(ARecord record)
+        {
+            Log.Debug(() => "Entering ChallengeIgnoreTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "ChallengeIgnoreTarget not available for multiple targets.");
+                    Log.Error("ChallengeIgnoreTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("challenge_ignore", record.target_player);
+                if (matchingPlayers.Count > 0)
+                {
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the challenge ignoring status.");
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        INSERT INTO
+	                        `adkats_specialplayers`
+                        (
+	                        `player_group`,
+	                        `player_id`,
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
+                        )
+                        VALUES
+                        (
+	                        'challenge_ignore',
+	                        @player_id,
+	                        @player_name,
+	                        UTC_TIMESTAMP(),
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                        )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            Log.Error("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 10518984)
+                        {
+                            record.command_numeric = 10518984;
+                        }
+                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                        command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
+
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
+                        if (rowsAffected > 0)
+                        {
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " challenge ignoring status for all servers.";
+                            SendMessageToSource(record, message);
+                            Log.Debug(() => message, 3);
+                            FetchAllAccess(true);
+                        }
+                        else
+                        {
+                            Log.Error("Unable to add player to challenge ignoring status. Error uploading.");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AException("Error while taking action for challenge ignoring status.", e);
+                Log.HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
             Log.Debug(() => "Exiting ChallengeIgnoreTarget", 6);
+        }
+
+        public void ChallengeIgnoreRemoveTarget(ARecord record)
+        {
+            Log.Debug(() => "Entering ChallengeIgnoreRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "ChallengeIgnoreRemoveTarget not available for multiple targets.");
+                    Log.Error("ChallengeIgnoreRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("challenge_ignore", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the challenge ignoring status.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (ASpecialPlayer asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from challenge ignoring status.";
+                                Log.Debug(() => message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                Log.Error("Unable to remove player from challenge ignoring status. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from challenge ignoring status.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                Log.HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug(() => "Exiting ChallengeIgnoreRemoveTarget", 6);
         }
 
         public void ChallengeAutoKillTarget(ARecord record)
@@ -35956,7 +36316,7 @@ namespace PRoConEvents
 
         public void SendChallengeInfo(ARecord record)
         {
-            Log.Debug(() => "Entering SendCHallengeInfo", 6);
+            Log.Debug(() => "Entering SendChallengeInfo", 6);
             try
             {
                 record.record_action_executed = true;
@@ -35965,18 +36325,10 @@ namespace PRoConEvents
                 {
                     record.target_player = record.source_player;
                 }
-                
-                if (record.target_player != null && 
-                    ChallengeManager.PlayStatusOnly &&
-                    !GetMatchingVerboseASPlayersOfGroup("challenge_play", record.target_player).Any())
-                {
-                    SendMessageToSource(record, "Challenges are being tested right now. Please contact an admin for access.");
-                    FinalizeRecord(record);
-                    return;
-                }
 
-                var option = record.record_message.ToLower().Trim();
                 var commandText = GetChatCommandByKey("self_challenge");
+                
+                var option = record.record_message.ToLower().Trim();
                 if (option == "help")
                 {
                     var waitMS = 1600;
@@ -35996,6 +36348,13 @@ namespace PRoConEvents
                 }
                 else if (option == "list" || option.StartsWith("list "))
                 {
+                    if (record.target_player != null &&
+                        GetMatchingVerboseASPlayersOfGroup("challenge_ignore", record.target_player).Any())
+                    {
+                        SendMessageToSource(record, "You are currently ignoring challenges. To stop ignoring challenges type " + commandText + " ignore");
+                        FinalizeRecord(record);
+                        return;
+                    }
                     var split = option.Split(' ');
                     Int32 tier = 0;
                     if (split.Count() >= 2)
@@ -36048,6 +36407,13 @@ namespace PRoConEvents
                 }
                 else if (option == "info")
                 {
+                    if (record.target_player != null &&
+                        GetMatchingVerboseASPlayersOfGroup("challenge_ignore", record.target_player).Any())
+                    {
+                        SendMessageToSource(record, "You are currently ignoring challenges. To stop ignoring challenges type " + commandText + " ignore");
+                        FinalizeRecord(record);
+                        return;
+                    }
                     // Immediately get the challenge info, then go async
                     var infoMessages = ChallengeManager.GetChallengeInfo(record.target_player, true).Split(
                         new[] { Environment.NewLine },
@@ -36077,6 +36443,13 @@ namespace PRoConEvents
                 }
                 else if (option == "p")
                 {
+                    if (record.target_player != null &&
+                        GetMatchingVerboseASPlayersOfGroup("challenge_ignore", record.target_player).Any())
+                    {
+                        SendMessageToSource(record, "You are currently ignoring challenges. To stop ignoring challenges type " + commandText + " ignore");
+                        FinalizeRecord(record);
+                        return;
+                    }
                     // Immediately get the challenge progress, then go async
                     var progressMessages = ChallengeManager.GetChallengeInfo(record.target_player, false).Split(
                         new[] { Environment.NewLine },
@@ -36130,6 +36503,13 @@ namespace PRoConEvents
                     }
                     else
                     {
+                        if (record.target_player != null &&
+                            GetMatchingVerboseASPlayersOfGroup("challenge_ignore", record.target_player).Any())
+                        {
+                            SendMessageToSource(record, "You are currently ignoring challenges. To stop ignoring challenges type " + commandText + " ignore");
+                            FinalizeRecord(record);
+                            return;
+                        }
                         QueueRecordForProcessing(new ARecord
                         {
                             record_source = ARecord.Sources.Automated,
@@ -36145,8 +36525,61 @@ namespace PRoConEvents
                         SendMessageToSource(record, "You will now be slain when completing challenge weapons.");
                     }
                 }
+                else if (option == "ignore")
+                {
+                    if (record.target_player == null)
+                    {
+                        SendMessageToSource(record, "Cannot change ignoring status without being a player.");
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    if (GetMatchingVerboseASPlayersOfGroup("challenge_ignore", record.target_player).Any())
+                    {
+                        QueueRecordForProcessing(new ARecord
+                        {
+                            record_source = ARecord.Sources.Automated,
+                            server_id = _serverInfo.ServerID,
+                            command_type = GetCommandByKey("player_challenge_ignore_remove"),
+                            command_numeric = 0,
+                            target_name = record.target_player.player_name,
+                            target_player = record.target_player,
+                            source_name = "ChallengeManager",
+                            record_message = "Removing Challenge Ignoring Status",
+                            record_time = UtcNow()
+                        });
+                        SendMessageToSource(record, "You are no longer ignoring challenge related messages.");
+                    }
+                    else
+                    {
+                        QueueRecordForProcessing(new ARecord
+                        {
+                            record_source = ARecord.Sources.Automated,
+                            server_id = _serverInfo.ServerID,
+                            command_type = GetCommandByKey("player_challenge_ignore"),
+                            command_numeric = 10518984,
+                            target_name = record.target_player.player_name,
+                            target_player = record.target_player,
+                            source_name = "ChallengeManager",
+                            record_message = "Adding Challenge Ignore Status",
+                            record_time = UtcNow()
+                        });
+                        SendMessageToSource(record, "You are now ignoring challenge related messages.");
+                        if (record.target_player.ActiveChallenge != null)
+                        {
+                            // They are ignoring challenges but have an active challenge. Cancel it.
+                            record.target_player.ActiveChallenge.DoCancel();
+                        }
+                    }
+                }
                 else
                 {
+                    if (record.target_player != null &&
+                        GetMatchingVerboseASPlayersOfGroup("challenge_ignore", record.target_player).Any())
+                    {
+                        SendMessageToSource(record, "You are currently ignoring challenges. To stop ignoring challenges type " + commandText + " ignore");
+                        FinalizeRecord(record);
+                        return;
+                    }
                     var split = option.Split(' ');
                     if (split.Any())
                     {
@@ -44010,6 +44443,21 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command player_challenge_autokill_remove", "INSERT INTO `adkats_commands` VALUES(141, 'Active', 'player_challenge_autokill_remove', 'Log', 'Remove Challenge AutoKill Status', 'unchallengeautokill', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(142))
+                                {
+                                    SendNonQuery("Adding command player_challenge_play_remove", "INSERT INTO `adkats_commands` VALUES(142, 'Active', 'player_challenge_play_remove', 'Log', 'Remove Challenge Playing Status', 'unchallengeplay', TRUE, 'Any')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(143))
+                                {
+                                    SendNonQuery("Adding command player_challenge_ignore_remove", "INSERT INTO `adkats_commands` VALUES(143, 'Active', 'player_challenge_ignore_remove', 'Log', 'Remove Challenge Ignoring Status', 'unchallengeignore', TRUE, 'Any')", true);
+                                    newCommands = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(144))
+                                {
+                                    SendNonQuery("Adding command player_challenge_complete", "INSERT INTO `adkats_commands` VALUES(144, 'Invisible', 'player_challenge_complete', 'Log', 'Player Completed Challenge', 'challengecomplete', TRUE, 'Any')", true);
+                                    newCommands = true;
+                                }
                                 if (newCommands)
                                 {
                                     FetchCommands();
@@ -44166,11 +44614,13 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["poll_complete"] = "Completes the current active poll and runs its action.";
             _CommandDescriptionDictionary["server_nuke_winning"] = "Kills all players on the winning team.";
             _CommandDescriptionDictionary["player_loadout_ignore"] = "If AdKatsLRT is installed the targeted player is temporarily ignored for loadout enforcement.";
-            _CommandDescriptionDictionary["player_challenge_play"] = "A player under challenge playing status will be automatically enrolled in any active challenge.";
-            _CommandDescriptionDictionary["player_challenge_ignore"] = "A player under under challenge ignoring status will not be automatically enrolled in any active challenge.";
+            _CommandDescriptionDictionary["player_challenge_play"] = "A player under challenge playing status will be automatically enrolled in any active challenge if play status only is enabled. If play status only is not enabled then this is irrelevant.";
+            _CommandDescriptionDictionary["player_challenge_ignore"] = "A player under under challenge ignoring status will not be shown any challenge related messages, and as you'd expect cannot play in challenges without removing the ignore status.";
             _CommandDescriptionDictionary["self_challenge"] = "Personal control command for the challenge system.";
             _CommandDescriptionDictionary["player_challenge_autokill"] = "A player under challenge autokill status will be automatically slain when a challenge weapon is completed.";
             _CommandDescriptionDictionary["player_challenge_autokill_remove"] = "Removes a player from challenge autokill status.";
+            _CommandDescriptionDictionary["player_challenge_play_remove"] = "Removes a player from challenge playing status.";
+            _CommandDescriptionDictionary["player_challenge_ignore_remove"] = "Removes a player from challenge ignoring status.";
         }
 
         private void FillReadableMapModeDictionaries()
@@ -52041,6 +52491,17 @@ namespace PRoConEvents
                     {
                         _plugin.Log.Error("We cancelled too many things!!!!");
                     }
+                    // Check for ignoring status
+                    if (_plugin.GetMatchingVerboseASPlayersOfGroup("challenge_ignore", player).Any())
+                    {
+                        // They are ignoring challenges but have an active challenge. Cancel it.
+                        var matching = activeEntries.FirstOrDefault();
+                        if (matching != null)
+                        {
+                            matching.DoCancel();
+                        }
+                        return;
+                    }
                     player.ActiveChallenge = activeEntries.FirstOrDefault();
                 }
                 catch (Exception e)
@@ -52128,6 +52589,12 @@ namespace PRoConEvents
                         _plugin.Log.Error("Player was invalid when creating entry.");
                         return;
                     }
+                    // Check for ignoring status
+                    if (_plugin.GetMatchingVerboseASPlayersOfGroup("challenge_ignore", player).Any())
+                    {
+                        _plugin.Log.Error("Player was ignoring challenges when trying to assign entry.");
+                        return;
+                    }
                     if (rule == null ||
                         rule.ID <= 0 ||
                         rule.ServerID != _plugin._serverInfo.ServerID ||
@@ -52201,6 +52668,11 @@ namespace PRoConEvents
                     }
 
                     var player = kill.killer;
+                    // Check ignoring case
+                    if (_plugin.GetMatchingVerboseASPlayersOfGroup("challenge_ignore", player).Any())
+                    {
+                        return;
+                    }
                     // Check whitelisting case
                     if (PlayStatusOnly && !_plugin.GetMatchingVerboseASPlayersOfGroup("challenge_play", player).Any())
                     {
@@ -52417,6 +52889,7 @@ namespace PRoConEvents
                         _plugin.Threading.Wait(TimeSpan.FromSeconds(15));
                         List<CEntry> completedPersonalChallenges;
                         List<CEntry> completedRoundRuleChallenges;
+                        var notIgnoringPlayers = _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore");
                         if (RoundRule != null)
                         {
                             completedRoundRuleChallenges = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule).ToList();
@@ -52424,10 +52897,15 @@ namespace PRoConEvents
                             // Congrats to the winners
                             var completedRoundRuleEntries = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule);
                             var playerS = completedRoundRuleEntries.Count() != 1 ? "s" : "";
-                            _plugin.AdminTellMessage(RoundRule.Name + " Round Challenge Ended! " + completedRoundRuleEntries.Count() + " player" + playerS + " completed it!");
-                            if (completedRoundRuleEntries.Any())
+                            var endedMessage = RoundRule.Name + " Round Challenge Ended! " + completedRoundRuleEntries.Count() + " player" + playerS + " completed it!";
+                            var roundMessage = "Round Winners: " + String.Join(", ", completedRoundRuleEntries.Select(entry => entry.Player.GetVerboseName()).ToArray());
+                            foreach (var aPlayer in notIgnoringPlayers)
                             {
-                                _plugin.AdminSayMessage("Round Winners: " + String.Join(", ", completedRoundRuleEntries.Select(entry => entry.Player.GetVerboseName()).ToArray()));
+                                _plugin.PlayerSayMessage(aPlayer.player_name, endedMessage, false, 1);
+                                if (completedRoundRuleEntries.Any())
+                                {
+                                    _plugin.PlayerSayMessage(aPlayer.player_name, roundMessage, false, 1);
+                                }
                             }
                         }
                         else
@@ -52436,8 +52914,12 @@ namespace PRoConEvents
                         }
                         if (completedPersonalChallenges.Any())
                         {
-                            _plugin.Threading.Wait(TimeSpan.FromSeconds(3));
-                            _plugin.AdminSayMessage("Personal Winners: " + String.Join(Environment.NewLine, completedPersonalChallenges.Select(entry => entry.Player.GetVerboseName() + " [" + entry.Rule.Name + "]").ToArray()));
+                            _plugin.Threading.Wait(TimeSpan.FromSeconds(5));
+                            var personalMessage = "Personal Winners: " + String.Join(Environment.NewLine, completedPersonalChallenges.Select(entry => entry.Player.GetVerboseName() + " [" + entry.Rule.Name + "]").ToArray());
+                            foreach (var aPlayer in notIgnoringPlayers)
+                            {
+                                _plugin.PlayerSayMessage(aPlayer.player_name, personalMessage, false, 1);
+                            }
                         }
                         // Trigger the state change
                         ChallengeRoundState = ChallengeState.Ended;
@@ -52517,9 +52999,9 @@ namespace PRoConEvents
                                         _plugin.Threading.StartWatchdog(new Thread(new ThreadStart(delegate
                                         {
                                             Thread.CurrentThread.Name = "ChallengeRoundRuleAnnounce";
-                                            Thread.Sleep(TimeSpan.FromSeconds(20));
+                                            Thread.Sleep(TimeSpan.FromSeconds(25));
                                             // Only tell players about the new challenge if they don't already have a challenge assigned
-                                            foreach (var player in _plugin._PlayerDictionary.Values.ToList().Where(player => player.ActiveChallenge == null))
+                                            foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore").Where(player => player.ActiveChallenge == null))
                                             {
                                                 _plugin.PlayerTellMessage(player.player_name, RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.", false, 1);
                                             }
@@ -52574,7 +53056,7 @@ namespace PRoConEvents
                     if (EnableServerRoundRules && RoundRule != null)
                     {
                         // Only tell players about the new challenge if they don't already have a challenge assigned
-                        foreach (var player in _plugin._PlayerDictionary.Values.ToList().Where(player => player.ActiveChallenge == null))
+                        foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore").Where(player => player.ActiveChallenge == null))
                         {
                             _plugin.PlayerTellMessage(player.player_name, RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.", false, 1);
                         }
@@ -52641,7 +53123,7 @@ namespace PRoConEvents
                         chosenRule.DBPush(null);
                         RoundRule = chosenRule;
                         // Only tell players about the new challenge if they don't already have a challenge assigned
-                        foreach (var player in _plugin._PlayerDictionary.Values.ToList().Where(player => player.ActiveChallenge == null))
+                        foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore").Where(player => player.ActiveChallenge == null))
                         {
                             _plugin.PlayerTellMessage(player.player_name, RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.", false, 1);
                         }
@@ -54982,7 +55464,7 @@ namespace PRoConEvents
                             }
                             percentage = Math.Round(Progress.CompletionPercentage) + "%";
                         }
-                        Player.Say(Rule.Name + " challenge FAILED at " + percentage + " complete.");
+                        _plugin.PlayerSayMessage(Player.player_name, Rule.Name + " challenge FAILED at " + percentage + " complete.", false, 1);
                         Failed = true;
                         CompleteTime = _plugin.UtcNow();
                         DBPush(null);
@@ -55026,15 +55508,29 @@ namespace PRoConEvents
                             _plugin.Log.Error("Attempted to complete challenge without 100% completion.");
                             return;
                         }
-                        //_plugin.AdminTellMessage(message);
-                        _plugin.AdminSayMessage("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
-                        _plugin.AdminSayMessage(Player.GetVerboseName() + " finished tier " + Rule.Tier +  " challenge:");
-                        _plugin.AdminSayMessage(Rule.Name + "! Congrats!");
-                        _plugin.AdminSayMessage("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
+                        foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore"))
+                        {
+                            _plugin.PlayerSayMessage(player.player_name, "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -", false, 1);
+                            _plugin.PlayerSayMessage(player.player_name, Player.GetVerboseName() + " finished tier " + Rule.Tier + " challenge");
+                            _plugin.PlayerSayMessage(player.player_name, Rule.Name + "! Congrats!");
+                            _plugin.PlayerSayMessage(player.player_name, "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -", false, 1);
+                        }
                         Completed = true;
                         CompleteTime = _plugin.UtcNow();
                         DBPush(null);
                         Manager.AddCompletedEntryForRound(this);
+                        _plugin.QueueRecordForProcessing(new ARecord
+                        {
+                            record_source = ARecord.Sources.Automated,
+                            server_id = _plugin._serverInfo.ServerID,
+                            command_type = _plugin.GetCommandByKey("player_challenge_complete"),
+                            command_numeric = Rule.Tier,
+                            target_name = Player.player_name,
+                            target_player = Player,
+                            source_name = "ChallengeManager",
+                            record_message = "Completed Tier " + Rule.Tier + " Challenge [" + Rule.Name + "]",
+                            record_time = _plugin.UtcNow()
+                        });
                         Player.ActiveChallenge = null;
                     }
                     catch (Exception e)
@@ -55653,6 +56149,7 @@ namespace PRoConEvents
                                 var completionTime = StartTime + TimeSpan.FromMinutes(Rule.DurationMinutes);
                                 var completionDuration = _plugin.NowDuration(completionTime);
                                 Player.Say(commandText + " You have " + _plugin.FormatTimeString(completionDuration, 3) + " remaining.");
+                                Died = true;
                             }
                         }
                     }
@@ -55978,7 +56475,7 @@ namespace PRoConEvents
                                 {
                                     _plugin.Threading.Wait(1000);
                                     _plugin.ExecuteCommand("procon.protected.send", "admin.killPlayer", kill.killer.player_name);
-                                    kill.killer.Say("Killed automatically on weapon completion. To disable this type " + commandText + " autokill");
+                                    kill.killer.Say("Killed automatically. To disable type " + commandText + " autokill");
                                 }
                                 else if (!Entry.AutoKillTold)
                                 {
