@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.138
+ * Version 7.0.1.139
  * 7-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.138</version_code>
+ * <version_code>7.0.1.139</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.138";
+        private const String PluginVersion = "7.0.1.139";
 
         public enum GameVersionEnum
         {
@@ -2659,8 +2659,11 @@ namespace PRoConEvents
                 if (IsActiveSettingSection(challengeSettings) && ChallengeManager != null)
                 {
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
-                    buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Challenge System Play Status Only", typeof(Boolean), ChallengeManager.PlayStatusOnly));
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Use Server-Wide Round Rules", typeof(Boolean), ChallengeManager.EnableServerRoundRules));
+                    if (ChallengeManager.EnableServerRoundRules)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Challenge System Auto-Assign Round rules", typeof(Boolean), ChallengeManager.AutoPlay));
+                    }
                     // DISPLAYS
                     var displaySectionPrefix = GetSettingSection(challengeSettings) + " [1] Displays" + t;
                     var roundRule = ChallengeManager.RoundRule;
@@ -5939,15 +5942,15 @@ namespace PRoConEvents
                         ChallengeManager.RunRoundChallenge(RuleID);
                     }
                 }
-                else if (Regex.Match(strVariable, @"Challenge System Play Status Only").Success)
+                else if (Regex.Match(strVariable, @"Challenge System Auto-Assign Round rules").Success)
                 {
-                    Boolean playStatusOnly = Boolean.Parse(strValue);
+                    Boolean autoAssign = Boolean.Parse(strValue);
                     if (ChallengeManager != null &&
-                        playStatusOnly != ChallengeManager.PlayStatusOnly)
+                        autoAssign != ChallengeManager.AutoPlay)
                     {
-                        ChallengeManager.PlayStatusOnly = playStatusOnly;
+                        ChallengeManager.AutoPlay = autoAssign;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Challenge System Play Status Only", typeof(Boolean), ChallengeManager.PlayStatusOnly));
+                        QueueSettingForUpload(new CPluginVariable(@"Challenge System Auto-Assign Round rules", typeof(Boolean), ChallengeManager.AutoPlay));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Server-Wide Round Rules").Success)
@@ -36332,7 +36335,7 @@ namespace PRoConEvents
                 var option = record.record_message.ToLower().Trim();
                 if (option == "help")
                 {
-                    var waitMS = 1600;
+                    var waitMS = 2000;
                     SendMessageToSource(record, commandText + " info (Current challenge info.)");
                     Threading.Wait(waitMS);
                     SendMessageToSource(record, commandText + " p (Current challenge progress.)");
@@ -36344,6 +36347,8 @@ namespace PRoConEvents
                     SendMessageToSource(record, commandText + " # (Start challenge #.)");
                     Threading.Wait(waitMS);
                     SendMessageToSource(record, commandText + " autokill (Toggle being automatically slain when completing challenge weapons.)");
+                    Threading.Wait(waitMS);
+                    SendMessageToSource(record, commandText + " ignore (Toggle ignoring the challenge system completely.)");
                     Threading.Wait(waitMS);
                     SendMessageToSource(record, commandText + " help (Show this help message.)");
                 }
@@ -38078,6 +38083,113 @@ namespace PRoConEvents
                       CONSTRAINT `adkats_rolegroups_fk_role` FOREIGN KEY (`role_id`) REFERENCES `adkats_roles` (`role_id`) ON DELETE CASCADE ON UPDATE CASCADE
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Connection of groups to roles'", true);
             }
+            if (!ConfirmTable("adkats_challenge_definition"))
+            {
+                Log.Info("AdKats challenge definition table not found. Attempting to add.");
+                SendNonQuery("Adding challenge definition table", @"
+                    CREATE TABLE IF NOT EXISTS `adkats_challenge_definition` (
+                      `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                      `Name` varchar(200) COLLATE utf8_unicode_ci NOT NULL,
+                      `CreateTime` datetime NOT NULL,
+                      `ModifyTime` datetime NOT NULL,
+                      PRIMARY KEY (`ID`),
+                      UNIQUE KEY `adkats_challenge_definition_idx_Name` (`Name`),
+                      KEY `adkats_challenge_definition_idx_CreateTime` (`CreateTime`),
+                      KEY `adkats_challenge_definition_idx_ModifyTime` (`ModifyTime`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Definitions'", true);
+            }
+            if (!ConfirmTable("adkats_challenge_definition_detail"))
+            {
+                Log.Info("AdKats challenge definition detail table not found. Attempting to add.");
+                SendNonQuery("Adding challenge definition detail table", @"
+                    CREATE TABLE IF NOT EXISTS `adkats_challenge_definition_detail` (
+                      `DefID` int(10) unsigned NOT NULL,
+                      `DetailID` int(10) unsigned NOT NULL,
+                      `Type` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
+                      `Damage` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+                      `WeaponCount` int(10) unsigned NOT NULL,
+                      `Weapon` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+                      `KillCount` int(10) unsigned NOT NULL,
+                      `CreateTime` datetime NOT NULL,
+                      `ModifyTime` datetime NOT NULL,
+                      PRIMARY KEY (`DefID`, `DetailID`),
+                      KEY `adkats_challenge_definition_detail_idx_CreateTime` (`CreateTime`),
+                      KEY `adkats_challenge_definition_detail_idx_ModifyTime` (`ModifyTime`),
+                      CONSTRAINT `adkats_challenge_definition_detail_fk_DefID` FOREIGN KEY (`DefID`) REFERENCES `adkats_challenge_definition` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Definition Details'", true);
+            }
+            if (!ConfirmTable("adkats_challenge_rule"))
+            {
+                Log.Info("AdKats challenge rule table not found. Attempting to add.");
+                SendNonQuery("Adding challenge rule table", @"
+                    CREATE TABLE IF NOT EXISTS `adkats_challenge_rule` (
+                      `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                      `ServerID` smallint(5) unsigned NOT NULL,
+                      `DefID` int(10) unsigned NOT NULL,
+                      `Enabled` int(1) unsigned NOT NULL DEFAULT 1,
+                      `Name` varchar(200) COLLATE utf8_unicode_ci NOT NULL,
+                      `Tier` int(10) unsigned NOT NULL DEFAULT 1,
+                      `CompletionType` varchar(100) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'None',
+                      `RoundCount` int(10) unsigned NOT NULL DEFAULT 1,
+                      `DurationMinutes` int(10) unsigned NOT NULL DEFAULT 60, -- 4294967295
+                      `DeathCount` int(10) unsigned NOT NULL DEFAULT 1,
+                      `CreateTime` datetime NOT NULL,
+                      `ModifyTime` datetime NOT NULL,
+                      `RoundLastUsedTime` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
+                      `PersonalLastUsedTime` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
+                      PRIMARY KEY (`ID`),
+                      UNIQUE KEY `adkats_challenge_rule_idx_Name_Server` (`Name`, `ServerID`),
+                      KEY `adkats_challenge_rule_idx_ServerID` (`ServerID`),
+                      KEY `adkats_challenge_rule_idx_DefID` (`DefID`),
+                      KEY `adkats_challenge_rule_idx_CreateTime` (`CreateTime`),
+                      KEY `adkats_challenge_rule_idx_ModifyTime` (`ModifyTime`),
+                      KEY `adkats_challenge_rule_idx_RoundLastUsedTime` (`RoundLastUsedTime`),
+                      KEY `adkats_challenge_rule_idx_PersonalLastUsedTime` (`PersonalLastUsedTime`),
+                      CONSTRAINT `adkats_challenge_rule_fk_ServerID` FOREIGN KEY (`ServerID`) REFERENCES `tbl_server` (`ServerID`) ON DELETE NO ACTION ON UPDATE CASCADE, -- No action for delete. If people move their servers, don't want to lose this record.
+                      CONSTRAINT `adkats_challenge_rule_fk_DefID` FOREIGN KEY (`DefID`) REFERENCES `adkats_challenge_definition` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Rules'", true);
+            }
+            if (!ConfirmTable("adkats_challenge_entry"))
+            {
+                Log.Info("AdKats challenge entry table not found. Attempting to add.");
+                SendNonQuery("Adding challenge entry table", @"
+                    CREATE TABLE IF NOT EXISTS `adkats_challenge_entry` (
+                      `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                      `PlayerID` int(10) unsigned NOT NULL,
+                      `RuleID` int(10) unsigned NOT NULL,
+                      `Completed` int(1) unsigned NOT NULL,
+                      `Failed` int(1) unsigned NOT NULL,
+                      `Canceled` int(1) unsigned NOT NULL,
+                      `StartRound` int(10) unsigned NOT NULL,
+                      `StartTime` datetime NOT NULL,
+                      `CompleteTime` datetime NOT NULL,
+                      PRIMARY KEY (`ID`),
+                      KEY `adkats_challenge_entry_idx_PlayerID` (`PlayerID`),
+                      KEY `adkats_challenge_entry_idx_RuleID` (`RuleID`),
+                      KEY `adkats_challenge_entry_idx_StartTime` (`StartTime`),
+                      KEY `adkats_challenge_entry_idx_CompleteTime` (`CompleteTime`),
+                      CONSTRAINT `adkats_challenge_entry_fk_Play erID` FOREIGN KEY (`PlayerID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE,
+                      CONSTRAINT `adkats_challenge_entry_fk_RuleID` FOREIGN KEY (`RuleID`) REFERENCES `adkats_challenge_rule` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Entries'", true);
+            }
+            if (!ConfirmTable("adkats_challenge_entry_detail"))
+            {
+                Log.Info("AdKats challenge entry detail table not found. Attempting to add.");
+                SendNonQuery("Adding challenge entry detail table", @"
+                    CREATE TABLE IF NOT EXISTS `adkats_challenge_entry_detail` (
+                      `EntryID` int(10) unsigned NOT NULL,
+                      `DetailID` int(10) unsigned NOT NULL,
+                      `VictimID` int(10) unsigned NOT NULL,
+                      `Weapon` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+                      `RoundID` int(10) unsigned NOT NULL,
+                      `DetailTime` datetime NOT NULL,
+                      PRIMARY KEY (`EntryID`, `DetailID`),
+                      KEY `adkats_challenge_entry_detail_idx_VictimID` (`VictimID`),
+                      KEY `adkats_challenge_entry_detail_idx_DetailTime` (`DetailTime`),
+                      CONSTRAINT `adkats_challenge_entry_detail_fk_EntryID` FOREIGN KEY (`EntryID`) REFERENCES `adkats_challenge_entry` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
+                      CONSTRAINT `adkats_challenge_entry_detail_fk_VictimID` FOREIGN KEY (`VictimID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Entry Details'", true);
+            }
             SendNonQuery("Updating setting value length to 10000.", "ALTER TABLE adkats_settings MODIFY setting_value varchar(10000)", false);
             return ConfirmTable("adkats_bans") &&
                    ConfirmTable("adkats_commands") &&
@@ -38095,6 +38207,11 @@ namespace PRoConEvents
                    ConfirmTable("adkats_orchestration") &&
                    ConfirmTable("adkats_statistics") &&
                    ConfirmTable("adkats_rolegroups") &&
+                   ConfirmTable("adkats_challenge_definition") &&
+                   ConfirmTable("adkats_challenge_definition_detail") &&
+                   ConfirmTable("adkats_challenge_rule") &&
+                   ConfirmTable("adkats_challenge_entry") &&
+                   ConfirmTable("adkats_challenge_entry_detail") &&
                    ConfirmTable("tbl_extendedroundstats") &&
                    !SendQuery("SELECT `TABLE_NAME` AS `table_name` FROM `INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA` = '" + _mySqlSchemaName + "' AND `TABLE_NAME` LIKE 'adkats_%' AND ENGINE <> 'InnoDB'", false);
         }
@@ -38491,7 +38608,7 @@ namespace PRoConEvents
                 if (ChallengeManager != null)
                 {
                     QueueSettingForUpload(new CPluginVariable(@"Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
-                    QueueSettingForUpload(new CPluginVariable(@"Challenge System Play Status Only", typeof(Boolean), ChallengeManager.PlayStatusOnly));
+                    QueueSettingForUpload(new CPluginVariable(@"Challenge System Auto-Assign Round rules", typeof(Boolean), ChallengeManager.AutoPlay));
                     QueueSettingForUpload(new CPluginVariable(@"Use Server-Wide Round Rules", typeof(Boolean), ChallengeManager.EnableServerRoundRules));
                 }
                 Log.Debug(() => "uploadAllSettings finished!", 6);
@@ -44431,8 +44548,12 @@ namespace PRoConEvents
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(139))
                                 {
-                                    SendNonQuery("Adding command self_challenge", "INSERT INTO `adkats_commands` VALUES(139, 'Active', 'self_challenge', 'Log', 'Challenge', 'challenge', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_challenge", "INSERT INTO `adkats_commands` VALUES(139, 'Active', 'self_challenge', 'Log', 'Challenge', 'ch', FALSE, 'Any')", true);
                                     newCommands = true;
+                                }
+                                else if (_CommandIDDictionary[139].command_text == "challenge")
+                                {
+                                    SendNonQuery("Updating command 139 text", "UPDATE `adkats_commands` SET `command_text` = 'ch' WHERE `command_id` = 139", false);
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(140))
                                 {
@@ -44615,8 +44736,8 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["poll_complete"] = "Completes the current active poll and runs its action.";
             _CommandDescriptionDictionary["server_nuke_winning"] = "Kills all players on the winning team.";
             _CommandDescriptionDictionary["player_loadout_ignore"] = "If AdKatsLRT is installed the targeted player is temporarily ignored for loadout enforcement.";
-            _CommandDescriptionDictionary["player_challenge_play"] = "A player under challenge playing status will be automatically enrolled in any active challenge if play status only is enabled. If play status only is not enabled then this is irrelevant.";
-            _CommandDescriptionDictionary["player_challenge_ignore"] = "A player under under challenge ignoring status will not be shown any challenge related messages, and as you'd expect cannot play in challenges without removing the ignore status.";
+            _CommandDescriptionDictionary["player_challenge_play"] = "A player under challenge playing status will be automatically enrolled in any active challenge if auto-assign is disabled.";
+            _CommandDescriptionDictionary["player_challenge_ignore"] = "A player under under challenge ignoring status will not be shown any challenge related messages.";
             _CommandDescriptionDictionary["self_challenge"] = "Personal control command for the challenge system.";
             _CommandDescriptionDictionary["player_challenge_autokill"] = "A player under challenge autokill status will be automatically slain when a challenge weapon is completed.";
             _CommandDescriptionDictionary["player_challenge_autokill_remove"] = "Removes a player from challenge autokill status.";
@@ -51691,7 +51812,7 @@ namespace PRoConEvents
 
             // Settings
             public Boolean Enabled;
-            public Boolean PlayStatusOnly;
+            public Boolean AutoPlay = true;
             public Boolean EnableServerRoundRules;
 
             public enum ChallengeState
@@ -52675,7 +52796,7 @@ namespace PRoConEvents
                         return;
                     }
                     // Check whitelisting case
-                    if (PlayStatusOnly && !_plugin.GetMatchingVerboseASPlayersOfGroup("challenge_play", player).Any())
+                    if (!AutoPlay && !_plugin.GetMatchingVerboseASPlayersOfGroup("challenge_play", player).Any())
                     {
                         return;
                     }
@@ -52901,7 +53022,10 @@ namespace PRoConEvents
                             var endedMessage = RoundRule.Name + " Round Challenge Ended! " + completedRoundRuleEntries.Count() + " player" + playerS + " completed it!";
                             _plugin.ProconChatWrite(_plugin.Log.CPink(endedMessage));
                             var roundMessage = "Round Winners: " + String.Join(", ", completedRoundRuleEntries.Select(entry => entry.Player.GetVerboseName()).ToArray());
-                            _plugin.ProconChatWrite(_plugin.Log.CPink(roundMessage));
+                            if (completedRoundRuleEntries.Any())
+                            {
+                                _plugin.ProconChatWrite(_plugin.Log.CPink(roundMessage));
+                            }
                             foreach (var aPlayer in notIgnoringPlayers)
                             {
                                 _plugin.PlayerSayMessage(aPlayer.player_name, endedMessage, false, 1);
