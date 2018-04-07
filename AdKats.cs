@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.139
+ * Version 7.0.1.140
  * 7-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.139</version_code>
+ * <version_code>7.0.1.140</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.139";
+        private const String PluginVersion = "7.0.1.140";
 
         public enum GameVersionEnum
         {
@@ -20763,6 +20763,12 @@ namespace PRoConEvents
                 record.record_time = UtcNow();
 
                 // Modify the command message if they are voting in a poll
+                if (_UseExperimentalTools)
+                {
+                    Log.Info("Command String: " + commandString);
+                    Log.Info("Poll active: " + (_ActivePoll != null).ToString());
+                    Log.Info("Remaining: " + remainingMessage);
+                }
                 Int32 resultVote;
                 if (_ActivePoll != null && 
                     Int32.TryParse(commandString, out resultVote))
@@ -33381,7 +33387,7 @@ namespace PRoConEvents
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " challenge playing status for all servers.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " challenge autokill status for all servers.";
                             SendMessageToSource(record, message);
                             Log.Debug(() => message, 3);
                             FetchAllAccess(true);
@@ -35389,10 +35395,9 @@ namespace PRoConEvents
                         //Previous Names
                         String playerNames = record.target_player.player_name;
                         List<ARecord> nameRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changename").command_id, 1000, 50, true, false).GroupBy(nameRecord => nameRecord.record_message).Select(group => group.First()).ToList();
-                        var validNameRecords = nameRecords.Where(rec => !String.IsNullOrEmpty(rec.record_message) && rec.record_message != record.target_player.player_name);
                         if (nameRecords.Any(rec => !String.IsNullOrEmpty(rec.record_message)))
                         {
-                            var previousNames = nameRecords.Where(rec => !String.IsNullOrEmpty(rec.record_message)).Select(rec => rec.record_message).ToArray();
+                            var previousNames = nameRecords.Where(rec => !String.IsNullOrEmpty(rec.record_message) && rec.record_message != record.target_player.player_name).Select(rec => rec.record_message).ToArray();
                             playerNames += ", " + String.Join(", ", previousNames);
                         }
                         SendMessageToSource(record, "Player names: " + playerNames);
@@ -36342,7 +36347,7 @@ namespace PRoConEvents
                     Threading.Wait(waitMS);
                     SendMessageToSource(record, commandText + " list (List of available challenges.)");
                     Threading.Wait(waitMS);
-                    SendMessageToSource(record, commandText + " list # (List of available tier # challenges.");
+                    SendMessageToSource(record, commandText + " list # (List of available tier # challenges.)");
                     Threading.Wait(waitMS);
                     SendMessageToSource(record, commandText + " # (Start challenge #.)");
                     Threading.Wait(waitMS);
