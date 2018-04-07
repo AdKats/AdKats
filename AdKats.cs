@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.137
+ * Version 7.0.1.138
  * 7-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.137</version_code>
+ * <version_code>7.0.1.138</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.137";
+        private const String PluginVersion = "7.0.1.138";
 
         public enum GameVersionEnum
         {
@@ -52638,7 +52638,7 @@ namespace PRoConEvents
                         if (verbose)
                         {
                             var commandText = _plugin.GetChatCommandByKey("self_challenge");
-                            player.Say("Now playing " + rule.Name + " challenge. For more info use " + commandText);
+                            player.Say(_plugin.Log.CPink("Now playing " + rule.Name + " challenge. For more info use " + commandText));
                         }
                         newEntry.RefreshProgress(null);
                         Entries.Add(newEntry);
@@ -53006,7 +53006,7 @@ namespace PRoConEvents
                                             Thread.Sleep(TimeSpan.FromSeconds(25));
 
                                             var startMessage = RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.";
-                                            _plugin.ProconChatWrite(_plugin.Log.CPink(startMessage));
+                                            _plugin.ProconChatWrite(_plugin.Log.FBold(_plugin.Log.CPink(startMessage)));
                                             // Only tell players about the new challenge if they don't already have a challenge assigned
                                             foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore").Where(player => player.ActiveChallenge == null))
                                             {
@@ -53063,7 +53063,7 @@ namespace PRoConEvents
                     if (EnableServerRoundRules && RoundRule != null)
                     {
                         var startMessage = RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.";
-                        _plugin.ProconChatWrite(_plugin.Log.CPink(startMessage));
+                        _plugin.ProconChatWrite(_plugin.Log.FBold(_plugin.Log.CPink(startMessage)));
                         // Only tell players about the new challenge if they don't already have a challenge assigned
                         foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore").Where(player => player.ActiveChallenge == null))
                         {
@@ -53138,7 +53138,7 @@ namespace PRoConEvents
                         chosenRule.DBPush(null);
                         RoundRule = chosenRule;
                         var startMessage = RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.";
-                        _plugin.ProconChatWrite(_plugin.Log.CPink(startMessage));
+                        _plugin.ProconChatWrite(_plugin.Log.FBold(_plugin.Log.CPink(startMessage)));
                         // Only tell players about the new challenge if they don't already have a challenge assigned
                         foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore").Where(player => player.ActiveChallenge == null))
                         {
@@ -56489,10 +56489,19 @@ namespace PRoConEvents
                             }
                             var commandText = _plugin.GetChatCommandByKey("self_challenge");
                             var completionSayMessage = commandText + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + Math.Round(CompletionPercentage) + "%] " + completion;
-                            kill.killer.Say(_plugin.Log.CPink(completionSayMessage));
+                            if (!String.IsNullOrEmpty(completion))
+                            {
+                                // We are complete, mark the message in pink
+                                completionSayMessage = _plugin.Log.CPink(completionSayMessage);
+                                kill.killer.Say(completionSayMessage);
+                            }
+                            else
+                            {
+                                _plugin.PlayerSayMessage(kill.killer.player_name, completionSayMessage, false, 1);
+                            }
                             if (autoKill)
                             {
-                                kill.killer.Yell(completion);
+                                _plugin.PlayerYellMessage(kill.killer.player_name, completion, false, 1);
                                 if (_plugin.GetMatchingVerboseASPlayersOfGroup("challenge_autokill", kill.killer).Any())
                                 {
                                     _plugin.Threading.Wait(1000);
