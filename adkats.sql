@@ -685,6 +685,99 @@ CREATE TABLE `adkats_rolegroups` (
   CONSTRAINT `adkats_rolegroups_fk_role` FOREIGN KEY (`role_id`) REFERENCES `adkats_roles` (`role_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Connection of groups to roles';
 
+DROP TABLE IF EXISTS `adkats_challenge_entry_detail`;
+DROP TABLE IF EXISTS `adkats_challenge_entry`;
+DROP TABLE IF EXISTS `adkats_challenge_rule`;
+DROP TABLE IF EXISTS `adkats_challenge_definition_detail`;
+DROP TABLE IF EXISTS `adkats_challenge_definition`;
+
+CREATE TABLE `adkats_challenge_definition` (
+  `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `Name` varchar(200) COLLATE utf8_unicode_ci NOT NULL,
+  `CreateTime` datetime NOT NULL,
+  `ModifyTime` datetime NOT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `adkats_challenge_definition_idx_Name` (`Name`),
+  KEY `adkats_challenge_definition_idx_CreateTime` (`CreateTime`),
+  KEY `adkats_challenge_definition_idx_ModifyTime` (`ModifyTime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Definitions';
+
+CREATE TABLE `adkats_challenge_definition_detail` (
+  `DefID` int(10) unsigned NOT NULL,
+  `DetailID` int(10) unsigned NOT NULL,
+  `Type` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
+  `Damage` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `WeaponCount` int(10) unsigned NOT NULL,
+  `Weapon` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `KillCount` int(10) unsigned NOT NULL,
+  `CreateTime` datetime NOT NULL,
+  `ModifyTime` datetime NOT NULL,
+  PRIMARY KEY (`DefID`, `DetailID`),
+  KEY `adkats_challenge_definition_detail_idx_CreateTime` (`CreateTime`),
+  KEY `adkats_challenge_definition_detail_idx_ModifyTime` (`ModifyTime`),
+  CONSTRAINT `adkats_challenge_definition_detail_fk_DefID` FOREIGN KEY (`DefID`) REFERENCES `adkats_challenge_definition` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Definition Details';
+
+CREATE TABLE `adkats_challenge_rule` (
+  `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `ServerID` smallint(5) unsigned NOT NULL,
+  `DefID` int(10) unsigned NOT NULL,
+  `Enabled` int(1) unsigned NOT NULL DEFAULT 1,
+  `Name` varchar(200) COLLATE utf8_unicode_ci NOT NULL,
+  `Tier` int(10) unsigned NOT NULL DEFAULT 1,
+  `CompletionType` varchar(100) COLLATE utf8_unicode_ci NOT NULL DEFAULT "None",
+  `RoundCount` int(10) unsigned NOT NULL DEFAULT 1,
+  `DurationMinutes` int(10) unsigned NOT NULL DEFAULT 60, -- 4294967295
+  `DeathCount` int(10) unsigned NOT NULL DEFAULT 1,
+  `CreateTime` datetime NOT NULL,
+  `ModifyTime` datetime NOT NULL,
+  `RoundLastUsedTime` datetime NOT NULL DEFAULT "1970-01-01 00:00:00",
+  `PersonalLastUsedTime` datetime NOT NULL DEFAULT "1970-01-01 00:00:00",
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `adkats_challenge_rule_idx_Name_Server` (`Name`, `ServerID`),
+  KEY `adkats_challenge_rule_idx_ServerID` (`ServerID`),
+  KEY `adkats_challenge_rule_idx_DefID` (`DefID`),
+  KEY `adkats_challenge_rule_idx_CreateTime` (`CreateTime`),
+  KEY `adkats_challenge_rule_idx_ModifyTime` (`ModifyTime`),
+  KEY `adkats_challenge_rule_idx_RoundLastUsedTime` (`RoundLastUsedTime`),
+  KEY `adkats_challenge_rule_idx_PersonalLastUsedTime` (`PersonalLastUsedTime`),
+  CONSTRAINT `adkats_challenge_rule_fk_ServerID` FOREIGN KEY (`ServerID`) REFERENCES `tbl_server` (`ServerID`) ON DELETE NO ACTION ON UPDATE CASCADE, -- No action for delete. If people move their servers, don't want to lose this record.
+  CONSTRAINT `adkats_challenge_rule_fk_DefID` FOREIGN KEY (`DefID`) REFERENCES `adkats_challenge_definition` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Rules';
+
+CREATE TABLE `adkats_challenge_entry` (
+  `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `PlayerID` int(10) unsigned NOT NULL,
+  `RuleID` int(10) unsigned NOT NULL,
+  `Completed` int(1) unsigned NOT NULL,
+  `Failed` int(1) unsigned NOT NULL,
+  `Canceled` int(1) unsigned NOT NULL,
+  `StartRound` int(10) unsigned NOT NULL,
+  `StartTime` datetime NOT NULL,
+  `CompleteTime` datetime NOT NULL,
+  PRIMARY KEY (`ID`),
+  KEY `adkats_challenge_entry_idx_PlayerID` (`PlayerID`),
+  KEY `adkats_challenge_entry_idx_RuleID` (`RuleID`),
+  KEY `adkats_challenge_entry_idx_StartTime` (`StartTime`),
+  KEY `adkats_challenge_entry_idx_CompleteTime` (`CompleteTime`),
+  CONSTRAINT `adkats_challenge_entry_fk_Play erID` FOREIGN KEY (`PlayerID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `adkats_challenge_entry_fk_RuleID` FOREIGN KEY (`RuleID`) REFERENCES `adkats_challenge_rule` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Entries';
+
+CREATE TABLE `adkats_challenge_entry_detail` (
+  `EntryID` int(10) unsigned NOT NULL,
+  `DetailID` int(10) unsigned NOT NULL,
+  `VictimID` int(10) unsigned NOT NULL,
+  `Weapon` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `RoundID` int(10) unsigned NOT NULL,
+  `DetailTime` datetime NOT NULL,
+  PRIMARY KEY (`EntryID`, `DetailID`),
+  KEY `adkats_challenge_entry_detail_idx_VictimID` (`VictimID`),
+  KEY `adkats_challenge_entry_detail_idx_DetailTime` (`DetailTime`),
+  CONSTRAINT `adkats_challenge_entry_detail_fk_EntryID` FOREIGN KEY (`EntryID`) REFERENCES `adkats_challenge_entry` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `adkats_challenge_entry_detail_fk_VictimID` FOREIGN KEY (`VictimID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Entry Details';
+
 SET FOREIGN_KEY_CHECKS=1;
 
 ALTER TABLE `adkats_bans`
