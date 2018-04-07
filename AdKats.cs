@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.135
+ * Version 7.0.1.136
  * 7-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.135</version_code>
+ * <version_code>7.0.1.136</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.135";
+        private const String PluginVersion = "7.0.1.136";
 
         public enum GameVersionEnum
         {
@@ -52898,7 +52898,9 @@ namespace PRoConEvents
                             var completedRoundRuleEntries = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule);
                             var playerS = completedRoundRuleEntries.Count() != 1 ? "s" : "";
                             var endedMessage = RoundRule.Name + " Round Challenge Ended! " + completedRoundRuleEntries.Count() + " player" + playerS + " completed it!";
+                            _plugin.ProconChatWrite(_plugin.Log.CPink(endedMessage));
                             var roundMessage = "Round Winners: " + String.Join(", ", completedRoundRuleEntries.Select(entry => entry.Player.GetVerboseName()).ToArray());
+                            _plugin.ProconChatWrite(_plugin.Log.CPink(roundMessage));
                             foreach (var aPlayer in notIgnoringPlayers)
                             {
                                 _plugin.PlayerSayMessage(aPlayer.player_name, endedMessage, false, 1);
@@ -52916,6 +52918,7 @@ namespace PRoConEvents
                         {
                             _plugin.Threading.Wait(TimeSpan.FromSeconds(5));
                             var personalMessage = "Personal Winners: " + String.Join(Environment.NewLine, completedPersonalChallenges.Select(entry => entry.Player.GetVerboseName() + " [" + entry.Rule.Name + "]").ToArray());
+                            _plugin.ProconChatWrite(_plugin.Log.CPink(personalMessage));
                             foreach (var aPlayer in notIgnoringPlayers)
                             {
                                 _plugin.PlayerSayMessage(aPlayer.player_name, personalMessage, false, 1);
@@ -52968,7 +52971,7 @@ namespace PRoConEvents
                         // Clear all of the completed round entries. We're starting a new list.
                         CompletedRoundEntries.Clear();
                     }
-                    if (EnableServerRoundRules)
+                    if (EnableServerRoundRules && !_plugin.EventActive())
                     {
                         // Make sure we don't have an active rule at this time.
                         if (RoundRule == null)
@@ -53000,10 +53003,13 @@ namespace PRoConEvents
                                         {
                                             Thread.CurrentThread.Name = "ChallengeRoundRuleAnnounce";
                                             Thread.Sleep(TimeSpan.FromSeconds(25));
+
+                                            var startMessage = RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.";
+                                            _plugin.ProconChatWrite(_plugin.Log.CPink(startMessage));
                                             // Only tell players about the new challenge if they don't already have a challenge assigned
                                             foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore").Where(player => player.ActiveChallenge == null))
                                             {
-                                                _plugin.PlayerTellMessage(player.player_name, RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.", false, 1);
+                                                _plugin.PlayerTellMessage(player.player_name, startMessage, false, 1);
                                             }
                                             _plugin.Threading.StopWatchdog();
                                         })));
@@ -53055,10 +53061,12 @@ namespace PRoConEvents
                     }
                     if (EnableServerRoundRules && RoundRule != null)
                     {
+                        var startMessage = RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.";
+                        _plugin.ProconChatWrite(_plugin.Log.CPink(startMessage));
                         // Only tell players about the new challenge if they don't already have a challenge assigned
                         foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore").Where(player => player.ActiveChallenge == null))
                         {
-                            _plugin.PlayerTellMessage(player.player_name, RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.", false, 1);
+                            _plugin.PlayerTellMessage(player.player_name, startMessage, false, 1);
                         }
                     }
                     ChallengeRoundState = ChallengeState.Playing;
@@ -53118,14 +53126,22 @@ namespace PRoConEvents
                             _plugin.Log.Error("Rule " + chosenRule.ToString() + " isn't round completion or doesn't have a round count of 1, unable to start rule.");
                             return;
                         }
+                        if (_plugin.EventActive())
+                        {
+                            // Challenges are not allowed during events
+                            _plugin.Log.Error("Server-wide challenges cannot activate during events.");
+                            return;
+                        }
                         CancelActiveRoundRule();
                         chosenRule.RoundLastUsedTime = _plugin.UtcNow();
                         chosenRule.DBPush(null);
                         RoundRule = chosenRule;
+                        var startMessage = RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.";
+                        _plugin.ProconChatWrite(_plugin.Log.CPink(startMessage));
                         // Only tell players about the new challenge if they don't already have a challenge assigned
                         foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore").Where(player => player.ActiveChallenge == null))
                         {
-                            _plugin.PlayerTellMessage(player.player_name, RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.", false, 1);
+                            _plugin.PlayerTellMessage(player.player_name, startMessage, false, 1);
                         }
                     }
                 }
@@ -55508,12 +55524,16 @@ namespace PRoConEvents
                             _plugin.Log.Error("Attempted to complete challenge without 100% completion.");
                             return;
                         }
+                        var spacer = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -";
+                        var finishing = Player.GetVerboseName() + " finished tier " + Rule.Tier + " challenge";
+                        var gratz = Rule.Name + "! Congrats!";
+                        _plugin.ProconChatWrite(_plugin.Log.CPink(finishing + " " + gratz));
                         foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore"))
                         {
-                            _plugin.PlayerSayMessage(player.player_name, "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -", false, 1);
-                            _plugin.PlayerSayMessage(player.player_name, Player.GetVerboseName() + " finished tier " + Rule.Tier + " challenge");
-                            _plugin.PlayerSayMessage(player.player_name, Rule.Name + "! Congrats!");
-                            _plugin.PlayerSayMessage(player.player_name, "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -", false, 1);
+                            _plugin.PlayerSayMessage(player.player_name, spacer, false, 1);
+                            _plugin.PlayerSayMessage(player.player_name, finishing, false, 1);
+                            _plugin.PlayerSayMessage(player.player_name, gratz, false, 1);
+                            _plugin.PlayerSayMessage(player.player_name, spacer, false, 1);
                         }
                         Completed = true;
                         CompleteTime = _plugin.UtcNow();
@@ -56467,7 +56487,8 @@ namespace PRoConEvents
                                 return;
                             }
                             var commandText = _plugin.GetChatCommandByKey("self_challenge");
-                            kill.killer.Say("" + commandText + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + Math.Round(CompletionPercentage) + "%] " + completion);
+                            var completionSayMessage = commandText + " " + weaponName + " [" + completedKills + "/" + requiredKills + "][" + Math.Round(CompletionPercentage) + "%] " + completion;
+                            kill.killer.Say(_plugin.Log.CPink(completionSayMessage));
                             if (autoKill)
                             {
                                 kill.killer.Yell(completion);
@@ -56475,7 +56496,7 @@ namespace PRoConEvents
                                 {
                                     _plugin.Threading.Wait(1000);
                                     _plugin.ExecuteCommand("procon.protected.send", "admin.killPlayer", kill.killer.player_name);
-                                    kill.killer.Say("Killed automatically. To disable type " + commandText + " autokill");
+                                    kill.killer.Say(_plugin.Log.CPink("Killed automatically. To disable type " + commandText + " autokill"));
                                 }
                                 else if (!Entry.AutoKillTold)
                                 {
