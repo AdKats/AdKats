@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.140
+ * Version 7.0.1.141
  * 7-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.140</version_code>
+ * <version_code>7.0.1.141</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.140";
+        private const String PluginVersion = "7.0.1.141";
 
         public enum GameVersionEnum
         {
@@ -20763,19 +20763,13 @@ namespace PRoConEvents
                 record.record_time = UtcNow();
 
                 // Modify the command message if they are voting in a poll
-                if (_UseExperimentalTools)
-                {
-                    Log.Info("Command String: " + commandString);
-                    Log.Info("Poll active: " + (_ActivePoll != null).ToString());
-                    Log.Info("Remaining: " + remainingMessage);
-                }
                 Int32 resultVote;
                 if (_ActivePoll != null && 
                     Int32.TryParse(commandString, out resultVote))
                 {
                     // They entered a format consistent with the xVoteMap voting method. !2, /2, etc
                     // Reformat the text so AdKats understands it as the vote command
-                    commandString = GetChatCommandByKey("poll_vote");
+                    commandString = GetCommandByKey("poll_vote").command_text;
                     // Set the parameter for the vote command to the number they entered
                     remainingMessage = resultVote.ToString();
                 }
