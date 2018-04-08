@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.141
+ * Version 7.0.1.142
  * 7-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.141</version_code>
+ * <version_code>7.0.1.142</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.141";
+        private const String PluginVersion = "7.0.1.142";
 
         public enum GameVersionEnum
         {
@@ -36395,7 +36395,7 @@ namespace PRoConEvents
                                 foreach (var ruleString in ruleStrings)
                                 {
                                     SendMessageToSource(record, "" + commandText + " " + ruleString);
-                                    Threading.Wait(1500);
+                                    Threading.Wait(1800);
                                 }
                             }
                             catch (Exception e)
@@ -36481,6 +36481,30 @@ namespace PRoConEvents
                         Log.Debug(() => "Exiting a challenge progress printer.", 5);
                         Threading.StopWatchdog();
                     })));
+                }
+                else if (option == "k")
+                {
+                    if (record.target_player != null &&
+                        GetMatchingVerboseASPlayersOfGroup("challenge_ignore", record.target_player).Any())
+                    {
+                        SendMessageToSource(record, "You are currently ignoring challenges. To stop ignoring challenges type " + commandText + " ignore");
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    if (record.target_player.ActiveChallenge == null)
+                    {
+                        SendMessageToSource(record, "You do not have a challenge active.");
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    if (!record.target_player.ActiveChallenge.kAllowed)
+                    {
+                        SendMessageToSource(record, "You must complete a challenge weapon to use the challenge admin kill.");
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    ExecuteCommand("procon.protected.send", "admin.killPlayer", record.target_player.player_name);
+                    record.target_player.ActiveChallenge.kAllowed = false;
                 }
                 else if (option == "autokill")
                 {
@@ -55475,6 +55499,7 @@ namespace PRoConEvents
                 public String LastCompletedWeapon;
                 public Boolean AutoKillTold;
                 public Boolean Died;
+                public Boolean kAllowed;
 
                 public CEntry(AdKats plugin, AChallengeManager manager, APlayer player, CRule rule, Int32 startingRound, Boolean phantom)
                 {
@@ -55651,7 +55676,7 @@ namespace PRoConEvents
                         var spacer = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -";
                         var finishing = Player.GetVerboseName() + " finished tier " + Rule.Tier + " challenge";
                         var gratz = Rule.Name + "! Congrats!";
-                        _plugin.ProconChatWrite(_plugin.Log.CPink(finishing + " " + gratz));
+                        _plugin.ProconChatWrite(_plugin.Log.FBold(_plugin.Log.CPink(finishing + " " + gratz)));
                         foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore"))
                         {
                             _plugin.PlayerSayMessage(player.player_name, spacer, false, 1);
@@ -56285,14 +56310,14 @@ namespace PRoConEvents
                                     return;
                                 }
                                 var deathS = deathsRemaining != 1 ? "s" : "";
-                                Player.Say(commandText + " You have " + deathsRemaining + " death" + deathS + " remaining.");
+                                _plugin.PlayerSayMessage(Player.player_name, commandText + " You have " + deathsRemaining + " death" + deathS + " remaining.", false, 1);
                                 Died = true;
                             }
                             else if (Rule.Completion == CRule.CompletionType.Duration)
                             {
                                 var completionTime = StartTime + TimeSpan.FromMinutes(Rule.DurationMinutes);
                                 var completionDuration = _plugin.NowDuration(completionTime);
-                                Player.Say(commandText + " You have " + _plugin.FormatTimeString(completionDuration, 3) + " remaining.");
+                                _plugin.PlayerSayMessage(Player.player_name, commandText + " You have " + _plugin.FormatTimeString(completionDuration, 3) + " remaining.", false, 1);
                                 Died = true;
                             }
                         }
@@ -56591,14 +56616,14 @@ namespace PRoConEvents
                             String weaponName = _plugin.WeaponDictionary.GetShortWeaponNameByCode(kill.weaponCode);
                             String completion = "";
                             var respond = true;
-                            var autoKill = false;
+                            var completeFlag = false;
                             if (weaponCompletionPercentage >= 99.999)
                             {
                                 completion = "COMPLETED!";
                                 if (CompletionPercentage < 99.999)
                                 {
                                     completion += " Try another weapon!";
-                                    autoKill = true;
+                                    completeFlag = true;
                                 }
                                 if (Entry.LastCompletedWeapon == kill.weaponCode)
                                 {
@@ -56622,19 +56647,20 @@ namespace PRoConEvents
                             {
                                 _plugin.PlayerSayMessage(kill.killer.player_name, completionSayMessage, false, 1);
                             }
-                            if (autoKill)
+                            if (completeFlag)
                             {
                                 _plugin.PlayerYellMessage(kill.killer.player_name, completion, false, 1);
                                 if (_plugin.GetMatchingVerboseASPlayersOfGroup("challenge_autokill", kill.killer).Any())
                                 {
-                                    _plugin.Threading.Wait(1000);
+                                    _plugin.Threading.Wait(250);
                                     _plugin.ExecuteCommand("procon.protected.send", "admin.killPlayer", kill.killer.player_name);
                                     kill.killer.Say(_plugin.Log.CPink("Killed automatically. To disable type " + commandText + " autokill"));
                                 }
                                 else if (!Entry.AutoKillTold)
                                 {
-                                    kill.killer.Say("Want To be killed automatically when you complete a challenge weapon? Type " + commandText + " autokill");
+                                    kill.killer.Say("Manual admin kill: " + commandText + " k | Auto admin kill: " + commandText + " autokill");
                                     Entry.AutoKillTold = true;
+                                    Entry.kAllowed = true;
                                 }
                             }
                             return;
