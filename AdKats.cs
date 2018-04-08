@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.142
+ * Version 7.0.1.143
  * 7-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.142</version_code>
+ * <version_code>7.0.1.143</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.142";
+        private const String PluginVersion = "7.0.1.143";
 
         public enum GameVersionEnum
         {
@@ -36345,6 +36345,8 @@ namespace PRoConEvents
                     Threading.Wait(waitMS);
                     SendMessageToSource(record, commandText + " # (Start challenge #.)");
                     Threading.Wait(waitMS);
+                    SendMessageToSource(record, commandText + " k (Activates after you complete a challenge weapon. Admin slays you manually.)");
+                    Threading.Wait(waitMS);
                     SendMessageToSource(record, commandText + " autokill (Toggle being automatically slain when completing challenge weapons.)");
                     Threading.Wait(waitMS);
                     SendMessageToSource(record, commandText + " ignore (Toggle ignoring the challenge system completely.)");
@@ -36504,6 +36506,7 @@ namespace PRoConEvents
                         return;
                     }
                     ExecuteCommand("procon.protected.send", "admin.killPlayer", record.target_player.player_name);
+                    record.target_player.Say(Log.CPink("Challenge admin kill activated."));
                     record.target_player.ActiveChallenge.kAllowed = false;
                 }
                 else if (option == "autokill")
