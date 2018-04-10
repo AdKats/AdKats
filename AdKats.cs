@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.143
- * 7-APR-2018
+ * Version 7.0.1.144
+ * 9-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.143</version_code>
+ * <version_code>7.0.1.144</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.143";
+        private const String PluginVersion = "7.0.1.144";
 
         public enum GameVersionEnum
         {
@@ -56659,10 +56659,13 @@ namespace PRoConEvents
                                     _plugin.ExecuteCommand("procon.protected.send", "admin.killPlayer", kill.killer.player_name);
                                     kill.killer.Say(_plugin.Log.CPink("Killed automatically. To disable type " + commandText + " autokill"));
                                 }
-                                else if (!Entry.AutoKillTold)
+                                else 
                                 {
-                                    kill.killer.Say("Manual admin kill: " + commandText + " k | Auto admin kill: " + commandText + " autokill");
-                                    Entry.AutoKillTold = true;
+                                    if (!Entry.AutoKillTold)
+                                    {
+                                        kill.killer.Say("Manual admin kill: " + commandText + " k | Auto admin kill: " + commandText + " autokill");
+                                        Entry.AutoKillTold = true;
+                                    }
                                     Entry.kAllowed = true;
                                 }
                             }
