@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.144
- * 9-APR-2018
+ * Version 7.0.1.145
+ * 11-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.144</version_code>
+ * <version_code>7.0.1.145</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.144";
+        private const String PluginVersion = "7.0.1.145";
 
         public enum GameVersionEnum
         {
@@ -53020,80 +53020,90 @@ namespace PRoConEvents
                     if (ChallengeRoundState != ChallengeState.Playing)
                     {
                         // We're not, get out of here.
-                        _plugin.Log.Warn("Attempted to end challenge round when not in playing state.");
-                        return;
+                        _plugin.Log.Warn("Ended challenge round when not in playing state. State was " + ChallengeRoundState.ToString() + ".");
                     }
-                    if (LoadedRoundID != roundID)
-                    {
-                        _plugin.Log.Error("Attempted to process challenge round end with invalid round ID " + roundID + ", original round loaded was " + LoadedRoundID);
-                        return;
-                    }
-                    
+
                     // This needs to be done async to prevent AdKats from blocking the main procon event thread
                     _plugin.Threading.StartWatchdog(new Thread(new ThreadStart(delegate
                     {
                         Thread.CurrentThread.Name = "ChallengeRoundEnd";
                         // Wait for any round-end messages to fire
                         _plugin.Threading.Wait(TimeSpan.FromSeconds(15));
-                        List<CEntry> completedPersonalChallenges;
-                        List<CEntry> completedRoundRuleChallenges;
-                        var notIgnoringPlayers = _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore");
-                        if (RoundRule != null)
-                        {
-                            completedRoundRuleChallenges = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule).ToList();
-                            completedPersonalChallenges = GetCompletedRoundEntries().Where(entry => entry.Rule != RoundRule).ToList();
-                            // Congrats to the winners
-                            var completedRoundRuleEntries = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule);
-                            var playerS = completedRoundRuleEntries.Count() != 1 ? "s" : "";
-                            var endedMessage = RoundRule.Name + " Round Challenge Ended! " + completedRoundRuleEntries.Count() + " player" + playerS + " completed it!";
-                            _plugin.ProconChatWrite(_plugin.Log.CPink(endedMessage));
-                            var roundMessage = "Round Winners: " + String.Join(", ", completedRoundRuleEntries.Select(entry => entry.Player.GetVerboseName()).ToArray());
-                            if (completedRoundRuleEntries.Any())
-                            {
-                                _plugin.ProconChatWrite(_plugin.Log.CPink(roundMessage));
-                            }
-                            foreach (var aPlayer in notIgnoringPlayers)
-                            {
-                                _plugin.PlayerSayMessage(aPlayer.player_name, endedMessage, false, 1);
-                                if (completedRoundRuleEntries.Any())
-                                {
-                                    _plugin.PlayerSayMessage(aPlayer.player_name, roundMessage, false, 1);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            completedPersonalChallenges = GetCompletedRoundEntries();
-                        }
-                        if (completedPersonalChallenges.Any())
-                        {
-                            _plugin.Threading.Wait(TimeSpan.FromSeconds(5));
-                            var personalMessage = "Personal Winners: " + String.Join(Environment.NewLine, completedPersonalChallenges.Select(entry => entry.Player.GetVerboseName() + " [" + entry.Rule.Name + "]").ToArray());
-                            _plugin.ProconChatWrite(_plugin.Log.CPink(personalMessage));
-                            foreach (var aPlayer in notIgnoringPlayers)
-                            {
-                                _plugin.PlayerSayMessage(aPlayer.player_name, personalMessage, false, 1);
-                            }
-                        }
-                        // Trigger the state change
-                        ChallengeRoundState = ChallengeState.Ended;
-                        // Fail the active round rule if applicable
-                        FailActiveRoundRule();
-                        // Fail the challenges which are controlled by round count and weren't completed
-                        var roundEntries = GetEntries().Where(entry => entry.Rule.Completion == CRule.CompletionType.Rounds &&
-                                                                       !entry.Completed &&
-                                                                       !entry.Failed &&
-                                                                       !entry.Canceled);
-                        foreach (var entry in roundEntries)
-                        {
-                            entry.CheckFailure();
-                        }
+                        SyncOnRoundEnd(roundID);
                         _plugin.Threading.StopWatchdog();
                     })));
                 }
                 catch (Exception e)
                 {
                     _plugin.Log.HandleException(new AException("Error while running round end logic.", e));
+                }
+            }
+
+            private void SyncOnRoundEnd(Int32 roundID) 
+            {
+                try
+                {
+                    if (!Enabled)
+                    {
+                        return;
+                    }
+                    List<CEntry> completedPersonalChallenges;
+                    List<CEntry> completedRoundRuleChallenges;
+                    var notIgnoringPlayers = _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore");
+                    if (RoundRule != null)
+                    {
+                        completedRoundRuleChallenges = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule).ToList();
+                        completedPersonalChallenges = GetCompletedRoundEntries().Where(entry => entry.Rule != RoundRule).ToList();
+                        // Congrats to the winners
+                        var completedRoundRuleEntries = GetCompletedRoundEntries().Where(entry => entry.Rule == RoundRule);
+                        var playerS = completedRoundRuleEntries.Count() != 1 ? "s" : "";
+                        var endedMessage = RoundRule.Name + " Round Challenge Ended! " + completedRoundRuleEntries.Count() + " player" + playerS + " completed it!";
+                        _plugin.ProconChatWrite(_plugin.Log.CPink(endedMessage));
+                        var roundMessage = "Round Winners: " + String.Join(", ", completedRoundRuleEntries.Select(entry => entry.Player.GetVerboseName()).ToArray());
+                        if (completedRoundRuleEntries.Any())
+                        {
+                            _plugin.ProconChatWrite(_plugin.Log.CPink(roundMessage));
+                        }
+                        foreach (var aPlayer in notIgnoringPlayers)
+                        {
+                            _plugin.PlayerSayMessage(aPlayer.player_name, endedMessage, false, 1);
+                            if (completedRoundRuleEntries.Any())
+                            {
+                                _plugin.PlayerSayMessage(aPlayer.player_name, roundMessage, false, 1);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        completedPersonalChallenges = GetCompletedRoundEntries();
+                    }
+                    if (completedPersonalChallenges.Any())
+                    {
+                        _plugin.Threading.Wait(TimeSpan.FromSeconds(3));
+                        var personalMessage = "Personal Winners: " + String.Join(Environment.NewLine, completedPersonalChallenges.Select(entry => entry.Player.GetVerboseName() + " [" + entry.Rule.Name + "]").ToArray());
+                        _plugin.ProconChatWrite(_plugin.Log.CPink(personalMessage));
+                        foreach (var aPlayer in notIgnoringPlayers)
+                        {
+                            _plugin.PlayerSayMessage(aPlayer.player_name, personalMessage, false, 1);
+                        }
+                    }
+                    // Trigger the state change
+                    ChallengeRoundState = ChallengeState.Ended;
+                    // Fail the active round rule if applicable
+                    FailActiveRoundRule();
+                    // Fail the challenges which are controlled by round count and weren't completed
+                    var roundEntries = GetEntries().Where(entry => entry.Rule.Completion == CRule.CompletionType.Rounds &&
+                                                                   !entry.Completed &&
+                                                                   !entry.Failed &&
+                                                                   !entry.Canceled);
+                    foreach (var entry in roundEntries)
+                    {
+                        entry.CheckFailure();
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while running round end sync logic.", e));
                 }
             }
 
@@ -53108,6 +53118,12 @@ namespace PRoConEvents
                     if (_plugin._UseExperimentalTools)
                     {
                         _plugin.Log.Warn("Challenge mananger round load triggered for round " + roundID);
+                    }
+                    if (ChallengeRoundState == ChallengeState.Playing) 
+                    {
+                        // We are still in playing state, this is likely due to a server crash or other oddity. Run the end trigger to change the state.
+                        _plugin.Log.Warn("Challenge manager was in Playing state when loading round. Was expecting Ended. Fixing this state.");
+                        SyncOnRoundEnd(roundID);
                     }
                     // Confirm we are in valid state to load.
                     if (ChallengeRoundState != ChallengeState.Ended &&
