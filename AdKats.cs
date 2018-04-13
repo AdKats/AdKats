@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.145
- * 11-APR-2018
+ * Version 7.0.1.146
+ * 13-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.145</version_code>
+ * <version_code>7.0.1.146</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.145";
+        private const String PluginVersion = "7.0.1.146";
 
         public enum GameVersionEnum
         {
@@ -15532,7 +15532,7 @@ namespace PRoConEvents
                         break;
                     case AEventOption.RuleCode.BSO:
                         // BOLT ACTIONS ONLY!
-                        if ((aKill.weaponDamage != DamageTypes.SniperRifle || aKill.weaponCode == "U_SR338") &&
+                        if ((aKill.weaponDamage != DamageTypes.SniperRifle) &&
                             aKill.weaponCode != "DamageArea")
                         {
                             return true;
@@ -53029,7 +53029,7 @@ namespace PRoConEvents
                         Thread.CurrentThread.Name = "ChallengeRoundEnd";
                         // Wait for any round-end messages to fire
                         _plugin.Threading.Wait(TimeSpan.FromSeconds(15));
-                        SyncOnRoundEnd(roundID);
+                        SyncOnRoundEnded(roundID);
                         _plugin.Threading.StopWatchdog();
                     })));
                 }
@@ -53039,7 +53039,7 @@ namespace PRoConEvents
                 }
             }
 
-            private void SyncOnRoundEnd(Int32 roundID) 
+            private void SyncOnRoundEnded(Int32 roundID) 
             {
                 try
                 {
@@ -53123,7 +53123,7 @@ namespace PRoConEvents
                     {
                         // We are still in playing state, this is likely due to a server crash or other oddity. Run the end trigger to change the state.
                         _plugin.Log.Warn("Challenge manager was in Playing state when loading round. Was expecting Ended. Fixing this state.");
-                        SyncOnRoundEnd(roundID);
+                        SyncOnRoundEnded(roundID);
                     }
                     // Confirm we are in valid state to load.
                     if (ChallengeRoundState != ChallengeState.Ended &&
@@ -53138,6 +53138,7 @@ namespace PRoConEvents
                         // Clear all of the completed round entries. We're starting a new list.
                         CompletedRoundEntries.Clear();
                     }
+                    // Do not start a server-wide round rule during an event
                     if (EnableServerRoundRules && !_plugin.EventActive())
                     {
                         // Make sure we don't have an active rule at this time.
@@ -53189,7 +53190,7 @@ namespace PRoConEvents
                             }
                             else
                             {
-                                _plugin.Log.Warn("Server-wide round rules enabled, but none available. They must be enabled, completion type Rounds, and have duration of 1 round.");
+                                _plugin.Log.Warn("Server-wide round rules enabled but none available. They must be enabled, tier 1, completion type Rounds, and have duration of 1 round.");
                             }
                         }
                         else
@@ -59081,6 +59082,16 @@ namespace PRoConEvents
                             {
                                 // This is the phantom bow. Change it to sniper rifle damage type.
                                 dWeapon.Damage = DamageTypes.SniperRifle;
+                            }
+                            if (dWeapon.Code == "U_SR338")
+                            {
+                                // This is a DMR incorrectly categorized as sniper damage
+                                dWeapon.Damage = DamageTypes.DMR;
+                            }
+                            if (dWeapon.Code == "U_BallisticShield")
+                            {
+                                // This is the shield incorrectly categorized as impact damage.
+                                dWeapon.Damage = DamageTypes.Melee;
                             }
                             if (dWeapon.Code.ToLower() == "roadkill")
                             {
