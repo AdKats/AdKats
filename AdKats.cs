@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.147
+ * Version 7.0.1.148
  * 13-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.147</version_code>
+ * <version_code>7.0.1.148</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.147";
+        private const String PluginVersion = "7.0.1.148";
 
         public enum GameVersionEnum
         {
@@ -55663,7 +55663,7 @@ namespace PRoConEvents
                             }
                             percentage = Math.Round(Progress.CompletionPercentage) + "%";
                         }
-                        _plugin.PlayerSayMessage(Player.player_name, Rule.Name + " challenge FAILED at " + percentage + " complete.", false, 1);
+                        _plugin.PlayerSayMessage(Player.player_name, _plugin.Log.CPink(Rule.Name + " challenge FAILED at " + percentage + " complete."), Manager.ChallengeRoundState == ChallengeState.Playing, 1);
                         Failed = true;
                         CompleteTime = _plugin.UtcNow();
                         DBPush(null);
