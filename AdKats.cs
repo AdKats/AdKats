@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.146
+ * Version 7.0.1.147
  * 13-APR-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.146</version_code>
+ * <version_code>7.0.1.147</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.146";
+        private const String PluginVersion = "7.0.1.147";
 
         public enum GameVersionEnum
         {
@@ -36436,6 +36436,10 @@ namespace PRoConEvents
                             Threading.Wait(100);
                             foreach (var message in infoMessages)
                             {
+                                if (String.IsNullOrEmpty(message.Replace(Environment.NewLine, "").Trim()))
+                                {
+                                    continue;
+                                }
                                 SendMessageToSource(record, message);
                                 Threading.Wait(1500);
                             }
@@ -36472,6 +36476,10 @@ namespace PRoConEvents
                             Threading.Wait(100);
                             foreach (var message in progressMessages)
                             {
+                                if (String.IsNullOrEmpty(message.Replace(Environment.NewLine, "").Trim()))
+                                {
+                                    continue;
+                                }
                                 SendMessageToSource(record, message);
                                 Threading.Wait(1500);
                             }
@@ -36496,6 +36504,12 @@ namespace PRoConEvents
                     if (record.target_player.ActiveChallenge == null)
                     {
                         SendMessageToSource(record, "You do not have a challenge active.");
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    if (GetMatchingVerboseASPlayersOfGroup("challenge_autokill", record.target_player).Any())
+                    {
+                        SendMessageToSource(record, "You have autokill enabled, you will be slain automatically. No need to manually request it.");
                         FinalizeRecord(record);
                         return;
                     }
