@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.148
- * 13-APR-2018
+ * Version 7.0.1.149
+ * 13-MAY-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.148</version_code>
+ * <version_code>7.0.1.149</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.148";
+        private const String PluginVersion = "7.0.1.149";
 
         public enum GameVersionEnum
         {
@@ -52492,6 +52492,9 @@ namespace PRoConEvents
                         var startTime = _plugin.UtcNow();
                         using (MySqlCommand command = localConnection.CreateCommand())
                         {
+                            var ignoreDone = @" AND `ace`.`Completed` = 0
+                                                AND `ace`.`Canceled` = 0
+                                                AND `ace`.`Failed` = 0 ";
                             command.CommandText = @"
                               SELECT `ace`.`ID`,
                                      `ace`.`PlayerID`,
@@ -52505,9 +52508,11 @@ namespace PRoConEvents
                                 FROM `adkats_challenge_entry` `ace`
                                 JOIN `adkats_challenge_rule` `acr`
                                   ON `ace`.`RuleID` = `acr`.`ID`
-                               WHERE `acr`.`ServerID` = 1
+                               WHERE `acr`.`ServerID` = @ServerID " +
+                               (Entries.Any() ? ignoreDone : "") + @" 
                             ORDER BY `PlayerID` ASC, `RuleID` ASC, `ID` ASC";
                             var entryChecks = new List<CEntry>();
+                            command.Parameters.AddWithValue("@ServerID", _plugin._serverInfo.ServerID);
                             using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
                             {
                                 lock (Entries)
@@ -52515,8 +52520,7 @@ namespace PRoConEvents
                                     while (reader.Read())
                                     {
                                         var readID = reader.GetInt64("ID");
-                                        var entry = Entries.FirstOrDefault(dEntry => dEntry.ID == readID);
-                                        if (entry != null)
+                                        if (Entries.Any(dEntry => dEntry.ID == readID))
                                         {
                                             // This entry is already loaded. Ignore it.
                                             continue;
@@ -52524,7 +52528,7 @@ namespace PRoConEvents
                                         var playerID = reader.GetInt64("PlayerID");
                                         var ruleID = reader.GetInt64("RuleID");
                                         var startRound = reader.GetInt32("StartRound");
-                                        entry = new CEntry(_plugin, this, _plugin.FetchPlayer(false, false, false, null, playerID, null, null, null, null), GetRule(ruleID), startRound, false);
+                                        var entry = new CEntry(_plugin, this, _plugin.FetchPlayer(false, false, false, null, playerID, null, null, null, null), GetRule(ruleID), startRound, false);
                                         entry.ID = readID;
                                         if (entry.Player == null)
                                         {
@@ -52547,18 +52551,15 @@ namespace PRoConEvents
                                 }
                             }
                             // These must be executed afterward, otherwise it would cause overlapping readers on the same connection
-                            foreach (var entry in entryChecks)
+                            foreach (var entry in entryChecks.Where(ent => !ent.Completed && !ent.Canceled && !ent.Failed))
                             {
                                 // Check to see if the entry has failed
                                 entry.CheckFailure();
-                                // Read in the details and refresh progress only if we care about it
-                                if (!entry.Completed && !entry.Canceled && !entry.Failed)
+                                // Read in the details and refresh progress
+                                entry.DBReadDetails(localConnection);
+                                if (entry.Progress == null)
                                 {
-                                    entry.DBReadDetails(localConnection);
-                                    if (entry.Progress == null)
-                                    {
-                                        entry.RefreshProgress(null);
-                                    }
+                                    entry.RefreshProgress(null);
                                 }
                             }
                         }
