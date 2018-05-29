@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.149
- * 13-MAY-2018
+ * Version 7.0.1.150
+ * 29-MAY-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.149</version_code>
+ * <version_code>7.0.1.150</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.149";
+        private const String PluginVersion = "7.0.1.150";
 
         public enum GameVersionEnum
         {
@@ -15800,7 +15800,7 @@ namespace PRoConEvents
                             target_name = aKill.killer.player_name,
                             target_player = aKill.killer,
                             source_name = "AutoAdmin",
-                            record_message = _AntiCheatKPMBanMessage + " [LIVE][5-L-" + lowCountRecent + "]",
+                            record_message = _AntiCheatKPMBanMessage + " [LIVE][5-L" + lowCountBan + "-" + lowCountRecent + "]",
                             record_time = UtcNow()
                         });
                         return;
@@ -15820,7 +15820,7 @@ namespace PRoConEvents
                             target_name = aKill.killer.player_name,
                             target_player = aKill.killer,
                             source_name = "AutoAdmin",
-                            record_message = _AntiCheatKPMBanMessage + " [LIVE][5-H-" + highCountRecent + "]",
+                            record_message = _AntiCheatKPMBanMessage + " [LIVE][5-H" + highCountBan + "-" + highCountRecent + "]",
                             record_time = UtcNow()
                         });
                         return;
@@ -15850,11 +15850,11 @@ namespace PRoConEvents
                         String actionMessage = null;
                         if (countAll >= lowKillCount && lowKillHSKP >= lowKillTriggerHSKP)
                         {
-                            actionMessage = _AntiCheatHSKBanMessage + " [LIVE][6-L-" + countAll + "-" + Math.Round(lowKillHSKP) + "]";
+                            actionMessage = _AntiCheatHSKBanMessage + " [LIVE][6-L" + lowKillCount + "-" + countAll + "-" + Math.Round(lowKillHSKP) + "]";
                         }
                         else if (countAll >= highKillCount && highKillHSKP >= highKillTriggerHSKP)
                         {
-                            actionMessage = _AntiCheatHSKBanMessage + " [LIVE][6-H-" + countAll + "-" + Math.Round(highKillHSKP) + "]";
+                            actionMessage = _AntiCheatHSKBanMessage + " [LIVE][6-H" + highKillCount + "-" + countAll + "-" + Math.Round(highKillHSKP) + "]";
                         }
                         if (!String.IsNullOrEmpty(actionMessage))
                         {
@@ -52492,9 +52492,6 @@ namespace PRoConEvents
                         var startTime = _plugin.UtcNow();
                         using (MySqlCommand command = localConnection.CreateCommand())
                         {
-                            var ignoreDone = @" AND `ace`.`Completed` = 0
-                                                AND `ace`.`Canceled` = 0
-                                                AND `ace`.`Failed` = 0 ";
                             command.CommandText = @"
                               SELECT `ace`.`ID`,
                                      `ace`.`PlayerID`,
@@ -52508,8 +52505,10 @@ namespace PRoConEvents
                                 FROM `adkats_challenge_entry` `ace`
                                 JOIN `adkats_challenge_rule` `acr`
                                   ON `ace`.`RuleID` = `acr`.`ID`
-                               WHERE `acr`.`ServerID` = @ServerID " +
-                               (Entries.Any() ? ignoreDone : "") + @" 
+                               WHERE `acr`.`ServerID` = @ServerID 
+                                 AND `ace`.`Completed` = 0
+                                 AND `ace`.`Canceled` = 0
+                                 AND `ace`.`Failed` = 0 
                             ORDER BY `PlayerID` ASC, `RuleID` ASC, `ID` ASC";
                             var entryChecks = new List<CEntry>();
                             command.Parameters.AddWithValue("@ServerID", _plugin._serverInfo.ServerID);
