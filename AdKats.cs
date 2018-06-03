@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.151
+ * Version 7.0.1.152
  * 3-JUN-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.151</version_code>
+ * <version_code>7.0.1.152</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.151";
+        private const String PluginVersion = "7.0.1.152";
 
         public enum GameVersionEnum
         {
@@ -30004,19 +30004,23 @@ namespace PRoConEvents
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
 	                        `player_group`,
 	                        `player_id`,
                             `player_server`,
-                            `player_identifier`,
-                            `player_effective`,
-                            `player_expiration`
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
                         )
                         VALUES
                         (
-	                        'blacklist_dispersion',
+	                        @player_group,
 	                        @player_id,
                             @player_server,
                             @player_identifier,
@@ -30034,6 +30038,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "blacklist_dispersion");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_identifier", record.target_player.player_name);
@@ -30074,19 +30079,23 @@ namespace PRoConEvents
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
 	                        `player_group`,
 	                        `player_id`,
                             `player_server`,
-                            `player_identifier`,
-                            `player_effective`,
-                            `player_expiration`
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
                         )
                         VALUES
                         (
-	                        'blacklist_allcaps',
+	                        @player_group,
 	                        @player_id,
                             @player_server,
                             @player_identifier,
@@ -30104,6 +30113,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "blacklist_allcaps");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_identifier", record.target_player.player_name);
@@ -30139,30 +30149,28 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_multibalancer", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already under autobalance whitelist.");
-                    return;
-                }
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
 	                        `player_group`,
 	                        `player_id`,
                             `player_server`,
-                            `player_identifier`,
-                            `player_effective`,
-                            `player_expiration`
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
                         )
                         VALUES
                         (
-	                        'whitelist_multibalancer',
+	                        @player_group,
 	                        @player_id,
                             @player_server,
 	                        @player_name,
@@ -30180,6 +30188,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "whitelist_multibalancer");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
@@ -30215,30 +30224,28 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("slot_reserved", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in reserved slot list.");
-                    return;
-                }
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
 	                        `player_group`,
 	                        `player_id`,
                             `player_server`,
-                            `player_identifier`,
-                            `player_effective`,
-                            `player_expiration`
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
                         )
                         VALUES
                         (
-	                        'slot_reserved',
+	                        @player_group,
 	                        @player_id,
                             @player_server,
 	                        @player_name,
@@ -30256,6 +30263,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "slot_reserved");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
@@ -30291,30 +30299,28 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("slot_spectator", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in spectator slot list.");
-                    return;
-                }
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
 	                        `player_group`,
 	                        `player_id`,
                             `player_server`,
-                            `player_identifier`,
-                            `player_effective`,
-                            `player_expiration`
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
                         )
                         VALUES
                         (
-	                        'slot_spectator',
+	                        @player_group,
 	                        @player_id,
                             @player_server,
 	                        @player_name,
@@ -30332,6 +30338,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "slot_spectator");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
@@ -30375,17 +30382,15 @@ namespace PRoConEvents
                     return;
                 }
                 record.record_action_executed = true;
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_anticheat", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in AntiCheat whitelist.");
-                    return;
-                }
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
@@ -30397,7 +30402,7 @@ namespace PRoConEvents
                         )
                         VALUES
                         (
-	                        'whitelist_anticheat',
+	                        @player_group,
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
@@ -30414,6 +30419,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "whitelist_anticheat");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
                         command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
@@ -30458,17 +30464,15 @@ namespace PRoConEvents
                     return;
                 }
                 record.record_action_executed = true;
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_ping", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the ping whitelist.");
-                    return;
-                }
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
@@ -30480,7 +30484,7 @@ namespace PRoConEvents
                         )
                         VALUES
                         (
-	                        'whitelist_ping',
+	                        @player_group,
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
@@ -30497,6 +30501,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "whitelist_ping");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
                         command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
@@ -30539,17 +30544,15 @@ namespace PRoConEvents
                     return;
                 }
                 record.record_action_executed = true;
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_adminassistant", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the Admin Assistant whitelist.");
-                    return;
-                }
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
@@ -30561,7 +30564,7 @@ namespace PRoConEvents
                         )
                         VALUES
                         (
-	                        'whitelist_adminassistant',
+	                        @player_group,
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
@@ -30578,6 +30581,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "whitelist_adminassistant");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
                         command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
@@ -30620,17 +30624,15 @@ namespace PRoConEvents
                     return;
                 }
                 record.record_action_executed = true;
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_report", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the report whitelist.");
-                    return;
-                }
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
@@ -30642,7 +30644,7 @@ namespace PRoConEvents
                         )
                         VALUES
                         (
-	                        'whitelist_report',
+	                        @player_group,
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
@@ -30659,6 +30661,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "whitelist_report");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
                         command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
@@ -30709,7 +30712,7 @@ namespace PRoConEvents
                         DELETE FROM
                             `adkats_specialplayers`
                         WHERE `player_group` = @player_group
-                          AND `player_id` = @player_id;
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
@@ -30841,17 +30844,15 @@ namespace PRoConEvents
                     return;
                 }
                 record.record_action_executed = true;
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_spectator", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the spectator blacklist.");
-                    return;
-                }
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
@@ -30863,7 +30864,7 @@ namespace PRoConEvents
                         )
                         VALUES
                         (
-	                        'blacklist_spectator',
+	                        @player_group,
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
@@ -30880,6 +30881,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "blacklist_spectator");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
                         command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
@@ -30998,17 +31000,15 @@ namespace PRoConEvents
                     return;
                 }
                 record.record_action_executed = true;
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_report", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the report source blacklist.");
-                    return;
-                }
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
@@ -31020,7 +31020,7 @@ namespace PRoConEvents
                         )
                         VALUES
                         (
-	                        'blacklist_report',
+	                        @player_group,
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
@@ -31037,6 +31037,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "blacklist_report");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
                         command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
@@ -31139,17 +31140,15 @@ namespace PRoConEvents
                     return;
                 }
                 record.record_action_executed = true;
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_commandtarget", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the command target whitelist.");
-                    return;
-                }
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
@@ -31161,7 +31160,7 @@ namespace PRoConEvents
                         )
                         VALUES
                         (
-	                        'whitelist_commandtarget',
+	                        @player_group,
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
@@ -31178,6 +31177,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "whitelist_commandtarget");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
                         command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
@@ -31279,18 +31279,16 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the auto-assist blacklist.");
-                    return;
-                }
                 record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
@@ -31302,7 +31300,7 @@ namespace PRoConEvents
                         )
                         VALUES
                         (
-	                        'blacklist_autoassist',
+	                        @player_group,
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
@@ -31319,6 +31317,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "blacklist_autoassist");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
                         command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
@@ -31960,18 +31959,16 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_populator", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the populator whitelist.");
-                    return;
-                }
                 record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
@@ -31983,7 +31980,7 @@ namespace PRoConEvents
                         )
                         VALUES
                         (
-	                        'whitelist_populator',
+	                        @player_group,
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
@@ -32000,6 +31997,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "whitelist_populator");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
                         command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
@@ -32099,18 +32097,16 @@ namespace PRoConEvents
                     FinalizeRecord(record);
                     return;
                 }
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_teamkill", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the TeamKillTracker whitelist.");
-                    return;
-                }
                 record.record_action_executed = true;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
@@ -32122,7 +32118,7 @@ namespace PRoConEvents
                         )
                         VALUES
                         (
-	                        'whitelist_teamkill',
+	                        @player_group,
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
@@ -32139,6 +32135,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "whitelist_teamkill");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
                         command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
@@ -52471,7 +52468,6 @@ namespace PRoConEvents
                 {
                     if (player.ActiveChallenge != null && _plugin._UseExperimentalTools)
                     {
-                        _plugin.Log.Info(player.GetVerboseName() + " already had their active entry assigned.");
                         return;
                     }
                     // Order by ID so we can cancel older entries as needed
