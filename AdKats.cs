@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.150
- * 29-MAY-2018
+ * Version 7.0.1.151
+ * 3-JUN-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.150</version_code>
+ * <version_code>7.0.1.151</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.150";
+        private const String PluginVersion = "7.0.1.151";
 
         public enum GameVersionEnum
         {
@@ -2795,6 +2795,9 @@ namespace PRoConEvents
                             buildList.Add(new CPluginVariable(rulePrefix + "Delete Rule?", typeof(String), ""));
                         }
                     }
+                    // REWARDS
+                    var rewardSectionPrefix = GetSettingSection(challengeSettings) + " [5] Rewards" + t;
+                    buildList.Add(new CPluginVariable(rewardSectionPrefix + "Add Reward?", typeof(String), ""));
                 }
                 lstReturn.AddRange(buildList);
             }
@@ -9287,6 +9290,20 @@ namespace PRoConEvents
                         mm += "34:" + _UserUploadQueue.Count() + ", ";
                         mm += "35:" + _BattlelogFetchQueue.Count() + ", ";
                         mm += "36:" + _IPInfoFetchQueue.Count() + ", ";
+                        mm += "37:" + _CommandIDDictionary.Count() + ", ";
+                        mm += "38:" + _CommandKeyDictionary.Count() + ", ";
+                        mm += "39:" + _CommandNameDictionary.Count() + ", ";
+                        mm += "41:" + _CommandTextDictionary.Count() + ", ";
+                        mm += "42:" + _RoleIDDictionary.Count() + ", ";
+                        mm += "43:" + _RoleKeyDictionary.Count() + ", ";
+                        mm += "44:" + _RoleNameDictionary.Count() + ", ";
+                        mm += "45:" + _teamDictionary.Count() + ", ";
+                        mm += "46:" + _TeamswapOnDeathMoveDic.Count() + ", ";
+                        mm += "47:" + _DiscordPlayers.Count() + ", ";
+                        mm += "48:" + ChallengeManager.Definitions.Count() + ", ";
+                        mm += "49:" + ChallengeManager.Rules.Count() + ", ";
+                        mm += "50:" + ChallengeManager.Entries.Count() + ", ";
+                        mm += "51:" + ChallengeManager.CompletedRoundEntries.Count() + ", ";
                         Log.Warn(MBUsed + "MB estimated memory used." + mm);
                         _LastMemoryWarning = UtcNow();
                     }
@@ -10871,10 +10888,7 @@ namespace PRoConEvents
         {
             _serverInfo.ServerType = serverType;
         }
-
-        //procon.public.accounts.create
-        //procon.public.accounts.delete
-        //procon.public.accounts.setPassword
+        
         public override void OnGameAdminLoad()
         {
             Log.Info("OnGameAdminLoad");
@@ -17790,7 +17804,7 @@ namespace PRoConEvents
                                             }
                                             Double percDiff = (liveDPS - expectedDPS) / expectedDPS;
                                             String formattedName = weaponStat.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                                            if (Math.Round(percDiff) > 0)
+                                            if (Math.Round(percDiff) > 0 && killDiff > 2)
                                             {
                                                 Log.Info("STATDIFF - " + aPlayer.GetVerboseName() + " - " + formattedName + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(liveDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
                                             }
@@ -20207,105 +20221,6 @@ namespace PRoConEvents
                                 return;
                             }
                             break;
-                        case "player_whitelistreport":
-                            if (GetMatchingASPlayersOfGroup("whitelist_report", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in the Report whitelist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_whitelistspambot":
-                            if (GetMatchingASPlayersOfGroup("whitelist_spambot", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in the SpamBot whitelist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_whitelistaa":
-                            if (GetMatchingASPlayersOfGroup("whitelist_adminassistant", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in the Admin Assistant whitelist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_whitelistping":
-                            if (GetMatchingASPlayersOfGroup("whitelist_ping", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in the Ping whitelist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_whitelistanticheat":
-                            if (GetMatchingASPlayersOfGroup("whitelist_anticheat", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in the AntiCheat whitelist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_slotspectator":
-                            if (GetMatchingASPlayersOfGroup("slot_spectator", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in spectator slot list.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_slotreserved":
-                            if (GetMatchingASPlayersOfGroup("slot_reserved", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in reserved slot list.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_whitelistbalance":
-                            if (GetMatchingASPlayersOfGroup("whitelist_multibalancer", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in the autobalance whitelist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_blacklistdisperse":
-                            if (GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already under autobalance dispersion.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_whitelistpopulator":
-                            if (GetMatchingASPlayersOfGroup("whitelist_populator", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already under populator whitelist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_whitelistteamkill":
-                            if (GetMatchingASPlayersOfGroup("whitelist_teamkill", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already under TeamKillTracker whitelist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
                         case "player_whitelistreport_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_report", record.target_player).Any())
                             {
@@ -20405,28 +20320,10 @@ namespace PRoConEvents
                             }
                             Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
-                        case "player_blacklistspectator":
-                            if (GetMatchingASPlayersOfGroup("blacklist_spectator", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in the spectator blacklist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
                         case "player_blacklistspectator_remove":
                             if (!GetMatchingASPlayersOfGroup("blacklist_spectator", record.target_player).Any())
                             {
                                 SendMessageToSource(record, "Matching player not in the spectator blacklist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_blacklistreport":
-                            if (GetMatchingASPlayersOfGroup("blacklist_report", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in the report source blacklist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -20441,28 +20338,10 @@ namespace PRoConEvents
                             }
                             Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
-                        case "player_whitelistcommand":
-                            if (GetMatchingASPlayersOfGroup("whitelist_commandtarget", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in the command target whitelist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
                         case "player_whitelistcommand_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_commandtarget", record.target_player).Any())
                             {
                                 SendMessageToSource(record, "Matching player not in the command target whitelist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_blacklistautoassist":
-                            if (GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in the auto-assist blacklist.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -20477,28 +20356,10 @@ namespace PRoConEvents
                             }
                             Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
-                        case "player_blacklistallcaps":
-                            if (GetMatchingASPlayersOfGroup("blacklist_allcaps", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already under all-caps chat blacklist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
                         case "player_blacklistallcaps_remove":
                             if (!GetMatchingASPlayersOfGroup("blacklist_allcaps", record.target_player).Any())
                             {
                                 SendMessageToSource(record, "Matching player not under all-caps chat blacklist.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_challenge_play":
-                            if (GetMatchingASPlayersOfGroup("challenge_play", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in challenge playing status.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -20513,28 +20374,10 @@ namespace PRoConEvents
                             }
                             Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
-                        case "player_challenge_ignore":
-                            if (GetMatchingASPlayersOfGroup("challenge_ignore", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in challenge ignoring status.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
                         case "player_challenge_ignore_remove":
                             if (!GetMatchingASPlayersOfGroup("challenge_ignore", record.target_player).Any())
                             {
                                 SendMessageToSource(record, "Matching player not in challenge ignoring status.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            Log.Debug(() => record.command_type.command_key + " record allowed to continue processing.", 5);
-                            break;
-                        case "player_challenge_autokill":
-                            if (GetMatchingASPlayersOfGroup("challenge_autokill", record.target_player).Any())
-                            {
-                                SendMessageToSource(record, "Matching player already in challenge autokill status.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -30858,17 +30701,15 @@ namespace PRoConEvents
                     return;
                 }
                 record.record_action_executed = true;
-                List<ASpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_spambot", record.target_player);
-                if (matchingPlayers.Count > 0)
-                {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the SpamBot whitelist.");
-                    return;
-                }
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
+                        DELETE FROM
+                            `adkats_specialplayers`
+                        WHERE `player_group` = @player_group
+                          AND `player_id` = @player_id;
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
@@ -30880,7 +30721,7 @@ namespace PRoConEvents
                         )
                         VALUES
                         (
-	                        'whitelist_spambot',
+	                        @player_group,
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
@@ -30897,6 +30738,7 @@ namespace PRoConEvents
                         {
                             record.command_numeric = 10518984;
                         }
+                        command.Parameters.AddWithValue("@player_group", "whitelist_spambot");
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
                         command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
@@ -51873,14 +51715,14 @@ namespace PRoConEvents
                 get; private set;
             }
             private Boolean TriggerLoad;
-            private List<CDefinition> Definitions;
-            private List<CRule> Rules;
-            private List<CEntry> Entries;
+            public List<CDefinition> Definitions;
+            public List<CRule> Rules;
+            public List<CEntry> Entries;
             private Int32 LoadedRoundID;
             // Round Rule
             public CRule RoundRule;
             private ChallengeState ChallengeRoundState = ChallengeState.Init;
-            private List<CEntry> CompletedRoundEntries;
+            public List<CEntry> CompletedRoundEntries;
 
             // Timings
             private DateTime _LastDBReadAll = DateTime.UtcNow - TimeSpan.FromMinutes(30);
@@ -52564,7 +52406,7 @@ namespace PRoConEvents
                         }
                         if (_plugin._UseExperimentalTools)
                         {
-                            _plugin.Log.Success("CHALLENGE entries loaded in " + _plugin.NowDuration(startTime).TotalMilliseconds + "ms.");
+                            _plugin.Log.Success("CHALLENGE entries loaded in " + Math.Round(_plugin.NowDuration(startTime).TotalMilliseconds) + "ms.");
                         }
                     }
                     finally
@@ -54572,7 +54414,13 @@ namespace PRoConEvents
                                 return;
                             }
                             // Get the weapon code for this name
-                            var newWeapon = _plugin.WeaponDictionary.GetWeaponCodeByShortName(weaponName.Split('\\')[1]);
+                            var weaponSplit = weaponName.Split('\\');
+                            if (weaponSplit.Count() != 2)   
+                            {
+                                _plugin.Log.Error("Challenge weapon name '" + weaponName + "' was invalid. Unable to assign.");
+                                return;
+                            }
+                            var newWeapon = _plugin.WeaponDictionary.GetWeaponCodeByShortName(weaponSplit[1]);
                             if (String.IsNullOrEmpty(newWeapon))
                             {
                                 _plugin.Log.Error("Error getting weapon code when setting weapon name by string.");
