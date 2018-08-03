@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.152
- * 3-JUN-2018
+ * Version 7.0.1.153
+ * 3-AUG-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.152</version_code>
+ * <version_code>7.0.1.153</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.152";
+        private const String PluginVersion = "7.0.1.153";
 
         public enum GameVersionEnum
         {
@@ -11766,15 +11766,13 @@ namespace PRoConEvents
                         var powerCount = players.Count(dPlayer => dPlayer.player_type == PlayerType.Player &&
                                                                   dPlayer.fbpInfo.TeamID == powerTeam.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == powerTeam.TeamID));
                         var teamCountLeniency = 1;
-                        // If it's not the early game, the server is populated, and the weak team is also losing, increase leniency to 4 players
+                        // If it's not the early game, the server is populated, and the weak team is also losing, increase leniency to 2 players
                         if (_serverInfo.GetRoundElapsedTime().TotalMinutes >= 10 &&
                             weakTeam == losingTeam &&
-                            // Require both high population state, and 26 or more players on each team (accounting for smaller servers)
-                            _populationStatus == PopulationState.High &&
-                            weakCount >= 25 &&
-                            powerCount >= 25)
+                            // Require high population state
+                            _populationStatus == PopulationState.High)
                         {
-                            teamCountLeniency = 4;
+                            teamCountLeniency = 2;
                         }
                         // Assume max team size of 32 unless otherwise provided
                         var maxTeamPlayerCount = 32;
