@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.153
- * 3-AUG-2018
+ * Version 7.0.1.154
+ * 12-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.153</version_code>
+ * <version_code>7.0.1.154</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.153";
+        private const String PluginVersion = "7.0.1.154";
 
         public enum GameVersionEnum
         {
@@ -2797,7 +2797,29 @@ namespace PRoConEvents
                     }
                     // REWARDS
                     var rewardSectionPrefix = GetSettingSection(challengeSettings) + " [5] Rewards" + t;
-                    buildList.Add(new CPluginVariable(rewardSectionPrefix + "Add Reward?", typeof(String), ""));
+                    buildList.Add(new CPluginVariable(rewardSectionPrefix + "Add Reward?", typeof(Int32), 0));
+                    var rewards = ChallengeManager.GetRewards().OrderBy(dReward => dReward.Tier).ThenBy(dReward => dReward.Reward.ToString());
+                    foreach (var reward in rewards)
+                    {
+                        if (reward.ID <= 0)
+                        {
+                            Log.Error("Unable to render challenge reward " + reward.ID + ". It had an invalid ID.");
+                            continue;
+                        }
+
+                        //CCR1 | Tier 1 - ReservedSlot | Tier Level
+                        //CCR1 | Tier 1 - ReservedSlot | Reward Type
+                        //CCR1 | Tier 1 - ReservedSlot | Enabled
+                        //CCR1 | Tier 1 - ReservedSlot | Duration Minutes
+                        //CCR1 | Tier 1 - ReservedSlot | Delete Reward?
+
+                        var rewardPrefix = defSectionPrefix + "CCR" + reward.ID + s + "Tier " + reward.Tier + " - " + reward.Reward.ToString() + s;
+                        buildList.Add(new CPluginVariable(rewardPrefix + "Tier Level", typeof(Int32), reward.Tier));
+                        buildList.Add(new CPluginVariable(rewardPrefix + "Reward Type", AChallengeManager.CReward.CompletionTypeEnumString, reward.Reward.ToString()));
+                        buildList.Add(new CPluginVariable(rewardPrefix + "Enabled", typeof(Boolean), reward.Enabled));
+                        buildList.Add(new CPluginVariable(rewardPrefix + "Duration Minutes", typeof(Int32), reward.DurationMinutes));
+                        buildList.Add(new CPluginVariable(rewardPrefix + "Delete Reward?", typeof(String), ""));
+                    }
                 }
                 lstReturn.AddRange(buildList);
             }
@@ -8637,6 +8659,83 @@ namespace PRoConEvents
                         default:
                             // No idea where we are. Get out of here.
                             Log.Error("Unknown setting section " + section + " parsed in challenge rule section.");
+                            return;
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Add Reward?").Success)
+                {
+                    Int32 newTier = 1;
+                    try
+                    {
+                        newTier = Int32.Parse(strValue);
+                        if (newTier == 0)
+                        {
+                            return;
+                        }
+                        if (newTier < 1)
+                        {
+                            Log.Error("Rule tier cannot be less than 1.");
+                            newTier = 1;
+                        }
+                        if (newTier > 10)
+                        {
+                            Log.Error("Rule tier cannot be greter than 10.");
+                            newTier = 10;
+                        }
+                    }
+                    catch(Exception e)
+                    {
+                        Log.Error("Error parsing Tier. Create rewards with tier 1-10.");
+                    }
+                    ChallengeManager.CreateReward(newTier);
+                }
+                else if (strVariable.StartsWith("CCR"))
+                {
+                    //CCR1 | Tier 1 - ReservedSlot | Tier Level
+                    //CCR1 | Tier 1 - ReservedSlot | Reward Type
+                    //CCR1 | Tier 1 - ReservedSlot | Enabled
+                    //CCR1 | Tier 1 - ReservedSlot | Duration Minutes
+                    //CCR1 | Tier 1 - ReservedSlot | Delete Reward?
+
+                    // Split the variable name on | characters using the library
+                    var variableSplit = CPluginVariable.DecodeStringArray(strVariable);
+                    var rewardIDStr = variableSplit[0].TrimStart("CCR".ToCharArray()).Trim();
+                    var rewardID = Int64.Parse(rewardIDStr);
+                    if (rewardID <= 0)
+                    {
+                        Log.Error("Reward setting had an invalid reward ID of " + rewardID + ".");
+                        return;
+                    }
+                    var reward = ChallengeManager.GetReward(rewardID);
+                    if (reward == null)
+                    {
+                        Log.Error("Unable to fetch reward for ID " + rewardID + ".");
+                        return;
+                    }
+                    var section = variableSplit[2].Trim();
+                    switch (section)
+                    {
+                        case "Tier Level":
+                            reward.SetTierByString(strValue);
+                            break;
+                        case "Reward Type":
+                            reward.SetRewardTypeByString(strValue);
+                            break;
+                        case "Enabled":
+                            reward.SetEnabledByString(strValue);
+                            break;
+                        case "Duration Minutes":
+                            reward.SetDurationMinutesByString(strValue);
+                            break;
+                        case "Delete Reward?":
+                            if (strValue.ToLower().Trim() == "delete")
+                            {
+                                reward.DBDelete(null);
+                            }
+                            break;
+                        default:
+                            // No idea where we are. Get out of here.
+                            Log.Error("Unknown setting section " + section + " parsed in challenge reward section.");
                             return;
                     }
                 }
@@ -34340,7 +34439,11 @@ namespace PRoConEvents
                             Threading.Wait(TimeSpan.FromSeconds(_ServerRulesDelay));
                             Int32 ruleIndex = 0;
                             List<String> validRules = new List<String>();
-                            if (_AvailableMapModes.Any())
+                            if (_AvailableMapModes.Any() &&
+                                _serverInfo.InfoObject != null &&
+                                !String.IsNullOrEmpty(_serverInfo.InfoObject.Map) &&
+                                _AvailableMapModes.FirstOrDefault(mapMode => mapMode.FileName == _serverInfo.InfoObject.Map &&
+                                                                             mapMode.PlayList == _serverInfo.InfoObject.GameMode) != null)
                             {
                                 //Confirm that rule prefixes conform to the map/modes available
                                 var allMaps = _AvailableMapModes.Where(mapMode => !String.IsNullOrEmpty(mapMode.PublicLevelName))
@@ -38067,6 +38170,26 @@ namespace PRoConEvents
                       CONSTRAINT `adkats_challenge_entry_detail_fk_VictimID` FOREIGN KEY (`VictimID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Entry Details'", true);
             }
+            if (!ConfirmTable("adkats_challenge_reward"))
+            {
+                Log.Info("AdKats challenge reward table not found. Attempting to add.");
+                SendNonQuery("Adding challenge reward table", @"
+                    CREATE TABLE IF NOT EXISTS `adkats_challenge_reward` (
+                      `ID` int(10) unsigned NOT NULL,
+                      `ServerID` smallint(5) unsigned NOT NULL,
+                      `Tier` int(10) unsigned NOT NULL,
+                      `Reward` varchar(100) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'None',
+                      `Enabled` int(1) unsigned NOT NULL DEFAULT 0,
+                      `DurationMinutes` int(10) unsigned NOT NULL DEFAULT 60, -- 4294967295
+                      `CreateTime` datetime NOT NULL,
+                      `ModifyTime` datetime NOT NULL,
+                      PRIMARY KEY (`ID`),
+                      UNIQUE (`ServerID`, `Tier`, `Reward`),
+                      KEY `adkats_challenge_reward_idx_CreateTime` (`CreateTime`),
+                      KEY `adkats_challenge_reward_idx_ModifyTime` (`ModifyTime`),
+                      CONSTRAINT `adkats_challenge_reward_fk_ServerID` FOREIGN KEY (`ServerID`) REFERENCES `tbl_server` (`ServerID`) ON DELETE NO ACTION ON UPDATE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Rewards'", true);
+            }
             SendNonQuery("Updating setting value length to 10000.", "ALTER TABLE adkats_settings MODIFY setting_value varchar(10000)", false);
             return ConfirmTable("adkats_bans") &&
                    ConfirmTable("adkats_commands") &&
@@ -38089,6 +38212,7 @@ namespace PRoConEvents
                    ConfirmTable("adkats_challenge_rule") &&
                    ConfirmTable("adkats_challenge_entry") &&
                    ConfirmTable("adkats_challenge_entry_detail") &&
+                   ConfirmTable("adkats_challenge_reward") &&
                    ConfirmTable("tbl_extendedroundstats") &&
                    !SendQuery("SELECT `TABLE_NAME` AS `table_name` FROM `INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA` = '" + _mySqlSchemaName + "' AND `TABLE_NAME` LIKE 'adkats_%' AND ENGINE <> 'InnoDB'", false);
         }
@@ -49557,6 +49681,18 @@ namespace PRoConEvents
             return new String(chars);
         }
 
+        // Credit ata/community
+        public String MakeAlphanumeric(String input)
+        {
+            if (String.IsNullOrEmpty(input))
+            {
+                return input;
+            }
+            var arr = input.ToCharArray();
+            arr = Array.FindAll<char>(arr, (c => (char.IsLetterOrDigit(c) || char.IsWhiteSpace(c) || c == '-' || c == '_')));
+            return new string(arr);
+        }
+
         //Calling this method will make the settings window refresh with new data
         public void UpdateSettingPage()
         {
@@ -51712,6 +51848,7 @@ namespace PRoConEvents
             private Boolean TriggerLoad;
             public List<CDefinition> Definitions;
             public List<CRule> Rules;
+            public List<CReward> Rewards;
             public List<CEntry> Entries;
             private Int32 LoadedRoundID;
             // Round Rule
@@ -51839,6 +51976,7 @@ namespace PRoConEvents
                             DBReadDefinitions(con);
                             DBReadRules(con);
                             DBReadEntries(con);
+                            DBReadRewards(con);
                             if (TriggerLoad)
                             {
                                 if (_plugin._roundID <= 1)
@@ -52314,7 +52452,28 @@ namespace PRoConEvents
                     _plugin.Log.HandleException(new AException("Error while creating definition detail in manager.", e));
                 }
             }
-            
+
+            protected void DeleteReward(Int64 rewardID)
+            {
+                try
+                {
+                    lock (Rewards)
+                    {
+                        CReward reward = Rewards.FirstOrDefault(dReward => dReward.ID == rewardID);
+                        if (reward == null)
+                        {
+                            _plugin.Log.Error("No reward exists with ID " + rewardID + ".");
+                            return;
+                        }
+                        Rewards.Remove(reward);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while deleting reward from manager.", e));
+                }
+            }
+
             public void DBReadEntries(MySqlConnection con)
             {
                 try
@@ -52695,6 +52854,162 @@ namespace PRoConEvents
                 catch (Exception e)
                 {
                     _plugin.Log.HandleException(new AException("Error while assigning challenge if kill valid.", e));
+                }
+            }
+            
+            public List<CReward> GetRewards()
+            {
+                var rewards = new List<CReward>();
+                try
+                {
+                    lock (Rewards)
+                    {
+                        rewards.AddRange(Rewards.OrderBy(reward => reward.ID).ToList());
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while getting list of rewards.", e));
+                }
+                return rewards;
+            }
+
+            public CReward GetReward(Int64 rewardID)
+            {
+                try
+                {
+                    lock (Rewards)
+                    {
+                        if (!Rewards.Any())
+                        {
+                            return null;
+                        }
+                        return Rewards.FirstOrDefault(dReward => dReward.ID == rewardID);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while getting reward from manager.", e));
+                }
+                return null;
+            }
+
+            public void CreateReward(Int32 tier)
+            {
+                try
+                {
+                    lock (Rewards)
+                    {
+                        var newReward = new CReward(_plugin, this, true)
+                        {
+                            Tier = tier
+                        };
+                        if (newReward == null)
+                        {
+                            _plugin.Log.Error("Reward was null when adding to the challenge manager.");
+                            return;
+                        }
+                        // Check if a reward exists with this tier and reward type
+                        if (Rewards.Any(dReward => dReward.Tier == newReward.Tier && dReward.Reward == newReward.Reward))
+                        {
+                            _plugin.Log.Error("Reward with tier " + newReward.Tier + " and reward " + newReward.Reward.ToString() + " already exists.");
+                            return;
+                        }
+                        if (newReward.Phantom)
+                        {
+                            // Try to push it to the database
+                            newReward.DBPush(null);
+                        }
+                        if (newReward.ID <= 0)
+                        {
+                            _plugin.Log.Error("Reward had invalid ID when adding to the challenge manager.");
+                            return;
+                        }
+                        Rewards.Add(newReward);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error while adding reward to manager.", e));
+                }
+            }
+
+            public void DBReadRewards(MySqlConnection con)
+            {
+                try
+                {
+                    var localConnection = con;
+                    if (localConnection == null)
+                    {
+                        localConnection = _plugin.GetDatabaseConnection();
+                    }
+                    try
+                    {
+                        using (MySqlCommand command = localConnection.CreateCommand())
+                        {
+                            command.CommandText = @"
+                            SELECT `ID`,
+                                   `ServerID`,
+                                   `Tier`,
+                                   `Reward`,
+                                   `Enabled`,
+                                   `DurationMinutes`,
+                                   `CreateTime`,
+                                   `ModifyTime`
+                            FROM `adkats_challenge_reward`
+                            WHERE `ServerID` = @ServerID
+                            ORDER BY `ID` ASC";
+                            command.Parameters.AddWithValue("@ServerID", _plugin._serverInfo.ServerID);
+                            using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
+                            {
+                                lock (Rewards)
+                                {
+                                    var validIDs = new List<Int64>();
+                                    while (reader.Read())
+                                    {
+                                        var readID = reader.GetInt32("ID");
+                                        var reward = Rewards.FirstOrDefault(dReward => dReward.ID == readID);
+                                        if (reward == null)
+                                        {
+                                            reward = new CReward(_plugin, this, false);
+                                            reward.ID = readID;
+                                            Rewards.Add(reward);
+                                        }
+                                        reward.ServerID = reader.GetInt64("ServerID");
+                                        if (reward.ServerID != _plugin._serverInfo.ServerID)
+                                        {
+                                            _plugin.Log.Error("CReward " + this.ToString() + " was loaded, but belongs to another server.");
+                                        }
+                                        reward.Tier = reader.GetInt32("Tier");
+                                        reward.Reward = (CReward.RewardType)Enum.Parse(typeof(CReward.RewardType), reader.GetString("Reward"));
+                                        reward.Enabled = reader.GetBoolean("Enabled");
+                                        reward.DurationMinutes = reader.GetInt32("DurationMinutes");
+                                        reward.CreateTime = reader.GetDateTime("CreateTime");
+                                        reward.ModifyTime = reader.GetDateTime("ModifyTime");
+                                        validIDs.Add(readID);
+                                    }
+                                    // Remove definitions as necessary
+                                    foreach (var reward in Rewards.Where(dReward => !validIDs.Contains(dReward.ID)).ToList())
+                                    {
+                                        _plugin.Log.Info("Removing reward " + reward.ID + " from challenge manager. Reward was deleted from database.");
+                                        Rewards.Remove(reward);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        if (con == null &&
+                            localConnection != null)
+                        {
+                            localConnection.Dispose();
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error reading in rewards for challenge manager.", e));
                 }
             }
 
@@ -53225,7 +53540,7 @@ namespace PRoConEvents
                             _plugin.Log.Error("Definition name was empty when setting by string.");
                             return;
                         }
-                        var sanitizedName = newName.Replace("|", "");
+                        var sanitizedName = _plugin.MakeAlphanumeric(newName);
                         if (String.IsNullOrEmpty(sanitizedName))
                         {
                             _plugin.Log.Error("Definition name was empty when setting by string.");
@@ -54995,7 +55310,7 @@ namespace PRoConEvents
                     }
                     catch (Exception e)
                     {
-                        _plugin.Log.HandleException(new AException("Error updating tier by string for CRule.", e));
+                        _plugin.Log.HandleException(new AException("Error updating enabled state by string for CRule.", e));
                     }
                 }
 
@@ -55577,6 +55892,77 @@ namespace PRoConEvents
                             record_time = _plugin.UtcNow()
                         });
                         Player.ActiveChallenge = null;
+                        // Process rewards.
+                        var matchingRewards = Manager.GetRewards().Where(dReward => dReward.Tier == Rule.Tier &&
+                                                                                    dReward.Enabled &&
+                                                                                    dReward.Reward != CReward.RewardType.None);
+                        foreach (var reward in matchingRewards)
+                        {
+                            var durationString = _plugin.FormatTimeString(TimeSpan.FromMinutes(reward.DurationMinutes), 2);
+                            switch (reward.Reward)
+                            {
+                                case CReward.RewardType.ReservedSlot:
+                                    _plugin.QueueRecordForProcessing(new ARecord
+                                    {
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _plugin._serverInfo.ServerID,
+                                        command_type = _plugin.GetCommandByKey("player_slotreserved"),
+                                        command_numeric = reward.DurationMinutes,
+                                        target_name = Player.player_name,
+                                        target_player = Player,
+                                        source_name = "ChallengeManager",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " reserved slot.",
+                                        record_time = _plugin.UtcNow()
+                                    });
+                                    Player.Say("Assigned " + durationString + " reserved slot.");
+                                    break;
+                                case CReward.RewardType.SpectatorSlot:
+                                    _plugin.QueueRecordForProcessing(new ARecord
+                                    {
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _plugin._serverInfo.ServerID,
+                                        command_type = _plugin.GetCommandByKey("player_slotspectator"),
+                                        command_numeric = reward.DurationMinutes,
+                                        target_name = Player.player_name,
+                                        target_player = Player,
+                                        source_name = "ChallengeManager",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " spectator slot.",
+                                        record_time = _plugin.UtcNow()
+                                    });
+                                    Player.Say("Assigned " + durationString + " spectator slot.");
+                                    break;
+                                case CReward.RewardType.BalanceWhitelist:
+                                    _plugin.QueueRecordForProcessing(new ARecord
+                                    {
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _plugin._serverInfo.ServerID,
+                                        command_type = _plugin.GetCommandByKey("player_whitelistbalance"),
+                                        command_numeric = reward.DurationMinutes,
+                                        target_name = Player.player_name,
+                                        target_player = Player,
+                                        source_name = "ChallengeManager",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " autobalance whitelist.",
+                                        record_time = _plugin.UtcNow()
+                                    });
+                                    Player.Say("Assigned " + durationString + " autobalance whitelist.");
+                                    break;
+                                case CReward.RewardType.TeamKillTrackerWhitelist:
+                                    _plugin.QueueRecordForProcessing(new ARecord
+                                    {
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _plugin._serverInfo.ServerID,
+                                        command_type = _plugin.GetCommandByKey("player_whitelistteamkill"),
+                                        command_numeric = reward.DurationMinutes,
+                                        target_name = Player.player_name,
+                                        target_player = Player,
+                                        source_name = "ChallengeManager",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " teamkill whitelist.",
+                                        record_time = _plugin.UtcNow()
+                                    });
+                                    Player.Say("Assigned " + durationString + " teamkill whitelist.");
+                                    break;
+                            }
+                        }
                     }
                     catch (Exception e)
                     {
@@ -56883,6 +57269,455 @@ namespace PRoConEvents
                             _plugin.Log.HandleException(new AException("Error performing DBRead for CEntryDetail.", e));
                         }
                     }
+                }
+            }
+            
+            public class CReward
+            {
+                public enum RewardType
+                {
+                    None,
+                    ReservedSlot,
+                    SpectatorSlot,
+                    BalanceWhitelist,
+                    TeamKillTrackerWhitelist
+                }
+                public static String CompletionTypeEnumString = "enum.ChallengeRuleCompletionType(None|ReservedSlot|SpectatorSlot|BalanceWhitelist|TeamKillTrackerWhitelist)";
+
+                private AdKats _plugin;
+
+                public Boolean Phantom;
+
+                private AChallengeManager Manager;
+                public Int64 ID;
+                public Int64 ServerID;
+                public Int32 Tier;
+                public RewardType Reward = RewardType.None;
+                public Boolean Enabled;
+                public Int32 DurationMinutes;
+                public DateTime CreateTime;
+                public DateTime ModifyTime;
+
+                public CReward(AdKats plugin, AChallengeManager manager, Boolean phantom)
+                {
+                    _plugin = plugin;
+                    Manager = manager;
+                    Phantom = phantom;
+                    CreateTime = _plugin.UtcNow();
+                    ModifyTime = _plugin.UtcNow();
+                    Tier = 1;
+                    DurationMinutes = 1440;
+                    Reward = RewardType.None;
+                }
+
+                public void DBPush(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (con == null)
+                        {
+                            con = _plugin.GetDatabaseConnection();
+                        }
+                        if (Phantom)
+                        {
+                            DBCreate(con);
+                        }
+                        else
+                        {
+                            DBUpdate(con);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBPush for CReward.", e));
+                    }
+                }
+
+                private void DBCreate(MySqlConnection con)
+                {
+                    try
+                    {
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                INSERT INTO 
+	                                `adkats_challenge_reward` 
+                                (
+	                                `ServerID`, 
+	                                `Tier`, 
+	                                `Reward`, 
+	                                `Enabled`, 
+	                                `DurationMinutes`, 
+	                                `CreateTime`, 
+	                                `ModifyTime`
+                                ) 
+                                VALUES 
+                                (
+	                                @ServerID, 
+	                                @Tier, 
+	                                @Reward, 
+	                                @Enabled, 
+	                                @DurationMinutes,
+	                                @CreateTime,
+	                                @ModifyTime
+                                )";
+                                if (ServerID <= 0)
+                                {
+                                    // This rule doesn't have an associated server ID, and we're creating it.
+                                    // Assign this server's ID
+                                    ServerID = _plugin._serverInfo.ServerID;
+                                }
+                                command.Parameters.AddWithValue("@ServerID", ServerID);
+                                command.Parameters.AddWithValue("@Tier", Tier);
+                                command.Parameters.AddWithValue("@Reward", Reward.ToString());
+                                command.Parameters.AddWithValue("@Enabled", Enabled);
+                                command.Parameters.AddWithValue("@DurationMinutes", DurationMinutes);
+                                command.Parameters.AddWithValue("@CreateTime", CreateTime);
+                                command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
+                                if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                {
+                                    ID = command.LastInsertedId;
+                                    // This record is no longer phantom
+                                    Phantom = false;
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBCreate for CReward.", e));
+                    }
+                }
+
+                private void DBUpdate(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (ID <= 0 ||
+                            Phantom)
+                        {
+                            _plugin.Log.Error("CReward was invalid when updating.");
+                            return;
+                        }
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                UPDATE 
+	                                `adkats_challenge_reward` 
+                                SET
+	                                `ServerID` = @ServerID,
+	                                `Tier` = @Tier,
+	                                `Reward` = @Reward,
+	                                `Enabled` = @Enabled,
+	                                `DurationMinutes` = @DurationMinutes,
+	                                `ModifyTime` = @ModifyTime
+                                WHERE `ID` = @ID";
+                                command.Parameters.AddWithValue("@ID", ID);
+                                command.Parameters.AddWithValue("@ServerID", ServerID);
+                                command.Parameters.AddWithValue("@Tier", Tier);
+                                command.Parameters.AddWithValue("@Reward", Reward.ToString());
+                                command.Parameters.AddWithValue("@Enabled", Enabled);
+                                command.Parameters.AddWithValue("@DurationMinutes", DurationMinutes);
+                                command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
+                                if (_plugin.SafeExecuteNonQuery(command) <= 0)
+                                {
+                                    _plugin.Log.Error("Failed to update CReward " + this.ToString() + " in database.");
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBUpdate for CReward.", e));
+                    }
+                }
+
+                public void DBRead(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (ID <= 0 ||
+                            Phantom)
+                        {
+                            _plugin.Log.Error("CReward was invalid when reading.");
+                            return;
+                        }
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                  SELECT `ServerID`,
+                                         `Tier`,
+                                         `Reward`,
+                                         `Enabled`,
+                                         `DurationMinutes`,
+                                         `CreateTime`,
+                                         `ModifyTime`
+                                    FROM `adkats_challenge_reward`
+                                   WHERE `ID` = @ID";
+                                command.Parameters.AddWithValue("@ID", ID);
+                                var push = false;
+                                var delete = false;
+                                using (MySqlDataReader reader = _plugin.SafeExecuteReader(command))
+                                {
+                                    if (reader.Read())
+                                    {
+                                        ServerID = reader.GetInt64("ServerID");
+                                        if (ServerID != _plugin._serverInfo.ServerID)
+                                        {
+                                            _plugin.Log.Error("CReward " + this.ToString() + " was loaded, but belongs to another server.");
+                                        }
+                                        Tier = reader.GetInt32("Tier");
+                                        Reward = (RewardType)Enum.Parse(typeof(RewardType), reader.GetString("Reward"));
+                                        Enabled = reader.GetBoolean("Enabled");
+                                        DurationMinutes = reader.GetInt32("DurationMinutes");
+                                        CreateTime = reader.GetDateTime("CreateTime");
+                                        ModifyTime = reader.GetDateTime("ModifyTime");
+                                    }
+                                    else
+                                    {
+                                        _plugin.Log.Error("Unable to find matching CReward for ID " + ID + ".");
+                                        delete = true;
+                                    }
+                                }
+                                if (delete)
+                                {
+                                    DBDelete(localConnection);
+                                }
+                                else if (push)
+                                {
+                                    DBPush(localConnection);
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBRead for CReward.", e));
+                    }
+                }
+
+                public void DBDelete(MySqlConnection con)
+                {
+                    try
+                    {
+                        if (ServerID <= 0 ||
+                            Tier < 1 ||
+                            Tier > 10 ||
+                            Phantom)
+                        {
+                            _plugin.Log.Error("CReward was invalid when deleting.");
+                            return;
+                        }
+                        var localConnection = con;
+                        if (localConnection == null)
+                        {
+                            localConnection = _plugin.GetDatabaseConnection();
+                        }
+                        try
+                        {
+
+                            using (MySqlCommand command = localConnection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                DELETE FROM 
+	                                `adkats_challenge_reward`
+                                WHERE `ID` = @ID";
+                                command.Parameters.AddWithValue("@ID", ID);
+                                if (_plugin.SafeExecuteNonQuery(command) > 0)
+                                {
+                                    // SUCCESS
+                                    _plugin.Log.Info("Deleted CReward " + this.ToString() + ".");
+                                    Manager.DeleteReward(Tier);
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (con == null &&
+                                localConnection != null)
+                            {
+                                localConnection.Dispose();
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error performing DBDelete for CReward.", e));
+                    }
+                }
+
+                public void SetEnabledByString(String enabled)
+                {
+                    try
+                    {
+                        if (String.IsNullOrEmpty(enabled))
+                        {
+                            _plugin.Log.Error("Enabled was empty when setting by string.");
+                            return;
+                        }
+                        var newEnabled = Boolean.Parse(enabled);
+                        if (newEnabled != Enabled)
+                        {
+                            Enabled = newEnabled;
+                            ModifyTime = _plugin.UtcNow();
+                            DBPush(null);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error updating enabled state by string for CReward.", e));
+                    }
+                }
+
+                public void SetTierByString(String tier)
+                {
+                    try
+                    {
+                        if (String.IsNullOrEmpty(tier))
+                        {
+                            _plugin.Log.Error("Rule tier was empty when setting by string.");
+                            return;
+                        }
+                        var newTier = Int32.Parse(tier);
+                        if (newTier < 1)
+                        {
+                            _plugin.Log.Error("Rule tier cannot be less than 1.");
+                            newTier = 1;
+                        }
+                        if (newTier > 10)
+                        {
+                            _plugin.Log.Error("Rule tier cannot be greter than 10.");
+                            newTier = 10;
+                        }
+                        if (newTier == Tier)
+                        {
+                            _plugin.Log.Info("Old tier and new tier were the same when setting by string.");
+                            return;
+                        }
+                        Tier = newTier;
+                        ModifyTime = _plugin.UtcNow();
+                        DBPush(null);
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error updating tier by string for CReward.", e));
+                    }
+                }
+
+                public void SetRewardTypeByString(String rewardType)
+                {
+                    try
+                    {
+                        if (String.IsNullOrEmpty(rewardType))
+                        {
+                            _plugin.Log.Error("Reward type was empty when setting by string.");
+                            return;
+                        }
+                        RewardType newReward = RewardType.None;
+                        try
+                        {
+                            newReward = (RewardType)Enum.Parse(typeof(RewardType), rewardType);
+                        }
+                        catch (Exception e)
+                        {
+                            _plugin.Log.HandleException(new AException("Error while parsing reward type by string.", e));
+                        }
+                        if (Reward == newReward)
+                        {
+                            _plugin.Log.Error("Old reward type and new reward type were the same when setting by string.");
+                            return;
+                        }
+                        if (Manager.GetRewards().Any(reward => reward.Reward == newReward && reward.Tier == Tier))
+                        {
+                            _plugin.Log.Error("Tier " + Tier + " already has a " + newReward.ToString() + " reward.");
+                            return;
+                        }
+                        Reward = newReward;
+                        ModifyTime = _plugin.UtcNow();
+                        DBPush(null);
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error updating reward type by string for CReward.", e));
+                    }
+                }
+                
+                public void SetDurationMinutesByString(String durationMinutes)
+                {
+                    try
+                    {
+                        if (String.IsNullOrEmpty(durationMinutes))
+                        {
+                            _plugin.Log.Error("Duration minutes was empty when setting by string.");
+                            return;
+                        }
+                        var newDurationMinutes = Int32.Parse(durationMinutes);
+                        if (newDurationMinutes < 10)
+                        {
+                            _plugin.Log.Error("Duration of reward cannot be less than 10 minutes.");
+                            newDurationMinutes = 10;
+                        }
+                        if (newDurationMinutes != DurationMinutes)
+                        {
+                            DurationMinutes = newDurationMinutes;
+                            ModifyTime = _plugin.UtcNow();
+                            DBPush(null);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _plugin.Log.HandleException(new AException("Error updating minute duration by string for CRule.", e));
+                    }
+                }
+                
+                public override string ToString()
+                {
+                    return ID + " (" + ServerID + "/" + Tier + "/" + Reward.ToString() + ")";
                 }
             }
         }
