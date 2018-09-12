@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.155
+ * Version 7.0.1.156
  * 12-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.155</version_code>
+ * <version_code>7.0.1.156</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.155";
+        private const String PluginVersion = "7.0.1.156";
 
         public enum GameVersionEnum
         {
@@ -38175,7 +38175,7 @@ namespace PRoConEvents
                 Log.Info("AdKats challenge reward table not found. Attempting to add.");
                 SendNonQuery("Adding challenge reward table", @"
                     CREATE TABLE IF NOT EXISTS `adkats_challenge_reward` (
-                      `ID` int(10) unsigned NOT NULL,
+                      `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
                       `ServerID` smallint(5) unsigned NOT NULL,
                       `Tier` int(10) unsigned NOT NULL,
                       `Reward` varchar(100) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'None',
