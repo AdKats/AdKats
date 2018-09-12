@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.156
+ * Version 7.0.1.157
  * 12-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.156</version_code>
+ * <version_code>7.0.1.157</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.156";
+        private const String PluginVersion = "7.0.1.157";
 
         public enum GameVersionEnum
         {
@@ -2799,6 +2799,7 @@ namespace PRoConEvents
                     var rewardSectionPrefix = GetSettingSection(challengeSettings) + " [5] Rewards" + t;
                     buildList.Add(new CPluginVariable(rewardSectionPrefix + "Add Reward?", typeof(Int32), 0));
                     var rewards = ChallengeManager.GetRewards().OrderBy(dReward => dReward.Tier).ThenBy(dReward => dReward.Reward.ToString());
+                    Log.Info("Rewards: " + rewards.Count());
                     foreach (var reward in rewards)
                     {
                         if (reward.ID <= 0)
@@ -2813,8 +2814,12 @@ namespace PRoConEvents
                         //CCR1 | Tier 1 - ReservedSlot | Duration Minutes
                         //CCR1 | Tier 1 - ReservedSlot | Delete Reward?
 
+
+                        Log.Info("Rendering Reward: " + reward.ID);
+
                         var rewardPrefix = defSectionPrefix + "CCR" + reward.ID + s + "Tier " + reward.Tier + " - " + reward.Reward.ToString() + s;
                         buildList.Add(new CPluginVariable(rewardPrefix + "Tier Level", typeof(Int32), reward.Tier));
+                        Log.Info("Rendering Reward Tier: " + rewardPrefix + "Tier Level");
                         buildList.Add(new CPluginVariable(rewardPrefix + "Reward Type", AChallengeManager.CReward.CompletionTypeEnumString, reward.Reward.ToString()));
                         buildList.Add(new CPluginVariable(rewardPrefix + "Enabled", typeof(Boolean), reward.Enabled));
                         buildList.Add(new CPluginVariable(rewardPrefix + "Duration Minutes", typeof(Int32), reward.DurationMinutes));
