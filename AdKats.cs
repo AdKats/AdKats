@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.161
+ * Version 7.0.1.162
  * 12-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.161</version_code>
+ * <version_code>7.0.1.162</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.161";
+        private const String PluginVersion = "7.0.1.162";
 
         public enum GameVersionEnum
         {
@@ -57780,10 +57780,10 @@ namespace PRoConEvents
                             return;
                         }
                         var newDurationMinutes = Int32.Parse(durationMinutes);
-                        if (newDurationMinutes < 10)
+                        if (newDurationMinutes < 5)
                         {
-                            _plugin.Log.Error("Duration of reward cannot be less than 10 minutes.");
-                            newDurationMinutes = 10;
+                            _plugin.Log.Error("Duration of reward cannot be less than 5 minutes.");
+                            newDurationMinutes = 5;
                         }
                         if (newDurationMinutes != DurationMinutes)
                         {
