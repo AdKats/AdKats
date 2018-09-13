@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.158
+ * Version 7.0.1.160
  * 12-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.158</version_code>
+ * <version_code>7.0.1.160</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.158";
+        private const String PluginVersion = "7.0.1.160";
 
         public enum GameVersionEnum
         {
@@ -2813,7 +2813,7 @@ namespace PRoConEvents
                         //CCR1 | Tier 1 - ReservedSlot | Duration Minutes
                         //CCR1 | Tier 1 - ReservedSlot | Delete Reward?
 
-                        var rewardPrefix = rewardSectionPrefix + "CCR" + reward.ID + s + "Tier " + reward.Tier + " - " + reward.Reward.ToString() + s;
+                        var rewardPrefix = rewardSectionPrefix + "CCR" + reward.ID + s + "Tier " + reward.Tier + " - " + reward.getDurationString() + " " + reward.Reward.ToString() + s;
                         buildList.Add(new CPluginVariable(rewardPrefix + "Tier Level", typeof(Int32), reward.Tier));
                         buildList.Add(new CPluginVariable(rewardPrefix + "Reward Type", AChallengeManager.CReward.RewardTypeEnumString, reward.Reward.ToString()));
                         buildList.Add(new CPluginVariable(rewardPrefix + "Enabled", typeof(Boolean), reward.Enabled));
@@ -35896,7 +35896,16 @@ namespace PRoConEvents
                     return;
                 }
                 //Assign the new lock
-                TimeSpan duration = TimeSpan.FromMinutes(_playerLockingManualDuration);
+                Double inputDuration = 1;
+                if (record.command_numeric > 0)
+                {
+                    inputDuration = record.command_numeric;
+                }
+                else
+                {
+                    inputDuration = _playerLockingManualDuration;
+                }
+                TimeSpan duration = TimeSpan.FromMinutes(inputDuration);
                 record.target_player.Lock(record.source_name, duration);
                 SendMessageToSource(record, record.GetTargetNames() + " is now locked for " + FormatTimeString(duration, 3) + ", or until you unlock them.");
             }
@@ -53151,11 +53160,41 @@ namespace PRoConEvents
                         completionTimeString += "ERROR28217";
                     }
                     completionTimeString += Environment.NewLine;
+                    var rewardString = "";
+                    var matchingRewards = GetRewards().Where(dReward => dReward.Tier == challenge.Rule.Tier &&
+                                                                        dReward.Enabled &&
+                                                                        dReward.Reward != CReward.RewardType.None);
+                    foreach (var reward in matchingRewards)
+                    {
+                        rewardString += reward.getDurationString();
+                        switch (reward.Reward)
+                        {
+                            case CReward.RewardType.ReservedSlot:
+                                rewardString += " reserved slot, ";
+                                break;
+                            case CReward.RewardType.SpectatorSlot:
+                                rewardString += " spectator slot, ";
+                                break;
+                            case CReward.RewardType.BalanceWhitelist:
+                                rewardString += " autobalance whitelist, ";
+                                break;
+                            case CReward.RewardType.TeamKillTrackerWhitelist:
+                                rewardString += " teamkill whitelist, ";
+                                break;
+                            case CReward.RewardType.CommandLock:
+                                rewardString += " command lock, ";
+                                break;
+                        }
+                    }
                     var info = "";
                     if (description)
                     {
                         info += aPlayer.GetVerboseName() + " " + challenge.Rule.Name.ToUpper() + " CHALLENGE" + Environment.NewLine;
                         info += completionTimeString;
+                        if (!String.IsNullOrEmpty(rewardString))
+                        {
+                            info += rewardString + Environment.NewLine;
+                        }
                         info += challenge.Rule.RuleInfo() + Environment.NewLine;
                         info += "To see your progress type: " + commandText + " p";
                     }
@@ -53163,6 +53202,10 @@ namespace PRoConEvents
                     {
                         info += "Status: " + Math.Round(challenge.Progress.CompletionPercentage) + "% | " + challenge.Progress.TotalCompletedKills + " Kills | " + challenge.Progress.TotalRequiredKills + " Required" + Environment.NewLine;
                         info += completionTimeString;
+                        if (!String.IsNullOrEmpty(rewardString))
+                        {
+                            info += rewardString + Environment.NewLine;
+                        }
                         info += challenge.Progress.ToString();
                     }
                     return info;
@@ -55865,16 +55908,120 @@ namespace PRoConEvents
                             _plugin.Log.Error("Attempted to complete challenge without 100% completion.");
                             return;
                         }
+                        // Process rewards.
+                        var rewardMessage = "";
+                        var matchingRewards = Manager.GetRewards().Where(dReward => dReward.Tier == Rule.Tier &&
+                                                                                    dReward.Enabled &&
+                                                                                    dReward.Reward != CReward.RewardType.None);
+                        foreach (var reward in matchingRewards)
+                        {
+                            var durationString = reward.getDurationString();
+                            switch (reward.Reward)
+                            {
+                                case CReward.RewardType.ReservedSlot:
+                                    _plugin.QueueRecordForProcessing(new ARecord
+                                    {
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _plugin._serverInfo.ServerID,
+                                        command_type = _plugin.GetCommandByKey("player_slotreserved"),
+                                        command_numeric = reward.DurationMinutes,
+                                        target_name = Player.player_name,
+                                        target_player = Player,
+                                        source_name = "ChallengeManager",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " reserved slot.",
+                                        record_time = _plugin.UtcNow()
+                                    });
+                                    rewardMessage += durationString + " reserved slot, ";
+                                    break;
+                                case CReward.RewardType.SpectatorSlot:
+                                    _plugin.QueueRecordForProcessing(new ARecord
+                                    {
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _plugin._serverInfo.ServerID,
+                                        command_type = _plugin.GetCommandByKey("player_slotspectator"),
+                                        command_numeric = reward.DurationMinutes,
+                                        target_name = Player.player_name,
+                                        target_player = Player,
+                                        source_name = "ChallengeManager",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " spectator slot.",
+                                        record_time = _plugin.UtcNow()
+                                    });
+                                    rewardMessage += durationString + " spectator slot, ";
+                                    break;
+                                case CReward.RewardType.BalanceWhitelist:
+                                    _plugin.QueueRecordForProcessing(new ARecord
+                                    {
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _plugin._serverInfo.ServerID,
+                                        command_type = _plugin.GetCommandByKey("player_whitelistbalance"),
+                                        command_numeric = reward.DurationMinutes,
+                                        target_name = Player.player_name,
+                                        target_player = Player,
+                                        source_name = "ChallengeManager",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " autobalance whitelist.",
+                                        record_time = _plugin.UtcNow()
+                                    });
+                                    rewardMessage += durationString + " autobalance whitelist, ";
+                                    break;
+                                case CReward.RewardType.TeamKillTrackerWhitelist:
+                                    _plugin.QueueRecordForProcessing(new ARecord
+                                    {
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _plugin._serverInfo.ServerID,
+                                        command_type = _plugin.GetCommandByKey("player_whitelistteamkill"),
+                                        command_numeric = reward.DurationMinutes,
+                                        target_name = Player.player_name,
+                                        target_player = Player,
+                                        source_name = "ChallengeManager",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " teamkill whitelist.",
+                                        record_time = _plugin.UtcNow()
+                                    });
+                                    rewardMessage += durationString + " teamkill whitelist, ";
+                                    break;
+                                case CReward.RewardType.CommandLock:
+                                    _plugin.QueueRecordForProcessing(new ARecord
+                                    {
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _plugin._serverInfo.ServerID,
+                                        command_type = _plugin.GetCommandByKey("player_lock"),
+                                        command_numeric = reward.DurationMinutes,
+                                        target_name = Player.player_name,
+                                        target_player = Player,
+                                        source_name = "ChallengeManager",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " command lock.",
+                                        record_time = _plugin.UtcNow()
+                                    });
+                                    rewardMessage += durationString + " command lock, ";
+                                    break;
+                            }
+                        }
                         var spacer = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -";
                         var finishing = Player.GetVerboseName() + " finished tier " + Rule.Tier + " challenge";
                         var gratz = Rule.Name + "! Congrats!";
+                        if (!String.IsNullOrEmpty(rewardMessage))
+                        {
+                            rewardMessage = "Reward: " + rewardMessage;
+                        }
                         _plugin.ProconChatWrite(_plugin.Log.FBold(_plugin.Log.CPink(finishing + " " + gratz)));
                         foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore"))
                         {
                             _plugin.PlayerSayMessage(player.player_name, spacer, false, 1);
+                            _plugin.Threading.Wait(10);
                             _plugin.PlayerSayMessage(player.player_name, finishing, false, 1);
+                            _plugin.Threading.Wait(10);
                             _plugin.PlayerSayMessage(player.player_name, gratz, false, 1);
+                            _plugin.Threading.Wait(10);
+                            if (!String.IsNullOrEmpty(rewardMessage))
+                            {
+                                _plugin.PlayerSayMessage(player.player_name, rewardMessage, false, 1);
+                                _plugin.Threading.Wait(10);
+                            }
                             _plugin.PlayerSayMessage(player.player_name, spacer, false, 1);
+                            _plugin.Threading.Wait(10);
+                        }
+                        if (!String.IsNullOrEmpty(rewardMessage))
+                        {
+                            Player.Say("Use " + _plugin.GetChatCommandByKey("player_perks") + " to see your updated perks.");
                         }
                         Completed = true;
                         CompleteTime = _plugin.UtcNow();
@@ -55893,77 +56040,6 @@ namespace PRoConEvents
                             record_time = _plugin.UtcNow()
                         });
                         Player.ActiveChallenge = null;
-                        // Process rewards.
-                        var matchingRewards = Manager.GetRewards().Where(dReward => dReward.Tier == Rule.Tier &&
-                                                                                    dReward.Enabled &&
-                                                                                    dReward.Reward != CReward.RewardType.None);
-                        foreach (var reward in matchingRewards)
-                        {
-                            var durationString = _plugin.FormatTimeString(TimeSpan.FromMinutes(reward.DurationMinutes), 2);
-                            switch (reward.Reward)
-                            {
-                                case CReward.RewardType.ReservedSlot:
-                                    _plugin.QueueRecordForProcessing(new ARecord
-                                    {
-                                        record_source = ARecord.Sources.Automated,
-                                        server_id = _plugin._serverInfo.ServerID,
-                                        command_type = _plugin.GetCommandByKey("player_slotreserved"),
-                                        command_numeric = reward.DurationMinutes,
-                                        target_name = Player.player_name,
-                                        target_player = Player,
-                                        source_name = "ChallengeManager",
-                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " reserved slot.",
-                                        record_time = _plugin.UtcNow()
-                                    });
-                                    Player.Say("Assigned " + durationString + " reserved slot.");
-                                    break;
-                                case CReward.RewardType.SpectatorSlot:
-                                    _plugin.QueueRecordForProcessing(new ARecord
-                                    {
-                                        record_source = ARecord.Sources.Automated,
-                                        server_id = _plugin._serverInfo.ServerID,
-                                        command_type = _plugin.GetCommandByKey("player_slotspectator"),
-                                        command_numeric = reward.DurationMinutes,
-                                        target_name = Player.player_name,
-                                        target_player = Player,
-                                        source_name = "ChallengeManager",
-                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " spectator slot.",
-                                        record_time = _plugin.UtcNow()
-                                    });
-                                    Player.Say("Assigned " + durationString + " spectator slot.");
-                                    break;
-                                case CReward.RewardType.BalanceWhitelist:
-                                    _plugin.QueueRecordForProcessing(new ARecord
-                                    {
-                                        record_source = ARecord.Sources.Automated,
-                                        server_id = _plugin._serverInfo.ServerID,
-                                        command_type = _plugin.GetCommandByKey("player_whitelistbalance"),
-                                        command_numeric = reward.DurationMinutes,
-                                        target_name = Player.player_name,
-                                        target_player = Player,
-                                        source_name = "ChallengeManager",
-                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " autobalance whitelist.",
-                                        record_time = _plugin.UtcNow()
-                                    });
-                                    Player.Say("Assigned " + durationString + " autobalance whitelist.");
-                                    break;
-                                case CReward.RewardType.TeamKillTrackerWhitelist:
-                                    _plugin.QueueRecordForProcessing(new ARecord
-                                    {
-                                        record_source = ARecord.Sources.Automated,
-                                        server_id = _plugin._serverInfo.ServerID,
-                                        command_type = _plugin.GetCommandByKey("player_whitelistteamkill"),
-                                        command_numeric = reward.DurationMinutes,
-                                        target_name = Player.player_name,
-                                        target_player = Player,
-                                        source_name = "ChallengeManager",
-                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " teamkill whitelist.",
-                                        record_time = _plugin.UtcNow()
-                                    });
-                                    Player.Say("Assigned " + durationString + " teamkill whitelist.");
-                                    break;
-                            }
-                        }
                     }
                     catch (Exception e)
                     {
@@ -57281,9 +57357,10 @@ namespace PRoConEvents
                     ReservedSlot,
                     SpectatorSlot,
                     BalanceWhitelist,
-                    TeamKillTrackerWhitelist
+                    TeamKillTrackerWhitelist,
+                    CommandLock
                 }
-                public static String RewardTypeEnumString = "enum.ChallengeRewardType(None|ReservedSlot|SpectatorSlot|BalanceWhitelist|TeamKillTrackerWhitelist)";
+                public static String RewardTypeEnumString = "enum.ChallengeRewardType(None|ReservedSlot|SpectatorSlot|BalanceWhitelist|TeamKillTrackerWhitelist|CommandLock)";
 
                 private AdKats _plugin;
 
@@ -57298,6 +57375,11 @@ namespace PRoConEvents
                 public Int32 DurationMinutes;
                 public DateTime CreateTime;
                 public DateTime ModifyTime;
+
+                public String getDurationString()
+                {
+                    return _plugin.FormatTimeString(TimeSpan.FromMinutes(DurationMinutes), 2);
+                }
 
                 public CReward(AdKats plugin, AChallengeManager manager, Boolean phantom)
                 {
