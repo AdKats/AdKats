@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.167
+ * Version 7.0.1.168
  * 14-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.167</version_code>
+ * <version_code>7.0.1.168</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.167";
+        private const String PluginVersion = "7.0.1.168";
 
         public enum GameVersionEnum
         {
@@ -52773,7 +52773,8 @@ namespace PRoConEvents
                     if (player.ActiveChallenge == null &&
                         EnableServerRoundRules &&
                         RandomPlayerRoundRules &&
-                        RoundRule == null)
+                        RoundRule == null &&
+                        ChallengeRoundState == ChallengeState.Playing)
                     {
                         // Need to choose a random round rule for the player
                         CreateAndAssignRandomRoundEntry(player, true);
