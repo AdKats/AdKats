@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.162
- * 12-SEP-2018
+ * Version 7.0.1.163
+ * 13-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.162</version_code>
+ * <version_code>7.0.1.163</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.162";
+        private const String PluginVersion = "7.0.1.163";
 
         public enum GameVersionEnum
         {
@@ -36288,6 +36288,8 @@ namespace PRoConEvents
                     Threading.Wait(waitMS);
                     SendMessageToSource(record, commandText + " p (Current challenge progress.)");
                     Threading.Wait(waitMS);
+                    SendMessageToSource(record, commandText + " rewards (List of challenge rewards.)");
+                    Threading.Wait(waitMS);
                     SendMessageToSource(record, commandText + " list (List of available challenges.)");
                     Threading.Wait(waitMS);
                     SendMessageToSource(record, commandText + " list # (List of available tier # challenges.)");
@@ -36359,6 +36361,68 @@ namespace PRoConEvents
                     else
                     {
                         SendMessageToSource(record, "No challenges are available" + (tier != 0 ? " at tier " + tier : "") + ".");
+                    }
+                }
+                // Be agnostic of plural
+                else if (option.StartsWith("reward"))
+                {
+                    if (record.target_player != null &&
+                        GetMatchingVerboseASPlayersOfGroup("challenge_ignore", record.target_player).Any())
+                    {
+                        SendMessageToSource(record, "You are currently ignoring challenges. To stop ignoring challenges type " + commandText + " ignore");
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    var activeRules = ChallengeManager.GetRules().Where(dRule => dRule.Enabled);
+                    var activeRewards = ChallengeManager.GetRewards().Where(dReward => dReward.Enabled &&
+                                                                                       dReward.Reward != AChallengeManager.CReward.RewardType.None &&
+                                                                                       activeRules.Any(dRule => dRule.Tier == dReward.Tier))
+                                                                     .OrderBy(dReward => dReward.Tier).ThenBy(dReward => dReward.Reward);
+                    List<String> rewardMessages = new List<string>();
+                    if (activeRewards.Any())
+                    {
+                        var rewardGroups = activeRewards.GroupBy(dReward => dReward.Tier);
+                        foreach (var rewardGroup in rewardGroups)
+                        {
+                            var groupString = "Tier " + rewardGroup.First().Tier + ": ";
+                            var rewardStrings = rewardGroup.OrderBy(dReward => dReward.Reward.ToString())
+                                                           .Select(dReward => dReward.getDescriptionString())
+                                                           .Distinct();
+                            groupString += String.Join(", ", rewardStrings);
+                            rewardMessages.Add(groupString);
+                        }
+                    }
+
+                    if (rewardMessages.Any())
+                    {
+                        Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                        {
+                            Log.Debug(() => "Starting a challenge reward printer.", 5);
+                            try
+                            {
+                                Thread.CurrentThread.Name = "ChallengeRewardPrinter";
+                                Threading.Wait(100);
+                                foreach (var message in rewardMessages)
+                                {
+                                    if (String.IsNullOrEmpty(message.Replace(Environment.NewLine, "").Trim()))
+                                    {
+                                        continue;
+                                    }
+                                    SendMessageToSource(record, message);
+                                    Threading.Wait(1500);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                Log.HandleException(new AException("Error while printing challenge rewards.", e));
+                            }
+                            Log.Debug(() => "Exiting a challenge rewards printer.", 5);
+                            Threading.StopWatchdog();
+                        })));
+                    }
+                    else
+                    {
+                        SendMessageToSource(record, "No challenge rewards are enabled at this time.");
                     }
                 }
                 else if (option == "info")
@@ -53164,27 +53228,12 @@ namespace PRoConEvents
                     var matchingRewards = GetRewards().Where(dReward => dReward.Tier == challenge.Rule.Tier &&
                                                                         dReward.Enabled &&
                                                                         dReward.Reward != CReward.RewardType.None);
-                    foreach (var reward in matchingRewards)
+                    if (matchingRewards.Any())
                     {
-                        rewardString += reward.getDurationString();
-                        switch (reward.Reward)
-                        {
-                            case CReward.RewardType.ReservedSlot:
-                                rewardString += " reserved slot, ";
-                                break;
-                            case CReward.RewardType.SpectatorSlot:
-                                rewardString += " spectator slot, ";
-                                break;
-                            case CReward.RewardType.BalanceWhitelist:
-                                rewardString += " autobalance whitelist, ";
-                                break;
-                            case CReward.RewardType.TeamKillTrackerWhitelist:
-                                rewardString += " teamkill whitelist, ";
-                                break;
-                            case CReward.RewardType.CommandLock:
-                                rewardString += " command lock, ";
-                                break;
-                        }
+                        var rewardStrings = matchingRewards.OrderBy(dReward => dReward.Reward.ToString())
+                                                           .Select(dReward => dReward.getDescriptionString())
+                                                           .Distinct();
+                        rewardString = String.Join(", ", rewardStrings);
                     }
                     var info = "";
                     if (description)
@@ -57375,6 +57424,34 @@ namespace PRoConEvents
                 public Int32 DurationMinutes;
                 public DateTime CreateTime;
                 public DateTime ModifyTime;
+
+                public String getDescriptionString()
+                {
+                    if (Reward == RewardType.None)
+                    {
+                        return "";
+                    }
+                    var rewardString = getDurationString();
+                    switch (Reward)
+                    {
+                        case CReward.RewardType.ReservedSlot:
+                            rewardString += " reserved slot";
+                            break;
+                        case CReward.RewardType.SpectatorSlot:
+                            rewardString += " spectator slot";
+                            break;
+                        case CReward.RewardType.BalanceWhitelist:
+                            rewardString += " autobalance whitelist";
+                            break;
+                        case CReward.RewardType.TeamKillTrackerWhitelist:
+                            rewardString += " teamkill whitelist";
+                            break;
+                        case CReward.RewardType.CommandLock:
+                            rewardString += " command lock";
+                            break;
+                    }
+                    return rewardString;
+                }
 
                 public String getDurationString()
                 {
