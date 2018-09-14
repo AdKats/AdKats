@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.168
+ * Version 7.0.1.169
  * 14-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.168</version_code>
+ * <version_code>7.0.1.169</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.168";
+        private const String PluginVersion = "7.0.1.169";
 
         public enum GameVersionEnum
         {
@@ -53581,25 +53581,14 @@ namespace PRoConEvents
                         _plugin.Log.Error("Attempted to start challenge playing with invalid round ID " + roundID + ", original round loaded was " + LoadedRoundID);
                         return;
                     }
-                    if (EnableServerRoundRules)
+                    if (EnableServerRoundRules && RoundRule != null)
                     {
-                        var playerList = _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore").Where(player => player.ActiveChallenge == null);
-                        if (RoundRule != null)
+                        var startMessage = RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.";
+                        _plugin.ProconChatWrite(_plugin.Log.FBold(_plugin.Log.CPink(startMessage)));
+                        // Only tell players about the new challenge if they don't already have a challenge assigned
+                        foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore").Where(player => player.ActiveChallenge == null))
                         {
-                            var startMessage = RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.";
-                            _plugin.ProconChatWrite(_plugin.Log.FBold(_plugin.Log.CPink(startMessage)));
-                            // Only tell players about the new challenge if they don't already have a challenge assigned
-                            foreach (var player in playerList)
-                            {
-                                _plugin.PlayerTellMessage(player.player_name, startMessage, false, 1);
-                            }
-                        }
-                        else if (RandomPlayerRoundRules)
-                        {
-                            foreach (var player in playerList)
-                            {
-                                CreateAndAssignRandomRoundEntry(player, true);
-                            }
+                            _plugin.PlayerTellMessage(player.player_name, startMessage, false, 1);
                         }
                     }
                     ChallengeRoundState = ChallengeState.Playing;
