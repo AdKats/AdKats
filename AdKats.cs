@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.164
+ * Version 7.0.1.165
  * 13-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.164</version_code>
+ * <version_code>7.0.1.165</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.164";
+        private const String PluginVersion = "7.0.1.165";
 
         public enum GameVersionEnum
         {
@@ -57732,7 +57732,7 @@ namespace PRoConEvents
                                 {
                                     // SUCCESS
                                     _plugin.Log.Info("Deleted CReward " + this.ToString() + ".");
-                                    Manager.DeleteReward(Tier);
+                                    Manager.DeleteReward(ID);
                                 }
                             }
                         }
