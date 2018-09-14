@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.163
+ * Version 7.0.1.164
  * 13-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.163</version_code>
+ * <version_code>7.0.1.164</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.163";
+        private const String PluginVersion = "7.0.1.164";
 
         public enum GameVersionEnum
         {
@@ -36388,7 +36388,7 @@ namespace PRoConEvents
                             var rewardStrings = rewardGroup.OrderBy(dReward => dReward.Reward.ToString())
                                                            .Select(dReward => dReward.getDescriptionString())
                                                            .Distinct();
-                            groupString += String.Join(", ", rewardStrings);
+                            groupString += String.Join(", ", rewardStrings.ToArray());
                             rewardMessages.Add(groupString);
                         }
                     }
@@ -53233,7 +53233,7 @@ namespace PRoConEvents
                         var rewardStrings = matchingRewards.OrderBy(dReward => dReward.Reward.ToString())
                                                            .Select(dReward => dReward.getDescriptionString())
                                                            .Distinct();
-                        rewardString = String.Join(", ", rewardStrings);
+                        rewardString = String.Join(", ", rewardStrings.ToArray());
                     }
                     var info = "";
                     if (description)
