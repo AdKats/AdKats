@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.170
+ * Version 7.0.1.171
  * 14-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.170</version_code>
+ * <version_code>7.0.1.171</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.170";
+        private const String PluginVersion = "7.0.1.171";
 
         public enum GameVersionEnum
         {
@@ -52774,7 +52774,7 @@ namespace PRoConEvents
                         EnableServerRoundRules &&
                         RandomPlayerRoundRules &&
                         RoundRule == null &&
-                        ChallengeRoundState == ChallengeState.Playing && false)
+                        ChallengeRoundState == ChallengeState.Playing)
                     {
                         // Need to choose a random round rule for the player
                         CreateAndAssignRandomRoundEntry(player, true);
@@ -52857,53 +52857,67 @@ namespace PRoConEvents
 
             public void CreateAndAssignRandomRoundEntry(APlayer player, Boolean verbose)
             {
-                var roundRules = GetRules().Where(rule => rule.Enabled &&
-                                                          rule.Tier == 1 &&
-                                                          rule.Completion == CRule.CompletionType.Rounds &&
-                                                          rule.RoundCount == 1 &&
-                                                          rule.Definition.GetDetails().Any());
-                if (!roundRules.Any())
+                try
                 {
-                    if (verbose)
+                    var roundRules = GetRules().Where(rule => rule.Enabled &&
+                                                              rule.Tier == 1 &&
+                                                              rule.Completion == CRule.CompletionType.Rounds &&
+                                                              rule.RoundCount == 1 &&
+                                                              rule.Definition.GetDetails().Any());
+                    if (!roundRules.Any())
                     {
-                        player.Say("No active round challenges found.");
+                        if (verbose)
+                        {
+                            player.Say("No active round challenges found.");
+                        }
+                        return;
                     }
-                    return;
+                    // Assign a random rule from the available list
+                    var rng = new Random(Environment.TickCount);
+                    CreateAndAssignEntry(player, roundRules.OrderBy(rule => rng.Next()).First(), verbose);
                 }
-                // Assign a random rule from the available list
-                var rng = new Random(Environment.TickCount);
-                CreateAndAssignEntry(player, roundRules.OrderBy(rule => rng.Next()).First(), verbose);
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error creating and assigning random round entry.", e));
+                }
             }
 
             public void CreateAndAssignRandomEntry(APlayer player, Int32 tier, Boolean verbose)
             {
-                if (tier < 0)
+                try
                 {
-                    tier = 0;
-                }
-                if (tier > 10)
-                {
-                    tier = 10;
-                }
-                var rules = GetRules().Where(rule => rule.Enabled &&
-                                                     rule.Definition.GetDetails().Any())
-                                      .OrderBy(rule => rule.Tier)
-                                      .ThenBy(rule => rule.Name).ToList();
-                if (tier != 0)
-                {
-                    rules = rules.Where(rule => rule.Tier == tier).ToList();
-                }
-                if (!rules.Any())
-                {
-                    if (verbose)
+                    if (tier < 0)
                     {
-                        player.Say("No matching challenges found.");
+                        tier = 0;
                     }
-                    return;
+                    if (tier > 10)
+                    {
+                        tier = 10;
+                    }
+                    var rules = GetRules().Where(rule => rule.Enabled &&
+                                                         rule.Definition.GetDetails().Any())
+                                          .OrderBy(rule => rule.Tier)
+                                          .ThenBy(rule => rule.Name).ToList();
+                    if (tier != 0)
+                    {
+                        rules = rules.Where(rule => rule.Tier == tier).ToList();
+                    }
+                    if (!rules.Any())
+                    {
+                        if (verbose)
+                        {
+                            player.Say("No matching challenges found.");
+                        }
+                        return;
+                    }
+                    // Assign a random rule from the available list
+                    var rng = new Random(Environment.TickCount);
+                    CreateAndAssignEntry(player, rules.OrderBy(rule => rng.Next()).First(), verbose);
                 }
-                // Assign a random rule from the available list
-                var rng = new Random(Environment.TickCount);
-                CreateAndAssignEntry(player, rules.OrderBy(rule => rng.Next()).First(), verbose);
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error creating and assigning random entry.", e));
+                }
             }
 
             public void CreateAndAssignEntry(APlayer player, CRule rule, Boolean verbose)
@@ -52948,7 +52962,6 @@ namespace PRoConEvents
                     lock (Entries)
                     {
                         // Cancel any existing entries for the player
-                        AssignActiveEntryForPlayer(player);
                         if (player.ActiveChallenge != null)
                         {
                             player.ActiveChallenge.DoCancel();
