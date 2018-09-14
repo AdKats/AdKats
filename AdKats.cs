@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.166
- * 13-SEP-2018
+ * Version 7.0.1.167
+ * 14-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.166</version_code>
+ * <version_code>7.0.1.167</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.166";
+        private const String PluginVersion = "7.0.1.167";
 
         public enum GameVersionEnum
         {
@@ -2663,6 +2663,7 @@ namespace PRoConEvents
                     if (ChallengeManager.EnableServerRoundRules)
                     {
                         buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Challenge System Auto-Assign Round rules", typeof(Boolean), ChallengeManager.AutoPlay));
+                        buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Use Different Round Rule For Each Player", typeof(Boolean), ChallengeManager.RandomPlayerRoundRules));
                     }
                     // DISPLAYS
                     var displaySectionPrefix = GetSettingSection(challengeSettings) + " [1] Displays" + t;
@@ -5987,6 +5988,17 @@ namespace PRoConEvents
                         ChallengeManager.EnableServerRoundRules = useRoundRules;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Server-Wide Round Rules", typeof(Boolean), ChallengeManager.EnableServerRoundRules));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Use Different Round Rule For Each Player").Success)
+                {
+                    Boolean useRandomRules = Boolean.Parse(strValue);
+                    if (ChallengeManager != null &&
+                        useRandomRules != ChallengeManager.RandomPlayerRoundRules)
+                    {
+                        ChallengeManager.RandomPlayerRoundRules = useRandomRules;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Use Different Round Rule For Each Player", typeof(Boolean), ChallengeManager.RandomPlayerRoundRules));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use NO EXPLOSIVES Limiter").Success)
@@ -36281,7 +36293,7 @@ namespace PRoConEvents
                 var commandText = GetChatCommandByKey("self_challenge");
                 
                 var option = record.record_message.ToLower().Trim();
-                if (option == "help")
+                if (option.StartsWith("help"))
                 {
                     var waitMS = 2000;
                     SendMessageToSource(record, commandText + " info (Current challenge info.)");
@@ -36295,6 +36307,10 @@ namespace PRoConEvents
                     SendMessageToSource(record, commandText + " list # (List of available tier # challenges.)");
                     Threading.Wait(waitMS);
                     SendMessageToSource(record, commandText + " # (Start challenge #.)");
+                    Threading.Wait(waitMS);
+                    SendMessageToSource(record, commandText + " random (Start a random challenge of any tier.)");
+                    Threading.Wait(waitMS);
+                    SendMessageToSource(record, commandText + " random # (Start a random tier # challenge.)");
                     Threading.Wait(waitMS);
                     SendMessageToSource(record, commandText + " k (Activates after you complete a challenge weapon. Admin slays you manually.)");
                     Threading.Wait(waitMS);
@@ -36362,6 +36378,23 @@ namespace PRoConEvents
                     {
                         SendMessageToSource(record, "No challenges are available" + (tier != 0 ? " at tier " + tier : "") + ".");
                     }
+                }
+                else if (option == "random" || option.StartsWith("random "))
+                {
+                    if (record.target_player != null &&
+                        GetMatchingVerboseASPlayersOfGroup("challenge_ignore", record.target_player).Any())
+                    {
+                        SendMessageToSource(record, "You are currently ignoring challenges. To stop ignoring challenges type " + commandText + " ignore");
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    var split = option.Split(' ');
+                    Int32 tier = 0;
+                    if (split.Count() >= 2)
+                    {
+                        Int32.TryParse(split[1], out tier);
+                    }
+                    ChallengeManager.CreateAndAssignRandomEntry(record.target_player, tier, true);
                 }
                 // Be agnostic of plural
                 else if (option.StartsWith("reward"))
@@ -38684,6 +38717,7 @@ namespace PRoConEvents
                     QueueSettingForUpload(new CPluginVariable(@"Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
                     QueueSettingForUpload(new CPluginVariable(@"Challenge System Auto-Assign Round rules", typeof(Boolean), ChallengeManager.AutoPlay));
                     QueueSettingForUpload(new CPluginVariable(@"Use Server-Wide Round Rules", typeof(Boolean), ChallengeManager.EnableServerRoundRules));
+                    QueueSettingForUpload(new CPluginVariable(@"Use Different Round Rule For Each Player", typeof(Boolean), ChallengeManager.RandomPlayerRoundRules));
                 }
                 Log.Debug(() => "uploadAllSettings finished!", 6);
             }
@@ -51900,6 +51934,7 @@ namespace PRoConEvents
             public Boolean Enabled;
             public Boolean AutoPlay = true;
             public Boolean EnableServerRoundRules;
+            public Boolean RandomPlayerRoundRules;
 
             public enum ChallengeState
             {
@@ -52697,7 +52732,7 @@ namespace PRoConEvents
             {
                 try
                 {
-                    if (player.ActiveChallenge != null && _plugin._UseExperimentalTools)
+                    if (player.ActiveChallenge != null)
                     {
                         return;
                     }
@@ -52734,6 +52769,15 @@ namespace PRoConEvents
                         return;
                     }
                     player.ActiveChallenge = activeEntries.FirstOrDefault();
+                    // Secondary check in case we're doing random assignment of challenges
+                    if (player.ActiveChallenge == null &&
+                        EnableServerRoundRules &&
+                        RandomPlayerRoundRules &&
+                        RoundRule == null)
+                    {
+                        // Need to choose a random round rule for the player
+                        CreateAndAssignRandomRoundEntry(player, true);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -52808,6 +52852,57 @@ namespace PRoConEvents
                     _plugin.Log.HandleException(new AException("Error while getting completed round entries for player.", e));
                 }
                 return null;
+            }
+
+            public void CreateAndAssignRandomRoundEntry(APlayer player, Boolean verbose)
+            {
+                var roundRules = GetRules().Where(rule => rule.Enabled &&
+                                                          rule.Tier == 1 &&
+                                                          rule.Completion == CRule.CompletionType.Rounds &&
+                                                          rule.RoundCount == 1 &&
+                                                          rule.Definition.GetDetails().Any());
+                if (!roundRules.Any())
+                {
+                    if (verbose)
+                    {
+                        player.Say("No active round challenges found.");
+                    }
+                    return;
+                }
+                // Assign a random rule from the available list
+                var rng = new Random(Environment.TickCount);
+                CreateAndAssignEntry(player, roundRules.OrderBy(rule => rng.Next()).First(), verbose);
+            }
+
+            public void CreateAndAssignRandomEntry(APlayer player, Int32 tier, Boolean verbose)
+            {
+                if (tier < 0)
+                {
+                    tier = 0;
+                }
+                if (tier > 10)
+                {
+                    tier = 10;
+                }
+                var rules = GetRules().Where(rule => rule.Enabled &&
+                                                     rule.Definition.GetDetails().Any())
+                                      .OrderBy(rule => rule.Tier)
+                                      .ThenBy(rule => rule.Name).ToList();
+                if (tier != 0)
+                {
+                    rules = rules.Where(rule => rule.Tier == tier).ToList();
+                }
+                if (!rules.Any())
+                {
+                    if (verbose)
+                    {
+                        player.Say("No matching challenges found.");
+                    }
+                    return;
+                }
+                // Assign a random rule from the available list
+                var rng = new Random(Environment.TickCount);
+                CreateAndAssignEntry(player, rules.OrderBy(rule => rng.Next()).First(), verbose);
             }
 
             public void CreateAndAssignEntry(APlayer player, CRule rule, Boolean verbose)
@@ -52897,7 +52992,6 @@ namespace PRoConEvents
                         _plugin.Log.Error("Kill was invalid when assigning round challenge.");
                         return;
                     }
-
                     var player = kill.killer;
                     // Check ignoring case
                     if (_plugin.GetMatchingVerboseASPlayersOfGroup("challenge_ignore", player).Any())
@@ -53397,7 +53491,7 @@ namespace PRoConEvents
                         CompletedRoundEntries.Clear();
                     }
                     // Do not start a server-wide round rule during an event
-                    if (EnableServerRoundRules && !_plugin.EventActive())
+                    if (EnableServerRoundRules && !RandomPlayerRoundRules && !_plugin.EventActive())
                     {
                         // Make sure we don't have an active rule at this time.
                         if (RoundRule == null)
@@ -53406,7 +53500,8 @@ namespace PRoConEvents
                             var roundRules = GetRules().Where(rule => rule.Enabled &&
                                                                       rule.Tier == 1 &&
                                                                       rule.Completion == CRule.CompletionType.Rounds &&
-                                                                      rule.RoundCount == 1);
+                                                                      rule.RoundCount == 1 &&
+                                                                      rule.Definition.GetDetails().Any());
                             if (roundRules.Any())
                             {
                                 // Randomize the list and pick the first unused one
@@ -53485,14 +53580,25 @@ namespace PRoConEvents
                         _plugin.Log.Error("Attempted to start challenge playing with invalid round ID " + roundID + ", original round loaded was " + LoadedRoundID);
                         return;
                     }
-                    if (EnableServerRoundRules && RoundRule != null)
+                    if (EnableServerRoundRules)
                     {
-                        var startMessage = RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.";
-                        _plugin.ProconChatWrite(_plugin.Log.FBold(_plugin.Log.CPink(startMessage)));
-                        // Only tell players about the new challenge if they don't already have a challenge assigned
-                        foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore").Where(player => player.ActiveChallenge == null))
+                        var playerList = _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore").Where(player => player.ActiveChallenge == null);
+                        if (RoundRule != null)
                         {
-                            _plugin.PlayerTellMessage(player.player_name, startMessage, false, 1);
+                            var startMessage = RoundRule.Name + " Challenge Starting! Type " + _plugin.GetChatCommandByKey("self_challenge") + " for more info.";
+                            _plugin.ProconChatWrite(_plugin.Log.FBold(_plugin.Log.CPink(startMessage)));
+                            // Only tell players about the new challenge if they don't already have a challenge assigned
+                            foreach (var player in playerList)
+                            {
+                                _plugin.PlayerTellMessage(player.player_name, startMessage, false, 1);
+                            }
+                        }
+                        else if (RandomPlayerRoundRules)
+                        {
+                            foreach (var player in playerList)
+                            {
+                                CreateAndAssignRandomRoundEntry(player, true);
+                            }
                         }
                     }
                     ChallengeRoundState = ChallengeState.Playing;
@@ -53525,6 +53631,11 @@ namespace PRoConEvents
                         if (!EnableServerRoundRules)
                         {
                             _plugin.Log.Error("Server-wide round rules not enabled. Unable to start rule.");
+                            return;
+                        }
+                        if (RandomPlayerRoundRules)
+                        {
+                            _plugin.Log.Error("Random player round rules are being used instead of one rule for everyone.");
                             return;
                         }
                         var chosenRule = GetRules().FirstOrDefault(rule => rule.ID == RuleID);
