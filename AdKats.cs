@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.165
+ * Version 7.0.1.166
  * 13-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.165</version_code>
+ * <version_code>7.0.1.166</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.165";
+        private const String PluginVersion = "7.0.1.166";
 
         public enum GameVersionEnum
         {
@@ -55962,9 +55962,10 @@ namespace PRoConEvents
                         var matchingRewards = Manager.GetRewards().Where(dReward => dReward.Tier == Rule.Tier &&
                                                                                     dReward.Enabled &&
                                                                                     dReward.Reward != CReward.RewardType.None);
+                        var givenRewards = new List<String>();
                         foreach (var reward in matchingRewards)
                         {
-                            var durationString = reward.getDurationString();
+                            var descriptionString = reward.getDescriptionString();
                             switch (reward.Reward)
                             {
                                 case CReward.RewardType.ReservedSlot:
@@ -55977,10 +55978,10 @@ namespace PRoConEvents
                                         target_name = Player.player_name,
                                         target_player = Player,
                                         source_name = "ChallengeManager",
-                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " reserved slot.",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + descriptionString + ".",
                                         record_time = _plugin.UtcNow()
                                     });
-                                    rewardMessage += durationString + " reserved slot, ";
+                                    givenRewards.Add(descriptionString);
                                     break;
                                 case CReward.RewardType.SpectatorSlot:
                                     _plugin.QueueRecordForProcessing(new ARecord
@@ -55992,10 +55993,10 @@ namespace PRoConEvents
                                         target_name = Player.player_name,
                                         target_player = Player,
                                         source_name = "ChallengeManager",
-                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " spectator slot.",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + descriptionString + ".",
                                         record_time = _plugin.UtcNow()
                                     });
-                                    rewardMessage += durationString + " spectator slot, ";
+                                    givenRewards.Add(descriptionString);
                                     break;
                                 case CReward.RewardType.BalanceWhitelist:
                                     _plugin.QueueRecordForProcessing(new ARecord
@@ -56007,10 +56008,10 @@ namespace PRoConEvents
                                         target_name = Player.player_name,
                                         target_player = Player,
                                         source_name = "ChallengeManager",
-                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " autobalance whitelist.",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + descriptionString + ".",
                                         record_time = _plugin.UtcNow()
                                     });
-                                    rewardMessage += durationString + " autobalance whitelist, ";
+                                    givenRewards.Add(descriptionString);
                                     break;
                                 case CReward.RewardType.TeamKillTrackerWhitelist:
                                     _plugin.QueueRecordForProcessing(new ARecord
@@ -56022,10 +56023,10 @@ namespace PRoConEvents
                                         target_name = Player.player_name,
                                         target_player = Player,
                                         source_name = "ChallengeManager",
-                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " teamkill whitelist.",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + descriptionString + ".",
                                         record_time = _plugin.UtcNow()
                                     });
-                                    rewardMessage += durationString + " teamkill whitelist, ";
+                                    givenRewards.Add(descriptionString);
                                     break;
                                 case CReward.RewardType.CommandLock:
                                     _plugin.QueueRecordForProcessing(new ARecord
@@ -56037,17 +56038,21 @@ namespace PRoConEvents
                                         target_name = Player.player_name,
                                         target_player = Player,
                                         source_name = "ChallengeManager",
-                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + durationString + " command lock.",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + descriptionString + ".",
                                         record_time = _plugin.UtcNow()
                                     });
-                                    rewardMessage += durationString + " command lock, ";
+                                    givenRewards.Add(descriptionString);
                                     break;
                             }
+                        }
+                        if (givenRewards.Any())
+                        {
+                            rewardMessage = String.Join(", ", givenRewards.ToArray());
                         }
                         var spacer = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -";
                         var finishing = Player.GetVerboseName() + " finished tier " + Rule.Tier + " challenge";
                         var gratz = Rule.Name + "! Congrats!";
-                        if (!String.IsNullOrEmpty(rewardMessage))
+                        if (givenRewards.Any())
                         {
                             rewardMessage = "Reward: " + rewardMessage;
                         }
@@ -56060,7 +56065,7 @@ namespace PRoConEvents
                             _plugin.Threading.Wait(10);
                             _plugin.PlayerSayMessage(player.player_name, gratz, false, 1);
                             _plugin.Threading.Wait(10);
-                            if (!String.IsNullOrEmpty(rewardMessage))
+                            if (givenRewards.Any())
                             {
                                 _plugin.PlayerSayMessage(player.player_name, rewardMessage, false, 1);
                                 _plugin.Threading.Wait(10);
@@ -56068,7 +56073,7 @@ namespace PRoConEvents
                             _plugin.PlayerSayMessage(player.player_name, spacer, false, 1);
                             _plugin.Threading.Wait(10);
                         }
-                        if (!String.IsNullOrEmpty(rewardMessage))
+                        if (givenRewards.Any())
                         {
                             Player.Say("Use " + _plugin.GetChatCommandByKey("player_perks") + " to see your updated perks.");
                         }
