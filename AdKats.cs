@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.173
+ * Version 7.0.1.175
  * 15-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.173</version_code>
+ * <version_code>7.0.1.175</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.173";
+        private const String PluginVersion = "7.0.1.175";
 
         public enum GameVersionEnum
         {
@@ -2814,7 +2814,7 @@ namespace PRoConEvents
                         //CCR1 | Tier 1 - ReservedSlot | Duration Minutes
                         //CCR1 | Tier 1 - ReservedSlot | Delete Reward?
 
-                        var rewardPrefix = rewardSectionPrefix + "CCR" + reward.ID + s + "Tier " + reward.Tier + " - " + reward.getDurationString() + " " + reward.Reward.ToString() + s;
+                        var rewardPrefix = rewardSectionPrefix + "CCR" + reward.ID + s + "Tier " + reward.Tier + " - " + reward.getDescriptionString() + s;
                         buildList.Add(new CPluginVariable(rewardPrefix + "Tier Level", typeof(Int32), reward.Tier));
                         buildList.Add(new CPluginVariable(rewardPrefix + "Reward Type", AChallengeManager.CReward.RewardTypeEnumString, reward.Reward.ToString()));
                         buildList.Add(new CPluginVariable(rewardPrefix + "Enabled", typeof(Boolean), reward.Enabled));
@@ -56168,12 +56168,17 @@ namespace PRoConEvents
                                         record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + descriptionString + ".",
                                         record_time = time
                                     });
+                                    var lockString = "command lock";
+                                    if (_plugin._UseExperimentalTools)
+                                    {
+                                        lockString = "rule breaking allowed";
+                                    }
                                     _plugin.Threading.StartWatchdog(new Thread(new ThreadStart(delegate
                                     {
                                         Thread.CurrentThread.Name = "CommandLockMonitor";
                                         Thread.Sleep(TimeSpan.FromSeconds(3));
                                         var end = time.AddMinutes(reward.DurationMinutes);
-                                        _plugin.AdminSayMessage(Player.GetVerboseName() + " command lock ACTIVE!");
+                                        _plugin.AdminSayMessage(Player.GetVerboseName() + " " + lockString + " ACTIVE!");
                                         while (true)
                                         {
                                             if (!_plugin._pluginEnabled)
@@ -56182,7 +56187,7 @@ namespace PRoConEvents
                                             }
                                             if (_plugin.UtcNow() > end)
                                             {
-                                                _plugin.AdminSayMessage(Player.GetVerboseName() + " command lock ENDED!");
+                                                _plugin.AdminSayMessage(Player.GetVerboseName() + " " + lockString + " ENDED!");
                                                 break;
                                             }
                                             var duration = _plugin.NowDuration(end);
@@ -56190,7 +56195,7 @@ namespace PRoConEvents
                                             // Send the message every 30 seconds
                                             if (durationSec % 30 == 0)
                                             {
-                                                _plugin.AdminSayMessage(Player.GetVerboseName() + " command lock " + _plugin.FormatTimeString(duration, 2) + " remaining!");
+                                                _plugin.AdminSayMessage(Player.GetVerboseName() + " " + lockString + ", " + _plugin.FormatTimeString(duration, 2) + " remaining!");
                                             }
                                             _plugin.Threading.Wait(1000);
                                         }
@@ -57602,7 +57607,12 @@ namespace PRoConEvents
                             rewardString += " teamkill whitelist";
                             break;
                         case CReward.RewardType.CommandLock:
-                            rewardString += " command lock";
+                            var lockString = "command lock";
+                            if (_plugin._UseExperimentalTools)
+                            {
+                                lockString = "rule breaking allowed";
+                            }
+                            rewardString += " " + lockString;
                             break;
                     }
                     return rewardString;
