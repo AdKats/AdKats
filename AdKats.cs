@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.172
- * 14-SEP-2018
+ * Version 7.0.1.173
+ * 15-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.172</version_code>
+ * <version_code>7.0.1.173</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.172";
+        private const String PluginVersion = "7.0.1.173";
 
         public enum GameVersionEnum
         {
@@ -56155,6 +56155,7 @@ namespace PRoConEvents
                                     givenRewards.Add(descriptionString);
                                     break;
                                 case CReward.RewardType.CommandLock:
+                                    var time = _plugin.UtcNow();
                                     _plugin.QueueRecordForProcessing(new ARecord
                                     {
                                         record_source = ARecord.Sources.Automated,
@@ -56165,8 +56166,36 @@ namespace PRoConEvents
                                         target_player = Player,
                                         source_name = "ChallengeManager",
                                         record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + descriptionString + ".",
-                                        record_time = _plugin.UtcNow()
+                                        record_time = time
                                     });
+                                    _plugin.Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+                                    {
+                                        Thread.CurrentThread.Name = "CommandLockMonitor";
+                                        Thread.Sleep(TimeSpan.FromSeconds(3));
+                                        var end = time.AddMinutes(reward.DurationMinutes);
+                                        _plugin.AdminSayMessage(Player.GetVerboseName() + " command lock ACTIVE!");
+                                        while (true)
+                                        {
+                                            if (!_plugin._pluginEnabled)
+                                            {
+                                                break;
+                                            }
+                                            if (_plugin.UtcNow() > end)
+                                            {
+                                                _plugin.AdminSayMessage(Player.GetVerboseName() + " command lock ENDED!");
+                                                break;
+                                            }
+                                            var duration = _plugin.NowDuration(end);
+                                            var durationSec = (Int32)duration.TotalSeconds;
+                                            // Send the message every 30 seconds
+                                            if (durationSec % 30 == 0)
+                                            {
+                                                _plugin.AdminSayMessage(Player.GetVerboseName() + " command lock " + _plugin.FormatTimeString(duration, 2) + " remaining!");
+                                            }
+                                            _plugin.Threading.Wait(1000);
+                                        }
+                                        _plugin.Threading.StopWatchdog();
+                                    })));
                                     givenRewards.Add(descriptionString);
                                     break;
                             }
@@ -56186,18 +56215,13 @@ namespace PRoConEvents
                         foreach (var player in _plugin.GetOnlinePlayersWithoutGroup("challenge_ignore"))
                         {
                             _plugin.PlayerSayMessage(player.player_name, spacer, false, 1);
-                            _plugin.Threading.Wait(10);
                             _plugin.PlayerSayMessage(player.player_name, finishing, false, 1);
-                            _plugin.Threading.Wait(10);
                             _plugin.PlayerSayMessage(player.player_name, gratz, false, 1);
-                            _plugin.Threading.Wait(10);
                             if (givenRewards.Any())
                             {
                                 _plugin.PlayerSayMessage(player.player_name, rewardMessage, false, 1);
-                                _plugin.Threading.Wait(10);
                             }
                             _plugin.PlayerSayMessage(player.player_name, spacer, false, 1);
-                            _plugin.Threading.Wait(10);
                         }
                         if (givenRewards.Any())
                         {
