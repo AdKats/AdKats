@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.177
+ * Version 7.0.1.178
  * 16-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.177</version_code>
+ * <version_code>7.0.1.178</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.177";
+        private const String PluginVersion = "7.0.1.178";
 
         public enum GameVersionEnum
         {
@@ -53387,7 +53387,7 @@ namespace PRoConEvents
                             info += "Rewards: " + rewardString + Environment.NewLine;
                         }
                         info += challenge.Rule.RuleInfo() + Environment.NewLine;
-                        info += "To see your progress type: " + commandText + " p";
+                        info += "To see your progress type: " + commandText + " p" + Environment.NewLine;
                     }
                     else
                     {
