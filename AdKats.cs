@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.180
+ * Version 7.0.1.181
  * 16-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.180</version_code>
+ * <version_code>7.0.1.181</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.180";
+        private const String PluginVersion = "7.0.1.181";
 
         public enum GameVersionEnum
         {
@@ -56235,11 +56235,11 @@ namespace PRoConEvents
                                     {
                                         lockString = "rule breaking allowed";
                                     }
+                                    var end = time.AddMinutes(reward.DurationMinutes);
                                     _plugin.Threading.StartWatchdog(new Thread(new ThreadStart(delegate
                                     {
                                         Thread.CurrentThread.Name = "CommandLockMonitor";
                                         Thread.Sleep(TimeSpan.FromSeconds(3));
-                                        var end = time.AddMinutes(reward.DurationMinutes);
                                         _plugin.AdminSayMessage(Player.GetVerboseName() + " " + lockString + " ACTIVE!");
                                         while (true)
                                         {
