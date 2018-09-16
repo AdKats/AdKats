@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.176
- * 15-SEP-2018
+ * Version 7.0.1.177
+ * 16-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.176</version_code>
+ * <version_code>7.0.1.177</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.176";
+        private const String PluginVersion = "7.0.1.177";
 
         public enum GameVersionEnum
         {
@@ -2659,6 +2659,7 @@ namespace PRoConEvents
                 if (IsActiveSettingSection(challengeSettings) && ChallengeManager != null)
                 {
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
+                    buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Challenge System Minimum Players", typeof(Int32), ChallengeManager.MinimumPlayers));
                     buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Use Server-Wide Round Rules", typeof(Boolean), ChallengeManager.EnableServerRoundRules));
                     if (ChallengeManager.EnableServerRoundRules)
                     {
@@ -5977,6 +5978,17 @@ namespace PRoConEvents
                         ChallengeManager.AutoPlay = autoAssign;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Challenge System Auto-Assign Round rules", typeof(Boolean), ChallengeManager.AutoPlay));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Challenge System Minimum Players").Success)
+                {
+                    Int32 minPlayers = Int32.Parse(strValue);
+                    if (ChallengeManager != null &&
+                        minPlayers != ChallengeManager.MinimumPlayers)
+                    {
+                        ChallengeManager.MinimumPlayers = minPlayers;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Challenge System Minimum Players", typeof(Int32), ChallengeManager.MinimumPlayers));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Server-Wide Round Rules").Success)
@@ -16464,7 +16476,8 @@ namespace PRoConEvents
                     if (!acted &&
                         ChallengeManager != null &&
                         ChallengeManager.Loaded &&
-                        !EventActive())
+                        !EventActive() &&
+                        GetPlayerCount() >= ChallengeManager.MinimumPlayers)
                     {
                         if (aKill.killer.ActiveChallenge == null)
                         {
@@ -38724,6 +38737,7 @@ namespace PRoConEvents
                 if (ChallengeManager != null)
                 {
                     QueueSettingForUpload(new CPluginVariable(@"Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
+                    QueueSettingForUpload(new CPluginVariable(@"Challenge System Minimum Players", typeof(Int32), ChallengeManager.MinimumPlayers));
                     QueueSettingForUpload(new CPluginVariable(@"Challenge System Auto-Assign Round rules", typeof(Boolean), ChallengeManager.AutoPlay));
                     QueueSettingForUpload(new CPluginVariable(@"Use Server-Wide Round Rules", typeof(Boolean), ChallengeManager.EnableServerRoundRules));
                     QueueSettingForUpload(new CPluginVariable(@"Use Different Round Rule For Each Player", typeof(Boolean), ChallengeManager.RandomPlayerRoundRules));
@@ -51944,6 +51958,7 @@ namespace PRoConEvents
             public Boolean AutoPlay = true;
             public Boolean EnableServerRoundRules;
             public Boolean RandomPlayerRoundRules;
+            public Int32 MinimumPlayers = 0;
 
             public enum ChallengeState
             {
@@ -52989,6 +53004,10 @@ namespace PRoConEvents
                         {
                             var commandText = _plugin.GetChatCommandByKey("self_challenge");
                             player.Say(_plugin.Log.CPink("Now playing " + rule.Name + " challenge. For more info use " + commandText));
+                            if (_plugin.GetPlayerCount() < MinimumPlayers)
+                            {
+                                player.Say("Challenges do not gain progress until " + MinimumPlayers + " active players.");
+                            }
                         }
                         newEntry.RefreshProgress(null);
                         Entries.Add(newEntry);
@@ -53379,6 +53398,10 @@ namespace PRoConEvents
                             info += "Rewards: " + rewardString + Environment.NewLine;
                         }
                         info += challenge.Progress.ToString();
+                    }
+                    if (_plugin.GetPlayerCount() < MinimumPlayers)
+                    {
+                        info += "Challenges do not gain progress until " + MinimumPlayers + " active players.";
                     }
                     return info;
                 }
