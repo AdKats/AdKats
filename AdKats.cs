@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.179
+ * Version 7.0.1.180
  * 16-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.179</version_code>
+ * <version_code>7.0.1.180</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.179";
+        private const String PluginVersion = "7.0.1.180";
 
         public enum GameVersionEnum
         {
@@ -56140,7 +56140,7 @@ namespace PRoConEvents
                                     existingPlayers = _plugin.GetMatchingASPlayersOfGroup("slot_reserved", Player);
                                     if (existingPlayers.Any())
                                     {
-                                        existingMinutes = (Int32)existingPlayers.Sum(asPlayer => _plugin.NowDuration(asPlayer.player_expiration).TotalMinutes);
+                                        existingMinutes = (Int32)_plugin.NowDuration(existingPlayers.First().player_expiration).TotalMinutes;
                                     }
                                     _plugin.QueueRecordForProcessing(new ARecord
                                     {
@@ -56160,7 +56160,7 @@ namespace PRoConEvents
                                     existingPlayers = _plugin.GetMatchingASPlayersOfGroup("slot_spectator", Player);
                                     if (existingPlayers.Any())
                                     {
-                                        existingMinutes = (Int32)existingPlayers.Sum(asPlayer => _plugin.NowDuration(asPlayer.player_expiration).TotalMinutes);
+                                        existingMinutes = (Int32)_plugin.NowDuration(existingPlayers.First().player_expiration).TotalMinutes;
                                     }
                                     _plugin.QueueRecordForProcessing(new ARecord
                                     {
@@ -56180,7 +56180,7 @@ namespace PRoConEvents
                                     existingPlayers = _plugin.GetMatchingASPlayersOfGroup("whitelist_multibalancer", Player);
                                     if (existingPlayers.Any())
                                     {
-                                        existingMinutes = (Int32)existingPlayers.Sum(asPlayer => _plugin.NowDuration(asPlayer.player_expiration).TotalMinutes);
+                                        existingMinutes = (Int32)_plugin.NowDuration(existingPlayers.First().player_expiration).TotalMinutes;
                                     }
                                     _plugin.QueueRecordForProcessing(new ARecord
                                     {
@@ -56200,7 +56200,7 @@ namespace PRoConEvents
                                     existingPlayers = _plugin.GetMatchingASPlayersOfGroup("whitelist_teamkill", Player);
                                     if (existingPlayers.Any())
                                     {
-                                        existingMinutes = (Int32)existingPlayers.Sum(asPlayer => _plugin.NowDuration(asPlayer.player_expiration).TotalMinutes);
+                                        existingMinutes = (Int32)_plugin.NowDuration(existingPlayers.First().player_expiration).TotalMinutes;
                                     }
                                     _plugin.QueueRecordForProcessing(new ARecord
                                     {
