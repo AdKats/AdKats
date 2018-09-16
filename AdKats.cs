@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.178
+ * Version 7.0.1.179
  * 16-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.178</version_code>
+ * <version_code>7.0.1.179</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.178";
+        private const String PluginVersion = "7.0.1.179";
 
         public enum GameVersionEnum
         {
@@ -19862,7 +19862,10 @@ namespace PRoConEvents
                 if (!record.record_action_executed)
                 {
                     //Check for command lock
-                    if (record.target_player != null && record.target_player.IsLocked() && record.target_player.GetLockSource() != record.source_name)
+                    if (record.target_player != null && 
+                        record.target_player.IsLocked() && 
+                        record.target_player.GetLockSource() != record.source_name && 
+                        (!_UseExperimentalTools || record.source_name != "ProconAdmin"))
                     {
                         SendMessageToSource(record, record.GetTargetNames() + " is command locked by " + record.target_player.GetLockSource() + ". Please wait for unlock [" + FormatTimeString(record.target_player.GetLockRemaining(), 3) + "].");
                         FinalizeRecord(record);
@@ -56128,16 +56131,23 @@ namespace PRoConEvents
                         var givenRewards = new List<String>();
                         foreach (var reward in matchingRewards)
                         {
+                            Int32 existingMinutes = 0;
+                            List<ASpecialPlayer> existingPlayers = new List<ASpecialPlayer>();
                             var descriptionString = reward.getDescriptionString();
                             switch (reward.Reward)
                             {
                                 case CReward.RewardType.ReservedSlot:
+                                    existingPlayers = _plugin.GetMatchingASPlayersOfGroup("slot_reserved", Player);
+                                    if (existingPlayers.Any())
+                                    {
+                                        existingMinutes = (Int32)existingPlayers.Sum(asPlayer => _plugin.NowDuration(asPlayer.player_expiration).TotalMinutes);
+                                    }
                                     _plugin.QueueRecordForProcessing(new ARecord
                                     {
                                         record_source = ARecord.Sources.Automated,
                                         server_id = _plugin._serverInfo.ServerID,
                                         command_type = _plugin.GetCommandByKey("player_slotreserved"),
-                                        command_numeric = reward.DurationMinutes,
+                                        command_numeric = existingMinutes + reward.DurationMinutes,
                                         target_name = Player.player_name,
                                         target_player = Player,
                                         source_name = "ChallengeManager",
@@ -56147,12 +56157,17 @@ namespace PRoConEvents
                                     givenRewards.Add(descriptionString);
                                     break;
                                 case CReward.RewardType.SpectatorSlot:
+                                    existingPlayers = _plugin.GetMatchingASPlayersOfGroup("slot_spectator", Player);
+                                    if (existingPlayers.Any())
+                                    {
+                                        existingMinutes = (Int32)existingPlayers.Sum(asPlayer => _plugin.NowDuration(asPlayer.player_expiration).TotalMinutes);
+                                    }
                                     _plugin.QueueRecordForProcessing(new ARecord
                                     {
                                         record_source = ARecord.Sources.Automated,
                                         server_id = _plugin._serverInfo.ServerID,
                                         command_type = _plugin.GetCommandByKey("player_slotspectator"),
-                                        command_numeric = reward.DurationMinutes,
+                                        command_numeric = existingMinutes + reward.DurationMinutes,
                                         target_name = Player.player_name,
                                         target_player = Player,
                                         source_name = "ChallengeManager",
@@ -56162,12 +56177,17 @@ namespace PRoConEvents
                                     givenRewards.Add(descriptionString);
                                     break;
                                 case CReward.RewardType.BalanceWhitelist:
+                                    existingPlayers = _plugin.GetMatchingASPlayersOfGroup("whitelist_multibalancer", Player);
+                                    if (existingPlayers.Any())
+                                    {
+                                        existingMinutes = (Int32)existingPlayers.Sum(asPlayer => _plugin.NowDuration(asPlayer.player_expiration).TotalMinutes);
+                                    }
                                     _plugin.QueueRecordForProcessing(new ARecord
                                     {
                                         record_source = ARecord.Sources.Automated,
                                         server_id = _plugin._serverInfo.ServerID,
                                         command_type = _plugin.GetCommandByKey("player_whitelistbalance"),
-                                        command_numeric = reward.DurationMinutes,
+                                        command_numeric = existingMinutes + reward.DurationMinutes,
                                         target_name = Player.player_name,
                                         target_player = Player,
                                         source_name = "ChallengeManager",
@@ -56177,12 +56197,17 @@ namespace PRoConEvents
                                     givenRewards.Add(descriptionString);
                                     break;
                                 case CReward.RewardType.TeamKillTrackerWhitelist:
+                                    existingPlayers = _plugin.GetMatchingASPlayersOfGroup("whitelist_teamkill", Player);
+                                    if (existingPlayers.Any())
+                                    {
+                                        existingMinutes = (Int32)existingPlayers.Sum(asPlayer => _plugin.NowDuration(asPlayer.player_expiration).TotalMinutes);
+                                    }
                                     _plugin.QueueRecordForProcessing(new ARecord
                                     {
                                         record_source = ARecord.Sources.Automated,
                                         server_id = _plugin._serverInfo.ServerID,
                                         command_type = _plugin.GetCommandByKey("player_whitelistteamkill"),
-                                        command_numeric = reward.DurationMinutes,
+                                        command_numeric = existingMinutes + reward.DurationMinutes,
                                         target_name = Player.player_name,
                                         target_player = Player,
                                         source_name = "ChallengeManager",
@@ -57628,7 +57653,7 @@ namespace PRoConEvents
                     {
                         return "";
                     }
-                    var rewardString = getDurationString();
+                    var rewardString = "+" + getDurationString();
                     switch (Reward)
                     {
                         case CReward.RewardType.ReservedSlot:
