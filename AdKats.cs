@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.175
+ * Version 7.0.1.176
  * 15-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.175</version_code>
+ * <version_code>7.0.1.176</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.175";
+        private const String PluginVersion = "7.0.1.176";
 
         public enum GameVersionEnum
         {
@@ -16463,7 +16463,8 @@ namespace PRoConEvents
                 {
                     if (!acted &&
                         ChallengeManager != null &&
-                        ChallengeManager.Loaded)
+                        ChallengeManager.Loaded &&
+                        !EventActive())
                     {
                         if (aKill.killer.ActiveChallenge == null)
                         {
@@ -18678,7 +18679,7 @@ namespace PRoConEvents
                 }
                 if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any())
                 {
-                    Thread nonAdminSayThread = new Thread(new ThreadStart(delegate
+                    Thread nonAdminYellThread = new Thread(new ThreadStart(delegate
                     {
                         Log.Debug(() => "Starting an online non-admin yell thread.", 8);
                         try
@@ -18713,7 +18714,7 @@ namespace PRoConEvents
                         Log.Debug(() => "Exiting an online non-admin yell thread.", 8);
                         Threading.StopWatchdog();
                     }));
-                    Threading.StartWatchdog(nonAdminSayThread);
+                    Threading.StartWatchdog(nonAdminYellThread);
                 }
                 else
                 {
@@ -18765,7 +18766,7 @@ namespace PRoConEvents
                 }
                 if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any())
                 {
-                    Thread nonAdminSayThread = new Thread(new ThreadStart(delegate
+                    Thread nonAdminTellThread = new Thread(new ThreadStart(delegate
                     {
                         Log.Debug(() => "Starting an online non-admin tell thread.", 8);
                         try
@@ -18800,7 +18801,7 @@ namespace PRoConEvents
                         Log.Debug(() => "Exiting an online non-admin tell thread.", 8);
                         Threading.StopWatchdog();
                     }));
-                    Threading.StartWatchdog(nonAdminSayThread);
+                    Threading.StartWatchdog(nonAdminTellThread);
                 }
                 else
                 {
@@ -24781,6 +24782,13 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
+
+                            if (EventActive())
+                            {
+                                SendMessageToSource(record, "Challenges are not enabled during server events.");
+                                FinalizeRecord(record);
+                                return;
+                            }
 
                             // Target for these commands is always the source.
                             // If there is no source player, then only allow access to info.
@@ -34537,6 +34545,7 @@ namespace PRoConEvents
                                 {
                                     if (record.target_player != null)
                                     {
+                                        record.target_player.PrintThreadID = Thread.CurrentThread.Name;
                                         if (_ServerRulesYell)
                                         {
                                             PlayerTellMessage(record.target_player.player_name, currentPrefix + GetPreMessage(rule, false));
@@ -52732,7 +52741,8 @@ namespace PRoConEvents
             {
                 try
                 {
-                    if (player.ActiveChallenge != null)
+                    if (player.ActiveChallenge != null || 
+                        _plugin.EventActive())
                     {
                         return;
                     }
@@ -53244,6 +53254,10 @@ namespace PRoConEvents
                     if (!Enabled)
                     {
                         return "Challenge manager not enabled.";
+                    }
+                    if (_plugin.EventActive())
+                    {
+                        return "Challenges are not enabled during server events.";
                     }
                     if (aPlayer == null ||
                         aPlayer.player_id <= 0)
@@ -58603,6 +58617,8 @@ namespace PRoConEvents
             public String loadout_items_long = "Loadout not fetched yet.";
             public String loadout_deniedItems = "No denied items.";
 
+            public String PrintThreadID = String.Empty;
+
             private readonly AdKats Plugin;
 
             public APlayer(AdKats plugin)
@@ -58615,6 +58631,7 @@ namespace PRoConEvents
                 TargetedRecords = new List<ARecord>();
                 LastUsage = DateTime.UtcNow;
                 TeamMoves = new List<DateTime>();
+                PrintThreadID = "";
             }
 
             public void Say(String message)
