@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.181
+ * Version 7.0.1.182
  * 16-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.181</version_code>
+ * <version_code>7.0.1.182</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.181";
+        private const String PluginVersion = "7.0.1.182";
 
         public enum GameVersionEnum
         {
@@ -2815,7 +2815,7 @@ namespace PRoConEvents
                         //CCR1 | Tier 1 - ReservedSlot | Duration Minutes
                         //CCR1 | Tier 1 - ReservedSlot | Delete Reward?
 
-                        var rewardPrefix = rewardSectionPrefix + "CCR" + reward.ID + s + "Tier " + reward.Tier + " - " + reward.getDescriptionString() + s;
+                        var rewardPrefix = rewardSectionPrefix + "CCR" + reward.ID + s + "Tier " + reward.Tier + " - " + reward.getDescriptionString(null) + s;
                         buildList.Add(new CPluginVariable(rewardPrefix + "Tier Level", typeof(Int32), reward.Tier));
                         buildList.Add(new CPluginVariable(rewardPrefix + "Reward Type", AChallengeManager.CReward.RewardTypeEnumString, reward.Reward.ToString()));
                         buildList.Add(new CPluginVariable(rewardPrefix + "Enabled", typeof(Boolean), reward.Enabled));
@@ -36444,7 +36444,7 @@ namespace PRoConEvents
                         {
                             var groupString = "Tier " + rewardGroup.First().Tier + ": ";
                             var rewardStrings = rewardGroup.OrderBy(dReward => dReward.Reward.ToString())
-                                                           .Select(dReward => dReward.getDescriptionString())
+                                                           .Select(dReward => dReward.getDescriptionString(record.target_player))
                                                            .Distinct();
                             groupString += String.Join(", ", rewardStrings.ToArray());
                             rewardMessages.Add(groupString);
@@ -53376,7 +53376,7 @@ namespace PRoConEvents
                     if (matchingRewards.Any())
                     {
                         var rewardStrings = matchingRewards.OrderBy(dReward => dReward.Reward.ToString())
-                                                           .Select(dReward => dReward.getDescriptionString())
+                                                           .Select(dReward => dReward.getDescriptionString(aPlayer))
                                                            .Distinct();
                         rewardString = String.Join(", ", rewardStrings.ToArray());
                     }
@@ -56133,7 +56133,7 @@ namespace PRoConEvents
                         {
                             Int32 existingMinutes = 0;
                             List<ASpecialPlayer> existingPlayers = new List<ASpecialPlayer>();
-                            var descriptionString = reward.getDescriptionString();
+                            var descriptionString = reward.getDescriptionString(Player);
                             switch (reward.Reward)
                             {
                                 case CReward.RewardType.ReservedSlot:
@@ -56217,12 +56217,28 @@ namespace PRoConEvents
                                     givenRewards.Add(descriptionString);
                                     break;
                                 case CReward.RewardType.CommandLock:
+                                    var lockString = "command lock";
+                                    if (_plugin._UseExperimentalTools)
+                                    {
+                                        lockString = "rule breaking allowed";
+                                    }
                                     var time = _plugin.UtcNow();
+                                    var lockCommand = _plugin.GetCommandByKey("player_lock");
+                                    var recentLock = _plugin.FetchRecentRecords(Player.player_id, lockCommand.command_id, 1000, 1, true, false).FirstOrDefault();
+                                    if (recentLock != null && recentLock.source_name == "ChallengeManager")
+                                    {
+                                        var durationSinceLast = _plugin.NowDuration(recentLock.record_time);
+                                        if (durationSinceLast.TotalHours < 24)
+                                        {
+                                            Player.Say("Unable to award '" + lockString + "' until it's active again.");
+                                            continue;
+                                        }
+                                    }
                                     _plugin.QueueRecordForProcessing(new ARecord
                                     {
                                         record_source = ARecord.Sources.Automated,
                                         server_id = _plugin._serverInfo.ServerID,
-                                        command_type = _plugin.GetCommandByKey("player_lock"),
+                                        command_type = lockCommand,
                                         command_numeric = reward.DurationMinutes,
                                         target_name = Player.player_name,
                                         target_player = Player,
@@ -56230,11 +56246,6 @@ namespace PRoConEvents
                                         record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + descriptionString + ".",
                                         record_time = time
                                     });
-                                    var lockString = "command lock";
-                                    if (_plugin._UseExperimentalTools)
-                                    {
-                                        lockString = "rule breaking allowed";
-                                    }
                                     var end = time.AddMinutes(reward.DurationMinutes);
                                     _plugin.Threading.StartWatchdog(new Thread(new ThreadStart(delegate
                                     {
@@ -57647,7 +57658,7 @@ namespace PRoConEvents
                 public DateTime CreateTime;
                 public DateTime ModifyTime;
 
-                public String getDescriptionString()
+                public String getDescriptionString(APlayer player)
                 {
                     if (Reward == RewardType.None)
                     {
@@ -57675,6 +57686,19 @@ namespace PRoConEvents
                                 lockString = "rule breaking allowed";
                             }
                             rewardString += " " + lockString;
+                            if (player != null)
+                            {
+                                var lockCommand = _plugin.GetCommandByKey("player_lock");
+                                var recentLock = _plugin.FetchRecentRecords(player.player_id, lockCommand.command_id, 1000, 1, true, false).FirstOrDefault();
+                                if (recentLock != null && recentLock.source_name == "ChallengeManager")
+                                {
+                                    var durationSinceLast = _plugin.NowDuration(recentLock.record_time);
+                                    if (durationSinceLast.TotalHours < 24)
+                                    {
+                                        rewardString += " (" + _plugin.FormatTimeString(durationSinceLast, 2) + " timeout)";
+                                    }
+                                }
+                            }
                             break;
                     }
                     return rewardString;
