@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.183
- * 16-SEP-2018
+ * Version 7.0.1.184
+ * 17-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.183</version_code>
+ * <version_code>7.0.1.184</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.183";
+        private const String PluginVersion = "7.0.1.184";
 
         public enum GameVersionEnum
         {
@@ -2799,6 +2799,7 @@ namespace PRoConEvents
                     }
                     // REWARDS
                     var rewardSectionPrefix = GetSettingSection(challengeSettings) + " [5] Rewards" + t;
+                    buildList.Add(new CPluginVariable(rewardSectionPrefix + "Challenge Command Lock Timeout Hours", typeof(Int32), ChallengeManager.CommandLockTimeoutHours));
                     buildList.Add(new CPluginVariable(rewardSectionPrefix + "Add Reward?", typeof(Int32), 0));
                     var rewards = ChallengeManager.GetRewards().OrderBy(dReward => dReward.Tier).ThenBy(dReward => dReward.Reward.ToString());
                     foreach (var reward in rewards)
@@ -5989,6 +5990,21 @@ namespace PRoConEvents
                         ChallengeManager.MinimumPlayers = minPlayers;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Challenge System Minimum Players", typeof(Int32), ChallengeManager.MinimumPlayers));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Challenge Command Lock Timeout Hours").Success)
+                {
+                    Int32 commandLockTimeout = Int32.Parse(strValue);
+                    if (ChallengeManager != null &&
+                        commandLockTimeout != ChallengeManager.CommandLockTimeoutHours)
+                    {
+                        if (commandLockTimeout < 24)
+                        {
+                            commandLockTimeout = 24;
+                        }
+                        ChallengeManager.CommandLockTimeoutHours = commandLockTimeout;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Challenge Command Lock Timeout Hours", typeof(Int32), ChallengeManager.CommandLockTimeoutHours));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Server-Wide Round Rules").Success)
@@ -38741,6 +38757,7 @@ namespace PRoConEvents
                 {
                     QueueSettingForUpload(new CPluginVariable(@"Use Challenge System", typeof(Boolean), ChallengeManager.Enabled));
                     QueueSettingForUpload(new CPluginVariable(@"Challenge System Minimum Players", typeof(Int32), ChallengeManager.MinimumPlayers));
+                    QueueSettingForUpload(new CPluginVariable(@"Challenge Command Lock Timeout Hours", typeof(Int32), ChallengeManager.CommandLockTimeoutHours));
                     QueueSettingForUpload(new CPluginVariable(@"Challenge System Auto-Assign Round rules", typeof(Boolean), ChallengeManager.AutoPlay));
                     QueueSettingForUpload(new CPluginVariable(@"Use Server-Wide Round Rules", typeof(Boolean), ChallengeManager.EnableServerRoundRules));
                     QueueSettingForUpload(new CPluginVariable(@"Use Different Round Rule For Each Player", typeof(Boolean), ChallengeManager.RandomPlayerRoundRules));
@@ -51962,6 +51979,7 @@ namespace PRoConEvents
             public Boolean EnableServerRoundRules;
             public Boolean RandomPlayerRoundRules;
             public Int32 MinimumPlayers = 0;
+            public Int32 CommandLockTimeoutHours = 24;
 
             public enum ChallengeState
             {
@@ -56228,7 +56246,7 @@ namespace PRoConEvents
                                     if (recentLock != null && recentLock.source_name == "ChallengeManager")
                                     {
                                         var durationSinceLast = _plugin.NowDuration(recentLock.record_time);
-                                        if (durationSinceLast.TotalHours < 24)
+                                        if (durationSinceLast.TotalHours < Manager.CommandLockTimeoutHours)
                                         {
                                             Player.Say("Unable to award '" + lockString + "' until it's active again.");
                                             continue;
@@ -57693,7 +57711,7 @@ namespace PRoConEvents
                                 if (recentLock != null && recentLock.source_name == "ChallengeManager")
                                 {
                                     var durationSinceLast = _plugin.NowDuration(recentLock.record_time);
-                                    if (durationSinceLast.TotalHours < 24)
+                                    if (durationSinceLast.TotalHours < Manager.CommandLockTimeoutHours)
                                     {
                                         var durationTillActive = _plugin.NowDuration(recentLock.record_time.AddHours(24));
                                         rewardString += " (" + _plugin.FormatTimeString(durationTillActive, 2) + " timeout)";
