@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.185
+ * Version 7.0.1.186
  * 18-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.185</version_code>
+ * <version_code>7.0.1.186</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.185";
+        private const String PluginVersion = "7.0.1.186";
 
         public enum GameVersionEnum
         {
@@ -47701,7 +47701,8 @@ namespace PRoConEvents
                     tPlayer["player_reported"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin");
                     tPlayer["player_punished"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_punish");
                     tPlayer["player_loadout_forced"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_loadout_force");
-                    tPlayer["player_loadout_ignored"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_loadout_ignore");
+                    var recentIgnored = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_loadout_ignore");
+                    tPlayer["player_loadout_ignored"] = recentIgnored || aPlayer.IsLocked();
                     if (aPlayer.LastPunishment != null)
                     {
                         tPlayer["player_lastPunishment"] = Math.Round((UtcNow() - aPlayer.LastPunishment.record_time).TotalSeconds);
