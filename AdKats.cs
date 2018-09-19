@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.184
- * 17-SEP-2018
+ * Version 7.0.1.185
+ * 18-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.184</version_code>
+ * <version_code>7.0.1.185</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.184";
+        private const String PluginVersion = "7.0.1.185";
 
         public enum GameVersionEnum
         {
@@ -5998,9 +5998,9 @@ namespace PRoConEvents
                     if (ChallengeManager != null &&
                         commandLockTimeout != ChallengeManager.CommandLockTimeoutHours)
                     {
-                        if (commandLockTimeout < 24)
+                        if (commandLockTimeout < 12)
                         {
-                            commandLockTimeout = 24;
+                            commandLockTimeout = 12;
                         }
                         ChallengeManager.CommandLockTimeoutHours = commandLockTimeout;
                         //Once setting has been changed, upload the change to database
@@ -57713,7 +57713,7 @@ namespace PRoConEvents
                                     var durationSinceLast = _plugin.NowDuration(recentLock.record_time);
                                     if (durationSinceLast.TotalHours < Manager.CommandLockTimeoutHours)
                                     {
-                                        var durationTillActive = _plugin.NowDuration(recentLock.record_time.AddHours(24));
+                                        var durationTillActive = _plugin.NowDuration(recentLock.record_time.AddHours(Manager.CommandLockTimeoutHours));
                                         rewardString += " (" + _plugin.FormatTimeString(durationTillActive, 2) + " timeout)";
                                     }
                                 }
