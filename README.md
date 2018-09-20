@@ -4050,7 +4050,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         The minimum number of players which must be active in the server before challenges will accept any progress. Players can start challenges in low population but they will not gain any progress until the server has more players. Challenges which are death-based will not have deaths counted until this limit is reached either.
     </li>
     <li><b>'Use Server-Wide Round Rules'</b> - 
-        Whether the system will choose a server-wide round rule that all players can join. Valid rules that can be chosen by this system must be enabled, round-based, be tier 1, and have a round count of 1. The current chosen rule will be assigned to any player who is currently not playing a challenge and queries the !ch info command. Round rules are chosen randomly at first until at least one is played, then the least played is chosen.
+        Whether the system will choose a server-wide round rule that all players can join. Valid rules that can be chosen by this system must be enabled, round-based, be tier 1, and have a round count of 1. The current chosen rule will be assigned to any player who is currently not playing a challenge and queries the !ch info command. Round rules are chosen randomly at first until each is played once, then the least played rule is chosen.
     </li>
     <li><b>'Challenge System Auto-Assign Round Rules'</b> - 
         Whether the system will automatically assign the current round rule to a player when they get a kill that matches the rule.
