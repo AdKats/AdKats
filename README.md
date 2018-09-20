@@ -1060,6 +1060,99 @@
     cause the round to end, in favor of the current winning team. Auto-nuke will kill every player on the winning team
     that is currently alive; It will typically issue 1-3 times, making sure all players are dead.
 </p>
+<h3>Challenge System</h3>
+<p>
+	The challenge system in AdKats is designed to be a multi-server stats-driven way to give players new goals with rewards. You can set up almost any combination of damage types or weapons to be used by players, in multiple tiers.
+</p>
+<h4>Definitions (What the player must do.)</h4>
+<p>
+    Definitions are global, not server specific, the same definitions are visible across all of your servers. They define the base goals that a player must complete to finish a challenge. For example, get 5 kills with 5 different assault rifles. Each definition needs a name to be created. Once created you can define weapons or damage types on the definition, as many as you want. When adding a damage type to a definition the kill count associated with it is for EACH weapon, not the total kill count, the total count in this example would end up being 25. For weapon count in a damage type that means X different weapons of the player’s choosing, with Y kills for each weapon they decide to use. When adding a specific weapon code to a definition the kill count is for that specific weapon only. For a player to complete the resulting challenge they will need to perform all of the kills on the definition for that rule.
+</p>
+<h4>Rules (How fast the player must do it.)</h4>
+<p>
+    Rules are server specific. They define restrictions on how fast players must complete the challenge, what measuring system is used for that, whether the rule is enabled, and the rule's tier. Each rule is created by choosing a definition to base it on. When you select a definition and the rule is created an auto-generated name is created for it which you can edit as desired. THIS NAME, not the one on the definition, is the one shown to players. You can have multiple rules for the same definition if you want. For example, you could have the assault rifle definition above defined in two rules, one completing in 30 minutes, the other completing in 15 minutes for a harder challenge. You can choose between round based completion, minutes based completion, or deaths based completion. A player running this rule will need to complete the defined kills in the given constraint. The 'tier' of a rule is shorthand for how difficult it is.
+</p>
+<h4>Rewards (What the player gets for doing it.)</h4>
+<p>
+    Rewards are defined in tiers, 1 through 10. Supposedly tier 1 rules are the easiest and increase in difficulty through 10 being the hardest possible. You can define as many or few of these as you want. Personally I only have 3 tiers configured, 1 as easy, 2 as medium, and 3 as very hard. All rules of a certain tier will get the same reward. More rewards will be added as they are thought up but right now it's the following:
+</p>
+<ul>
+    <li><b>Reserved Slots.</b> 
+    	Self explanatory, adds a reserved slot for the person completing the challenge. If they already have a reserved slot, the reward time is added to their existing time.
+    </li>
+    <li><b>Spectator Slots.</b> 
+    	Self explanatory, adds a spectator slot for the person completing the challenge. If they already have a spectator slot, the reward time is added to their existing time.
+    </li>
+    <li><b>Autobalance Whitelisting.</b> 
+    	Players are added to the MULTIBalancer plugin's whitelist. If they already have an autobalance whitelist, the reward time is added to their existing time.
+    </li>
+    <li><b>Teamkill Whitelisting.</b> 
+    	Players are added to the TeamKillTracker plugin's whitelist. If they already have a teamkill whitelist, the reward time is added to their existing time.
+    </li>
+    <li><b>Command Lock.</b> 
+    	Issues the lock command on players for the specified duration. The lock command blocks admins or autoadmins from acting on a player if the commands are run through AdKats. This essentially lets a player break rules for a specified period of time without penalties. While a player is locked an announcement message is sent to the server every 30 seconds so they know what’s going on. There is a 24 hour timeout on this reward so players cannot grind for it more than once in a given day. The timeout is visible when running /ch rewards, or while playing a challenge with this reward in it. If you are running the loadout enforcer and are integrating with AdKats on that plugin, players who are currently locked will not be loadout enforced.
+    </li>
+</ul>
+<h4>Example</h4>
+<p>
+    You want to set up a challenge to be run every round publicly, the challenge expires at the end of every round, and players need to get 10 kills with 3 different assault rifles (totalling 30 kills), and 5 kills with the magnum revolver. A player completing this should get 12 hours added to their reserved slot on the server.
+</p>
+<p>
+    Make sure “server-wide round rules” is enabled.
+</p>
+<ul>
+    <li>With this setting enabled there will be challenges announced at the start of every round if one is available. Without this setting enabled players would need to choose their own challenge manually.
+    </li>
+</ul>
+<p>
+    Make sure “auto-assign round rules” is enabled.
+</p>
+<ul>
+    <li>With this setting enabled players will automatically be assigned the round challenge if one is running in two cases: They get a kill which fits the challenge, or they use the challenge command (by default !ch) to see the current challenge.
+    </li>
+</ul>
+<p>
+    Create a definition for the challenge.
+</p>
+<ul>
+    <li>In the Add Definition setting type in whatever you want but make it match what you’re trying to make. For this one we’ll type in “30 AR 5 Magnum”.</li>
+    <li>Once that is added you’ll see a definition entry added in the list. Now you need to add the damages/weapons.</li>
+    <li>In the Add Damage Type setting inside this “30 AR 5 Magnum” definition, select “Assault_Rifle”.</li>
+    <li>You’ll see a detail added to the list called “Damage - Assault Rifle” under this definition. It has a default of 1 weapon, and 1 kill.</li>
+    <li>Change that to what we want, 10 kills, 3 weapons. Doing this will make players need to get 10 kills with 3 different assault rifles, totalling 30 kills.</li>
+    <li>Now to add the magnum. In the Add Weapon setting inside this “Magnum ARs” definition, select “Handgun\44 Magnum”.</li>
+    <li>You’ll see another detail added to the list called “Weapon - 44 Magnum” under this definition. It has a default of 1 kill.</li>
+    <li>Change that to what we want, 5 kills.</li>
+    <li>We now have the definition set up with 30 assault rifle kills (3 weapons, 10 kills each), and 5 magnum revolver kills.</li>
+</ul>
+<p>
+    Create a rule based on this definition.
+</p>
+<ul>
+    <li>Collapse the definition section so it’s not in the way.</li>
+    <li>Under the rules section you’ll see an Add Rule setting. Select “30 AR 5 Magnum” in that setting.</li>
+    <li>You’ll see a new rule added with the name “30 AR 5 Magnum Rule X”, X being the next index available for a rule.</li>
+    <li>Rename that rule into something players would recognize, the name on this rule is what gets shown to players, not the definition name. Let’s call this one “Magnum ARs”. Just use the Name setting on the rule to change it.</li>
+    <li>We want this to be a server-wide round rule. (If a rule doesn’t qualify as a server-wide round rule players can still play the challenge but they need to select it manually.) So, this rule needs to have several things set: Completion type of “Rounds”, Round Count of 1, Tier of 1, Enabled = true.</li>
+    <li>Change the completion type on it from “None” to “Rounds”.</li>
+    <li>You’ll see a Round Count setting appear, this needs to be kept at 1 for it to qualify as a server-wide round rule. </li>
+    <li>You see a Tier setting, this needs to be kept at 1 for it to qualify as a server-wide round rule.</li>
+    <li>You see an Enabled setting. Now that is is ready, change that setting to True.</li>
+</ul>
+<p>
+    Create a reward for this tier.
+</p>
+<ul>
+    <li>Collapse the rule section so it’s not in the way.</li>
+    <li>Under the rewards section you’ll see an Add Reward setting. Enter 1 in that setting. This 1 means you are creating a reward for tier 1 challenges.</li>
+    <li>You’ll see several settings appear for the new reward. Select the Reward Type setting and change it to ReservedSlot.</li>
+    <li>Change Duration Minutes to 720.</li>
+    <li>You see an Enabled setting. Now that is is ready, change that setting to True.</li>
+    <li>You now have tier 1 challenges set up to add 12 hours to a player’s reserved slot whenever it is completed. You can add more than one reward to a tier if you want, but not duplicates of the same reward on the same tier.</li>
+</ul>
+<p>
+    You are now set up with a new challenge players can use. On the next round it will be announced to the server. To get more info about the challenge system you can use !ch help
+</p>
 <h3>Automatic Database Disconnect/Malfunction Handling System</h3>
 <p>
     If the connected database goes offline, or becomes over encumbered to the point of being unusable, AdKats will automatically handle that state. If that state is reached, AdKats will temporarily halt all interaction with the database, disable stat logger, and wait for the situation to be rectified. Checks for fixed connection are made every 30 seconds, and once restored stat logger and AdKats connections with the database are re-enabled.
@@ -3946,6 +4039,123 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         In battlefield when you kill someone who is holding or throwing a grenade, the grenade becomes yours.
         Some players will take advantage of this to get other players acted on by autoadmins on no explosive servers.
         This script works to mitigate that problem.
+    </li>
+</ul>
+<h3>C32. Challenge Settings</h3>
+<ul>
+    <li><b>'Use Challenge System'</b> - 
+        Whether the challenge system is active. On disable any active server-wide round rules are cancelled.
+    </li>
+    <li><b>'Challenge System Minimum Players'</b> - 
+        The minimum number of players which must be active in the server before challenges will accept any progress. Players can start challenges in low population but they will not gain any progress until the server has more players. Challenges which are death-based will not have deaths counted until this limit is reached either.
+    </li>
+    <li><b>'Use Server-Wide Round Rules'</b> - 
+        Whether the system will choose a server-wide round rule that all players can join. Valid rules that can be chosen by this system must be enabled, round-based, be tier 1, and have a round count of 1. The current chosen rule will be assigned to any player who is currently not playing a challenge and queries the !ch info command. Round rules are chosen randomly at first until at least one is played, then the least played is chosen.
+    </li>
+    <li><b>'Challenge System Auto-Assign Round Rules'</b> - 
+        Whether the system will automatically assign the current round rule to a player when they get a kill that matches the rule.
+    </li>
+    <li><b>'Use Different Round Rule For Each Players'</b> - 
+        Only visible if you have both above settings enabled. Will automatically assign a random round rule to each player instead of the whole server. Prevents issues where some people could get annoyed by the whole server being told, for example, to use shotguns.
+    </li>
+    <li><b>'[1] Displays - Active Entries (Display)'</b> - 
+        The current challenge entries which are not completed, cancelled, or failed. They are sorted by rule, then by completion percentage. If there is a server-wide round rule, those entries are excluded from this list.
+    </li>
+    <li><b>'[1] Displays - Current Server-Wide Round Rule (Display)'</b> - 
+        The name of the current server-wide round rule, if any.
+    </li>
+    <li><b>'[1] Displays - Active Round Rule Entries (Display)'</b> - 
+        Same as the active entries display, except only for the server-wide round rule.
+    </li>
+    <li><b>'[2] Actions - Run Round Challenge ID'</b> - 
+        Choose a server-wide round rule to run.
+    </li>
+    <li><b>'[3] Definitions - Add Definition?'</b> - 
+        Enter a name for the new definition here to add it. Definitions are visible on all servers and form the basis of WHAT a player must do to complete a challenge.
+    </li>
+    <li><b>'[3] Definitions - Change Name?'</b> - 
+        Change the name of a definition. Note this name is only internal, not shown to players. The rule name is shown to players.
+    </li>
+    <li><b>'[3] Definitions - Add Damage Type?'</b> - 
+        Adds a damage type to the current definition.
+    </li>
+    <li><b>'[3] Definitions - Add Weapon?'</b> - 
+        Adds a specific weapon to the current definition.
+    </li>
+    <li><b>'[3] Definitions - Delete Definition?'</b> - 
+        Enter 'delete' in this setting to delete the definition. All rules and player completions of this definition will also be deleted if you delete this definition.
+    </li>
+    <li><b>'[3] Definitions - Weapon - Weapon Name'</b> - 
+        Change the weapon for a definition detail with this setting. A definition can only have one of each particular weapon at a time.
+    </li>
+    <li><b>'[3] Definitions - Weapon - Kill Count'</b> - 
+        The kill count required with this weapon to complete its part of the challenge.
+    </li>
+    <li><b>'[3] Definitions - Weapon - Delete Detail?'</b> - 
+        Enter 'delete' in this setting to delete the weapon detail.
+    </li>
+    <li><b>'[3] Definitions - Damage - Damage Type'</b> - 
+        Change the damage type for a definition detail with this setting. A definition can only have one of each damage type at a time.
+    </li>
+    <li><b>'[3] Definitions - Damage - Weapon Count'</b> - 
+        A damage type requires a weapon count, specifying how many different weapons must be used to complete it.
+    </li>
+    <li><b>'[3] Definitions - Damage - Kill Count'</b> - 
+        The kill count for each weapon in the damage type to complete the challenge. So if you have 5 weapons, and 5 kills, that means 25 total kills would be required to complete the challenge.
+    </li>
+    <li><b>'[3] Definitions - Damage - Delete Detail?'</b> - 
+        Enter 'delete' in this setting to delete the damage type detail.
+    </li>
+    <li><b>'[4] Rules - Add Rule?'</b> - 
+        Select a definition to create a server-specific rule based on it. Rules are how fast a player must complete a specific challenge, and are server specific.
+    </li>
+    <li><b>'[4] Rules - Definition'</b> - 
+        Change the definition that this rule belongs to with this setting.
+    </li>
+    <li><b>'[4] Rules - Name'</b> - 
+        The name of the rule. This is the name that is shown to players.
+    </li>
+    <li><b>'[4] Rules - Enabled'</b> - 
+        Whether the rule is enabled. Disabled by default.
+    </li>
+    <li><b>'[4] Rules - Tier'</b> - 
+        The tier of the rule. In general lower tier rules should be easier than higher tier rules.
+    </li>
+    <li><b>'[4] Rules - Completion'</b> - 
+        What metric should be used to determine when the challenge ends. Either round count, minute count, or death count.
+    </li>
+    <li><b>'[4] Rules - Round Count'</b> - 
+        The number of rounds that the challenge will run after starting.
+    </li>
+    <li><b>'[4] Rules - Duration Minutes'</b> - 
+        The number of minutes that the challenge will run after starting.
+    </li>
+    <li><b>'[4] Rules - Death Count'</b> - 
+        The number of deaths that the player is allowed after starting.
+    </li>
+    <li><b>'[4] Rules - Delete Rule?'</b> - 
+        Enter 'delete' in this setting to delete the rule.
+    </li>
+    <li><b>'[5] Rewards - Challenge Command Lock Timeout Hours'</b> - 
+        After a player recieves the command lock timeout reward, they cannot get that reward again until this many hours has passed. Any challenges containing the command lock reward can still be completed, and any other rewards on that challenge will still be applied.
+    </li>
+    <li><b>'[5] Rewards - Add Reward?'</b> - 
+        Enter a tier to add a reward to that tier. Each tier can have one of each reward type.
+    </li>
+    <li><b>'[5] Rewards - Tier Level'</b> - 
+        The tier level that this reward belongs to. When a reward of this tier is completed, this reward will be applied if it is enabled.
+    </li>
+    <li><b>'[5] Rewards - Reward Type'</b> - 
+        The type of reward that will be given when this tier is completed.
+    </li>
+    <li><b>'[5] Rewards - Enabled'</b> - 
+        Whether this reward is enabled. Defaults to disabled.
+    </li>
+    <li><b>'[5] Rewards - Duration Minutes'</b> - 
+        The number of minutes length that the reward is applied for.
+    </li>
+    <li><b>'[5] Rewards - Delete Reward?'</b> - 
+        Enter 'delete' in this setting to delete the reward.
     </li>
 </ul>
 <h3>D99. Debug Settings:</h3>
