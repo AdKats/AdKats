@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.186
- * 18-SEP-2018
+ * Version 7.0.1.187
+ * 20-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.186</version_code>
+ * <version_code>7.0.1.187</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.186";
+        private const String PluginVersion = "7.0.1.187";
 
         public enum GameVersionEnum
         {
@@ -2664,7 +2664,10 @@ namespace PRoConEvents
                     if (ChallengeManager.EnableServerRoundRules)
                     {
                         buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Challenge System Auto-Assign Round rules", typeof(Boolean), ChallengeManager.AutoPlay));
-                        buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Use Different Round Rule For Each Player", typeof(Boolean), ChallengeManager.RandomPlayerRoundRules));
+                        if (ChallengeManager.AutoPlay)
+                        {
+                            buildList.Add(new CPluginVariable(GetSettingSection(challengeSettings) + t + "Use Different Round Rule For Each Player", typeof(Boolean), ChallengeManager.RandomPlayerRoundRules));
+                        }
                     }
                     // DISPLAYS
                     var displaySectionPrefix = GetSettingSection(challengeSettings) + " [1] Displays" + t;
@@ -52999,7 +53002,12 @@ namespace PRoConEvents
                     }
                     if (ChallengeRoundState != ChallengeState.Playing)
                     {
-                        _plugin.Log.Error("Round state was invalid when assigning entry.");
+                        if (ChallengeRoundState == ChallengeState.Init)
+                        {
+                            _plugin.Log.Error("Challenge system not initialized when assigning entry.");
+                            return;
+                        }
+                        player.Say("Round not started. Please spawn to start the round before starting challenges.");
                         return;
                     }
                     if (LoadedRoundID <= 1)
