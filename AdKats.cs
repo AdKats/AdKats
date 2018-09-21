@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.0.1.187
+ * Version 7.0.1.188
  * 20-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.0.1.187</version_code>
+ * <version_code>7.0.1.188</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.0.1.187";
+        private const String PluginVersion = "7.0.1.188";
 
         public enum GameVersionEnum
         {
@@ -42621,7 +42621,16 @@ namespace PRoConEvents
                 return 0;
             }
             var durationTillEvent = roundDate.Subtract(DateTime.Now);
-            return _roundID + (int)Math.Ceiling((durationTillEvent.TotalMinutes + _serverInfo.GetRoundElapsedTime().TotalMinutes) / FetchAverageRoundMinutes(durationTillEvent.TotalHours < 72));
+            var estimate = _roundID + (int)Math.Ceiling((durationTillEvent.TotalMinutes + _serverInfo.GetRoundElapsedTime().TotalMinutes) / FetchAverageRoundMinutes(durationTillEvent.TotalHours < 72));
+            if (estimate < 1)
+            {
+                estimate = 1;
+            }
+            if (estimate > 1000000)
+            {
+                estimate = 1000000;
+            }
+            return estimate;
         }
 
         private DateTime GetEventRoundDateTime()
@@ -50905,11 +50914,11 @@ namespace PRoConEvents
                                           Int32.Parse(_plugin.GetPluginVersion().Replace(".", ""));
                 if (_plugin._firstPlayerListComplete)
                 {
-                    exceptionMessage += "-" + Math.Round(_plugin.NowDuration(_plugin._AdKatsRunningTime).TotalHours, 2);
+                    exceptionMessage += "-A" + Math.Round(_plugin.NowDuration(_plugin._AdKatsRunningTime).TotalHours, 2);
                 }
                 else
                 {
-                    exceptionMessage += "-" + Math.Round(_plugin.NowDuration(_plugin._proconStartTime).TotalHours, 2);
+                    exceptionMessage += "-P" + Math.Round(_plugin.NowDuration(_plugin._proconStartTime).TotalHours, 2);
                 }
                 if (e != null)
                 {
