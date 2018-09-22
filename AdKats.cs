@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.0
- * 21-SEP-2018
+ * Version 7.5.0.1
+ * 22-SEP-2018
  * 
  * Automatic Update Information
- * <version_code>7.5.0.0</version_code>
+ * <version_code>7.5.0.1</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.0";
+        private const String PluginVersion = "7.5.0.1";
 
         public enum GameVersionEnum
         {
@@ -14807,6 +14807,8 @@ namespace PRoConEvents
                         {
                             var nextCode = GetEventRoundRuleCode(GetActiveEventRoundNumber(false));
                             if (nextCode == AEventOption.RuleCode.AO ||
+                                nextCode == AEventOption.RuleCode.ARO ||
+                                nextCode == AEventOption.RuleCode.LMGO ||
                                 nextCode == AEventOption.RuleCode.BKO ||
                                 nextCode == AEventOption.RuleCode.CAI)
                             {
@@ -15531,6 +15533,10 @@ namespace PRoConEvents
                         return "EXPLOSIVES ONLY!";
                     case AEventOption.RuleCode.AO:
                         return "AUTO-PRIMARIES ONLY!";
+                    case AEventOption.RuleCode.ARO:
+                        return "ASSAULT RIFLES ONLY!";
+                    case AEventOption.RuleCode.LMGO:
+                        return "LMGS ONLY!";
                     case AEventOption.RuleCode.GO:
                         return "GRENADES ONLY!";
                     case AEventOption.RuleCode.HO:
@@ -15581,7 +15587,11 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.EO:
                         return "EXPLOSIVES ONLY! Only explosive weapons are allowed. NO shotgun frag rounds. NO Knives.";
                     case AEventOption.RuleCode.AO:
-                        return "AUTO-PRIMARIES ONLY! Only automatic primary weapons. Assault rifles, LMGs, Burst, etc.";
+                        return "AUTO-PRIMARIES ONLY! Only automatic primary weapons. Assault rifles, LMGs, Burst, etc. Knives allowed.";
+                    case AEventOption.RuleCode.ARO:
+                        return "ASSAULT RIFLES ONLY! Only kills with assault rifles are allowed. Knives allowed.";
+                    case AEventOption.RuleCode.LMGO:
+                        return "LMGS ONLY! Only kills with light machine guns are allowed. Knives allowed.";
                     case AEventOption.RuleCode.GO:
                         return "GRENADES ONLY! Only kills with grenades are allowed. M67, V40, etc. NO Knives.";
                     case AEventOption.RuleCode.HO:
@@ -15765,7 +15775,7 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.AO:
                         // AUTOMATIC PRIMARIES ONLY!
                         if ((!aKill.weaponCode.ToLower().Contains("knife") &&
-                             !aKill.weaponCode.ToLower().Contains("melee") && 
+                             !aKill.weaponCode.ToLower().Contains("melee") &&
                              aKill.weaponDamage != DamageTypes.AssaultRifle &&
                              aKill.weaponDamage != DamageTypes.Carbine &&
                              aKill.weaponDamage != DamageTypes.LMG &&
@@ -15773,6 +15783,24 @@ namespace PRoConEvents
                              aKill.weaponCode != "U_Groza-4" &&
                              aKill.weaponCode != "DamageArea") ||
                             aKill.weaponCode == "dlSHTR")
+                        {
+                            return true;
+                        }
+                        break;
+                    case AEventOption.RuleCode.ARO:
+                        // ASSAULT RIFLES ONLY!
+                        if (!aKill.weaponCode.ToLower().Contains("knife") &&
+                            !aKill.weaponCode.ToLower().Contains("melee") &&
+                            aKill.weaponDamage != DamageTypes.AssaultRifle)
+                        {
+                            return true;
+                        }
+                        break;
+                    case AEventOption.RuleCode.LMGO:
+                        // LMGS ONLY!
+                        if (!aKill.weaponCode.ToLower().Contains("knife") &&
+                            !aKill.weaponCode.ToLower().Contains("melee") &&
+                            aKill.weaponDamage != DamageTypes.LMG)
                         {
                             return true;
                         }
@@ -58222,6 +58250,8 @@ namespace PRoConEvents
                 NE,
                 GO,
                 AO,
+                ARO,
+                LMGO,
                 PO,
                 SO,
                 EO,
@@ -58242,6 +58272,8 @@ namespace PRoConEvents
                 {RuleCode.NE, "No Explosives"},
                 {RuleCode.GO, "Grenades Only"},
                 {RuleCode.AO, "Automatics Only"},
+                {RuleCode.ARO, "Assault Rifles Only"},
+                {RuleCode.LMGO, "LMGs Only"},
                 {RuleCode.PO, "Pistols Only"},
                 {RuleCode.SO, "Shotguns Only"},
                 {RuleCode.EO, "Explosives Only"},
