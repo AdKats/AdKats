@@ -1,5 +1,5 @@
 -- AdKats Database Setup Script
--- Version 7.0.0.0 (2017-10-15)
+-- Version 7.5.0.0 (2018-9-21)
 -- Daniel J. Gradinjan (ColColonCleaner)
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -202,7 +202,7 @@ REPLACE INTO `adkats_commands` VALUES(61, 'Active', 'admin_ignore', 'Log', 'Igno
 REPLACE INTO `adkats_commands` VALUES(62, 'Invisible', 'player_report_ignore', 'Log', 'Report Player (Ignored)', 'ignorereport', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(63, 'Active', 'player_mark', 'Unable', 'Mark Player', 'mark', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(64, 'Active', 'player_chat', 'Log', 'Fetch Player Chat', 'pchat', TRUE, 'Any');
-REPLACE INTO `adkats_commands` VALUES(65, 'Active', 'player_whitelisthackerchecker', 'Log', 'Hacker-Checker Whitelist Player', 'hcwhitelist', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(65, 'Active', 'player_whitelistanticheat', 'Log', 'AntiCheat Whitelist Player', 'acwhitelist', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(66, 'Active', 'player_lock', 'Log', 'Lock Player Commands', 'lock', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(67, 'Active', 'player_unlock', 'Log', 'Unlock Player Commands', 'unlock', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(68, 'Active', 'self_rep', 'Log', 'Request Server Reputation', 'rep', FALSE, 'Any');
@@ -236,7 +236,7 @@ REPLACE INTO `adkats_commands` VALUES(95, 'Active', 'player_whitelistreport_remo
 REPLACE INTO `adkats_commands` VALUES(96, 'Active', 'player_whitelistspambot_remove', 'Log', 'Remove SpamBot Whitelist', 'unspamwhitelist', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(97, 'Active', 'player_whitelistaa_remove', 'Log', 'Remove AA Whitelist', 'unaawhitelist', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(98, 'Active', 'player_whitelistping_remove', 'Log', 'Remove Ping Whitelist', 'unpwhitelist', TRUE, 'Any');
-REPLACE INTO `adkats_commands` VALUES(99, 'Active', 'player_whitelisthackerchecker_remove', 'Log', 'Remove Hacker-Checker Whitelist', 'unhcwhitelist', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(99, 'Active', 'player_whitelistanticheat_remove', 'Log', 'Remove AntiCheat Whitelist', 'unacwhitelist', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(100, 'Active', 'player_slotspectator_remove', 'Log', 'Remove Spectator Slot', 'unspectator', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(101, 'Active', 'player_slotreserved_remove', 'Log', 'Remove Reserved Slot', 'unreserved', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(102, 'Active', 'player_whitelistbalance_remove', 'Log', 'Remove Autobalance Whitelist', 'unmbwhitelist', TRUE, 'Any');
@@ -273,6 +273,15 @@ REPLACE INTO `adkats_commands` VALUES(132, 'Active', 'poll_vote', 'Log', 'Vote I
 REPLACE INTO `adkats_commands` VALUES(133, 'Active', 'poll_cancel', 'Unable', 'Cancel Active Poll', 'pollcancel', FALSE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(134, 'Active', 'poll_complete', 'Unable', 'Complete Active Poll', 'pollcomplete', FALSE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(135, 'Active', 'server_nuke_winning', 'Log', 'Server Nuke Winning Team', 'wnuke', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(136, 'Active', 'player_loadout_ignore', 'Log', 'Ignore Player Loadout', 'iloadout', TRUE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(137, 'Active', 'player_challenge_play', 'Log', 'Challenge Playing Status', 'challengeplay', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(138, 'Active', 'player_challenge_ignore', 'Log', 'Challenge Ignoring Status', 'challengeignore', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(139, 'Active', 'self_challenge', 'Log', 'Challenge', 'ch', FALSE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(140, 'Active', 'player_challenge_autokill', 'Log', 'Challenge AutoKill Status', 'challengeautokill', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(141, 'Active', 'player_challenge_autokill_remove', 'Log', 'Remove Challenge AutoKill Status', 'unchallengeautokill', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(142, 'Active', 'player_challenge_play_remove', 'Log', 'Remove Challenge Playing Status', 'unchallengeplay', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(143, 'Active', 'player_challenge_ignore_remove', 'Log', 'Remove Challenge Ignoring Status', 'unchallengeignore', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(144, 'Invisible', 'player_challenge_complete', 'Log', 'Player Completed Challenge', 'challengecomplete', TRUE, 'Any')
 
 DROP TABLE IF EXISTS `adkats_infractions_global`;
 CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
@@ -455,7 +464,10 @@ REPLACE INTO `adkats_rolecommands` VALUES(1, 74);
 REPLACE INTO `adkats_rolecommands` VALUES(1, 75);
 REPLACE INTO `adkats_rolecommands` VALUES(1, 76);
 REPLACE INTO `adkats_rolecommands` VALUES(1, 117);
-REPLACE INTO `adkats_rolecommands` VALUES(1, 118);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 123);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 124);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 132);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 139);
 
 -- Full Admin Role
 REPLACE INTO `adkats_rolecommands` VALUES(2, 1);
@@ -557,6 +569,30 @@ REPLACE INTO `adkats_rolecommands` VALUES(2, 115);
 REPLACE INTO `adkats_rolecommands` VALUES(2, 116);
 REPLACE INTO `adkats_rolecommands` VALUES(2, 117);
 REPLACE INTO `adkats_rolecommands` VALUES(2, 118);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 119);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 120);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 121);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 122);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 123);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 124);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 125);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 126);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 128);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 129);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 130);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 131);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 132);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 133);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 134);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 135);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 136);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 137);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 138);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 139);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 140);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 141);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 142);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 143);
 
 DROP TABLE IF EXISTS `adkats_roles`;
 CREATE TABLE IF NOT EXISTS `adkats_roles` (
@@ -777,6 +813,22 @@ CREATE TABLE `adkats_challenge_entry_detail` (
   CONSTRAINT `adkats_challenge_entry_detail_fk_EntryID` FOREIGN KEY (`EntryID`) REFERENCES `adkats_challenge_entry` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `adkats_challenge_entry_detail_fk_VictimID` FOREIGN KEY (`VictimID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Entry Details';
+
+CREATE TABLE IF NOT EXISTS `adkats_challenge_reward` (
+  `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `ServerID` smallint(5) unsigned NOT NULL,
+  `Tier` int(10) unsigned NOT NULL,
+  `Reward` varchar(100) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'None',
+  `Enabled` int(1) unsigned NOT NULL DEFAULT 0,
+  `DurationMinutes` int(10) unsigned NOT NULL DEFAULT 60, -- 4294967295
+  `CreateTime` datetime NOT NULL,
+  `ModifyTime` datetime NOT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE (`ServerID`, `Tier`, `Reward`),
+  KEY `adkats_challenge_reward_idx_CreateTime` (`CreateTime`),
+  KEY `adkats_challenge_reward_idx_ModifyTime` (`ModifyTime`),
+  CONSTRAINT `adkats_challenge_reward_fk_ServerID` FOREIGN KEY (`ServerID`) REFERENCES `tbl_server` (`ServerID`) ON DELETE NO ACTION ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Challenge Rewards';
 
 SET FOREIGN_KEY_CHECKS=1;
 

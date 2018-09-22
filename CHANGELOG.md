@@ -998,4 +998,53 @@ Added small improvements to fuzzy player match response text.</li>
 <ul>
     <li><b>No upgrade SQL required.</b></li>
 </ul>
+<h4>7.5.0.0 (21-SEP-2018)</h4>
+<b>Enhancements</b><br/>
+<ul>
+	<li>Added the C32 challenge system. This is probably the biggest feature added to AdKats since the ban enforcer.</li>
+	<li>Added monitoring of players who join the server while AdKats' first player list is still being processed.</li>
+	<li>Added option to only fire ticket difference based nukes while in high population.</li>
+	<li>Added option to auto-kick players who first joined the server after a certain date. This is used as an anti-cheat measure if a large number of hackers are invading your server at once. Allows regular players to stay in the server while brand new players are auto-kicked.</li>
+	<li>Added lenient reassignment option to the team power monitor. Allows players to be reassigned to the weak team even if they currently have a map advantage. A percentage difference setting is available to tweak this, defaulting to 30%.</li>
+	<li>Updated assorted console messages to be more descriptive.</li>
+	<li>Added purge of adkats statistics once they are 90 days old for performance reasons.</li>
+	<li>Added colors to many of the AdKats chat messages so they are more easily distinguished.</li>
+	<li>A player requesting to assist when they are already queued will now refresh the timeout back to 5 minutes on that auto-assist.</li>
+	<li>Added player clan tag history display to the pinfo command.Added SWAP functionality to the assist command. If two players, one on each team, request to assist, it will swap them both regardless of team state.</li>
+	<li>Added SWAP functionality to the assist command. If two players, one on each team, request to assist, it will swap them both regardless of team state.</li>
+	<li>Added AdKats/procon running time to exception messages.</li>
+	<li>Updated multi-threading system to be more easily controlled and efficient.</li>
+	<li>Cleaned up some unused code.</li>
+	<li>Fixed some state management issues around MULTIBalancer's unswitcher.</li>
+</ul>
+<b>New Commands</b><br/>
+<ul>
+	<li>All the new challenge commands. Please look at the docs for those.</li>
+</ul>
+<b>Changes</b><br/>
+<ul>
+	<li>Disabled and hid all metabans configurations/actions since that service is offline permanently.</li>
+	<li>Added a limit of 1 ticket based nuke per team per round.</li>
+	<li>Added force kill command to the power level restriction list.</li>
+	<li>Changed all references of chat commands in messages to (exclaim)command, e.g. !command. All prefixes are still accepted, this is only a display change.</li>
+	<li>Special player statuses like reserved slot, spectator slots, anti-cheat whitelisting, etc, can now be issued again even if the target player already has a matching status on them. The new status duration will overwrite the existing status duration.</li>
+	<li>Modified the winning team prediction to be unsure if both estimates are less than 1 minute apart.</li>
+	<li>Added a maximum duration of 30 seconds to the countdown command.</li>
+	<li>Increased command timeout for player_kick from 30 to 45 seconds.</li>
+	<li>Players who are command locked are now whitelisted from loadout enforcement for the duration of the lock.</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+	<li>Fixed a bug where weapons might be detected as BF3 on other games.</li>
+	<li>Fixed an issue where auto-nukes with a duration still active when a round ends would keep posting messages and issuing kill commands.</li>
+	<li>Added an automatic fix for the command ID mismatch issue caused by old versions of the BFAdminCP.</li>
+	<li>Fixed some cases where startup time could be extended unnecessarily by some old list invalidation logic.</li>
+	<li>Fixed some ban message codes from the LIVE anti-cheat system to have proper syntax.</li>
+	<li>Reduced some unnecessary spam from the assist command.</li>
+	<li>Fixed some issues with player name history display in the pinfo command.</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
 </blockquote>
