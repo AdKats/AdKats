@@ -281,7 +281,7 @@ REPLACE INTO `adkats_commands` VALUES(140, 'Active', 'player_challenge_autokill'
 REPLACE INTO `adkats_commands` VALUES(141, 'Active', 'player_challenge_autokill_remove', 'Log', 'Remove Challenge AutoKill Status', 'unchallengeautokill', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(142, 'Active', 'player_challenge_play_remove', 'Log', 'Remove Challenge Playing Status', 'unchallengeplay', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(143, 'Active', 'player_challenge_ignore_remove', 'Log', 'Remove Challenge Ignoring Status', 'unchallengeignore', TRUE, 'Any');
-REPLACE INTO `adkats_commands` VALUES(144, 'Invisible', 'player_challenge_complete', 'Log', 'Player Completed Challenge', 'challengecomplete', TRUE, 'Any')
+REPLACE INTO `adkats_commands` VALUES(144, 'Invisible', 'player_challenge_complete', 'Log', 'Player Completed Challenge', 'challengecomplete', TRUE, 'Any');
 
 DROP TABLE IF EXISTS `adkats_infractions_global`;
 CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
