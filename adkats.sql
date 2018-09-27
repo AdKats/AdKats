@@ -1,5 +1,5 @@
 -- AdKats Database Setup Script
--- Version 7.5.0.0 (2018-9-21)
+-- Version 7.5.0.2 (2018-9-27)
 -- Daniel J. Gradinjan (ColColonCleaner)
 
 SET FOREIGN_KEY_CHECKS=0;
