@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.2
+ * Version 7.5.0.3
  * 20-OCT-2018
  * 
  * Automatic Update Information
- * <version_code>7.5.0.2</version_code>
+ * <version_code>7.5.0.3</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.2";
+        private const String PluginVersion = "7.5.0.3";
 
         public enum GameVersionEnum
         {
@@ -58561,7 +58561,7 @@ namespace PRoConEvents
                     return Default();
                 }
                 var split = code.Split('-');
-                if (split.Length != 2)
+                if (split.Length != 3)
                 {
                     return Default();
                 }
