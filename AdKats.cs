@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.3
+ * Version 7.5.0.4
  * 20-OCT-2018
  * 
  * Automatic Update Information
- * <version_code>7.5.0.3</version_code>
+ * <version_code>7.5.0.4</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.3";
+        private const String PluginVersion = "7.5.0.4";
 
         public enum GameVersionEnum
         {
@@ -14553,6 +14553,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "100");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.T200:
@@ -14563,6 +14564,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.T300:
@@ -14573,6 +14575,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.T400:
@@ -14583,6 +14586,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "400");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.R200:
@@ -14593,6 +14597,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.R300:
@@ -14603,6 +14608,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.R400:
@@ -14613,6 +14619,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "400");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.C500:
@@ -14626,6 +14633,7 @@ namespace PRoConEvents
                         TicketRatio = 800 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.C1000:
@@ -14639,6 +14647,7 @@ namespace PRoConEvents
                         TicketRatio = 800 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.C2000:
@@ -14652,6 +14661,7 @@ namespace PRoConEvents
                         TicketRatio = 800 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.F9:
@@ -14662,6 +14672,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.F6:
@@ -14672,6 +14683,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.F3:
@@ -14682,6 +14694,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "100");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.D500:
@@ -14695,6 +14708,7 @@ namespace PRoConEvents
                         TicketRatio = 300 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.HD500:
@@ -14708,6 +14722,7 @@ namespace PRoConEvents
                         TicketRatio = 300 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.D750:
@@ -14721,6 +14736,7 @@ namespace PRoConEvents
                         TicketRatio = 300 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.D1000:
@@ -14734,6 +14750,7 @@ namespace PRoConEvents
                         TicketRatio = 300 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.RESET:
@@ -14748,6 +14765,7 @@ namespace PRoConEvents
                         TicketRatio = 800 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event RESET complete!");
                         break;
                     default:
                         Log.Error("Unknown mode type when processing event transition.");
@@ -14859,6 +14877,7 @@ namespace PRoConEvents
                             }
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Admins", "True");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Reputable Players", "True");
+                            ExecuteCommand("procon.protected.plugins.enable", "xVotemap", "False");
                             //ACTIVE ROUND
                             for (int i = 0; i < 8; i++)
                             {
@@ -14884,6 +14903,7 @@ namespace PRoConEvents
                             _CurrentEventRoundNumber = 999999;
                             QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
                             ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
+                            ExecuteCommand("procon.protected.plugins.enable", "xVotemap", "True");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Admins", "False");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Reputable Players", "False");
                             for (int i = 0; i < 6; i++)
