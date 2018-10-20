@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.4
+ * Version 7.5.0.5
  * 20-OCT-2018
  * 
  * Automatic Update Information
- * <version_code>7.5.0.4</version_code>
+ * <version_code>7.5.0.5</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.4";
+        private const String PluginVersion = "7.5.0.5";
 
         public enum GameVersionEnum
         {
@@ -35785,6 +35785,17 @@ namespace PRoConEvents
                     {
                         chosenRules.Add(rule);
                     }
+                }
+                // Conditionally remove some rule options
+                if (_populationStatus != PopulationState.High)
+                {
+                    // In medium/low population, do not allow melee/explosive rules to show up
+                    chosenRules.Remove(AEventOption.RuleCode.DO);
+                    chosenRules.Remove(AEventOption.RuleCode.EO);
+                    chosenRules.Remove(AEventOption.RuleCode.GO);
+                    chosenRules.Remove(AEventOption.RuleCode.KO);
+                    chosenRules.Remove(AEventOption.RuleCode.RTO);
+                    chosenRules.Remove(AEventOption.RuleCode.TR);
                 }
                 foreach (var option in chosenRules)
                 {
