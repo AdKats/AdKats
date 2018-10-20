@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.1
- * 22-SEP-2018
+ * Version 7.5.0.2
+ * 20-OCT-2018
  * 
  * Automatic Update Information
- * <version_code>7.5.0.1</version_code>
+ * <version_code>7.5.0.2</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.1";
+        private const String PluginVersion = "7.5.0.2";
 
         public enum GameVersionEnum
         {
@@ -960,19 +960,22 @@ namespace PRoConEvents
             //Build event round options enum
             _EventRoundOptionsEnum = String.Empty;
             random = new Random(Environment.TickCount);
-            foreach (String mapMode in AEventOption.ModeNames.Values)
+            foreach (String map in AEventOption.MapNames.Values)
             {
-                foreach (String rule in AEventOption.RuleNames.Values.Where(ruleValue => ruleValue != AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT]))
+                foreach (String mode in AEventOption.ModeNames.Values)
                 {
-                    if (String.IsNullOrEmpty(_EventRoundOptionsEnum))
+                    foreach (String rule in AEventOption.RuleNames.Values.Where(ruleValue => ruleValue != AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT]))
                     {
-                        _EventRoundOptionsEnum += "enum.EventRoundOptionsEnum_" + random.Next(100000, 999999) + "(Remove|";
+                        if (String.IsNullOrEmpty(_EventRoundOptionsEnum))
+                        {
+                            _EventRoundOptionsEnum += "enum.EventRoundOptionsEnum_" + random.Next(100000, 999999) + "(Remove|";
+                        }
+                        else
+                        {
+                            _EventRoundOptionsEnum += "|";
+                        }
+                        _EventRoundOptionsEnum += map + "/" + mode + "/" + rule;
                     }
-                    else
-                    {
-                        _EventRoundOptionsEnum += "|";
-                    }
-                    _EventRoundOptionsEnum += mapMode + "/" + rule;
                 }
             }
             _EventRoundOptionsEnum += ")";
@@ -2909,7 +2912,7 @@ namespace PRoConEvents
                         buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Duration Rounds", typeof(Int32), _EventRoundOptions.Count()));
                         for (int roundNumber = 0; roundNumber < _EventRoundOptions.Count(); roundNumber++)
                         {
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundOptions[roundNumber].getModeRuleDisplay()));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundOptions[roundNumber].getDisplay()));
                         }
 
                         buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
@@ -2937,7 +2940,7 @@ namespace PRoConEvents
                         buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Mode Rule Combination Count", typeof(Int32), _EventRoundPollOptions.Count()));
                         for (int optionNumber = 0; optionNumber < _EventRoundPollOptions.Count(); optionNumber++)
                         {
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Event Poll Option " + (optionNumber + 1), _EventRoundOptionsEnum, _EventRoundPollOptions[optionNumber].getModeRuleDisplay()));
+                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Event Poll Option " + (optionNumber + 1), _EventRoundOptionsEnum, _EventRoundPollOptions[optionNumber].getDisplay()));
                         }
 
                         buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
@@ -6424,18 +6427,27 @@ namespace PRoConEvents
                             }
                             else
                             {
-                                AEventOption.ModeCode chosenMapMode = AEventOption.ModeCode.UNKNOWN;
+                                AEventOption.MapCode chosenMap = AEventOption.MapCode.UNKNOWN;
+                                AEventOption.ModeCode chosenMode = AEventOption.ModeCode.UNKNOWN;
                                 AEventOption.RuleCode chosenRule = AEventOption.RuleCode.UNKNOWN;
                                 Boolean chosen = false;
-                                foreach (AEventOption.ModeCode mapMode in AEventOption.ModeNames.Keys)
+                                foreach (AEventOption.MapCode map in AEventOption.MapNames.Keys)
                                 {
-                                    foreach (AEventOption.RuleCode rule in AEventOption.RuleNames.Keys.Where(rule => rule != AEventOption.RuleCode.ENDEVENT))
+                                    foreach (AEventOption.ModeCode mode in AEventOption.ModeNames.Keys)
                                     {
-                                        if (!optionList.Any(option => option.Mode == mapMode && option.Rule == rule))
+                                        foreach (AEventOption.RuleCode rule in AEventOption.RuleNames.Keys.Where(rule => rule != AEventOption.RuleCode.ENDEVENT))
                                         {
-                                            chosenMapMode = mapMode;
-                                            chosenRule = rule;
-                                            chosen = true;
+                                            if (!optionList.Any(option => option.Map == map && option.Mode == mode && option.Rule == rule))
+                                            {
+                                                chosenMap = map;
+                                                chosenMode = mode;
+                                                chosenRule = rule;
+                                                chosen = true;
+                                                break;
+                                            }
+                                        }
+                                        if (chosen)
+                                        {
                                             break;
                                         }
                                     }
@@ -6448,7 +6460,8 @@ namespace PRoConEvents
                                 {
                                     optionList.Add(new AEventOption()
                                     {
-                                        Mode = chosenMapMode,
+                                        Map = chosenMap,
+                                        Mode = chosenMode,
                                         Rule = chosenRule
                                     });
                                 }
@@ -6456,7 +6469,7 @@ namespace PRoConEvents
                         }
                         _EventRoundOptions = optionList;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                        QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getCode()).ToArray()));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Event Round \d+ Options").Success)
@@ -6470,14 +6483,16 @@ namespace PRoConEvents
                     else
                     {
                         var newOption = AEventOption.FromDisplay(strValue);
-                        if (_EventRoundOptions.Any(option => option.Mode == newOption.Mode && option.Rule == newOption.Rule))
+                        if (_EventRoundOptions.Any(option => option.Map == newOption.Map && 
+                                                             option.Mode == newOption.Mode && 
+                                                             option.Rule == newOption.Rule))
                         {
-                            Log.Error("Event round option " + newOption.getModeRuleDisplay() + " already exists.");
+                            Log.Error("Event round option " + newOption.getDisplay() + " already exists.");
                             return;
                         }
                         _EventRoundOptions[roundNumber] = newOption;
                     }
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getCode()).ToArray()));
                 }
                 else if (Regex.Match(strVariable, @"Event Round Codes").Success)
                 {
@@ -6485,7 +6500,7 @@ namespace PRoConEvents
                     {
                         _EventRoundOptions = CPluginVariable.DecodeStringArray(strValue).Select(option => AEventOption.FromCode(option)).ToList();
                     }
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getCode()).ToArray()));
                 }
                 else if (Regex.Match(strVariable, @"Poll Mode Rule Combination Count").Success)
                 {
@@ -6507,18 +6522,29 @@ namespace PRoConEvents
                             }
                             else
                             {
-                                AEventOption.ModeCode chosenMapMode = AEventOption.ModeCode.UNKNOWN;
+                                AEventOption.MapCode chosenMap = AEventOption.MapCode.UNKNOWN;
+                                AEventOption.ModeCode chosenMode = AEventOption.ModeCode.UNKNOWN;
                                 AEventOption.RuleCode chosenRule = AEventOption.RuleCode.UNKNOWN;
                                 Boolean chosen = false;
-                                foreach (AEventOption.ModeCode mapMode in AEventOption.ModeNames.Keys)
+                                foreach (AEventOption.MapCode mapCode in AEventOption.MapNames.Keys)
                                 {
-                                    foreach (AEventOption.RuleCode rule in AEventOption.RuleNames.Keys.Where(rule => rule != AEventOption.RuleCode.ENDEVENT))
+                                    foreach (AEventOption.ModeCode modeCode in AEventOption.ModeNames.Keys)
                                     {
-                                        if (!optionList.Any(option => option.Mode == mapMode && option.Rule == rule))
+                                        foreach (AEventOption.RuleCode ruleCode in AEventOption.RuleNames.Keys.Where(rule => rule != AEventOption.RuleCode.ENDEVENT))
                                         {
-                                            chosenMapMode = mapMode;
-                                            chosenRule = rule;
-                                            chosen = true;
+                                            if (!optionList.Any(option => option.Map == mapCode &&
+                                                                          option.Mode == modeCode && 
+                                                                          option.Rule == ruleCode))
+                                            {
+                                                chosenMap = mapCode;
+                                                chosenMode = modeCode;
+                                                chosenRule = ruleCode;
+                                                chosen = true;
+                                                break;
+                                            }
+                                        }
+                                        if (chosen)
+                                        {
                                             break;
                                         }
                                     }
@@ -6531,7 +6557,8 @@ namespace PRoConEvents
                                 {
                                     optionList.Add(new AEventOption()
                                     {
-                                        Mode = chosenMapMode,
+                                        Map = chosenMap,
+                                        Mode = chosenMode,
                                         Rule = chosenRule
                                     });
                                 }
@@ -6539,7 +6566,7 @@ namespace PRoConEvents
                         }
                         _EventRoundPollOptions = optionList;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
+                        QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getCode()).ToArray()));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Event Poll Option \d+").Success)
@@ -6553,14 +6580,16 @@ namespace PRoConEvents
                     else
                     {
                         var newOption = AEventOption.FromDisplay(strValue);
-                        if (_EventRoundPollOptions.Any(option => option.Mode == newOption.Mode && option.Rule == newOption.Rule))
+                        if (_EventRoundPollOptions.Any(option => option.Map == newOption.Map &&
+                                                                 option.Mode == newOption.Mode && 
+                                                                 option.Rule == newOption.Rule))
                         {
-                            Log.Error("Event poll option " + newOption.getModeRuleDisplay() + " already exists.");
+                            Log.Error("Event poll option " + newOption.getDisplay() + " already exists.");
                             return;
                         }
                         _EventRoundPollOptions[optionNumber] = newOption;
                     }
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getCode()).ToArray()));
                 }
                 else if (Regex.Match(strVariable, @"Event Round Poll Codes").Success)
                 {
@@ -6568,7 +6597,7 @@ namespace PRoConEvents
                     {
                         _EventRoundPollOptions = CPluginVariable.DecodeStringArray(strValue).Select(option => AEventOption.FromCode(option)).ToList();
                     }
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getCode()).ToArray()));
                 }
                 else if (Regex.Match(strVariable, @"Use LIVE Anti Cheat System").Success)
                 {
@@ -14490,16 +14519,26 @@ namespace PRoConEvents
 
         private void ProcessEventMapMode(Int32 eventRoundNumber)
         {
-            ProcessEventMapMode(GetEventRoundModeCode(eventRoundNumber));
+            ProcessEventMapMode(GetEventRoundMapCode(eventRoundNumber), GetEventRoundModeCode(eventRoundNumber));
         }
 
-        private void ProcessEventMapMode(AEventOption.ModeCode mapModeCode)
+        private void ProcessEventMapMode(AEventOption.MapCode mapCode, AEventOption.ModeCode modeCode)
         {
             var delayMS = 250;
             Log.Debug(() => "Entering ProcessEventMapMode", 7);
             try
             {
-                switch (mapModeCode)
+                var mapFile = "XP0_Metro";
+                switch (mapCode)
+                {
+                    case AEventOption.MapCode.MET:
+                        mapFile = "XP0_Metro";
+                        break;
+                    case AEventOption.MapCode.LOC:
+                        mapFile = "MP_Prison";
+                        break;
+                }
+                switch (modeCode)
                 {
                     case AEventOption.ModeCode.UNKNOWN:
                         Int32 GoalTickets = 0;
@@ -14510,7 +14549,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "100");
@@ -14520,7 +14559,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
@@ -14530,7 +14569,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
@@ -14540,7 +14579,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "400");
@@ -14550,7 +14589,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
@@ -14560,7 +14599,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
@@ -14570,7 +14609,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "400");
@@ -14580,7 +14619,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 500;
@@ -14593,7 +14632,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 1000;
@@ -14606,7 +14645,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 2000;
@@ -14619,7 +14658,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "CaptureTheFlag0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
@@ -14629,7 +14668,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "CaptureTheFlag0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
@@ -14639,7 +14678,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "CaptureTheFlag0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "100");
@@ -14649,7 +14688,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 500;
@@ -14662,7 +14701,7 @@ namespace PRoConEvents
                         ProcessPresetHardcore();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 500;
@@ -14675,7 +14714,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 750;
@@ -14688,7 +14727,7 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 1000;
@@ -14702,7 +14741,7 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "300");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "MP_Prison", "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 1600;
@@ -14836,7 +14875,7 @@ namespace PRoConEvents
                                 AdminTellMessage("PREPARING EVENT! TESTING! TESTING!");
                                 Thread.Sleep(2000);
                             }
-                            ProcessEventMapMode(AEventOption.ModeCode.D500);
+                            ProcessEventMapMode(AEventOption.MapCode.MET, AEventOption.ModeCode.D500);
                         }
                         else if (nRound >= _CurrentEventRoundNumber + _EventRoundOptions.Count())
                         {
@@ -14847,13 +14886,13 @@ namespace PRoConEvents
                             ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Admins", "False");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Reputable Players", "False");
-                            for (int i = 0; i < 8; i++)
+                            for (int i = 0; i < 6; i++)
                             {
                                 AdminTellMessage("EVENT IS OVER, THANK YOU FOR COMING!");
                                 Thread.Sleep(2000);
                             }
-                            ProcessEventMapMode(AEventOption.ModeCode.RESET);
-                            for (int i = 0; i < 8; i++)
+                            ProcessEventMapMode(AEventOption.MapCode.MET, AEventOption.ModeCode.RESET);
+                            for (int i = 0; i < 10; i++)
                             {
                                 AdminTellMessage("EVENT IS OVER, THANK YOU FOR COMING!");
                                 Thread.Sleep(2000);
@@ -15636,21 +15675,45 @@ namespace PRoConEvents
             return 999999;
         }
 
+        private AEventOption.MapCode GetEventRoundMapCode(Int32 eventRoundNumber)
+        {
+            Log.Debug(() => "Entering GetEventRoundMapCode", 7);
+            try
+            {
+                if (!_EventRoundOptions.Any() || 
+                    eventRoundNumber < 0 || 
+                    eventRoundNumber >= _EventRoundOptions.Count())
+                {
+                    Log.Error("Event round number " + eventRoundNumber + " was invalid when fetching map code.");
+                    return AEventOption.MapCode.UNKNOWN;
+                }
+                return _EventRoundOptions[eventRoundNumber].Map;
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while getting event round map code.", e));
+            }
+            Log.Debug(() => "Exiting GetEventRoundMapCode", 7);
+            return AEventOption.MapCode.UNKNOWN;
+        }
+
         private AEventOption.ModeCode GetEventRoundModeCode(Int32 eventRoundNumber)
         {
             Log.Debug(() => "Entering GetEventRoundMapModeCode", 7);
             try
             {
-                if (!_EventRoundOptions.Any() || eventRoundNumber < 0 || eventRoundNumber >= _EventRoundOptions.Count())
+                if (!_EventRoundOptions.Any() || 
+                    eventRoundNumber < 0 || 
+                    eventRoundNumber >= _EventRoundOptions.Count())
                 {
-                    Log.Error("Event round number " + eventRoundNumber + " was invalid when fetching map mode code.");
+                    Log.Error("Event round number " + eventRoundNumber + " was invalid when fetching mode code.");
                     return AEventOption.ModeCode.UNKNOWN;
                 }
                 return _EventRoundOptions[eventRoundNumber].Mode;
             }
             catch (Exception e)
             {
-                Log.HandleException(new AException("Error while getting event round map mode code.", e));
+                Log.HandleException(new AException("Error while getting event round mode code.", e));
             }
             Log.Debug(() => "Exiting GetEventRoundMapModeCode", 7);
             return AEventOption.ModeCode.UNKNOWN;
@@ -15791,7 +15854,8 @@ namespace PRoConEvents
                         // ASSAULT RIFLES ONLY!
                         if (!aKill.weaponCode.ToLower().Contains("knife") &&
                             !aKill.weaponCode.ToLower().Contains("melee") &&
-                            aKill.weaponDamage != DamageTypes.AssaultRifle)
+                            aKill.weaponDamage != DamageTypes.AssaultRifle &&
+                            aKill.weaponCode != "DamageArea")
                         {
                             return true;
                         }
@@ -15800,7 +15864,8 @@ namespace PRoConEvents
                         // LMGS ONLY!
                         if (!aKill.weaponCode.ToLower().Contains("knife") &&
                             !aKill.weaponCode.ToLower().Contains("melee") &&
-                            aKill.weaponDamage != DamageTypes.LMG)
+                            aKill.weaponDamage != DamageTypes.LMG &&
+                            aKill.weaponCode != "DamageArea")
                         {
                             return true;
                         }
@@ -35581,7 +35646,7 @@ namespace PRoConEvents
                             // This option will clear the existing event options from the plugin and start new
                             SendMessageToSource(record, "Removing all existing event rounds.");
                             _EventRoundOptions.Clear();
-                            QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                            QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getCode()).ToArray()));
                             UpdateSettingPage();
                         }
                         else
@@ -35621,196 +35686,12 @@ namespace PRoConEvents
                             // This poll has two stages. Choosing the rules and choosing the mode.
                             AEventOption.RuleCode chosenRule = AEventOption.RuleCode.UNKNOWN;
                             AEventOption.ModeCode chosenMode = AEventOption.ModeCode.UNKNOWN;
-                            _ActivePoll.Title = "Choose event rules with !#";
-                            // Get the available rule options
-                            var existingEventRules = _EventRoundOptions
-                                                        .Select(option => option.Rule)
-                                                        .Distinct()
-                                                        .ToList();
-                            var rng = new Random(Environment.TickCount);
-                            var availableRuleOptions = _EventRoundPollOptions
-                                                        .Where(option => !existingEventRules.Contains(option.Rule))
-                                                        .Select(option => option.Rule)
-                                                        .Distinct()
-                                                        .OrderBy(option => rng.Next())
-                                                        .ToList();
-                            if (availableRuleOptions.Count() <= 3)
-                            {
-                                // They used almost all the rules during this event
-                                // Just give them everything
-                                foreach (var option in _EventRoundPollOptions
-                                                        .Select(option => option.Rule)
-                                                        .Distinct()
-                                                        .OrderBy(option => rng.Next())
-                                                        .ToList())
-                                {
-                                    if (!availableRuleOptions.Contains(option))
-                                    {
-                                        availableRuleOptions.Add(option);
-                                    }
-                                }
-                            }
-                            List<AEventOption.RuleCode> chosenRules = new List<AEventOption.RuleCode>();
-                            // Add the remaining available rules to the chosen list
-                            foreach (var rule in availableRuleOptions)
-                            {
-                                if (!chosenRules.Contains(rule))
-                                {
-                                    chosenRules.Add(rule);
-                                }
-                            }
-                            foreach (var option in chosenRules)
-                            {
-                                if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
-                                {
-                                    break;
-                                }
-                                // Add the name of the option to the chosen list
-                                _ActivePoll.AddOption(AEventOption.RuleNames[option], false);
-                            }
-                            if (_EventRoundOptions.Count() >= _EventRoundAutoPollsMax)
-                            {
-                                _ActivePoll.AddOption(AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT], false);
-                            }
+                            AEventOption.MapCode chosenMap = AEventOption.MapCode.UNKNOWN;
 
-                            while (_pluginEnabled &&
-                                   _roundState == RoundState.Playing &&
-                                   NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
-                                   _ActivePoll.Votes.Count() < _PollMaxVotes &&
-                                   !_ActivePoll.Completed &&
-                                   !_ActivePoll.Canceled)
-                            {
-                                if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
-                                {
-                                    // Print the poll
-                                    _ActivePoll.PrintPoll(_eventPollYellWinningRule);
-                                }
 
-                                Threading.Wait(100);
-                            }
+                            ///////////////////////////RULE POLL/////////////////////////////
+                            DoEventRulePoll(chosenRule, chosenMode, chosenMap);
 
-                            if (_ActivePoll.Completed)
-                            {
-                                AdminSayMessage("Event rule poll completed with current winner.");
-                            }
-                            // Only continue if the poll has not been canceled
-                            if (_pluginEnabled &&
-                                !_ActivePoll.Canceled)
-                            {
-
-                                // Get the outcome
-                                var ruleString = _ActivePoll.GetWinningOption("won", false);
-                                chosenRule = AEventOption.RuleFromDisplay(ruleString);
-
-                                if (chosenRule == AEventOption.RuleCode.ENDEVENT)
-                                {
-                                    for (int i = 0; i < 5; i++)
-                                    {
-                                        AdminTellMessage("Server voted to end the event. Normal rules next round.");
-                                        Thread.Sleep(500);
-                                    }
-                                }
-                                else
-                                {
-                                    // Get the available mode options for the chosen rule
-                                    var availableModeOptions = _EventRoundPollOptions
-                                                                .Where(option => option.Rule == chosenRule)
-                                                                .Select(option => option.Mode)
-                                                                .Distinct()
-                                                                .OrderBy(option => rng.Next())
-                                                                .ToList();
-
-                                    if (availableModeOptions.Count() == 1)
-                                    {
-                                        // There is only one option for the poll, so just select it and finish
-                                        chosenMode = availableModeOptions.First();
-                                        var option = new AEventOption()
-                                        {
-                                            Mode = chosenMode,
-                                            Rule = chosenRule
-                                        };
-                                        _EventRoundOptions.Add(option);
-                                        QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
-                                        AdminTellMessage("EVENT POLL COMPLETE! Next event round is " + option.getModeRuleDisplay());
-
-                                        // If the event isn't active or set up with a date, make the event start next round.
-                                        if (!EventActive() &&
-                                            _CurrentEventRoundNumber == 999999)
-                                        {
-                                            _CurrentEventRoundNumber = _roundID + 1;
-                                            QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
-                                        }
-
-                                        UpdateSettingPage();
-                                    }
-                                    else
-                                    {
-                                        // Reset the poll for the next stage
-                                        _ActivePoll.Reset();
-
-                                        _ActivePoll.Title = "Choose '" + ruleString + "' mode with !#";
-                                        foreach (var option in availableModeOptions)
-                                        {
-                                            if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
-                                            {
-                                                break;
-                                            }
-                                            // Add the name of the option to the chosen list
-                                            _ActivePoll.AddOption(AEventOption.ModeNames[option], false);
-                                        }
-
-                                        while (_pluginEnabled &&
-                                               _roundState == RoundState.Playing &&
-                                               NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
-                                               _ActivePoll.Votes.Count() < _PollMaxVotes &&
-                                               !_ActivePoll.Completed &&
-                                               !_ActivePoll.Canceled)
-                                        {
-                                            if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
-                                            {
-                                                // Print the poll
-                                                // Do not announce the current mode leader
-                                                _ActivePoll.PrintPoll(false);
-                                            }
-
-                                            Threading.Wait(100);
-                                        }
-
-                                        if (_ActivePoll.Completed)
-                                        {
-                                            AdminSayMessage("Event mode poll completed with current winner.");
-                                        }
-
-                                        // Only continue if the round is still active
-                                        // And the poll has not been canceled
-                                        if (_pluginEnabled &&
-                                            !_ActivePoll.Canceled)
-                                        {
-
-                                            // Get the outcome
-                                            chosenMode = AEventOption.ModeFromDisplay(_ActivePoll.GetWinningOption("won", false));
-                                            var option = new AEventOption()
-                                            {
-                                                Mode = chosenMode,
-                                                Rule = chosenRule
-                                            };
-                                            _EventRoundOptions.Add(option);
-                                            QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
-                                            AdminTellMessage("EVENT POLL COMPLETE! Next event round is " + option.getModeRuleDisplay());
-
-                                            // If the event isn't active or set up with a date, make the event start next round.
-                                            if (!EventActive() &&
-                                                _CurrentEventRoundNumber == 999999)
-                                            {
-                                                _CurrentEventRoundNumber = _roundID + 1;
-                                                QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
-                                            }
-
-                                            UpdateSettingPage();
-                                        }
-                                    }
-                                }
-                            }
 
                             if (_ActivePoll.Canceled)
                             {
@@ -35846,6 +35727,307 @@ namespace PRoConEvents
                 FinalizeRecord(record);
             }
             Log.Debug(() => "Exiting TriggerTargetPoll", 6);
+        }
+
+        private void DoEventRulePoll(AEventOption.RuleCode chosenRule, AEventOption.ModeCode chosenMode, AEventOption.MapCode chosenMap)
+        {
+            Log.Debug(() => "Entering DoEventRulePoll", 3);
+            try
+            {
+                ///////////////////////////RULE POLL/////////////////////////////
+
+                _ActivePoll.Title = "Choose event rules with !#";
+                // Get the available rule options
+                var existingEventRules = _EventRoundOptions
+                                            .Select(option => option.Rule)
+                                            .Distinct()
+                                            .ToList();
+                var rng = new Random(Environment.TickCount);
+                var availableRuleOptions = _EventRoundPollOptions
+                                            .Where(option => !existingEventRules.Contains(option.Rule))
+                                            .Select(option => option.Rule)
+                                            .Distinct()
+                                            .OrderBy(option => rng.Next())
+                                            .ToList();
+                if (availableRuleOptions.Count() <= 3)
+                {
+                    availableRuleOptions = _EventRoundPollOptions
+                                            .Select(option => option.Rule)
+                                            .Distinct()
+                                            .OrderBy(option => rng.Next())
+                                            .ToList();
+                }
+                List<AEventOption.RuleCode> chosenRules = new List<AEventOption.RuleCode>();
+                // Add the remaining available rules to the chosen list
+                foreach (var rule in availableRuleOptions)
+                {
+                    if (!chosenRules.Contains(rule))
+                    {
+                        chosenRules.Add(rule);
+                    }
+                }
+                foreach (var option in chosenRules)
+                {
+                    if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
+                    {
+                        break;
+                    }
+                    // Add the name of the option to the chosen list
+                    _ActivePoll.AddOption(AEventOption.RuleNames[option], false);
+                }
+                if (_EventRoundOptions.Count() >= _EventRoundAutoPollsMax)
+                {
+                    _ActivePoll.AddOption(AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT], false);
+                }
+
+                while (_pluginEnabled &&
+                       _roundState == RoundState.Playing &&
+                       NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
+                       _ActivePoll.Votes.Count() < _PollMaxVotes &&
+                       !_ActivePoll.Completed &&
+                       !_ActivePoll.Canceled)
+                {
+                    if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
+                    {
+                        // Print the poll
+                        _ActivePoll.PrintPoll(_eventPollYellWinningRule);
+                    }
+
+                    Threading.Wait(100);
+                }
+
+                if (_ActivePoll.Completed)
+                {
+                    AdminSayMessage("Event rule poll completed with current winner.");
+                }
+
+                // Only continue if the poll has not been canceled
+                if (_pluginEnabled &&
+                    !_ActivePoll.Canceled)
+                {
+
+                    // Get the outcome
+                    var ruleString = _ActivePoll.GetWinningOption("won", false);
+                    chosenRule = AEventOption.RuleFromDisplay(ruleString);
+
+                    if (chosenRule == AEventOption.RuleCode.ENDEVENT)
+                    {
+                        for (int i = 0; i < 5; i++)
+                        {
+                            AdminTellMessage("Server voted to end the event. Normal rules next round.");
+                            Thread.Sleep(500);
+                        }
+                    }
+                    else
+                    {
+                        ///////////////////////////MODE POLL/////////////////////////////
+                        DoEventModePoll(chosenRule, chosenMode, chosenMap);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while handling poll completion.", e));
+            }
+            Log.Debug(() => "Exiting DoEventRulePoll", 3);
+        }
+
+        private void DoEventModePoll(AEventOption.RuleCode chosenRule, AEventOption.ModeCode chosenMode, AEventOption.MapCode chosenMap)
+        {
+            Log.Debug(() => "Entering DoEventModePoll", 3);
+            try
+            {
+                ///////////////////////////MODE POLL/////////////////////////////
+
+                // Get the available mode options for the chosen rule
+                var rng = new Random(Environment.TickCount);
+                var availableModeOptions = _EventRoundPollOptions
+                                            .Where(option => option.Rule == chosenRule)
+                                            .Select(option => option.Mode)
+                                            .Distinct()
+                                            .OrderBy(option => rng.Next())
+                                            .ToList();
+
+                if (availableModeOptions.Count() == 1)
+                {
+                    // There is only one option for the poll, so just select it
+                    chosenMode = availableModeOptions.First();
+
+                    ///////////////////////////MAP POLL/////////////////////////////
+                    DoEventMapPoll(chosenRule, chosenMode, chosenMap);
+                }
+                else
+                {
+                    // Reset the poll for the next stage
+                    _ActivePoll.Reset();
+
+                    _ActivePoll.Title = "Choose '" + AEventOption.RuleNames[chosenRule] + "' mode with !#";
+                    foreach (var option in availableModeOptions)
+                    {
+                        if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
+                        {
+                            break;
+                        }
+                        // Add the name of the option to the chosen list
+                        _ActivePoll.AddOption(AEventOption.ModeNames[option], false);
+                    }
+
+                    while (_pluginEnabled &&
+                           _roundState == RoundState.Playing &&
+                           NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
+                           _ActivePoll.Votes.Count() < _PollMaxVotes &&
+                           !_ActivePoll.Completed &&
+                           !_ActivePoll.Canceled)
+                    {
+                        if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
+                        {
+                            // Print the poll
+                            _ActivePoll.PrintPoll(_eventPollYellWinningRule);
+                        }
+
+                        Threading.Wait(100);
+                    }
+
+                    if (_ActivePoll.Completed)
+                    {
+                        AdminSayMessage("Event mode poll completed with current winner.");
+                    }
+
+                    // Only continue if the poll has not been canceled
+                    if (_pluginEnabled &&
+                        !_ActivePoll.Canceled)
+                    {
+
+                        // Get the outcome
+                        chosenMode = AEventOption.ModeFromDisplay(_ActivePoll.GetWinningOption("won", false));
+
+                        ///////////////////////////MAP POLL/////////////////////////////
+                        DoEventMapPoll(chosenRule, chosenMode, chosenMap);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while handling poll completion.", e));
+            }
+            Log.Debug(() => "Exiting DoEventModePoll", 3);
+        }
+
+        private void DoEventMapPoll(AEventOption.RuleCode chosenRule, AEventOption.ModeCode chosenMode, AEventOption.MapCode chosenMap)
+        {
+            Log.Debug(() => "Entering DoEventMapPoll", 3);
+            try
+            {
+                ///////////////////////////MAP POLL/////////////////////////////
+
+                // Get the available map options for the chosen rule
+                var rng = new Random(Environment.TickCount);
+                var availableMapOptions = _EventRoundPollOptions
+                                            .Where(option => option.Rule == chosenRule &&
+                                                             option.Mode == chosenMode)
+                                            .Select(option => option.Map)
+                                            .Distinct()
+                                            .OrderBy(option => rng.Next())
+                                            .ToList();
+
+                if (availableMapOptions.Count() == 1)
+                {
+                    // There is only one option for the poll, so just select it and finish
+                    chosenMap = availableMapOptions.First();
+
+                    ///////////////////////////COMPLETION//////////////////////
+                    DoEventPollCompletion(chosenRule, chosenMode, chosenMap);
+                }
+                else
+                {
+                    // Reset the poll for the next stage
+                    _ActivePoll.Reset();
+
+                    _ActivePoll.Title = "Choose '" + AEventOption.RuleNames[chosenRule] + "' map with !#";
+                    foreach (var option in availableMapOptions)
+                    {
+                        if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
+                        {
+                            break;
+                        }
+                        // Add the name of the option to the chosen list
+                        _ActivePoll.AddOption(AEventOption.MapNames[option], false);
+                    }
+
+                    while (_pluginEnabled &&
+                           _roundState == RoundState.Playing &&
+                           NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
+                           _ActivePoll.Votes.Count() < _PollMaxVotes &&
+                           !_ActivePoll.Completed &&
+                           !_ActivePoll.Canceled)
+                    {
+                        if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
+                        {
+                            // Print the poll
+                            // Do not announce the current map leader
+                            _ActivePoll.PrintPoll(false);
+                        }
+
+                        Threading.Wait(100);
+                    }
+
+                    if (_ActivePoll.Completed)
+                    {
+                        AdminSayMessage("Event map poll completed with current winner.");
+                    }
+
+                    // Only continue if the poll has not been canceled
+                    if (_pluginEnabled &&
+                        !_ActivePoll.Canceled)
+                    {
+
+                        // Get the outcome
+                        chosenMap = AEventOption.MapFromDisplay(_ActivePoll.GetWinningOption("won", false));
+
+                        ///////////////////////////COMPLETION//////////////////////
+                        DoEventPollCompletion(chosenRule, chosenMode, chosenMap);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while handling poll completion.", e));
+            }
+            Log.Debug(() => "Exiting DoEventMapPoll", 3);
+        }
+
+        private void DoEventPollCompletion(AEventOption.RuleCode chosenRule, AEventOption.ModeCode chosenMode, AEventOption.MapCode chosenMap)
+        {
+            Log.Debug(() => "Entering DoEventPollCompletion", 3);
+            try
+            {
+                ///////////////////////////COMPLETION//////////////////////
+
+                var option = new AEventOption()
+                {
+                    Map = chosenMap,
+                    Mode = chosenMode,
+                    Rule = chosenRule
+                };
+                _EventRoundOptions.Add(option);
+                QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getCode()).ToArray()));
+                AdminTellMessage("EVENT POLL COMPLETE! Next event round is " + option.getDisplay());
+
+                // If the event isn't active or set up with a date, make the event start next round.
+                if (!EventActive() &&
+                    _CurrentEventRoundNumber == 999999)
+                {
+                    _CurrentEventRoundNumber = _roundID + 1;
+                    QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
+                }
+
+                UpdateSettingPage();
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while handling poll completion.", e));
+            }
+            Log.Debug(() => "Exiting DoEventPollCompletion", 3);
         }
 
         public void SendTargetChat(ARecord record)
@@ -38599,9 +38781,9 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
                 QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
                 QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Double), _EventAnnounceDayDifference));
-                QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getCode()).ToArray()));
                 QueueSettingForUpload(new CPluginVariable(@"Poll Max Option Count", typeof(Double), _EventPollMaxOptions));
-                QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
+                QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getCode()).ToArray()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Base Server Name", typeof(String), _eventBaseServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Countdown Server Name", typeof(String), _eventCountdownServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
@@ -58200,6 +58382,17 @@ namespace PRoConEvents
 
         public class AEventOption
         {
+            public enum MapCode
+            {
+                UNKNOWN,
+                RESET,
+                MET,
+                LOC
+            };
+            public static readonly Dictionary<MapCode, String> MapNames = new Dictionary<MapCode, String> {
+                {MapCode.MET, "Operation Metro"},
+                {MapCode.LOC, "Operation Locker"}
+            };
             public enum ModeCode
             {
                 UNKNOWN,
@@ -58239,7 +58432,7 @@ namespace PRoConEvents
                 {ModeCode.D500, "Domination 500"},
                 {ModeCode.HD500, "HC Domination 500"},
                 {ModeCode.D750, "Domination 750"},
-                {ModeCode.D1000, "Domination 1000"},
+                {ModeCode.D1000, "Domination 1000"}
             };
             public enum RuleCode
             {
@@ -58266,7 +58459,6 @@ namespace PRoConEvents
                 TR
             };
             public static readonly Dictionary<RuleCode, String> RuleNames = new Dictionary<RuleCode, String> {
-                {RuleCode.ENDEVENT, "End The Event"},
                 {RuleCode.AW, "All Weapons"},
                 {RuleCode.KO, "Knives Only"},
                 {RuleCode.NE, "No Explosives"},
@@ -58285,9 +58477,11 @@ namespace PRoConEvents
                 {RuleCode.HO, "Headshots Only"},
                 {RuleCode.NH, "No Headshots"},
                 {RuleCode.CAI, "Cowboys and Indians"},
-                {RuleCode.TR, "Troll Rules"}
+                {RuleCode.TR, "Troll Rules"},
+                {RuleCode.ENDEVENT, "End The Event"}
             };
 
+            public MapCode Map;
             public ModeCode Mode;
             public RuleCode Rule;
 
@@ -58295,19 +58489,20 @@ namespace PRoConEvents
             {
                 return new AEventOption()
                 {
+                    Map = MapNames.FirstOrDefault().Key,
                     Mode = ModeNames.FirstOrDefault().Key,
                     Rule = RuleNames.FirstOrDefault().Key
                 };
             }
 
-            public String getModeRuleDisplay()
+            public String getDisplay()
             {
-                return ModeNames[Mode] + "/" + RuleNames[Rule];
+                return MapNames[Map] + "/" + ModeNames[Mode] + "/" + RuleNames[Rule];
             }
 
-            public String getModeRuleCode()
+            public String getCode()
             {
-                return Mode + "-" + Rule;
+                return Map + "-" + Mode + "-" + Rule;
             }
 
             public static RuleCode RuleFromDisplay(String ruleDisplay)
@@ -58328,6 +58523,15 @@ namespace PRoConEvents
                 return ModeNames.FirstOrDefault(mode => mode.Value == modeDisplay).Key;
             }
 
+            public static MapCode MapFromDisplay(String mapDisplay)
+            {
+                if (!MapNames.Any(map => map.Value == mapDisplay))
+                {
+                    return MapNames.FirstOrDefault().Key;
+                }
+                return MapNames.FirstOrDefault(map => map.Value == mapDisplay).Key;
+            }
+
             public static AEventOption FromDisplay(String display)
             {
                 if (!display.Contains('/'))
@@ -58335,16 +58539,18 @@ namespace PRoConEvents
                     return Default();
                 }
                 var split = display.Split('/');
-                if (split.Length != 2 ||
-                    !ModeNames.Any(mode => mode.Value == split[0]) ||
-                    !RuleNames.Any(rule => rule.Value == split[1]))
+                if (split.Length != 3 ||
+                    !MapNames.Any(map => map.Value == split[0]) ||
+                    !ModeNames.Any(mode => mode.Value == split[1]) ||
+                    !RuleNames.Any(rule => rule.Value == split[2]))
                 {
                     return Default();
                 }
                 return new AEventOption()
                 {
-                    Mode = ModeNames.FirstOrDefault(mode => mode.Value == split[0]).Key,
-                    Rule = RuleNames.FirstOrDefault(rule => rule.Value == split[1]).Key
+                    Map = MapNames.FirstOrDefault(map => map.Value == split[0]).Key,
+                    Mode = ModeNames.FirstOrDefault(mode => mode.Value == split[1]).Key,
+                    Rule = RuleNames.FirstOrDefault(rule => rule.Value == split[2]).Key
                 };
             }
 
@@ -58359,15 +58565,18 @@ namespace PRoConEvents
                 {
                     return Default();
                 }
-                var parsedMode = (ModeCode)Enum.Parse(typeof(ModeCode), split[0]);
-                var parsedRule = (RuleCode)Enum.Parse(typeof(RuleCode), split[1]);
-                if (!ModeNames.ContainsKey(parsedMode) ||
+                var parsedMap = (MapCode)Enum.Parse(typeof(MapCode), split[0]);
+                var parsedMode = (ModeCode)Enum.Parse(typeof(ModeCode), split[1]);
+                var parsedRule = (RuleCode)Enum.Parse(typeof(RuleCode), split[2]);
+                if (!MapNames.ContainsKey(parsedMap) ||
+                    !ModeNames.ContainsKey(parsedMode) ||
                     !RuleNames.ContainsKey(parsedRule))
                 {
                     return Default();
                 }
                 return new AEventOption()
                 {
+                    Map = parsedMap,
                     Mode = parsedMode,
                     Rule = parsedRule
                 };
