@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.5
+ * Version 7.5.0.6
  * 20-OCT-2018
  * 
  * Automatic Update Information
- * <version_code>7.5.0.5</version_code>
+ * <version_code>7.5.0.6</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.5";
+        private const String PluginVersion = "7.5.0.6";
 
         public enum GameVersionEnum
         {
@@ -35769,6 +35769,17 @@ namespace PRoConEvents
                                             .Distinct()
                                             .OrderBy(option => rng.Next())
                                             .ToList();
+                // Conditionally remove some rule options
+                if (_populationStatus != PopulationState.High)
+                {
+                    // In medium/low population, do not allow melee/explosive rules to show up
+                    availableRuleOptions.Remove(AEventOption.RuleCode.DO);
+                    availableRuleOptions.Remove(AEventOption.RuleCode.EO);
+                    availableRuleOptions.Remove(AEventOption.RuleCode.GO);
+                    availableRuleOptions.Remove(AEventOption.RuleCode.KO);
+                    availableRuleOptions.Remove(AEventOption.RuleCode.RTO);
+                    availableRuleOptions.Remove(AEventOption.RuleCode.TR);
+                }
                 if (availableRuleOptions.Count() <= 3)
                 {
                     availableRuleOptions = _EventRoundPollOptions
@@ -35776,6 +35787,17 @@ namespace PRoConEvents
                                             .Distinct()
                                             .OrderBy(option => rng.Next())
                                             .ToList();
+                    // Conditionally remove some rule options
+                    if (_populationStatus != PopulationState.High)
+                    {
+                        // In medium/low population, do not allow melee/explosive rules to show up
+                        availableRuleOptions.Remove(AEventOption.RuleCode.DO);
+                        availableRuleOptions.Remove(AEventOption.RuleCode.EO);
+                        availableRuleOptions.Remove(AEventOption.RuleCode.GO);
+                        availableRuleOptions.Remove(AEventOption.RuleCode.KO);
+                        availableRuleOptions.Remove(AEventOption.RuleCode.RTO);
+                        availableRuleOptions.Remove(AEventOption.RuleCode.TR);
+                    }
                 }
                 List<AEventOption.RuleCode> chosenRules = new List<AEventOption.RuleCode>();
                 // Add the remaining available rules to the chosen list
@@ -35785,17 +35807,6 @@ namespace PRoConEvents
                     {
                         chosenRules.Add(rule);
                     }
-                }
-                // Conditionally remove some rule options
-                if (_populationStatus != PopulationState.High)
-                {
-                    // In medium/low population, do not allow melee/explosive rules to show up
-                    chosenRules.Remove(AEventOption.RuleCode.DO);
-                    chosenRules.Remove(AEventOption.RuleCode.EO);
-                    chosenRules.Remove(AEventOption.RuleCode.GO);
-                    chosenRules.Remove(AEventOption.RuleCode.KO);
-                    chosenRules.Remove(AEventOption.RuleCode.RTO);
-                    chosenRules.Remove(AEventOption.RuleCode.TR);
                 }
                 foreach (var option in chosenRules)
                 {
