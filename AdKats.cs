@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.6
+ * Version 7.5.0.7
  * 20-OCT-2018
  * 
  * Automatic Update Information
- * <version_code>7.5.0.6</version_code>
+ * <version_code>7.5.0.7</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.6";
+        private const String PluginVersion = "7.5.0.7";
 
         public enum GameVersionEnum
         {
@@ -14860,7 +14860,13 @@ namespace PRoConEvents
                             Threading.Wait(100);
                         }
                         // The new _roundID is fetched by now
-                        if (EventActive(nRound))
+                        if (EventActive(nRound + 1))
+                        {
+                            // The round before the event, make sure xVotemap is not active
+                            // The map voting will be handled by the event script
+                            ExecuteCommand("procon.protected.plugins.enable", "xVotemap", "False");
+                        }
+                        else if (EventActive(nRound))
                         {
                             var nextCode = GetEventRoundRuleCode(GetActiveEventRoundNumber(false));
                             if (nextCode == AEventOption.RuleCode.AO ||
@@ -35854,9 +35860,9 @@ namespace PRoConEvents
 
                     if (chosenRule == AEventOption.RuleCode.ENDEVENT)
                     {
-                        for (int i = 0; i < 5; i++)
+                        for (int i = 0; i < 6; i++)
                         {
-                            AdminTellMessage("Server voted to end the event. Normal rules next round.");
+                            AdminTellMessage("Event ended by vote. Normal rules next round.");
                             Thread.Sleep(500);
                         }
                     }
