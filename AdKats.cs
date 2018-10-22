@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.7
- * 20-OCT-2018
+ * Version 7.5.0.8
+ * 21-OCT-2018
  * 
  * Automatic Update Information
- * <version_code>7.5.0.7</version_code>
+ * <version_code>7.5.0.8</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.7";
+        private const String PluginVersion = "7.5.0.8";
 
         public enum GameVersionEnum
         {
@@ -14873,7 +14873,8 @@ namespace PRoConEvents
                                 nextCode == AEventOption.RuleCode.ARO ||
                                 nextCode == AEventOption.RuleCode.LMGO ||
                                 nextCode == AEventOption.RuleCode.BKO ||
-                                nextCode == AEventOption.RuleCode.CAI)
+                                nextCode == AEventOption.RuleCode.CAI ||
+                                nextCode == AEventOption.RuleCode.PO)
                             {
                                 ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
                             }
@@ -15644,9 +15645,9 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.RTO:
                         return "REPAIR TOOL ONLY! Only kills with repair tools and EOD bots are allowed.";
                     case AEventOption.RuleCode.PO:
-                        return "PISTOLS ONLY! Only kills with pistols are allowed. NO G18/93R. NO Shorty 12G. NO Knives.";
+                        return "PISTOLS ONLY! Only kills with pistols are allowed. NO G18/93R. NO Shorty 12G. Knives allowed.";
                     case AEventOption.RuleCode.SO:
-                        return "SHOTGUNS ONLY! Only kills with shotguns are allowed. Any ammo type. NO Knives.";
+                        return "SHOTGUNS ONLY! Only kills with shotguns are allowed. Any ammo type. Knives allowed.";
                     case AEventOption.RuleCode.NE:
                         return "NO EXPLOSIVES! Kills with explosive weapons are NOT allowed, all others are allowed.";
                     case AEventOption.RuleCode.EO:
@@ -15830,6 +15831,8 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.PO:
                         // PISTOLS ONLY!
                         if ((aKill.weaponDamage != DamageTypes.Handgun || aKill.weaponCode == "U_M93R" || aKill.weaponCode == "U_Glock18") &&
+                            !aKill.weaponCode.ToLower().Contains("knife") &&
+                            !aKill.weaponCode.ToLower().Contains("melee") &&
                             aKill.weaponCode != "DamageArea")
                         {
                             return true;
@@ -15838,6 +15841,8 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.SO:
                         // SHOTGUNS ONLY!
                         if (aKill.weaponDamage != DamageTypes.Shotgun &&
+                            !aKill.weaponCode.ToLower().Contains("knife") &&
+                            !aKill.weaponCode.ToLower().Contains("melee") &&
                             aKill.weaponCode != "DamageArea")
                         {
                             return true;
