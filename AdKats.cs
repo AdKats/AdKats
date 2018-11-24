@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.8
- * 21-OCT-2018
+ * Version 7.5.0.9
+ * 24-NOV-2018
  * 
  * Automatic Update Information
- * <version_code>7.5.0.8</version_code>
+ * <version_code>7.5.0.9</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.8";
+        private const String PluginVersion = "7.5.0.9";
 
         public enum GameVersionEnum
         {
@@ -13412,7 +13412,7 @@ namespace PRoConEvents
         {
             try
             {
-                if (!_pluginEnabled || !_threadsReady || !_firstPlayerListComplete || _roundID <= 1)
+                if (!_pluginEnabled || !_threadsReady || !_firstPlayerListComplete || _roundID < 1)
                 {
                     return;
                 }
@@ -42967,7 +42967,7 @@ namespace PRoConEvents
 
         private DateTime FetchFutureRoundDate(Int32 TargetRoundID)
         {
-            if (_roundID <= 1 || TargetRoundID <= 1 || _databaseConnectionCriticalState)
+            if (_roundID < 1 || TargetRoundID <= 1 || _databaseConnectionCriticalState)
             {
                 return DateTime.MinValue;
             }
