@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.9
- * 24-NOV-2018
+ * Version 7.5.0.10
+ * 26-NOV-2018
  * 
  * Automatic Update Information
- * <version_code>7.5.0.9</version_code>
+ * <version_code>7.5.0.10</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.9";
+        private const String PluginVersion = "7.5.0.10";
 
         public enum GameVersionEnum
         {
@@ -9403,11 +9403,11 @@ namespace PRoConEvents
         {
             try
             {
-                //Memory Monitor - Every 30 seconds
+                //Memory Monitor - Every 60 seconds
                 Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
-                if (NowDuration(_LastMemoryWarning).TotalSeconds > 30)
+                if (NowDuration(_LastMemoryWarning).TotalSeconds > 60)
                 {
-                    if (MBUsed > 750 && (UtcNow() - _AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete)
+                    if (MBUsed >= 1024 && (UtcNow() - _AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete)
                     {
                         Log.Warn(MBUsed + "MB estimated memory used.");
                         QueueRecordForProcessing(new ARecord
@@ -9423,7 +9423,7 @@ namespace PRoConEvents
                         });
                         _LastMemoryWarning = UtcNow();
                     }
-                    else if (MBUsed > 250)
+                    else if (MBUsed >= 512)
                     {
                         String mm = " MAP: ";
                         mm += "1:" + Threading.Count() + ", ";
