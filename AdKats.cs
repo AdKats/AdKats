@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.10
- * 26-NOV-2018
+ * Version 7.5.0.11
+ * 8-DEC-2018
  * 
  * Automatic Update Information
- * <version_code>7.5.0.10</version_code>
+ * <version_code>7.5.0.11</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.10";
+        private const String PluginVersion = "7.5.0.11";
 
         public enum GameVersionEnum
         {
@@ -391,6 +391,9 @@ namespace PRoConEvents
         private readonly Dictionary<String, Func<AdKats, Double>> _commandTimeoutDictionary = new Dictionary<string, Func<AdKats, double>>();
         private readonly Dictionary<String, DateTime> _commandUsageTimes = new Dictionary<string, DateTime>();
         private Boolean _AllowAdminSayCommands = true;
+        private Boolean _ReservedSquadLead = false;
+        private Boolean _ReservedSelfMove = false;
+        private Boolean _ReservedSelfKill = false;
         private Boolean _bypassCommandConfirmation = false;
         private List<String> _ExternalPlayerCommands = new List<string>();
         private List<String> _ExternalAdminCommands = new List<string>();
@@ -1593,6 +1596,9 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "External plugin player commands", typeof(String[]), _ExternalPlayerCommands.ToArray()));
                     buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "External plugin admin commands", typeof(String[]), _ExternalAdminCommands.ToArray()));
                     buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Command Target Whitelist Commands", typeof(String[]), _CommandTargetWhitelistCommands.ToArray()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Reserved slot grants access to squad lead command", typeof(Boolean), _ReservedSquadLead));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Reserved slot grants access to self-move command", typeof(Boolean), _ReservedSelfMove));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Reserved slot grants access to self-kill command", typeof(Boolean), _ReservedSelfKill));
                 }
                 lstReturn.AddRange(buildList);
             }
@@ -6949,6 +6955,36 @@ namespace PRoConEvents
                         _AllowAdminSayCommands = allowSayCommands;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Reserved slot grants access to squad lead command").Success)
+                {
+                    Boolean reservedSquadLead = Boolean.Parse(strValue);
+                    if (_ReservedSquadLead != reservedSquadLead)
+                    {
+                        _ReservedSquadLead = reservedSquadLead;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Reserved slot grants access to squad lead command", typeof(Boolean), _ReservedSquadLead));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Reserved slot grants access to self-move command").Success)
+                {
+                    Boolean reservedSelfMove = Boolean.Parse(strValue);
+                    if (_ReservedSelfMove != reservedSelfMove)
+                    {
+                        _ReservedSelfMove = reservedSelfMove;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Reserved slot grants access to self-move command", typeof(Boolean), _ReservedSelfMove));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Reserved slot grants access to self-kill command").Success)
+                {
+                    Boolean reservedSelfKill = Boolean.Parse(strValue);
+                    if (_ReservedSelfKill != reservedSelfKill)
+                    {
+                        _ReservedSelfKill = reservedSelfKill;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Reserved slot grants access to self-kill command", typeof(Boolean), _ReservedSelfKill));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Bypass all command confirmation -DO NOT USE-").Success)
@@ -37089,6 +37125,22 @@ namespace PRoConEvents
                     Log.Error("Command was null in hasAccess.");
                     return false;
                 }
+                if (GetMatchingVerboseASPlayersOfGroup("slot_reserved", aPlayer).Any())
+                {
+                    // Yes these could be just one if block. readability yo.
+                    if (_ReservedSquadLead && command.command_key == "self_lead")
+                    {
+                        return true;
+                    }
+                    if (_ReservedSelfMove && command.command_key == "self_teamswap")
+                    {
+                        return true;
+                    }
+                    if (_ReservedSelfKill && command.command_key == "self_kill")
+                    {
+                        return true;
+                    }
+                }
                 lock (aPlayer.player_role)
                 {
                     lock (aPlayer.player_role.RoleAllowedCommands)
@@ -38865,6 +38917,10 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Required Reason Length", typeof(Int32), _RequiredReasonLength));
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Report Handle Seconds", typeof(Int32), _MinimumReportHandleSeconds));
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Minutes Into Round To Use Assist", typeof(Int32), _minimumAssistMinutes));
+                QueueSettingForUpload(new CPluginVariable(@"Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
+                QueueSettingForUpload(new CPluginVariable(@"Reserved slot grants access to squad lead command", typeof(Boolean), _ReservedSquadLead));
+                QueueSettingForUpload(new CPluginVariable(@"Reserved slot grants access to self-move command", typeof(Boolean), _ReservedSelfMove));
+                QueueSettingForUpload(new CPluginVariable(@"Reserved slot grants access to self-kill command", typeof(Boolean), _ReservedSelfKill));
                 QueueSettingForUpload(new CPluginVariable(@"Banned Tags", typeof(String), CPluginVariable.EncodeStringArray(_BannedTags)));
                 QueueSettingForUpload(new CPluginVariable(@"Punishment Hierarchy", typeof(String), CPluginVariable.EncodeStringArray(_PunishmentHierarchy)));
                 QueueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
