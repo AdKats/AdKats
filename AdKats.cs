@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.11
- * 8-DEC-2018
+ * Version 7.5.0.12
+ * 9-DEC-2018
  * 
  * Automatic Update Information
- * <version_code>7.5.0.11</version_code>
+ * <version_code>7.5.0.12</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.11";
+        private const String PluginVersion = "7.5.0.12";
 
         public enum GameVersionEnum
         {
@@ -35642,6 +35642,29 @@ namespace PRoConEvents
                                 String expiration = (expireDuration.TotalDays > 500.0) ? ("Permanent") : (FormatTimeString(expireDuration, 3));
                                 var groupName = !String.IsNullOrEmpty(asPlayer.tempCreationType) ? asPlayer.tempCreationType : asPlayer.player_group.group_name;
                                 SendMessageToSource(record, groupName + ": " + expiration);
+                                if (groupKey == "slot_reserved" && 
+                                    record.target_player != null &&
+                                    record.target_player.player_role != null &&
+                                    record.target_player.player_role.RoleAllowedCommands != null &&
+                                    (_ReservedSelfKill || _ReservedSelfMove || _ReservedSquadLead))
+                                {
+                                    var allowedCommands = record.target_player.player_role.RoleAllowedCommands;
+                                    if (!allowedCommands.ContainsKey("self_lead") && _ReservedSquadLead)
+                                    {
+                                        Threading.Wait(1000);
+                                        SendMessageToSource(record, GetChatCommandByKey("self_lead") + " Command Access: " + expiration);
+                                    }
+                                    if (!allowedCommands.ContainsKey("self_teamswap") && _ReservedSelfMove)
+                                    {
+                                        Threading.Wait(1000);
+                                        SendMessageToSource(record, GetChatCommandByKey("self_teamswap") + " Command Access: " + expiration);
+                                    }
+                                    if (!allowedCommands.ContainsKey("self_kill") && _ReservedSelfKill)
+                                    {
+                                        Threading.Wait(1000);
+                                        SendMessageToSource(record, GetChatCommandByKey("self_kill") + " Command Access: " + expiration);
+                                    }
+                                }
                             }
                         }
                     }
@@ -37125,7 +37148,8 @@ namespace PRoConEvents
                     Log.Error("Command was null in hasAccess.");
                     return false;
                 }
-                if (GetMatchingVerboseASPlayersOfGroup("slot_reserved", aPlayer).Any())
+                if ((_ReservedSelfKill || _ReservedSelfMove || _ReservedSquadLead) && 
+                    GetMatchingVerboseASPlayersOfGroup("slot_reserved", aPlayer).Any())
                 {
                     // Yes these could be just one if block. readability yo.
                     if (_ReservedSquadLead && command.command_key == "self_lead")
