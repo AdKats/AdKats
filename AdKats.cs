@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.12
- * 9-DEC-2018
+ * Version 7.5.0.13
+ * 26-DEC-2018
  * 
  * Automatic Update Information
- * <version_code>7.5.0.12</version_code>
+ * <version_code>7.5.0.13</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.12";
+        private const String PluginVersion = "7.5.0.13";
 
         public enum GameVersionEnum
         {
@@ -18778,6 +18778,11 @@ namespace PRoConEvents
                     message = message.Replace(bypassPrefix, "");
                     bypass = true;
                 }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
+                }
                 if (bypass)
                 {
                     whitelistedPlayers.Clear();
@@ -18865,6 +18870,11 @@ namespace PRoConEvents
                     message = message.Replace(bypassPrefix, "");
                     bypass = true;
                 }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
+                }
                 if (bypass)
                 {
                     whitelistedPlayers.Clear();
@@ -18951,6 +18961,11 @@ namespace PRoConEvents
                 {
                     message = message.Replace(bypassPrefix, "");
                     bypass = true;
+                }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
                 }
                 if (bypass)
                 {
@@ -19075,6 +19090,11 @@ namespace PRoConEvents
                 {
                     message = message.Replace(bypassPrefix, "");
                 }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
+                }
                 if (displayProconChat)
                 {
                     ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Say > " + message);
@@ -19125,6 +19145,11 @@ namespace PRoConEvents
                 while (message.Contains(bypassPrefix))
                 {
                     message = message.Replace(bypassPrefix, "");
+                }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
                 }
                 if (displayProconChat)
                 {
@@ -19182,6 +19207,11 @@ namespace PRoConEvents
                 {
                     message = message.Replace(bypassPrefix, "");
                 }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
+                }
                 if (displayProconChat)
                 {
                     ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Yell[" + duration + "s] > " + message);
@@ -19222,6 +19252,11 @@ namespace PRoConEvents
                 {
                     message = message.Replace(bypassPrefix, "");
                 }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
+                }
                 if (displayProconChat)
                 {
                     ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Yell[" + _YellDuration + "s] > " + Log.CBlue(target) + " > " + message);
@@ -19260,6 +19295,11 @@ namespace PRoConEvents
                 {
                     message = message.Replace(bypassPrefix, "");
                 }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
+                }
                 if (displayProconChat)
                 {
                     ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + message);
@@ -19293,6 +19333,11 @@ namespace PRoConEvents
                 while (message.Contains(bypassPrefix))
                 {
                     message = message.Replace(bypassPrefix, "");
+                }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
                 }
                 if (displayProconChat)
                 {
