@@ -525,6 +525,9 @@ namespace PRoConEvents
         //PushBullet
         private Boolean _UsePushBullet;
 
+        //Discord
+        private Boolean _UseDiscord;
+
         //Muting
         private Int32 _MutedPlayerChances = 5;
         private String _MutedPlayerKickMessage = "Talking excessively while muted.";
@@ -596,6 +599,10 @@ namespace PRoConEvents
         //PushBullet
         private PushBulletHandler _PushBulletHandler;
         private Boolean _PushBulletReportsOnlyWhenAdminless;
+
+        //Discord
+        private DiscordHandler _DiscordHandler;
+        private Boolean _DiscordReportsOnlyWhenAdminless;
 
         //Perks
         private String[] _PerkSpecialPlayerGroups = {
@@ -901,6 +908,7 @@ namespace PRoConEvents
             AddSettingSection("7", "Punishment Settings");
             AddSettingSection("8", "Email Settings");
             AddSettingSection("8-2", "PushBullet Settings");
+            AddSettingSection("8-3", "Discord WebHook Settings");
             AddSettingSection("9", "TeamSwap Settings");
             AddSettingSection("A10", "Admin Assistant Settings");
             AddSettingSection("A11", "Player Mute Settings");
@@ -1739,6 +1747,30 @@ namespace PRoConEvents
             {
                 Log.HandleException(new AException("Error building pushbullet setting section.", e));
                 lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + t + "Failed to build setting section.", typeof(String), ""));
+            }
+        }
+
+        public void BuildDiscordWebHookSettings(List<CPluginVariable> lstReturn)
+        {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
+            try
+            {
+                if (IsActiveSettingSection("8-3"))
+                {
+                    //Discord Settings
+                    buildList.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Send Reports to Discord WebHook", typeof(Boolean), _UseDiscord));
+                    if (_UseDiscord)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Discord WebHook URL", typeof(String), _DiscordHandler.URL));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Only Send Discord Reports When Admins Offline", typeof(Boolean), _DiscordReportsOnlyWhenAdminless));
+                    }
+                }
+                lstReturn.AddRange(buildList);
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error building Discord WebHook setting section.", e));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
@@ -3021,6 +3053,8 @@ namespace PRoConEvents
                     BuildEmailSettings(lstReturn);
 
                     BuildPushbulletSettings(lstReturn);
+
+                    BuildDiscordWebHookSettings(lstReturn);
 
                     BuildTeamswapSettings(lstReturn);
 
@@ -7783,6 +7817,21 @@ namespace PRoConEvents
                     _PushBulletReportsOnlyWhenAdminless = Boolean.Parse(strValue);
                     QueueSettingForUpload(new CPluginVariable(@"Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
                 }
+                else if (Regex.Match(strVariable, @"Send Reports to Discord WebHook").Success)
+                {
+                    _UseDiscord = Boolean.Parse(strValue);
+                    QueueSettingForUpload(new CPluginVariable(@"Send Reports to Discord WebHook", typeof(Boolean), _UseDiscord));
+                }
+                else if (Regex.Match(strVariable, @"Discord WebHook URL").Success)
+                {
+                    _DiscordHandler.URL = strValue;
+                    QueueSettingForUpload(new CPluginVariable(@"Discord WebHook URL", typeof(String), _DiscordHandler.URL));
+                }
+                else if (Regex.Match(strVariable, @"Only Send Discord Reports When Admins Offline").Success)
+                {
+                    _DiscordReportsOnlyWhenAdminless = Boolean.Parse(strValue);
+                    QueueSettingForUpload(new CPluginVariable(@"Only Send Discord Reports When Admins Offline", typeof(Boolean), _DiscordReportsOnlyWhenAdminless));
+                }
                 else if (false && Regex.Match(strVariable, @"Use Metabans?").Success)
                 {
                     var useMetabans = Boolean.Parse(strValue);
@@ -10897,6 +10946,9 @@ namespace PRoConEvents
 
             //Initialize PushBullet Handler
             _PushBulletHandler = new PushBulletHandler(this);
+
+            //Initialize Discord Handler
+            _DiscordHandler = new DiscordHandler(this);
         }
 
         public override void OnVersion(String serverType, String version)
@@ -32787,6 +32839,18 @@ namespace PRoConEvents
                     {
                         Log.Debug(() => "Preparing to send PushBullet report.", 3);
                         _PushBulletHandler.PushReport(record);
+                    }
+                }
+                if (_UseDiscord)
+                {
+                    if (_DiscordReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any())
+                    {
+                        Log.Debug(() => "Discord report cancelled, admins online.", 3);
+                    }
+                    else
+                    {
+                        Log.Debug(() => "Preparing to send Discord report.", 3);
+                        _DiscordHandler.PostReport(record);
                     }
                 }
                 if (record.source_player != null && record.source_name != record.target_name && record.source_player.player_type == PlayerType.Spectator)
@@ -60126,6 +60190,79 @@ namespace PRoConEvents
                     Plugin.Log.Info("RESPONSE: " + new StreamReader(response.GetResponseStream()).ReadToEnd());
                     Plugin.Log.HandleException(new AException("Error sending private PushBullet note.", e));
                 }
+            }
+        }
+
+        public class DiscordHandler
+        {
+            public AdKats Plugin;
+            public String URL;
+
+            private String body;
+            private WebResponse response;
+
+            public DiscordHandler(AdKats plugin)
+            {
+                Plugin = plugin;
+            }
+
+            public void PostReport(ARecord record)
+            {
+                if (record.target_player == null)
+                {
+                    Plugin.SendMessageToSource(record, "Unable to send report. No target player found.");
+                    return;
+                }
+                Plugin.Log.Debug(() => "Sending Discord report [" + record.command_numeric + "] on " + record.GetTargetNames(), 3);
+                String title = record.GetTargetNames() + " reported in [" + Plugin.GameVersion + "] " + Plugin._serverInfo.ServerName.Substring(0, Math.Min(15, Plugin._serverInfo.ServerName.Length - 1));
+                StringBuilder bb = new StringBuilder();
+                bb.Append("AdKats Round Report [" + record.command_numeric + "]");
+                bb.AppendLine();
+                bb.AppendLine();
+                bb.Append(record.GetSourceName() + " reported " + record.GetTargetNames() + " for " + record.record_message);
+                bb.AppendLine();
+                bb.AppendLine();
+                bb.Append(Plugin._serverInfo.ServerName);
+                body = bb.ToString();
+
+                try
+                {
+                    if (String.IsNullOrEmpty(URL))
+                    {
+                        Plugin.Log.Error("Discord WebHook URL empty! Unable to post report.");
+                        return;
+                    }
+                    if (String.IsNullOrEmpty(title))
+                    {
+                        Plugin.Log.Error("Discord note title empty! Unable to post report.");
+                        return;
+                    }
+                    if (String.IsNullOrEmpty(body))
+                    {
+                        Plugin.Log.Error("Discord note body empty! Unable to post report.");
+                        return;
+                    }
+                    WebRequest request = WebRequest.Create(URL);
+                    request.Method = "POST";
+                    request.ContentType = "application/json";
+                    String jsonBody = JSON.JsonEncode(new Hashtable {
+                        //{"avatar_url", "https://i.imgur.com/4M34hi2.png"},
+                        {"username", "AdKats-" + Plugin._serverInfo.ServerID},
+                        {"content", body}
+                    });
+                    byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
+                    request.ContentLength = byteArray.Length;
+                    Stream requestStream = request.GetRequestStream();
+                    requestStream.Write(byteArray, 0, byteArray.Length);
+                    requestStream.Close();
+                }
+                catch (WebException e)
+                {
+                    response = e.Response;
+                    Plugin.Log.Info("RESPONSE: " + new StreamReader(response.GetResponseStream()).ReadToEnd());
+                    Plugin.Log.HandleException(new AException("Error POSTing to Discord WebHook.", e));
+                }
+
             }
         }
 
