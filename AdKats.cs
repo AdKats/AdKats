@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.16
+ * Version 7.5.0.17
  * 17-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.16</version_code>
+ * <version_code>7.5.0.17</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.16";
+        private const String PluginVersion = "7.5.0.17";
 
         public enum GameVersionEnum
         {
@@ -10488,7 +10488,10 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key)).ToList();
+                        afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key) && 
+                                                                 !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_name) &&
+                                                                 !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_id.ToString()) &&
+                                                                 !_AFKIgnoreRoles.Contains("RLE" + aPlayer.player_role.role_id.ToString())).ToList();
                     }
                     foreach (APlayer aPlayer in afkPlayers)
                     {
@@ -36660,7 +36663,10 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key)).ToList();
+                    afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key) &&
+                                                             !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_name) &&
+                                                             !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_id.ToString()) &&
+                                                             !_AFKIgnoreRoles.Contains("RLE" + aPlayer.player_role.role_id.ToString())).ToList();
                 }
                 if (afkPlayers.Any())
                 {
