@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.13
- * 26-DEC-2018
+ * Version 7.5.0.14
+ * 17-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.13</version_code>
+ * <version_code>7.5.0.14</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.13";
+        private const String PluginVersion = "7.5.0.14";
 
         public enum GameVersionEnum
         {
@@ -193,6 +193,10 @@ namespace PRoConEvents
         private readonly Dictionary<String, APlayer> _populationPopulatingPlayers = new Dictionary<String, APlayer>();
         private String _AdKatsLRTExtensionToken = String.Empty;
         private List<CPlayerInfo> _roundOverPlayers = null;
+        private Int32 _MemoryUsageCurrent = 0;
+        private Int32 _MemoryUsageWarn = 512;
+        private Int32 _MemoryUsageRestartPlugin = 1024;
+        private Int32 _MemoryUsageRestartProcon = 2048;
 
         //Debug
         private String _debugSoldierName = "ColColonCleaner";
@@ -1230,6 +1234,10 @@ namespace PRoConEvents
                         buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Restart Minimum Uptime Hours", typeof(Int32), _automaticServerRestartMinHours));
                         buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Procon Reboot When Server Reboots", typeof(Boolean), _automaticServerRestartProcon));
                     }
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Procon Memory Usage MB (Display)", typeof(Int32), _MemoryUsageCurrent));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Procon Memory Usage MB Warning", typeof(Int32), _MemoryUsageWarn));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Procon Memory Usage MB AdKats Restart", typeof(Int32), _MemoryUsageRestartPlugin));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Procon Memory Usage MB Procon Restart", typeof(Int32), _MemoryUsageRestartProcon));
                 }
                 lstReturn.AddRange(buildList);
             }
@@ -7634,6 +7642,48 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Automatic Procon Reboot When Server Reboots", typeof(Boolean), _automaticServerRestartProcon));
                     }
                 }
+                else if (Regex.Match(strVariable, @"Procon Memory Usage MB Warning").Success)
+                {
+                    Int32 MemoryUsageWarn = Int32.Parse(strValue);
+                    if (MemoryUsageWarn != _MemoryUsageWarn)
+                    {
+                        if (MemoryUsageWarn < 256)
+                        {
+                            Log.Error("Memory warning level cannot be less than 256MB.");
+                            MemoryUsageWarn = 256;
+                        }
+                        _MemoryUsageWarn = MemoryUsageWarn;
+                        QueueSettingForUpload(new CPluginVariable(@"Procon Memory Usage MB Warning", typeof(Int32), _MemoryUsageWarn));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Procon Memory Usage MB AdKats Restart").Success)
+                {
+                    Int32 MemoryUsageRestartPlugin = Int32.Parse(strValue);
+                    if (MemoryUsageRestartPlugin != _MemoryUsageRestartPlugin)
+                    {
+                        if (MemoryUsageRestartPlugin < 512)
+                        {
+                            Log.Error("AdKats reboot for memory level cannot be less than 512MB.");
+                            MemoryUsageRestartPlugin = 512;
+                        }
+                        _MemoryUsageRestartPlugin = MemoryUsageRestartPlugin;
+                        QueueSettingForUpload(new CPluginVariable(@"Procon Memory Usage MB AdKats Restart", typeof(Int32), _MemoryUsageRestartPlugin));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Procon Memory Usage MB Procon Restart").Success)
+                {
+                    Int32 MemoryUsageRestartProcon = Int32.Parse(strValue);
+                    if (MemoryUsageRestartProcon != _MemoryUsageRestartProcon)
+                    {
+                        if (MemoryUsageRestartProcon < 1024)
+                        {
+                            Log.Error("Procon shutdown for memory level cannot be less than 1024MB.");
+                            MemoryUsageRestartProcon = 1024;
+                        }
+                        _MemoryUsageRestartProcon = MemoryUsageRestartProcon;
+                        QueueSettingForUpload(new CPluginVariable(@"Procon Memory Usage MB Procon Restart", typeof(Int32), _MemoryUsageRestartProcon));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Use IRO Punishment").Success)
                 {
                     Boolean iro = Boolean.Parse(strValue);
@@ -9103,8 +9153,7 @@ namespace PRoConEvents
                         //Open all handles. Threads will finish on their own.
                         OpenAllHandles();
                         Threading.MonitorShutdown();
-
-                        Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
+                        
                         //Reset all caches and storage
                         if (_UserRemovalQueue != null)
                         {
@@ -9440,12 +9489,16 @@ namespace PRoConEvents
             try
             {
                 //Memory Monitor - Every 60 seconds
-                Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
+                _MemoryUsageCurrent = (Int32)(GC.GetTotalMemory(true) / 1024 / 1024);
                 if (NowDuration(_LastMemoryWarning).TotalSeconds > 60)
                 {
-                    if (MBUsed >= 1024 && (UtcNow() - _AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete)
+                    if (_MemoryUsageCurrent >= _MemoryUsageRestartProcon && NowDuration(_proconStartTime).TotalMinutes > 30 && _firstPlayerListComplete)
                     {
-                        Log.Warn(MBUsed + "MB estimated memory used.");
+                        Environment.Exit(2232);
+                    }
+                    else if (_MemoryUsageCurrent >= _MemoryUsageRestartPlugin && NowDuration(_AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete)
+                    {
+                        Log.Warn(_MemoryUsageCurrent + "MB estimated memory used.");
                         QueueRecordForProcessing(new ARecord
                         {
                             record_source = ARecord.Sources.Automated,
@@ -9454,12 +9507,12 @@ namespace PRoConEvents
                             command_numeric = 0,
                             target_name = "AdKats",
                             source_name = "MemoryMonitor",
-                            record_message = MBUsed + "MB estimated memory used",
+                            record_message = _MemoryUsageCurrent + "MB estimated memory used",
                             record_time = UtcNow()
                         });
                         _LastMemoryWarning = UtcNow();
                     }
-                    else if (MBUsed >= 512)
+                    else if (_MemoryUsageCurrent >= _MemoryUsageWarn)
                     {
                         String mm = " MAP: ";
                         mm += "1:" + Threading.Count() + ", ";
@@ -9511,7 +9564,7 @@ namespace PRoConEvents
                         mm += "49:" + ChallengeManager.Rules.Count() + ", ";
                         mm += "50:" + ChallengeManager.Entries.Count() + ", ";
                         mm += "51:" + ChallengeManager.CompletedRoundEntries.Count() + ", ";
-                        Log.Warn(MBUsed + "MB estimated memory used." + mm);
+                        Log.Warn(_MemoryUsageCurrent + "MB estimated memory used." + mm);
                         _LastMemoryWarning = UtcNow();
                     }
                 }
@@ -39000,6 +39053,9 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Server Restart When Empty", typeof(Boolean), _automaticServerRestart));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Restart Minimum Uptime Hours", typeof(Int32), _automaticServerRestartMinHours));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Procon Reboot When Server Reboots", typeof(Boolean), _automaticServerRestartProcon));
+                QueueSettingForUpload(new CPluginVariable(@"Procon Memory Usage MB Warning", typeof(Int32), _MemoryUsageWarn));
+                QueueSettingForUpload(new CPluginVariable(@"Procon Memory Usage MB AdKats Restart", typeof(Int32), _MemoryUsageRestartPlugin));
+                QueueSettingForUpload(new CPluginVariable(@"Procon Memory Usage MB Procon Restart", typeof(Int32), _MemoryUsageRestartProcon));
                 QueueSettingForUpload(new CPluginVariable(@"Use IRO Punishment", typeof(Boolean), _IROActive));
                 QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Overrides Low Pop", typeof(Boolean), _IROOverridesLowPop));
                 QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Infractions Required to Override", typeof(Int32), _IROOverridesLowPopInfractions));
@@ -60822,7 +60878,7 @@ namespace PRoConEvents
                     var weapon = Weapons.Values.FirstOrDefault(dWeapon => dWeapon.Code == weaponCode);
                     if (weapon == null)
                     {
-                        _plugin.Log.HandleException(new AException("No matching weapon in dictionary for " + weaponCode + " when fetching damage type."));
+                        _plugin.Log.HandleException(new AException("No weapon defined for code " + weaponCode + " when fetching damage type. Is your DEF file updated?"));
                         return DamageTypes.None;
                     }
                     return weapon.Damage;
