@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.14
+ * Version 7.5.0.15
  * 17-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.14</version_code>
+ * <version_code>7.5.0.15</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.14";
+        private const String PluginVersion = "7.5.0.15";
 
         public enum GameVersionEnum
         {
@@ -56524,6 +56524,25 @@ namespace PRoConEvents
                             else
                             {
                                 _plugin.Log.Error("Unable to do validation on entry " + ID + ", completion type is invalid.");
+                            }
+
+                            // Automatically cancel challenges that haven't been updated in 10 days.
+                            if (Details.Any())
+                            {
+                                DateTime lastModifyTime = Details.Max(detail => detail.Kill.TimeStamp);
+                                TimeSpan durationSinceModified = _plugin.NowDuration(lastModifyTime);
+                                if (durationSinceModified > TimeSpan.FromDays(10))
+                                {
+                                    DoCancel();
+                                }
+                            }
+                            else
+                            {
+                                TimeSpan durationSinceStarted = _plugin.NowDuration(StartTime);
+                                if (durationSinceStarted > TimeSpan.FromDays(10))
+                                {
+                                    DoCancel();
+                                }
                             }
                         }
                     }
