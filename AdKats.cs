@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.15
+ * Version 7.5.0.16
  * 17-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.15</version_code>
+ * <version_code>7.5.0.16</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.15";
+        private const String PluginVersion = "7.5.0.16";
 
         public enum GameVersionEnum
         {
@@ -10629,9 +10629,8 @@ namespace PRoConEvents
             {
                 if (ChallengeManager != null)
                 {
-                    // Fail the challenges which are controlled by duration and weren't completed
-                    var roundEntries = ChallengeManager.GetEntries().Where(entry => entry.Rule.Completion == AChallengeManager.CRule.CompletionType.Duration &&
-                                                                                    !entry.Completed &&
+                    // Fail challenges as necessary
+                    var roundEntries = ChallengeManager.GetEntries().Where(entry => !entry.Completed &&
                                                                                     !entry.Failed &&
                                                                                     !entry.Canceled);
                     foreach (var entry in roundEntries)
@@ -53978,9 +53977,8 @@ namespace PRoConEvents
                     ChallengeRoundState = ChallengeState.Ended;
                     // Fail the active round rule if applicable
                     FailActiveRoundRule();
-                    // Fail the challenges which are controlled by round count and weren't completed
-                    var roundEntries = GetEntries().Where(entry => entry.Rule.Completion == CRule.CompletionType.Rounds &&
-                                                                   !entry.Completed &&
+                    // Fail challenges as necessary
+                    var roundEntries = GetEntries().Where(entry => !entry.Completed &&
                                                                    !entry.Failed &&
                                                                    !entry.Canceled);
                     foreach (var entry in roundEntries)
