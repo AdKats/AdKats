@@ -16,15 +16,16 @@
  * Email System adapted from MorpheusX(AUT)'s "Notify Me!"
  * TeamSpeak Integration by Imisnew2
  * Metabans Integration by Phogue
+ * Discord report posting by jbrunink
  * 
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.17
+ * Version 7.5.0.18
  * 17-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.17</version_code>
+ * <version_code>7.5.0.18</version_code>
  */
 
 using System;
@@ -67,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.17";
+        private const String PluginVersion = "7.5.0.18";
 
         public enum GameVersionEnum
         {
@@ -687,6 +688,8 @@ namespace PRoConEvents
         private Boolean _DiscordPlayerPerksBalanceWhitelist;
         private Boolean _DiscordPlayerPerksPingWhitelist;
         private Boolean _DiscordPlayerPerksTeamKillTrackerWhitelist;
+        private Boolean _UseDiscordForReports;
+        private Boolean _DiscordReportsOnlyWhenAdminless;
 
         //Challenge
         private AChallengeManager ChallengeManager;
@@ -908,6 +911,7 @@ namespace PRoConEvents
             AddSettingSection("7", "Punishment Settings");
             AddSettingSection("8", "Email Settings");
             AddSettingSection("8-2", "PushBullet Settings");
+            AddSettingSection("8-3", "Discord WebHook Settings");
             AddSettingSection("9", "TeamSwap Settings");
             AddSettingSection("A10", "Admin Assistant Settings");
             AddSettingSection("A11", "Player Mute Settings");
@@ -1756,6 +1760,30 @@ namespace PRoConEvents
             {
                 Log.HandleException(new AException("Error building pushbullet setting section.", e));
                 lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + t + "Failed to build setting section.", typeof(String), ""));
+            }
+        }
+
+        public void BuildDiscordWebHookSettings(List<CPluginVariable> lstReturn)
+        {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
+            try
+            {
+                if (IsActiveSettingSection("8-3"))
+                {
+                    //Discord Settings
+                    buildList.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Send Reports to Discord WebHook", typeof(Boolean), _UseDiscordForReports));
+                    if (_UseDiscordForReports)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Discord WebHook URL", typeof(String), _DiscordManager.URL));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Only Send Discord Reports When Admins Offline", typeof(Boolean), _DiscordReportsOnlyWhenAdminless));
+                    }
+                }
+                lstReturn.AddRange(buildList);
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error building Discord WebHook setting section.", e));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
@@ -2911,62 +2939,59 @@ namespace PRoConEvents
             var ev = "Y99";
             try
             {
-                if (IsActiveSettingSection(ex) || IsActiveSettingSection(ev))
+                if ((IsActiveSettingSection(ex) || IsActiveSettingSection(ev)) && _UseExperimentalTools)
                 {
-                    if (_UseExperimentalTools)
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Automatically Poll Server For Event Options", typeof(Boolean), _EventPollAutomatic));
+                    if (_EventPollAutomatic)
                     {
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Automatically Poll Server For Event Options", typeof(Boolean), _EventPollAutomatic));
-                        if (_EventPollAutomatic)
-                        {
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Max Automatic Polls Per Event", typeof(Int32), _EventRoundAutoPollsMax));
-                        }
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Yell Current Winning Rule Option", typeof(Boolean), _eventPollYellWinningRule));
-
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Duration Rounds", typeof(Int32), _EventRoundOptions.Count()));
-                        for (int roundNumber = 0; roundNumber < _EventRoundOptions.Count(); roundNumber++)
-                        {
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundOptions[roundNumber].getDisplay()));
-                        }
-
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
-                        if (_EventWeeklyRepeat)
-                        {
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Day", "enum.weekdays(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)", _EventWeeklyDay.ToString()));
-                        }
-                        else
-                        {
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Date", typeof(String), _EventDate.ToShortDateString()));
-                        }
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Hour in 24 format", typeof(Double), _EventHour));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Is it daylight savings?", typeof(String), DateTime.Now.IsDaylightSavingTime() ? "Yes, currently daylight savings." : "No, not daylight savings."));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Announce Day Difference", typeof(Double), _EventAnnounceDayDifference));
-
-                        if (_EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString())
-                        {
-                            var eventDate = _EventDate.AddHours(_EventHour);
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Processed Time Of Event (display)", typeof(String), eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString() + " (" + FormatTimeString(eventDate - DateTime.Now, 3) + ")"));
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Current Round Number (display)", typeof(String), String.Format("{0:n0}", _roundID)));
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Estimated Event Round Number (display)", typeof(String), String.Format("{0:n0}", FetchEstimatedEventRoundNumber())));
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Concrete Event Round Number (display)", typeof(String), _CurrentEventRoundNumber == 999999 ? "Undecided." : String.Format("{0:n0}", _CurrentEventRoundNumber)));
-                        }
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Max Option Count", typeof(Int32), _EventPollMaxOptions));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Mode Rule Combination Count", typeof(Int32), _EventRoundPollOptions.Count()));
-                        for (int optionNumber = 0; optionNumber < _EventRoundPollOptions.Count(); optionNumber++)
-                        {
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Event Poll Option " + (optionNumber + 1), _EventRoundOptionsEnum, _EventRoundPollOptions[optionNumber].getDisplay()));
-                        }
-
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
-
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Base Server Name (display)", typeof(String), ProcessEventServerName(_eventBaseServerName, false, false)));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventCountdownServerName, false, false)));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Concrete Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventConcreteCountdownServerName, false, true)));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Active Server Name (display)", typeof(String), ProcessEventServerName(_eventActiveServerName, true, true)));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Max Automatic Polls Per Event", typeof(Int32), _EventRoundAutoPollsMax));
                     }
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Yell Current Winning Rule Option", typeof(Boolean), _eventPollYellWinningRule));
+
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Duration Rounds", typeof(Int32), _EventRoundOptions.Count()));
+                    for (int roundNumber = 0; roundNumber < _EventRoundOptions.Count(); roundNumber++)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundOptions[roundNumber].getDisplay()));
+                    }
+
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
+                    if (_EventWeeklyRepeat)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Day", "enum.weekdays(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)", _EventWeeklyDay.ToString()));
+                    }
+                    else
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Date", typeof(String), _EventDate.ToShortDateString()));
+                    }
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Hour in 24 format", typeof(Double), _EventHour));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Is it daylight savings?", typeof(String), DateTime.Now.IsDaylightSavingTime() ? "Yes, currently daylight savings." : "No, not daylight savings."));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Announce Day Difference", typeof(Double), _EventAnnounceDayDifference));
+
+                    if (_EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString())
+                    {
+                        var eventDate = _EventDate.AddHours(_EventHour);
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Processed Time Of Event (display)", typeof(String), eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString() + " (" + FormatTimeString(eventDate - DateTime.Now, 3) + ")"));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Current Round Number (display)", typeof(String), String.Format("{0:n0}", _roundID)));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Estimated Event Round Number (display)", typeof(String), String.Format("{0:n0}", FetchEstimatedEventRoundNumber())));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Concrete Event Round Number (display)", typeof(String), _CurrentEventRoundNumber == 999999 ? "Undecided." : String.Format("{0:n0}", _CurrentEventRoundNumber)));
+                    }
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Max Option Count", typeof(Int32), _EventPollMaxOptions));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Mode Rule Combination Count", typeof(Int32), _EventRoundPollOptions.Count()));
+                    for (int optionNumber = 0; optionNumber < _EventRoundPollOptions.Count(); optionNumber++)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Event Poll Option " + (optionNumber + 1), _EventRoundOptionsEnum, _EventRoundPollOptions[optionNumber].getDisplay()));
+                    }
+
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
+
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Base Server Name (display)", typeof(String), ProcessEventServerName(_eventBaseServerName, false, false)));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventCountdownServerName, false, false)));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Concrete Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventConcreteCountdownServerName, false, true)));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Active Server Name (display)", typeof(String), ProcessEventServerName(_eventActiveServerName, true, true)));
                 }
                 lstReturn.AddRange(buildList);
             }
@@ -3038,6 +3063,8 @@ namespace PRoConEvents
                     BuildEmailSettings(lstReturn);
 
                     BuildPushbulletSettings(lstReturn);
+
+                    BuildDiscordWebHookSettings(lstReturn);
 
                     BuildTeamswapSettings(lstReturn);
 
@@ -7898,6 +7925,21 @@ namespace PRoConEvents
                     _PushBulletReportsOnlyWhenAdminless = Boolean.Parse(strValue);
                     QueueSettingForUpload(new CPluginVariable(@"Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
                 }
+                else if (Regex.Match(strVariable, @"Send Reports to Discord WebHook").Success)
+                {
+                    _UseDiscordForReports = Boolean.Parse(strValue);
+                    QueueSettingForUpload(new CPluginVariable(@"Send Reports to Discord WebHook", typeof(Boolean), _UseDiscordForReports));
+                }
+                else if (Regex.Match(strVariable, @"Discord WebHook URL").Success)
+                {
+                    _DiscordManager.URL = strValue;
+                    QueueSettingForUpload(new CPluginVariable(@"Discord WebHook URL", typeof(String), _DiscordManager.URL));
+                }
+                else if (Regex.Match(strVariable, @"Only Send Discord Reports When Admins Offline").Success)
+                {
+                    _DiscordReportsOnlyWhenAdminless = Boolean.Parse(strValue);
+                    QueueSettingForUpload(new CPluginVariable(@"Only Send Discord Reports When Admins Offline", typeof(Boolean), _DiscordReportsOnlyWhenAdminless));
+                }
                 else if (false && Regex.Match(strVariable, @"Use Metabans?").Success)
                 {
                     var useMetabans = Boolean.Parse(strValue);
@@ -11920,7 +11962,7 @@ namespace PRoConEvents
                                     {
                                         PlayerSayMessage(_debugSoldierName, message);
                                     }
-                                    else if (_UseExperimentalTools)
+                                    else
                                     {
                                         ProconChatWrite(Log.CViolet(message));
                                     }
@@ -20288,18 +20330,12 @@ namespace PRoConEvents
                                     FinalizeRecord(record);
                                     return;
                                 }
+                                string lowerM = " " + record.record_message.ToLower() + " ";
                                 if (_UseExperimentalTools)
                                 {
-                                    string lowerM = " " + record.record_message.ToLower() + " ";
                                     if (lowerM.Contains("headgl") || lowerM.Contains("head gl"))
                                     {
                                         SendMessageToSource(record, "'Head Glitching' related actions are not bannable.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                    if (lowerM.Contains(" ping") || lowerM.Contains(" pings"))
-                                    {
-                                        SendMessageToSource(record, "Automatic system handles ping, do not report for it.");
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -20310,87 +20346,94 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    //Block report wars
-                                    if (record.target_player != null &&
-                                        record.target_player.TargetedRecords.Count(aRecord =>
-                                            aRecord.source_name == record.source_name &&
-                                            (aRecord.command_type.command_key == "player_report" ||
-                                                aRecord.command_type.command_key == "player_calladmin") &&
-                                            NowDuration(aRecord.record_time).TotalMinutes < 5 &&
-                                            aRecord.command_action.command_key != "player_report_confirm") >= 1 &&
-                                        record.source_player != null &&
-                                        record.source_player.TargetedRecords.Count(aRecord =>
-                                            aRecord.source_name == record.target_name &&
-                                            (aRecord.command_type.command_key == "player_report" ||
-                                                aRecord.command_type.command_key == "player_calladmin") &&
-                                            NowDuration(aRecord.record_time).TotalMinutes < 5 &&
-                                            aRecord.command_action.command_key != "player_report_confirm") >= 1)
+                                }
+                                //Block reports for ping if the ping enforcer is enabled
+                                if ((lowerM.Contains(" ping") || lowerM.Contains(" pings")) && _pingEnforcerEnable)
+                                {
+                                    SendMessageToSource(record, "Automatic system handles ping, do not report for it.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                //Block report wars
+                                if (record.target_player != null &&
+                                    record.target_player.TargetedRecords.Count(aRecord =>
+                                        aRecord.source_name == record.source_name &&
+                                        (aRecord.command_type.command_key == "player_report" ||
+                                            aRecord.command_type.command_key == "player_calladmin") &&
+                                        NowDuration(aRecord.record_time).TotalMinutes < 5 &&
+                                        aRecord.command_action.command_key != "player_report_confirm") >= 1 &&
+                                    record.source_player != null &&
+                                    record.source_player.TargetedRecords.Count(aRecord =>
+                                        aRecord.source_name == record.target_name &&
+                                        (aRecord.command_type.command_key == "player_report" ||
+                                            aRecord.command_type.command_key == "player_calladmin") &&
+                                        NowDuration(aRecord.record_time).TotalMinutes < 5 &&
+                                        aRecord.command_action.command_key != "player_report_confirm") >= 1)
+                                {
+                                    SendMessageToSource(record, "Do not have report wars. If this is urgent please contact an admin in teamspeak; " + GetChatCommandByKey("self_voip") + " for the address.");
+                                    QueueRecordForProcessing(new ARecord
                                     {
-                                        SendMessageToSource(record, "Do not have report wars. If this is urgent please contact an admin in teamspeak; " + GetChatCommandByKey("self_voip") + " for the address.");
-                                        QueueRecordForProcessing(new ARecord
-                                        {
-                                            record_source = ARecord.Sources.Automated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("player_log"),
-                                            command_numeric = 0,
-                                            target_name = record.source_name,
-                                            target_player = record.source_player,
-                                            source_name = "AutoAdmin",
-                                            record_message = "Report war blocked bwetween " + record.GetSourceName() + " and " + record.GetTargetNames(),
-                                            record_time = UtcNow()
-                                        });
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                    //Block multiple reports of the same player from one source
-                                    if (record.target_player != null &&
-                                        record.target_player.TargetedRecords.Count(aRecord =>
-                                            aRecord.source_name == record.source_name &&
-                                            (aRecord.command_type.command_key == "player_report" ||
-                                                aRecord.command_type.command_key == "player_calladmin") &&
-                                            NowDuration(aRecord.record_time).TotalMinutes < 5 &&
-                                            aRecord.command_action.command_key != "player_report_confirm") >= 2)
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("player_log"),
+                                        command_numeric = 0,
+                                        target_name = record.source_name,
+                                        target_player = record.source_player,
+                                        source_name = "AutoAdmin",
+                                        record_message = "Report war blocked bwetween " + record.GetSourceName() + " and " + record.GetTargetNames(),
+                                        record_time = UtcNow()
+                                    });
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                //Block multiple reports of the same player from one source
+                                if (record.target_player != null &&
+                                    record.target_player.TargetedRecords.Count(aRecord =>
+                                        aRecord.source_name == record.source_name &&
+                                        (aRecord.command_type.command_key == "player_report" ||
+                                            aRecord.command_type.command_key == "player_calladmin") &&
+                                        NowDuration(aRecord.record_time).TotalMinutes < 5 &&
+                                        aRecord.command_action.command_key != "player_report_confirm") >= 2)
+                                {
+                                    SendMessageToSource(record, "You already reported " + record.target_player.GetVerboseName() + ". If this is urgent please contact an admin in teamspeak; @ts for the address.");
+                                    QueueRecordForProcessing(new ARecord
                                     {
-                                        SendMessageToSource(record, "You already reported " + record.target_player.GetVerboseName() + ". If this is urgent please contact an admin in teamspeak; @ts for the address.");
-                                        QueueRecordForProcessing(new ARecord
-                                        {
-                                            record_source = ARecord.Sources.Automated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("player_log"),
-                                            command_numeric = 0,
-                                            target_name = record.source_name,
-                                            target_player = record.source_player,
-                                            source_name = "AutoAdmin",
-                                            record_message = "Report spam blocked on " + record.GetTargetNames(),
-                                            record_time = UtcNow()
-                                        });
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                    //Block multiple reports of the same player from multiple sources
-                                    if (record.target_player != null &&
-                                        record.target_player.TargetedRecords.Count(aRecord =>
-                                            (aRecord.command_type.command_key == "player_report" ||
-                                                aRecord.command_type.command_key == "player_calladmin") &&
-                                            NowDuration(aRecord.record_time).TotalMinutes < 5 &&
-                                            aRecord.command_action.command_key != "player_report_confirm") >= 3)
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("player_log"),
+                                        command_numeric = 0,
+                                        target_name = record.source_name,
+                                        target_player = record.source_player,
+                                        source_name = "AutoAdmin",
+                                        record_message = "Report spam blocked on " + record.GetTargetNames(),
+                                        record_time = UtcNow()
+                                    });
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                //Block multiple reports of the same player from multiple sources
+                                if (record.target_player != null &&
+                                    record.target_player.TargetedRecords.Count(aRecord =>
+                                        (aRecord.command_type.command_key == "player_report" ||
+                                            aRecord.command_type.command_key == "player_calladmin") &&
+                                        NowDuration(aRecord.record_time).TotalMinutes < 5 &&
+                                        aRecord.command_action.command_key != "player_report_confirm") >= 3)
+                                {
+                                    SendMessageToSource(record, record.target_player.GetVerboseName() + " has already been reported. If this is urgent please contact an admin in teamspeak; @ts for the address.");
+                                    QueueRecordForProcessing(new ARecord
                                     {
-                                        SendMessageToSource(record, record.target_player.GetVerboseName() + " has already been reported. If this is urgent please contact an admin in teamspeak; @ts for the address.");
-                                        QueueRecordForProcessing(new ARecord
-                                        {
-                                            record_source = ARecord.Sources.Automated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("player_log"),
-                                            command_numeric = 0,
-                                            target_name = record.source_name,
-                                            target_player = record.source_player,
-                                            source_name = "AutoAdmin",
-                                            record_message = "Report spam blocked on " + record.GetTargetNames(),
-                                            record_time = UtcNow()
-                                        });
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("player_log"),
+                                        command_numeric = 0,
+                                        target_name = record.source_name,
+                                        target_player = record.source_player,
+                                        source_name = "AutoAdmin",
+                                        record_message = "Report spam blocked on " + record.GetTargetNames(),
+                                        record_time = UtcNow()
+                                    });
+                                    FinalizeRecord(record);
+                                    return;
                                 }
                             }
                             break;
@@ -33049,6 +33092,18 @@ namespace PRoConEvents
                         _PushBulletHandler.PushReport(record);
                     }
                 }
+                if (_UseDiscordForReports)
+                {
+                    if (_DiscordReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any())
+                    {
+                        Log.Debug(() => "Discord report cancelled, admins online.", 3);
+                    }
+                    else
+                    {
+                        Log.Debug(() => "Preparing to send Discord report.", 3);
+                        _DiscordManager.PostReport(record);
+                    }
+                }
                 if (record.source_player != null && record.source_name != record.target_name && record.source_player.player_type == PlayerType.Spectator)
                 {
                     //Custom record to boost rep for reporting from spectator mode
@@ -39081,6 +39136,9 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"PushBullet Note Target", typeof(String), _PushBulletHandler.DefaultTarget.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"PushBullet Channel Tag", typeof(String), _PushBulletHandler.DefaultChannelTag));
                 QueueSettingForUpload(new CPluginVariable(@"Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
+                QueueSettingForUpload(new CPluginVariable(@"Send Reports to Discord WebHook", typeof(Boolean), _UseDiscordForReports));
+                QueueSettingForUpload(new CPluginVariable(@"Discord WebHook URL", typeof(String), _DiscordManager.URL));
+                QueueSettingForUpload(new CPluginVariable(@"Only Send Discord Reports When Admins Offline", typeof(Boolean), _DiscordReportsOnlyWhenAdminless));
                 /*
                 QueueSettingForUpload(new CPluginVariable(@"Use Metabans?", typeof(Boolean), _useMetabans));
                 QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof(String), _metabansAPIKey));
@@ -50712,7 +50770,7 @@ namespace PRoConEvents
 
             //Other plugins
             //1 - MULTIBalancer - With ColColonCleaner balance mods
-            if (_UseExperimentalTools && GameVersion == GameVersionEnum.BF4)
+            if (false && _UseExperimentalTools && GameVersion == GameVersionEnum.BF4)
             {
                 String externalPluginSource;
                 using (WebClient client = new WebClient())
@@ -62114,6 +62172,7 @@ namespace PRoConEvents
             public VoipJoinDisplayType JoinDisplay = VoipJoinDisplayType.Disabled;
             public String JoinMessage = "%playerusername% joined discord! Welcome!";
             private TimeSpan _UpdateDuration = TimeSpan.FromSeconds(29);
+            public String URL;
             //Vars
             public String ServerName;
             public String InstantInvite;
@@ -62532,6 +62591,66 @@ namespace PRoConEvents
                 public String ID;
                 public String Name;
                 public Int32 Position;
+            }
+
+            // Thanks to jbrunink for this code snippet
+            public void PostReport(ARecord record)
+            {
+                if (record.target_player == null)
+                {
+                    _plugin.SendMessageToSource(record, "Unable to send report. No target player found.");
+                    return;
+                }
+                _plugin.Log.Debug(() => "Sending Discord report [" + record.command_numeric + "] on " + record.GetTargetNames(), 3);
+                String title = record.GetTargetNames() + " reported in [" + _plugin.GameVersion + "] " + _plugin._serverInfo.ServerName.Substring(0, Math.Min(15, _plugin._serverInfo.ServerName.Length - 1));
+                StringBuilder bb = new StringBuilder();
+                bb.Append("AdKats Round Report [" + record.command_numeric + "]");
+                bb.AppendLine();
+                bb.AppendLine();
+                bb.Append(record.GetSourceName() + " reported " + record.GetTargetNames() + " for " + record.record_message);
+                bb.AppendLine();
+                bb.AppendLine();
+                bb.Append(_plugin._serverInfo.ServerName);
+                String body = bb.ToString();
+
+                try
+                {
+                    if (String.IsNullOrEmpty(URL))
+                    {
+                        _plugin.Log.Error("Discord WebHook URL empty! Unable to post report.");
+                        return;
+                    }
+                    if (String.IsNullOrEmpty(title))
+                    {
+                        _plugin.Log.Error("Discord note title empty! Unable to post report.");
+                        return;
+                    }
+                    if (String.IsNullOrEmpty(body))
+                    {
+                        _plugin.Log.Error("Discord note body empty! Unable to post report.");
+                        return;
+                    }
+                    WebRequest request = WebRequest.Create(URL);
+                    request.Method = "POST";
+                    request.ContentType = "application/json";
+                    String jsonBody = JSON.JsonEncode(new Hashtable {
+                        //{"avatar_url", "https://i.imgur.com/4M34hi2.png"},
+                        {"username", "AdKats-" + _plugin._serverInfo.ServerID},
+                        {"content", body}
+                    });
+                    byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
+                    request.ContentLength = byteArray.Length;
+                    Stream requestStream = request.GetRequestStream();
+                    requestStream.Write(byteArray, 0, byteArray.Length);
+                    requestStream.Close();
+                }
+                catch (WebException e)
+                {
+                    WebResponse response = e.Response;
+                    _plugin.Log.Info("RESPONSE: " + new StreamReader(response.GetResponseStream()).ReadToEnd());
+                    _plugin.Log.HandleException(new AException("Error POSTing to Discord WebHook.", e));
+                }
+
             }
         }
 
