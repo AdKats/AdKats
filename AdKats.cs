@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.22
+ * Version 7.5.0.23
  * 19-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.22</version_code>
+ * <version_code>7.5.0.23</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.22";
+        private const String PluginVersion = "7.5.0.23";
 
         public enum GameVersionEnum
         {
@@ -46377,33 +46377,17 @@ namespace PRoConEvents
                                         }
                                     }
                                     //Pull players from reserved slots outside of the plugin
-                                    if (_UseExperimentalTools)
-                                    {
-                                        Log.Info("Prepping to process server reserved slot players.");
-                                    }
                                     if (!_FeedServerReservedSlots && _CurrentReservedSlotPlayers != null && _CurrentReservedSlotPlayers.Any())
                                     {
                                         lock (_CurrentReservedSlotPlayers)
                                         {
-                                            if (_UseExperimentalTools)
-                                            {
-                                                Log.Info("Prepping to add " + _CurrentReservedSlotPlayers.Count() + " reserved slot players from the server list.");
-                                            }
                                             foreach (var playerName in _CurrentReservedSlotPlayers)
                                             {
                                                 // Fetch player matching the name
-                                                if (_UseExperimentalTools)
-                                                {
-                                                    Log.Info("Fetching " + playerName + " for reserved slot check.");
-                                                }
                                                 var aPlayer = FetchPlayer(false, false, false, null, _serverInfo.GameID, playerName, null, null, null);
                                                 if (aPlayer == null && !tempASPlayers.Any(asp => asp.player_object != null && 
                                                                                                  asp.player_object.player_id == aPlayer.player_id))
                                                 {
-                                                    if (_UseExperimentalTools)
-                                                    {
-                                                        Log.Warn("Skipping " + playerName + " for reserved slot check.");
-                                                    }
                                                     continue;
                                                 }
                                                 tempASPlayers.Add(new ASpecialPlayer(this)
