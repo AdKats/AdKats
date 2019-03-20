@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.23
+ * Version 7.5.0.24
  * 19-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.23</version_code>
+ * <version_code>7.5.0.24</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.23";
+        private const String PluginVersion = "7.5.0.24";
 
         public enum GameVersionEnum
         {
@@ -46385,8 +46385,8 @@ namespace PRoConEvents
                                             {
                                                 // Fetch player matching the name
                                                 var aPlayer = FetchPlayer(false, false, false, null, _serverInfo.GameID, playerName, null, null, null);
-                                                if (aPlayer == null && !tempASPlayers.Any(asp => asp.player_object != null && 
-                                                                                                 asp.player_object.player_id == aPlayer.player_id))
+                                                if (aPlayer == null || tempASPlayers.Any(asp => asp.player_object != null && 
+                                                                                                asp.player_object.player_id == aPlayer.player_id))
                                                 {
                                                     continue;
                                                 }
@@ -46686,7 +46686,6 @@ namespace PRoConEvents
                             {
                                 return;
                             }
-                            Log.Warn("Removing " + removeKey + " from asplayer master list.");
                             _verboseSpecialPlayerCache.Remove(removeKey);
                         }
                         Log.Debug(() => "User fetch (Special Player Fetch) took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
