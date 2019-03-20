@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.21
+ * Version 7.5.0.22
  * 19-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.21</version_code>
+ * <version_code>7.5.0.22</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.21";
+        private const String PluginVersion = "7.5.0.22";
 
         public enum GameVersionEnum
         {
@@ -46671,6 +46671,7 @@ namespace PRoConEvents
                                 }
                                 if (String.IsNullOrEmpty(playerIdentifier))
                                 {
+                                    Log.Warn("Unable to add asplayer to master list.");
                                     continue;
                                 }
                                 //Key is a concatination of group and identifier
@@ -46679,6 +46680,7 @@ namespace PRoConEvents
                                 {
                                     validVerboseSpecialPlayers.Add(key);
                                 }
+
                                 _verboseSpecialPlayerCache[key] = asPlayer;
                             }
                         }
@@ -46700,6 +46702,7 @@ namespace PRoConEvents
                             {
                                 return;
                             }
+                            Log.Warn("Removing " + removeKey + " from asplayer master list.");
                             _verboseSpecialPlayerCache.Remove(removeKey);
                         }
                         Log.Debug(() => "User fetch (Special Player Fetch) took " + (UtcNow() - start).TotalMilliseconds + "ms.", 4);
