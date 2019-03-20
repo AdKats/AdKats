@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.19
+ * Version 7.5.0.20
  * 19-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.19</version_code>
+ * <version_code>7.5.0.20</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.19";
+        private const String PluginVersion = "7.5.0.20";
 
         public enum GameVersionEnum
         {
@@ -46363,6 +46363,33 @@ namespace PRoConEvents
                                         {
                                             foreach (APlayer aPlayer in _populatorPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
+                                                {
+                                                    player_game = (int)_serverInfo.GameID,
+                                                    player_server = (int)_serverInfo.ServerID,
+                                                    player_group = asGroup,
+                                                    player_identifier = aPlayer.player_name,
+                                                    player_object = aPlayer,
+                                                    player_effective = UtcNow(),
+                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
+                                                });
+                                            }
+                                        }
+                                    }
+                                    //Pull players from reserved slots outside of the plugin
+                                    if (!_FeedServerReservedSlots && _CurrentReservedSlotPlayers.Any())
+                                    {
+                                        lock (_CurrentReservedSlotPlayers)
+                                        {
+                                            foreach (var playerName in _CurrentReservedSlotPlayers)
+                                            {
+                                                // Fetch player matching the name
+                                                var aPlayer = FetchPlayer(false, false, false, null, _serverInfo.GameID, playerName, null, null, null);
+                                                if (aPlayer == null && !tempASPlayers.Any(asp => asp.player_object != null && 
+                                                                                                 asp.player_object.player_id == aPlayer.player_id))
+                                                {
+                                                    continue;
+                                                }
                                                 tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
                                                     player_game = (int)_serverInfo.GameID,
