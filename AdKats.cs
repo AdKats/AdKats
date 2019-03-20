@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.18
- * 17-MAR-2019
+ * Version 7.5.0.19
+ * 19-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.18</version_code>
+ * <version_code>7.5.0.19</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.18";
+        private const String PluginVersion = "7.5.0.19";
 
         public enum GameVersionEnum
         {
@@ -629,6 +629,7 @@ namespace PRoConEvents
         private Boolean _FeedTeamKillTrackerWhitelist;
         private Boolean _FeedTeamKillTrackerWhitelist_Admins;
         private Boolean _FeedServerReservedSlots;
+        private Boolean _FeedServerReservedSlots_VSM;
         private Boolean _FeedServerReservedSlots_Admins = true;
         private Boolean _FeedServerReservedSlots_Admins_VIPKickWhitelist = false;
         private Boolean _FeedServerSpectatorList;
@@ -2101,6 +2102,10 @@ namespace PRoConEvents
                     {
                         buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins));
                         buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic VIP Kick Whitelist for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins_VIPKickWhitelist));
+                    }
+                    else
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Send new reserved slots to VIP Slot Manager", typeof(Boolean), _FeedServerReservedSlots_VSM));
                     }
                     buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
                     if (_FeedServerSpectatorList)
@@ -4746,6 +4751,15 @@ namespace PRoConEvents
                         FetchAllAccess(true);
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Automatic VIP Kick Whitelist for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins_VIPKickWhitelist));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Send new reserved slots to VIP Slot Manager").Success)
+                {
+                    Boolean FeedServerReservedSlots_VSM = Boolean.Parse(strValue);
+                    if (FeedServerReservedSlots_VSM != _FeedServerReservedSlots_VSM)
+                    {
+                        _FeedServerReservedSlots_VSM = FeedServerReservedSlots_VSM;
+                        QueueSettingForUpload(new CPluginVariable(@"Send new reserved slots to VIP Slot Manager", typeof(Boolean), _FeedServerReservedSlots_VSM));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Feed Server Spectator List").Success)
@@ -26307,7 +26321,7 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
-                            if (!_FeedServerReservedSlots)
+                            if (!_FeedServerReservedSlots && !_FeedServerReservedSlots_VSM)
                             {
                                 SendMessageToSource(record, "Enable 'Feed Server Reserved Slots' to use this command.");
                                 FinalizeRecord(record);
@@ -30731,6 +30745,13 @@ namespace PRoConEvents
                             SendMessageToSource(record, message);
                             Log.Debug(() => message, 3);
                             FetchAllAccess(true);
+
+                            // Thanks XTheLoneShadowX for this idea
+                            if (!_FeedServerReservedSlots && _FeedServerReservedSlots_VSM)
+                            {
+                                var commandString = "/vsm-addvip " + record.target_player.player_name + " +" + Math.Round(TimeSpan.FromMinutes(record.command_numeric).TotalDays);
+                                AdminSayMessage(commandString);
+                            }
                         }
                         else
                         {
@@ -38988,6 +39009,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Automatic TeamKillTracker Whitelist for Admins", typeof(Boolean), _FeedTeamKillTrackerWhitelist_Admins));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic VIP Kick Whitelist for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins_VIPKickWhitelist));
+                QueueSettingForUpload(new CPluginVariable(@"Send new reserved slots to VIP Slot Manager", typeof(Boolean), _FeedServerReservedSlots_VSM));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Spectator Slot for Admins", typeof(Boolean), _FeedServerSpectatorList_Admins));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof(Boolean), _FeedServerReservedSlots));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
