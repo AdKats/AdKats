@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.27
- * 19-MAR-2019
+ * Version 7.5.0.28
+ * 21-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.27</version_code>
+ * <version_code>7.5.0.28</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.27";
+        private const String PluginVersion = "7.5.0.28";
 
         public enum GameVersionEnum
         {
@@ -12140,10 +12140,12 @@ namespace PRoConEvents
                                         ProconChatWrite(message);
                                     }
                                     moveAccepted = false;
+                                    // Assign the team
+                                    aPlayer.RequiredTeam = weakTeam;
                                     Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                                     ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                     _MULTIBalancerUnswitcherDisabled = true;
-                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, weakTeam.TeamID + "", "0", "true");
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
                                 }
                             }
                         }
