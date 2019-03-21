@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.26
+ * Version 7.5.0.27
  * 19-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.26</version_code>
+ * <version_code>7.5.0.27</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.26";
+        private const String PluginVersion = "7.5.0.27";
 
         public enum GameVersionEnum
         {
@@ -13309,6 +13309,9 @@ namespace PRoConEvents
 
                             //Immediately request another player list to make sure we haven't missed anyone who just joined.
                             DoPlayerListTrigger();
+
+                            //Do another access fetch to make sure server information is current
+                            FetchAllAccess(true);
 
                             //Register external plugin commands
                             RegisterCommand(_issueCommandMatchCommand);
@@ -46381,26 +46384,14 @@ namespace PRoConEvents
                                     {
                                         lock (_CurrentReservedSlotPlayers)
                                         {
-                                            if (_UseExperimentalTools)
-                                            {
-                                                Log.Info("Server slots: " + String.Join(",", _CurrentReservedSlotPlayers.ToArray()));
-                                            }
                                             foreach (var playerName in _CurrentReservedSlotPlayers)
                                             {
                                                 // Fetch player matching the name
-                                                if (_UseExperimentalTools)
-                                                {
-                                                    Log.Info("Fetching object for: " + playerName);
-                                                }
                                                 var aPlayer = FetchPlayer(false, false, false, null, -1, playerName, null, null, null);
                                                 if (aPlayer == null || tempASPlayers.Any(asp => asp.player_object != null && 
                                                                                                 asp.player_object.player_id == aPlayer.player_id))
                                                 {
                                                     continue;
-                                                }
-                                                if (aPlayer.player_name != playerName)
-                                                {
-                                                    Log.Warn("Name Mismatch: " + playerName + " != " + aPlayer.player_name);
                                                 }
                                                 tempASPlayers.Add(new ASpecialPlayer(this)
                                                 {
@@ -46412,10 +46403,6 @@ namespace PRoConEvents
                                                     player_effective = UtcNow(),
                                                     player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
                                                 });
-                                                if (_UseExperimentalTools)
-                                                {
-                                                    Log.Success("Adding " + aPlayer.GetVerboseName() + " from server to AdKats reserved slots.");
-                                                }
                                             }
                                         }
                                     }
