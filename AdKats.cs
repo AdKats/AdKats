@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.28
- * 21-MAR-2019
+ * Version 7.5.0.29
+ * 22-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.28</version_code>
+ * <version_code>7.5.0.29</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.28";
+        private const String PluginVersion = "7.5.0.29";
 
         public enum GameVersionEnum
         {
@@ -11954,7 +11954,13 @@ namespace PRoConEvents
                         aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey &&
                         (!PlayerIsAdmin(aPlayer) || !aPlayer.player_spawnedRound))
                     {
-                        if (RunAssist(aPlayer, null, null, true) &&
+                        if (aPlayer.fbpInfo.TeamID == 0)
+                        {
+                            // They aren't officially on a team yet, just force the required team until that happens.
+                            ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad > 0 ? aPlayer.RequiredSquad + "" : "1", "true");
+                            moveAccepted = false;
+                        }
+                        else if (RunAssist(aPlayer, null, null, true) &&
                             _roundState == RoundState.Playing &&
                             _serverInfo.GetRoundElapsedTime().TotalMinutes > _minimumAssistMinutes)
                         {
