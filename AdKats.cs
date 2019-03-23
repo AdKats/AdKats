@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.29
+ * Version 7.5.0.30
  * 22-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.29</version_code>
+ * <version_code>7.5.0.30</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.29";
+        private const String PluginVersion = "7.5.0.30";
 
         public enum GameVersionEnum
         {
@@ -3513,10 +3513,10 @@ namespace PRoConEvents
                     }
                     if (_ServerRulesDelay != delay)
                     {
-                        if (delay <= 0)
+                        if (delay < 0)
                         {
                             Log.Error("Delay cannot be negative.");
-                            delay = 1.0;
+                            delay = 0.1;
                         }
                         _ServerRulesDelay = delay;
                         //Once setting has been changed, upload the change to database
@@ -30704,11 +30704,21 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                using (MySqlConnection connection = GetDatabaseConnection())
+
+                // Thanks XTheLoneShadowX for this idea
+                if (!_FeedServerReservedSlots && _FeedServerReservedSlots_VSM)
                 {
-                    using (MySqlCommand command = connection.CreateCommand())
+                    var commandString = "/vsm-addvip " + record.target_player.player_name + " +" + Math.Round(TimeSpan.FromMinutes(record.command_numeric).TotalDays);
+                    AdminSayMessage(commandString);
+                    FetchAllAccess(true);
+                }
+                else
+                {
+                    using (MySqlConnection connection = GetDatabaseConnection())
                     {
-                        command.CommandText = @"
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"
                         DELETE FROM
                             `adkats_specialplayers`
                         WHERE `player_group` = @player_group
@@ -30732,41 +30742,35 @@ namespace PRoConEvents
                             UTC_TIMESTAMP(),
                             DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
-                        if (record.target_player.player_id <= 0)
-                        {
-                            Log.Error("Player ID invalid when assigning special player entry. Unable to complete.");
-                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
-                            FinalizeRecord(record);
-                            return;
-                        }
-                        if (record.command_numeric > 10518984)
-                        {
-                            record.command_numeric = 10518984;
-                        }
-                        command.Parameters.AddWithValue("@player_group", "slot_reserved");
-                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
-                        command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
-                        command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
-                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
-
-                        Int32 rowsAffected = SafeExecuteNonQuery(command);
-                        if (rowsAffected > 0)
-                        {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " reserved slot.";
-                            SendMessageToSource(record, message);
-                            Log.Debug(() => message, 3);
-                            FetchAllAccess(true);
-
-                            // Thanks XTheLoneShadowX for this idea
-                            if (!_FeedServerReservedSlots && _FeedServerReservedSlots_VSM)
+                            if (record.target_player.player_id <= 0)
                             {
-                                var commandString = "/vsm-addvip " + record.target_player.player_name + " +" + Math.Round(TimeSpan.FromMinutes(record.command_numeric).TotalDays);
-                                AdminSayMessage(commandString);
+                                Log.Error("Player ID invalid when assigning special player entry. Unable to complete.");
+                                SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                                FinalizeRecord(record);
+                                return;
                             }
-                        }
-                        else
-                        {
-                            Log.Error("Unable to add player to reserved slot. Error uploading.");
+                            if (record.command_numeric > 10518984)
+                            {
+                                record.command_numeric = 10518984;
+                            }
+                            command.Parameters.AddWithValue("@player_group", "slot_reserved");
+                            command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                            command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
+                            command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                            command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
+
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " reserved slot.";
+                                SendMessageToSource(record, message);
+                                Log.Debug(() => message, 3);
+                                FetchAllAccess(true);
+                            }
+                            else
+                            {
+                                Log.Error("Unable to add player to reserved slot. Error uploading.");
+                            }
                         }
                     }
                 }
@@ -43111,7 +43115,7 @@ namespace PRoConEvents
                     rejectionMessage = realRecord.GetSourceName() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.GetTeamIDKey() + " rejected (" + rejectionMessage + ").";
                     if (!auto)
                     {
-                        rejectionMessage += " Queued #" + (_AssistAttemptQueue.Count() + 1) + " for 5min auto-assist.";
+                        rejectionMessage += " Queued #" + (_AssistAttemptQueue.Count() + 1) + " for auto-assist.";
                         lock (_AssistAttemptQueue)
                         {
                             _AssistAttemptQueue.Enqueue(realRecord);
