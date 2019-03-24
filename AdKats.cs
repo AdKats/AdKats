@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.35
+ * Version 7.5.0.36
  * 22-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.35</version_code>
+ * <version_code>7.5.0.36</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.35";
+        private const String PluginVersion = "7.5.0.36";
 
         public enum GameVersionEnum
         {
@@ -62669,15 +62669,17 @@ namespace PRoConEvents
                 {
                     _plugin.Log.Info(debugString);
                 }
-                String blockOpener = "**```diff";
-                String blockCloser = "-```**";
+                String blockOpener = "**```diff" + Environment.NewLine;
+                String blockCloser = " -```**";
 
-                String title = record.GetTargetNames() + " reported in [" + _plugin.GameVersion + "] " + _plugin._serverInfo.ServerName.Substring(0, Math.Min(15, _plugin._serverInfo.ServerName.Length - 1));
+                String title = blockOpener + 
+                    record.GetTargetNames() + " reported in [" + _plugin.GameVersion + "] " + _plugin._serverInfo.ServerName.Substring(0, Math.Min(30, _plugin._serverInfo.ServerName.Length - 1)) +
+                    blockCloser;
                 StringBuilder bb = new StringBuilder();
                 bb.Append("AdKats Round Report [" + record.command_numeric + "]");
-                bb.AppendLine();
+                bb.Append(Environment.NewLine);
                 bb.Append(record.GetSourceName() + " reported " + record.GetTargetNames() + " for " + record.record_message);
-                bb.AppendLine();
+                bb.Append(Environment.NewLine);
                 bb.Append(_plugin._serverInfo.ServerName);
                 String body = bb.ToString();
 
@@ -62701,12 +62703,12 @@ namespace PRoConEvents
                     WebRequest request = WebRequest.Create(URL);
                     request.Method = "POST";
                     request.ContentType = "application/json";
+                    String report = title + Environment.NewLine + body;
                     String jsonBody = JSON.JsonEncode(new Hashtable {
-                        //{"avatar_url", "https://avatars1.githubusercontent.com/u/9680130"},
-                        {"username", "AdKats"},
-                        {"content", "DERP"}
+                        {"avatar_url", "https://avatars1.githubusercontent.com/u/9680130"},
+                        {"username", "AdKats " + _plugin.GetPluginVersion()},
+                        {"content", report}
                     });
-                    _plugin.Log.Info("BODY: " + jsonBody);
                     byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
                     request.ContentLength = byteArray.Length;
                     Stream requestStream = request.GetRequestStream();
