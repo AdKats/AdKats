@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.34
+ * Version 7.5.0.35
  * 22-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.34</version_code>
+ * <version_code>7.5.0.35</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.34";
+        private const String PluginVersion = "7.5.0.35";
 
         public enum GameVersionEnum
         {
@@ -52621,14 +52621,14 @@ namespace PRoConEvents
                 {
                     if (Enabled && !enable)
                     {
-                        _plugin.Log.Success("DISABLING CHALLENGE MANAGER");
+                        _plugin.Log.Success("Disabling challenge manager.");
                         CancelActiveRoundRule();
                         ChallengeRoundState = ChallengeState.Init;
                         Enabled = enable;
                     }
                     else if (!Enabled && enable)
                     {
-                        _plugin.Log.Success("ENABLING CHALLENGE MANAGER");
+                        _plugin.Log.Success("Enabling challenge manager.");
                         if (Loaded)
                         {
                             Enabled = enable;
@@ -62704,8 +62704,9 @@ namespace PRoConEvents
                     String jsonBody = JSON.JsonEncode(new Hashtable {
                         //{"avatar_url", "https://avatars1.githubusercontent.com/u/9680130"},
                         {"username", "AdKats"},
-                        {"content", title}
+                        {"content", "DERP"}
                     });
+                    _plugin.Log.Info("BODY: " + jsonBody);
                     byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
                     request.ContentLength = byteArray.Length;
                     Stream requestStream = request.GetRequestStream();
