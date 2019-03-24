@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.31
+ * Version 7.5.0.32
  * 22-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.31</version_code>
+ * <version_code>7.5.0.32</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        public const String PluginVersion = "7.5.0.31";
+        private const String PluginVersion = "7.5.0.32";
 
         public enum GameVersionEnum
         {
@@ -62663,7 +62663,12 @@ namespace PRoConEvents
                     _plugin.SendMessageToSource(record, "Unable to send report. No target player found.");
                     return;
                 }
-                _plugin.Log.Debug(() => "Sending Discord report [" + record.command_numeric + "] on " + record.GetTargetNames(), 3);
+                var debugString = "Sending Discord report [" + record.command_numeric + "] on " + record.GetTargetNames();
+                _plugin.Log.Debug(() => debugString, 3);
+                if (_plugin._UseExperimentalTools)
+                {
+                    _plugin.Log.Info(debugString);
+                }
                 String title = record.GetTargetNames() + " reported in [" + _plugin.GameVersion + "] " + _plugin._serverInfo.ServerName.Substring(0, Math.Min(15, _plugin._serverInfo.ServerName.Length - 1));
                 StringBuilder bb = new StringBuilder();
                 bb.Append("AdKats Round Report [" + record.command_numeric + "]");
@@ -62697,7 +62702,7 @@ namespace PRoConEvents
                     request.ContentType = "application/json";
                     String jsonBody = JSON.JsonEncode(new Hashtable {
                         {"avatar_url", "https://raw.githubusercontent.com/AdKats/AdKats/master/images/AdKats_Icon.jpg"},
-                        {"username", "AdKats " + AdKats.PluginVersion},
+                        {"username", "AdKats"},
                         {"content", body}
                     });
                     byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
