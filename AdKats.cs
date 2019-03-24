@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.32
+ * Version 7.5.0.33
  * 22-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.32</version_code>
+ * <version_code>7.5.0.33</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.32";
+        private const String PluginVersion = "7.5.0.33";
 
         public enum GameVersionEnum
         {
@@ -62702,7 +62702,7 @@ namespace PRoConEvents
                     request.ContentType = "application/json";
                     String jsonBody = JSON.JsonEncode(new Hashtable {
                         {"avatar_url", "https://raw.githubusercontent.com/AdKats/AdKats/master/images/AdKats_Icon.jpg"},
-                        {"username", "AdKats"},
+                        {"username", "PRoCon"},
                         {"content", body}
                     });
                     byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
