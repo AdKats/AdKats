@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.37
+ * Version 7.5.0.38
  * 22-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.37</version_code>
+ * <version_code>7.5.0.38</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.37";
+        private const String PluginVersion = "7.5.0.38";
 
         public enum GameVersionEnum
         {
@@ -62669,18 +62669,18 @@ namespace PRoConEvents
                 {
                     _plugin.Log.Info(debugString);
                 }
+
                 String blockOpener = "**```diff" + Environment.NewLine;
                 String blockCloser = " -```**";
-
-                String title = blockOpener +
-                    _plugin.GameVersion + "REPORT" + Environment.NewLine + 
-                    record.GetTargetNames() + " reported in " + _plugin._serverInfo.ServerName.Substring(0, Math.Min(30, _plugin._serverInfo.ServerName.Length - 1)) +
-                    blockCloser;
+                
                 StringBuilder bb = new StringBuilder();
-                bb.Append("Report ID: " + record.command_numeric + Environment.NewLine);
+                bb.Append(blockOpener);
+                bb.Append(_plugin.GameVersion + " REPORT [" + record.command_numeric + "]" + Environment.NewLine);
+                bb.Append(_plugin._serverInfo.ServerName.Substring(0, Math.Min(30, _plugin._serverInfo.ServerName.Length - 1)) + Environment.NewLine);
                 bb.Append("Source: " + record.GetSourceName() + Environment.NewLine);
                 bb.Append("Target: " + record.GetTargetNames() + Environment.NewLine);
-                bb.Append("Message: " + record.record_message);
+                bb.Append("Reason: " + record.record_message);
+                bb.Append(blockCloser);
                 String body = bb.ToString();
 
                 try
@@ -62688,11 +62688,6 @@ namespace PRoConEvents
                     if (String.IsNullOrEmpty(URL))
                     {
                         _plugin.Log.Error("Discord WebHook URL empty! Unable to post report.");
-                        return;
-                    }
-                    if (String.IsNullOrEmpty(title))
-                    {
-                        _plugin.Log.Error("Discord note title empty! Unable to post report.");
                         return;
                     }
                     if (String.IsNullOrEmpty(body))
@@ -62703,11 +62698,10 @@ namespace PRoConEvents
                     WebRequest request = WebRequest.Create(URL);
                     request.Method = "POST";
                     request.ContentType = "application/json";
-                    String report = title + Environment.NewLine + body;
                     String jsonBody = JSON.JsonEncode(new Hashtable {
                         {"avatar_url", "https://avatars1.githubusercontent.com/u/9680130"},
                         {"username", "AdKats " + _plugin.GetPluginVersion()},
-                        {"content", report}
+                        {"content", body}
                     });
                     byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
                     request.ContentLength = byteArray.Length;
