@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.38
- * 22-MAR-2019
+ * Version 7.5.0.39
+ * 24-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.38</version_code>
+ * <version_code>7.5.0.39</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.38";
+        private const String PluginVersion = "7.5.0.39";
 
         public enum GameVersionEnum
         {
@@ -41110,9 +41110,7 @@ namespace PRoConEvents
 	                        AND
 	                        `tbl_server`.`GameID` = `tbl_playerdata`.`GameID`
                         WHERE
-	                        `tbl_currentplayers`.`ServerID` != @current_server_id 
-                        GROUP BY
-	                        `tbl_playerdata`.`PlayerID`";
+	                        `tbl_currentplayers`.`ServerID` != @current_server_id";
                         command.CommandText = sql;
                         command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
                         using (MySqlDataReader reader = SafeExecuteReader(command))
@@ -62671,7 +62669,7 @@ namespace PRoConEvents
                 }
 
                 String blockOpener = "**```diff" + Environment.NewLine;
-                String blockCloser = " -```**";
+                String blockCloser = "```**";
                 
                 StringBuilder bb = new StringBuilder();
                 bb.Append(blockOpener);
