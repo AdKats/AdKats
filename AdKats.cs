@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.30
+ * Version 7.5.0.31
  * 22-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.30</version_code>
+ * <version_code>7.5.0.31</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.30";
+        public const String PluginVersion = "7.5.0.31";
 
         public enum GameVersionEnum
         {
@@ -53298,10 +53298,6 @@ namespace PRoConEvents
                                 }
                             }
                         }
-                        if (_plugin._UseExperimentalTools)
-                        {
-                            _plugin.Log.Success("CHALLENGE entries loaded in " + Math.Round(_plugin.NowDuration(startTime).TotalMilliseconds) + "ms.");
-                        }
                     }
                     finally
                     {
@@ -62700,8 +62696,8 @@ namespace PRoConEvents
                     request.Method = "POST";
                     request.ContentType = "application/json";
                     String jsonBody = JSON.JsonEncode(new Hashtable {
-                        //{"avatar_url", "https://i.imgur.com/4M34hi2.png"},
-                        {"username", "AdKats-" + _plugin._serverInfo.ServerID},
+                        {"avatar_url", "https://raw.githubusercontent.com/AdKats/AdKats/master/images/AdKats_Icon.jpg"},
+                        {"username", "AdKats " + AdKats.PluginVersion},
                         {"content", body}
                     });
                     byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
