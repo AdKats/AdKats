@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.36
+ * Version 7.5.0.37
  * 22-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.36</version_code>
+ * <version_code>7.5.0.37</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.36";
+        private const String PluginVersion = "7.5.0.37";
 
         public enum GameVersionEnum
         {
@@ -62672,15 +62672,15 @@ namespace PRoConEvents
                 String blockOpener = "**```diff" + Environment.NewLine;
                 String blockCloser = " -```**";
 
-                String title = blockOpener + 
-                    record.GetTargetNames() + " reported in [" + _plugin.GameVersion + "] " + _plugin._serverInfo.ServerName.Substring(0, Math.Min(30, _plugin._serverInfo.ServerName.Length - 1)) +
+                String title = blockOpener +
+                    _plugin.GameVersion + "REPORT" + Environment.NewLine + 
+                    record.GetTargetNames() + " reported in " + _plugin._serverInfo.ServerName.Substring(0, Math.Min(30, _plugin._serverInfo.ServerName.Length - 1)) +
                     blockCloser;
                 StringBuilder bb = new StringBuilder();
-                bb.Append("AdKats Round Report [" + record.command_numeric + "]");
-                bb.Append(Environment.NewLine);
-                bb.Append(record.GetSourceName() + " reported " + record.GetTargetNames() + " for " + record.record_message);
-                bb.Append(Environment.NewLine);
-                bb.Append(_plugin._serverInfo.ServerName);
+                bb.Append("Report ID: " + record.command_numeric + Environment.NewLine);
+                bb.Append("Source: " + record.GetSourceName() + Environment.NewLine);
+                bb.Append("Target: " + record.GetTargetNames() + Environment.NewLine);
+                bb.Append("Message: " + record.record_message);
                 String body = bb.ToString();
 
                 try
