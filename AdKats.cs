@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.40
+ * Version 7.5.0.41
  * 24-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.40</version_code>
+ * <version_code>7.5.0.41</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.40";
+        private const String PluginVersion = "7.5.0.41";
 
         public enum GameVersionEnum
         {
@@ -33060,6 +33060,7 @@ namespace PRoConEvents
                         sourcePlayerInfo = " (OFFLINE)";
                     }
                 }
+                var sourceString = sourceAAIdentifier + record.GetSourceName() + sourcePlayerInfo;
                 String targetPlayerInfo = "";
                 if (record.target_player != null && record.target_player.fbpInfo != null)
                 {
@@ -33072,8 +33073,9 @@ namespace PRoConEvents
                         targetPlayerInfo = " (OFFLINE)";
                     }
                 }
-                OnlineAdminSayMessage("R[" + reportID + "] Source: " + sourceAAIdentifier + record.GetSourceName() + sourcePlayerInfo);
-                OnlineAdminSayMessage("R[" + reportID + "] Target: " + targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo);
+                var targetString = targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo;
+                OnlineAdminSayMessage("R[" + reportID + "] Source: " + sourceString);
+                OnlineAdminSayMessage("R[" + reportID + "] Target: " + targetString);
                 OnlineAdminSayMessage("R[" + reportID + "] Reason: " + record.record_message);
                 if (record.isLoadoutChecked)
                 {
@@ -33136,7 +33138,7 @@ namespace PRoConEvents
                     else
                     {
                         Log.Debug(() => "Preparing to send Discord report.", 3);
-                        _DiscordManager.PostReport(record, false);
+                        _DiscordManager.PostReport(record, "REPORT", sourceString, targetString);
                     }
                 }
                 if (record.source_player != null && record.source_name != record.target_name && record.source_player.player_type == PlayerType.Spectator)
@@ -33229,13 +33231,14 @@ namespace PRoConEvents
                 {
                     if (record.source_player.player_online)
                     {
-                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.source_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.fbpInfo.TeamID == record.source_player.fbpInfo.TeamID).OrderBy(aPlayer => aPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(record.source_player) + 1) + ")";
+                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.source_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.fbpInfo.TeamID == record.source_player.fbpInfo.TeamID).OrderBy(aPlayer => aPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + ")";
                     }
                     else
                     {
                         sourcePlayerInfo = " (OFFLINE)";
                     }
                 }
+                var sourceString = sourceAAIdentifier + record.GetSourceName() + sourcePlayerInfo;
                 String targetPlayerInfo = "";
                 if (record.target_player != null && record.target_player.fbpInfo != null)
                 {
@@ -33248,8 +33251,9 @@ namespace PRoConEvents
                         targetPlayerInfo = " (OFFLINE)";
                     }
                 }
-                OnlineAdminSayMessage("A[" + reportID + "] Source: " + sourceAAIdentifier + record.GetSourceName() + sourcePlayerInfo);
-                OnlineAdminSayMessage("A[" + reportID + "] Target: " + targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo);
+                var targetString = targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo;
+                OnlineAdminSayMessage("A[" + reportID + "] Source: " + sourceString);
+                OnlineAdminSayMessage("A[" + reportID + "] Target: " + targetString);
                 OnlineAdminSayMessage("A[" + reportID + "] Reason: " + record.record_message);
                 if (record.isLoadoutChecked)
                 {
@@ -33303,7 +33307,7 @@ namespace PRoConEvents
                     else
                     {
                         Log.Debug(() => "Preparing to send Discord admin call.", 3);
-                        _DiscordManager.PostReport(record, true);
+                        _DiscordManager.PostReport(record, "ADMIN CALL", sourceString, targetString);
                     }
                 }
             }
@@ -62664,7 +62668,7 @@ namespace PRoConEvents
             }
 
             // Thanks to jbrunink for this code snippet
-            public void PostReport(ARecord record, Boolean adminCall)
+            public void PostReport(ARecord record, String type, String sourceInfo, String targetInfo)
             {
                 if (record.target_player == null)
                 {
@@ -62683,12 +62687,18 @@ namespace PRoConEvents
                 
                 StringBuilder bb = new StringBuilder();
                 bb.Append(blockOpener);
-                var type = adminCall ? "ADMIN CALL" : "REPORT";
                 bb.Append(_plugin.GameVersion + " " + type + " [" + record.command_numeric + "]" + Environment.NewLine);
                 bb.Append(_plugin._serverInfo.ServerName.Substring(0, Math.Min(30, _plugin._serverInfo.ServerName.Length - 1)) + Environment.NewLine);
-                bb.Append("Source: " + record.GetSourceName() + Environment.NewLine);
-                bb.Append("Target: " + record.GetTargetNames() + Environment.NewLine);
+                bb.Append("Source: " + sourceInfo + Environment.NewLine);
+                bb.Append("Target: " + targetInfo + Environment.NewLine);
                 bb.Append("Reason: " + record.record_message);
+                bb.Append(Environment.NewLine);
+                bb.Append(record.GetTargetNames() + 
+                       " rank(" + record.target_player.fbpInfo.Rank + 
+                    "), score(" + record.target_player.fbpInfo.Score + 
+                    "), kills(" + record.target_player.fbpInfo.Kills + 
+                    "), deaths(" + record.target_player.fbpInfo.Deaths + 
+                    "), k/d(" + Math.Round(record.target_player.fbpInfo.Kdr, 1) + ")" + Environment.NewLine);
                 bb.Append(blockCloser);
                 String body = bb.ToString();
 
