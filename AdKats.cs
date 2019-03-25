@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.41
+ * Version 7.5.0.42
  * 24-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.41</version_code>
+ * <version_code>7.5.0.42</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.41";
+        private const String PluginVersion = "7.5.0.42";
 
         public enum GameVersionEnum
         {
@@ -12498,15 +12498,24 @@ namespace PRoConEvents
                                                 toldAdmins = true;
                                                 OnlineAdminSayMessage(aPlayer.GetVerboseName() + " left from " + GetPlayerTeamKey(aPlayer) + " " + typeString, aPlayer.player_name);
                                             }
-                                            List<ARecord> reports = aPlayer.TargetedRecords.Where(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin").ToList();
+                                            List<ARecord> reports = aPlayer.TargetedRecords.Where(aRecord => (aRecord.command_type.command_key == "player_report" || 
+                                                                                                              aRecord.command_type.command_key == "player_calladmin") &&
+                                                                                                             aRecord.source_player != null &&
+                                                                                                             !aRecord.isConfirmed &&
+                                                                                                             !aRecord.isIgnored &&
+                                                                                                             !aRecord.isDenied).ToList();
                                             Dictionary<string, APlayer> reporters = new Dictionary<string, APlayer>();
-                                            foreach (ARecord report in reports.Where(report => report.source_player != null))
+                                            foreach (ARecord report in reports)
                                             {
                                                 reporters[report.source_player.player_name] = report.source_player;
                                             }
                                             foreach (APlayer player in reporters.Values)
                                             {
                                                 player.Say("Player " + aPlayer.GetVerboseName() + " you reported has left.");
+                                            }
+                                            if (reports.Any() && _UseDiscordForReports)
+                                            {
+                                                _DiscordManager.PostToDiscord("Reported player " + aPlayer.GetVerboseName() + " left without being acted on.");
                                             }
                                         }
                                     }
@@ -28629,6 +28638,7 @@ namespace PRoConEvents
                 {
                     Log.Debug(() => "Denying round report.", 5);
                     reportedRecord.command_action = GetCommandByKey("player_report_deny");
+                    reportedRecord.isDenied = true;
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been denied.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been denied by " + record.GetSourceName() + ".");
@@ -28656,6 +28666,7 @@ namespace PRoConEvents
                 {
                     Log.Debug(() => "Ignoring round report.", 5);
                     reportedRecord.command_action = GetCommandByKey("player_report_ignore");
+                    reportedRecord.isIgnored = true;
                     UpdateRecord(reportedRecord);
                     //Do not inform the player their report was ignored
                     //SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been ignored.");
@@ -28684,6 +28695,7 @@ namespace PRoConEvents
                 {
                     Log.Debug(() => "Accepting round report.", 5);
                     reportedRecord.command_action = GetCommandByKey("player_report_confirm");
+                    reportedRecord.isConfirmed = true;
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been accepted. Thank you.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been accepted by " + record.GetSourceName() + ".");
@@ -28738,6 +28750,7 @@ namespace PRoConEvents
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been acted on. Thank you.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been acted on by " + record.GetSourceName() + ".");
                     reportedRecord.command_action = GetCommandByKey("player_report_confirm");
+                    reportedRecord.isConfirmed = true;
                     UpdateRecord(reportedRecord);
 
                     record.target_name = reportedRecord.target_name;
@@ -33036,6 +33049,7 @@ namespace PRoConEvents
                         SendMessageToSource(record, "Your report [" + reportID + "] has been acted on. Thank you.");
                         OnlineAdminSayMessage("Report " + reportID + " is being acted on by Loadout Enforcer.");
                         record.command_action = GetCommandByKey("player_report_confirm");
+                        record.isConfirmed = true;
                         UpdateRecord(record);
                         return;
                     }
@@ -33214,6 +33228,7 @@ namespace PRoConEvents
                         SendMessageToSource(record, "Your report [" + reportID + "] has been acted on. Thank you.");
                         OnlineAdminSayMessage("Report " + reportID + " is being acted on by Loadout Enforcer.");
                         record.command_action = GetCommandByKey("player_report_confirm");
+                        record.isConfirmed = true;
                         UpdateRecord(record);
                         return;
                     }
@@ -33360,6 +33375,7 @@ namespace PRoConEvents
                             _RoundReports.Remove(reportID);
                             //Update it in the database
                             reportedRecord.command_action = GetCommandByKey("player_report_confirm");
+                            reportedRecord.isConfirmed = true;
                             UpdateRecord(reportedRecord);
                             //Get target information
                             ARecord aRecord = new ARecord
@@ -59815,6 +59831,8 @@ namespace PRoConEvents
 
             //Internal processing
             public Boolean isConfirmed;
+            public Boolean isIgnored;
+            public Boolean isDenied;
             public Boolean isAliveChecked;
             public Boolean isLoadoutChecked;
             public Boolean targetLoadoutActed = false;
@@ -62702,6 +62720,11 @@ namespace PRoConEvents
                 bb.Append(blockCloser);
                 String body = bb.ToString();
 
+                PostToDiscord(body);
+            }
+
+            public void PostToDiscord(String body)
+            {
                 try
                 {
                     if (String.IsNullOrEmpty(URL))
@@ -62734,7 +62757,6 @@ namespace PRoConEvents
                     _plugin.Log.Info("RESPONSE: " + new StreamReader(response.GetResponseStream()).ReadToEnd());
                     _plugin.Log.HandleException(new AException("Error POSTing to Discord WebHook.", e));
                 }
-
             }
         }
 
