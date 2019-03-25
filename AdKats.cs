@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.39
+ * Version 7.5.0.40
  * 24-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.39</version_code>
+ * <version_code>7.5.0.40</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.39";
+        private const String PluginVersion = "7.5.0.40";
 
         public enum GameVersionEnum
         {
@@ -406,7 +406,7 @@ namespace PRoConEvents
         private Int32 _RequiredReasonLength = 4;
         private Int32 _minimumAssistMinutes = 5;
         //Commands specific
-        private String _ServerVoipAddress = "(TS3) TS.ADKGamers.com:3796";
+        private String _ServerVoipAddress = "Enter teamspeak/discord/etc address here.";
         //Dynamic access
         public Func<AdKats, APlayer, Boolean> AAPerkFunc = ((plugin, aPlayer) => ((plugin._EnableAdminAssistantPerk && aPlayer.player_aa) || (aPlayer.player_reputation > _reputationThresholdGood)));
         public Func<AdKats, APlayer, Boolean> TeamSwapFunc = ((plugin, aPlayer) => ((plugin._EnableAdminAssistantPerk && aPlayer.player_aa) || plugin.GetMatchingVerboseASPlayersOfGroup("whitelist_teamswap", aPlayer).Any()));
@@ -1010,12 +1010,11 @@ namespace PRoConEvents
 
             //Init the pre-message list
             _PreMessageList = new List<String> {
-                "US TEAM: DO NOT BASERAPE, YOU WILL BE PUNISHED.",
-                "RU TEAM: DO NOT BASERAPE, YOU WILL BE PUNISHED.",
-                "US TEAM: DO NOT ENTER THE STREETS BEYOND 'A', YOU WILL BE PUNISHED.",
-                "RU TEAM: DO NOT GO BEYOND THE BLACK LINE ON CEILING BY 'C' FLAG, YOU WILL BE PUNISHED.",
-                "THIS SERVER IS NO EXPLOSIVES, YOU WILL BE PUNISHED FOR INFRACTIONS.",
-                "JOIN OUR TEAMSPEAK AT TS.ADKGAMERS.COM:3796"
+                "Predefined message 1",
+                "Predefined message 2",
+                "Predefined message 3",
+                "Predefined message 4",
+                "Predefined message 5",
             };
 
             //Init the spam message lists
@@ -33137,7 +33136,7 @@ namespace PRoConEvents
                     else
                     {
                         Log.Debug(() => "Preparing to send Discord report.", 3);
-                        _DiscordManager.PostReport(record);
+                        _DiscordManager.PostReport(record, false);
                     }
                 }
                 if (record.source_player != null && record.source_name != record.target_name && record.source_player.player_type == PlayerType.Spectator)
@@ -33279,7 +33278,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        Log.Debug(() => "Preparing to send report email.", 3);
+                        Log.Debug(() => "Preparing to send admin call email.", 3);
                         _EmailHandler.SendReport(record);
                     }
                 }
@@ -33287,12 +33286,24 @@ namespace PRoConEvents
                 {
                     if (_PushBulletReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any())
                     {
-                        Log.Debug(() => "PushBullet report cancelled, admins online.", 3);
+                        Log.Debug(() => "PushBullet admin call cancelled, admins online.", 3);
                     }
                     else
                     {
-                        Log.Debug(() => "Preparing to send PushBullet report.", 3);
+                        Log.Debug(() => "Preparing to send PushBullet admin call.", 3);
                         _PushBulletHandler.PushReport(record);
+                    }
+                }
+                if (_UseDiscordForReports)
+                {
+                    if (_DiscordReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any())
+                    {
+                        Log.Debug(() => "Discord admin call cancelled, admins online.", 3);
+                    }
+                    else
+                    {
+                        Log.Debug(() => "Preparing to send Discord admin call.", 3);
+                        _DiscordManager.PostReport(record, true);
                     }
                 }
             }
@@ -45383,7 +45394,7 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["self_rep"] = "Returns your current server reputation.";
             _CommandDescriptionDictionary["player_repboost"] = "Invisible command. Boosts player rep for a given reason.";
             _CommandDescriptionDictionary["player_log"] = "Logs the given information to the player's record.";
-            _CommandDescriptionDictionary["player_whitelistping"] = "Whitelists a player from ping kick (ADK only).";
+            _CommandDescriptionDictionary["player_whitelistping"] = "Whitelists a player from ping kick.";
             _CommandDescriptionDictionary["player_ban_temp_old"] = "Invisible command. Set to all disabled temp-bans.";
             _CommandDescriptionDictionary["player_ban_perm_old"] = "Invisible command. Set to all disabled permabans.";
             _CommandDescriptionDictionary["player_pm_send"] = "Sends a private message to the targeted player.";
@@ -61217,7 +61228,6 @@ namespace PRoConEvents
                             processedCustomHTML = processedCustomHTML.Replace("%mode_name%", Plugin.GetCurrentReadableMode());
                             sb.Append(processedCustomHTML);
                             sb.Append("</p>");
-                            //TODO: Add chat back for ADK usage.
                             if (record.target_player != null)
                             {
                                 sb.Append("<table>");
@@ -62654,7 +62664,7 @@ namespace PRoConEvents
             }
 
             // Thanks to jbrunink for this code snippet
-            public void PostReport(ARecord record)
+            public void PostReport(ARecord record, Boolean adminCall)
             {
                 if (record.target_player == null)
                 {
@@ -62673,7 +62683,8 @@ namespace PRoConEvents
                 
                 StringBuilder bb = new StringBuilder();
                 bb.Append(blockOpener);
-                bb.Append(_plugin.GameVersion + " REPORT [" + record.command_numeric + "]" + Environment.NewLine);
+                var type = adminCall ? "ADMIN CALL" : "REPORT";
+                bb.Append(_plugin.GameVersion + " " + type + " [" + record.command_numeric + "]" + Environment.NewLine);
                 bb.Append(_plugin._serverInfo.ServerName.Substring(0, Math.Min(30, _plugin._serverInfo.ServerName.Length - 1)) + Environment.NewLine);
                 bb.Append("Source: " + record.GetSourceName() + Environment.NewLine);
                 bb.Append("Target: " + record.GetTargetNames() + Environment.NewLine);
