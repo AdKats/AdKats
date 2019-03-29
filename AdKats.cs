@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.43
- * 27-MAR-2019
+ * Version 7.5.0.44
+ * 28-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.43</version_code>
+ * <version_code>7.5.0.44</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.43";
+        private const String PluginVersion = "7.5.0.44";
 
         public enum GameVersionEnum
         {
@@ -266,6 +266,7 @@ namespace PRoConEvents
         private readonly Dictionary<PopulationState, TimeSpan> _populationDurations = new Dictionary<PopulationState, TimeSpan>();
         private Int32 _lowPopulationPlayerCount = 20;
         private Int32 _highPopulationPlayerCount = 40;
+        private String _shortServerName = "";
         private Boolean _automaticServerRestart = false;
         private Boolean _automaticServerRestartProcon = false;
         private Int32 _automaticServerRestartMinHours = 18;
@@ -1229,6 +1230,7 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server IP (Display)", typeof(String), _serverInfo.ServerIP));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server Round (Display)", typeof(String), _roundID));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server Game (Display)", typeof(String), GameVersion.ToString()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Short Server Name", typeof(String), _shortServerName));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "High Population Value", typeof(Int32), _highPopulationPlayerCount));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Server Restart When Empty", typeof(Boolean), _automaticServerRestart));
@@ -7606,6 +7608,22 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
                     }
                 }
+                else if (Regex.Match(strVariable, @"Short Server Name").Success)
+                {
+                    var newName = strValue;
+                    if (String.IsNullOrWhiteSpace(newName) &&
+                        _serverInfo != null &&
+                        !String.IsNullOrWhiteSpace(_serverInfo.ServerName))
+                    {
+                        newName = _serverInfo.ServerName.Substring(0, Math.Min(30, _serverInfo.ServerName.Length - 1));
+                    }
+                    else if (newName.Length > 30)
+                    {
+                        newName = newName.Substring(0, Math.Min(30, newName.Length - 1));
+                    }
+                    _shortServerName = strValue;
+                    QueueSettingForUpload(new CPluginVariable(@"Short Server Name", typeof(String), _shortServerName));
+                }
                 else if (Regex.Match(strVariable, @"Low Population Value").Success)
                 {
                     Int32 lowPopulationPlayerCount = Int32.Parse(strValue);
@@ -12513,20 +12531,26 @@ namespace PRoConEvents
                                                 toldAdmins = true;
                                                 OnlineAdminSayMessage(aPlayer.GetVerboseName() + " left from " + GetPlayerTeamKey(aPlayer) + " " + typeString, aPlayer.player_name);
                                             }
-                                            List<ARecord> reports = aPlayer.TargetedRecords.Where(aRecord => aRecord.source_player != null &&
-                                                                                                             aRecord.IsActiveReport()).ToList();
-                                            foreach (ARecord report in reports)
+                                            var activeReports = aPlayer.TargetedRecords.Where(aRecord => aRecord.source_player != null &&
+                                                                                                         IsActiveReport(aRecord)).ToList();
+                                            // Update all the reports
+                                            foreach (var report in activeReports)
+                                            {
+                                                FetchRecordUpdate(report, false);
+                                            }
+                                            activeReports = activeReports.Where(report => IsActiveReport(report)).ToList();
+                                            foreach (ARecord report in activeReports)
                                             {
                                                 // Expire all active reports for the player
                                                 report.command_action = GetCommandByKey("player_report_expire");
                                                 UpdateRecord(report);
                                             }
-                                            foreach (APlayer player in reports.Where(report => report.source_player != null)
+                                            foreach (APlayer player in activeReports.Where(report => report.source_player != null)
                                                                              .Select(report => report.source_player).Distinct())
                                             {
                                                 player.Say("Player " + aPlayer.GetVerboseName() + " you reported has left.");
                                             }
-                                            if (reports.Any() && _UseDiscordForReports)
+                                            if (activeReports.Any() && _UseDiscordForReports)
                                             {
                                                 _DiscordManager.PostToDiscord("Reported player " + aPlayer.GetVerboseName() + " left without being acted on.");
                                             }
@@ -28631,7 +28655,7 @@ namespace PRoConEvents
         {
             try
             {
-                return _PlayerReports.ToList().Where(dRecord => dRecord.IsActiveReport()).ToList();
+                return _PlayerReports.ToList().Where(dRecord => IsActiveReport(dRecord)).ToList();
             }
             catch (Exception e)
             {
@@ -28688,7 +28712,7 @@ namespace PRoConEvents
                     {
                         reportID = random.Next(100, 999);
                     } while (_PlayerReports.Any(dRecord => dRecord.command_numeric == reportID &&
-                                                           dRecord.IsActiveReport()));
+                                                           IsActiveReport(dRecord)));
                     aRecord.command_numeric = reportID;
                     _PlayerReports.Add(aRecord);
                 }
@@ -28761,8 +28785,7 @@ namespace PRoConEvents
                 if (reportedRecord != null)
                 {
                     Log.Debug(() => "Accepting player report.", 5);
-                    reportedRecord.command_action = GetCommandByKey("player_report_confirm");
-                    UpdateRecord(reportedRecord);
+                    ConfirmActiveReport(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been accepted. Thank you.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been accepted by " + record.GetSourceName() + ".");
 
@@ -28789,7 +28812,7 @@ namespace PRoConEvents
                 ARecord reportedRecord = FetchPlayerReportByID(record.target_name);
                 if (reportedRecord != null)
                 {
-                    if (!reportedRecord.IsActiveReport())
+                    if (!IsActiveReport(reportedRecord))
                     {
                         SendMessageToSource(record, "Report [" + record.target_name + "] has already been acted on.");
                         return true;
@@ -28815,8 +28838,7 @@ namespace PRoConEvents
                     Log.Debug(() => "Handling player report.", 5);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been acted on. Thank you.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been acted on by " + record.GetSourceName() + ".");
-                    reportedRecord.command_action = GetCommandByKey("player_report_confirm");
-                    UpdateRecord(reportedRecord);
+                    ConfirmActiveReport(reportedRecord);
 
                     record.target_name = reportedRecord.target_name;
                     record.target_player = reportedRecord.target_player;
@@ -33098,8 +33120,7 @@ namespace PRoConEvents
                     {
                         SendMessageToSource(record, "Your report [" + reportID + "] has been acted on. Thank you.");
                         OnlineAdminSayMessage("Report " + reportID + " is being acted on by Loadout Enforcer.");
-                        record.command_action = GetCommandByKey("player_report_confirm");
-                        UpdateRecord(record);
+                        ConfirmActiveReport(record);
                         return;
                     }
                 }
@@ -33266,8 +33287,7 @@ namespace PRoConEvents
                     {
                         SendMessageToSource(record, "Your report [" + reportID + "] has been acted on. Thank you.");
                         OnlineAdminSayMessage("Report " + reportID + " is being acted on by Loadout Enforcer.");
-                        record.command_action = GetCommandByKey("player_report_confirm");
-                        UpdateRecord(record);
+                        ConfirmActiveReport(record);
                         return;
                     }
                 }
@@ -33410,8 +33430,7 @@ namespace PRoConEvents
                         if (CanPunish(reportRecord, 90) || !adminsOnline)
                         {
                             //Update it in the database
-                            reportRecord.command_action = GetCommandByKey("player_report_confirm");
-                            UpdateRecord(reportRecord);
+                            ConfirmActiveReport(reportRecord);
                             //Get target information
                             ARecord aRecord = new ARecord
                             {
@@ -39211,6 +39230,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Forgives", typeof(Boolean), _AutomaticForgives));
                 QueueSettingForUpload(new CPluginVariable(@"Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
+                QueueSettingForUpload(new CPluginVariable(@"Short Server Name", typeof(String), _shortServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
                 QueueSettingForUpload(new CPluginVariable(@"High Population Value", typeof(Int32), _highPopulationPlayerCount));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Server Restart When Empty", typeof(Boolean), _automaticServerRestart));
@@ -40691,6 +40711,7 @@ namespace PRoConEvents
             }
             try
             {
+                List<ARecord> reportsToExpire = new List<ARecord>();
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
@@ -40717,28 +40738,6 @@ namespace PRoConEvents
                             //Grab the record
                             if (reader.Read())
                             {
-                                Int32 commandTypeInt = reader.GetInt32("command_type");
-                                ACommand commandType;
-                                if (!_CommandIDDictionary.TryGetValue(commandTypeInt, out commandType))
-                                {
-                                    Log.Error("Unable to parse command type " + commandTypeInt + " when fetching record " + record.record_id + " updates.");
-                                }
-                                if (commandType.command_key != record.command_type.command_key)
-                                {
-                                    Log.Info("Record " + record.record_id + " command type changed from " + record.command_type.command_name + " to " + commandType.command_name);
-                                    record.command_type = commandType;
-                                }
-                                Int32 commandActionInt = reader.GetInt32("command_action");
-                                ACommand commandAction;
-                                if (!_CommandIDDictionary.TryGetValue(commandActionInt, out commandAction))
-                                {
-                                    Log.Error("Unable to parse command action " + commandTypeInt + " when fetching record " + record.record_id + " updates.");
-                                }
-                                if (commandAction.command_key != record.command_action.command_key)
-                                {
-                                    Log.Info("Record " + record.record_id + " command action changed from " + record.command_action.command_name + " to " + commandAction.command_name);
-                                    record.command_action = commandAction;
-                                }
                                 var commandNumeric = reader.GetInt32("command_numeric");
                                 if (commandNumeric != record.command_numeric)
                                 {
@@ -40827,6 +40826,35 @@ namespace PRoConEvents
                                     Log.Info("Record " + record.record_id + " time changed from '" + record.record_time.ToLongDateString() + "' to '" + recordTime.ToLongDateString() + "'");
                                     record.record_time = recordTime;
                                 }
+                                Int32 commandTypeInt = reader.GetInt32("command_type");
+                                ACommand commandType;
+                                if (!_CommandIDDictionary.TryGetValue(commandTypeInt, out commandType))
+                                {
+                                    Log.Error("Unable to parse command type " + commandTypeInt + " when fetching record " + record.record_id + " updates.");
+                                }
+                                if (commandType.command_key != record.command_type.command_key)
+                                {
+                                    Log.Info("Record " + record.record_id + " command type changed from " + record.command_type.command_name + " to " + commandType.command_name);
+                                    record.command_type = commandType;
+                                }
+                                Int32 commandActionInt = reader.GetInt32("command_action");
+                                ACommand commandAction;
+                                if (!_CommandIDDictionary.TryGetValue(commandActionInt, out commandAction))
+                                {
+                                    Log.Error("Unable to parse command action " + commandTypeInt + " when fetching record " + record.record_id + " updates.");
+                                }
+                                if (commandAction.command_key != record.command_action.command_key)
+                                {
+                                    Log.Info("Record " + record.record_id + " command action changed from " + record.command_action.command_name + " to " + commandAction.command_name);
+                                    record.command_action = commandAction;
+                                    if (record.command_action.command_key == "player_report_confirm" && 
+                                        record.target_player != null)
+                                    {
+                                        // Expire all other active reports against the player since this is the one that we acted on
+                                        reportsToExpire.AddRange(record.target_player.TargetedRecords.Where(aRecord => IsActiveReport(aRecord) && 
+                                                                                                                       aRecord.record_id != record.record_id));
+                                    }
+                                }
                             }
                             else
                             {
@@ -40834,6 +40862,11 @@ namespace PRoConEvents
                             }
                         }
                     }
+                }
+                // Need to do this separately because otherwise it's stacked database contexts
+                foreach (var report in reportsToExpire)
+                {
+                    ExpireActiveReport(report);
                 }
             }
             catch (Exception e)
@@ -59993,6 +60026,73 @@ namespace PRoConEvents
             }
         }
 
+        public Boolean IsActiveReport(ARecord aRecord)
+        {
+            try
+            {
+                if (aRecord == null ||
+                    aRecord.record_id < 1 ||
+                    aRecord.command_type == null ||
+                    (aRecord.command_type.command_key != "player_report" && aRecord.command_type.command_key != "player_calladmin") ||
+                    aRecord.command_action == null ||
+                    aRecord.command_action.command_key == "player_report_confirm" ||
+                    aRecord.command_action.command_key == "player_report_ignore" ||
+                    aRecord.command_action.command_key == "player_report_deny" ||
+                    aRecord.command_action.command_key == "player_report_expire" ||
+                    aRecord.target_player == null ||
+                    aRecord.TargetSession != aRecord.target_player.ActiveSession)
+                {
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while checking if a report was active.", e));
+            }
+            return true;
+        }
+        
+        public void ConfirmActiveReport(ARecord report)
+        {
+            try
+            {
+                if (report != null &&
+                    IsActiveReport(report))
+                {
+                    // Expire all other active reports against the player since this is the one that we acted on
+                    var reportsToExpire = report.target_player.TargetedRecords.Where(dRecord => IsActiveReport(dRecord) &&
+                                                                                                dRecord.record_id != report.record_id);
+                    foreach (var eReport in reportsToExpire)
+                    {
+                        ExpireActiveReport(eReport);
+                    }
+                    report.command_action = GetCommandByKey("player_report_confirm");
+                    UpdateRecord(report);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while confirming an active report.", e));
+            }
+        }
+
+        public void ExpireActiveReport(ARecord aRecord)
+        {
+            try
+            {
+                if (aRecord != null &&
+                    IsActiveReport(aRecord))
+                {
+                    aRecord.command_action = GetCommandByKey("player_report_expire");
+                    UpdateRecord(aRecord);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while expiring an active report.", e));
+            }
+        }
+
         public class ARecord
         {
             //Source of this record
@@ -60037,22 +60137,6 @@ namespace PRoConEvents
             public Boolean external_responseRequested;
 
             //Internal processing
-            public Boolean IsActiveReport()
-            {
-                if (command_type == null ||
-                    (command_type.command_key != "player_report" && command_type.command_key != "player_calladmin") ||
-                    command_action == null || 
-                    command_action.command_key == "player_report_confirm" ||
-                    command_action.command_key == "player_report_ignore" ||
-                    command_action.command_key == "player_report_deny" ||
-                    command_action.command_key == "player_report_expire" ||
-                    target_player == null ||
-                    TargetSession != target_player.ActiveSession)
-                {
-                    return false;
-                }
-                return true;
-            }
             public Boolean isAliveChecked;
             public Boolean isLoadoutChecked;
             public Boolean targetLoadoutActed = false;
@@ -62922,16 +63006,15 @@ namespace PRoConEvents
                     _plugin.Log.Info(debugString);
                 }
 
-                String blockOpener = "**```diff" + Environment.NewLine;
-                String blockCloser = "```**";
+                String blockOpener = "```" + Environment.NewLine;
+                String blockCloser = "```";
                 
                 StringBuilder bb = new StringBuilder();
                 bb.Append(blockOpener);
-                bb.Append(_plugin.GameVersion + " " + type + " [" + record.command_numeric + "]" + Environment.NewLine);
-                bb.Append(_plugin._serverInfo.ServerName.Substring(0, Math.Min(30, _plugin._serverInfo.ServerName.Length - 1)) + Environment.NewLine);
-                bb.Append("Source: " + sourceInfo + Environment.NewLine);
-                bb.Append("Target: " + targetInfo + Environment.NewLine);
-                bb.Append("Reason: " + record.record_message);
+                bb.Append("**" + _plugin.GameVersion + " " + type + " [" + record.command_numeric + "]**" + Environment.NewLine);
+                bb.Append("**Source:** " + sourceInfo + Environment.NewLine);
+                bb.Append("**Target:** " + targetInfo + Environment.NewLine);
+                bb.Append("**Reason:** " + record.record_message);
                 bb.Append(Environment.NewLine);
                 bb.Append(record.GetTargetNames() + 
                        " rank(" + record.target_player.fbpInfo.Rank + 
@@ -62959,12 +63042,16 @@ namespace PRoConEvents
                         _plugin.Log.Error("Discord note body empty! Unable to post report.");
                         return;
                     }
+                    if (String.IsNullOrWhiteSpace(_plugin._shortServerName))
+                    {
+                        _plugin._shortServerName = _plugin._serverInfo.ServerName.Substring(0, Math.Min(30, _plugin._serverInfo.ServerName.Length - 1));
+                    }
                     WebRequest request = WebRequest.Create(URL);
                     request.Method = "POST";
                     request.ContentType = "application/json";
                     String jsonBody = JSON.JsonEncode(new Hashtable {
                         {"avatar_url", "https://avatars1.githubusercontent.com/u/9680130"},
-                        {"username", "AdKats " + _plugin.GetPluginVersion()},
+                        {"username", "AdKats (" + _plugin._shortServerName + ")"},
                         {"content", body}
                     });
                     byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
