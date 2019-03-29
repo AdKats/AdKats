@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.47
+ * Version 7.5.0.48
  * 28-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.47</version_code>
+ * <version_code>7.5.0.48</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.47";
+        private const String PluginVersion = "7.5.0.48";
 
         public enum GameVersionEnum
         {
@@ -7610,7 +7610,7 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Short Server Name").Success)
                 {
-                    var newName = strValue;
+                    var newName = MakeAlphanumeric(strValue);
                     if (String.IsNullOrEmpty(newName) &&
                         _serverInfo != null &&
                         !String.IsNullOrEmpty(_serverInfo.ServerName))
@@ -40726,8 +40726,7 @@ namespace PRoConEvents
                             `target_id`, 
                             `source_name`,
                             `source_id`, 
-                            `record_message`, 
-                            `record_time` 
+                            `record_message`
                         FROM 
                             " + tablename + @" 
                         WHERE 
@@ -40819,12 +40818,6 @@ namespace PRoConEvents
                                 {
                                     Log.Info("Record " + record.record_id + " message changed from '" + record.record_message + "' to '" + recordMessage + "'");
                                     record.record_message = recordMessage;
-                                }
-                                var recordTime = reader.GetDateTime("record_time");
-                                if (!recordTime.Equals(record.record_time))
-                                {
-                                    Log.Info("Record " + record.record_id + " time changed from '" + record.record_time.ToLongDateString() + "' to '" + recordTime.ToLongDateString() + "'");
-                                    record.record_time = recordTime;
                                 }
                                 Int32 commandTypeInt = reader.GetInt32("command_type");
                                 ACommand commandType;
@@ -63011,10 +63004,10 @@ namespace PRoConEvents
                 
                 StringBuilder bb = new StringBuilder();
                 bb.Append(blockOpener);
-                bb.Append("**" + _plugin.GameVersion + " " + type + " [" + record.command_numeric + "]**" + Environment.NewLine);
-                bb.Append("**Source:** " + sourceInfo + Environment.NewLine);
-                bb.Append("**Target:** " + targetInfo + Environment.NewLine);
-                bb.Append("**Reason:** " + record.record_message);
+                bb.Append(_plugin.GameVersion + " " + type + " [" + record.command_numeric + "]" + Environment.NewLine);
+                bb.Append("Source: " + sourceInfo + Environment.NewLine);
+                bb.Append("Target: " + targetInfo + Environment.NewLine);
+                bb.Append("Reason: " + record.record_message);
                 bb.Append(Environment.NewLine);
                 bb.Append(record.GetTargetNames() + 
                        " rank(" + record.target_player.fbpInfo.Rank + 
@@ -63044,7 +63037,16 @@ namespace PRoConEvents
                     }
                     if (String.IsNullOrEmpty(_plugin._shortServerName))
                     {
-                        _plugin._shortServerName = _plugin._serverInfo.ServerName.Substring(0, Math.Min(30, _plugin._serverInfo.ServerName.Length - 1));
+                        if (_plugin._serverInfo == null ||
+                            String.IsNullOrEmpty(_plugin._serverInfo.ServerName))
+                        {
+                            _plugin._shortServerName = "unknown server";
+                        }
+                        else
+                        {
+                            var serverName = _plugin._serverInfo.ServerName;
+                            _plugin._shortServerName = _plugin.MakeAlphanumeric(serverName.Substring(0, Math.Min(30, serverName.Length - 1)));
+                        }
                     }
                     WebRequest request = WebRequest.Create(URL);
                     request.Method = "POST";
@@ -63064,7 +63066,11 @@ namespace PRoConEvents
                 {
                     WebResponse response = e.Response;
                     _plugin.Log.Info("RESPONSE: " + new StreamReader(response.GetResponseStream()).ReadToEnd());
-                    _plugin.Log.HandleException(new AException("Error POSTing to Discord WebHook.", e));
+                    _plugin.Log.HandleException(new AException("Web error posting to Discord WebHook.", e));
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error posting to Discord WebHook.", e));
                 }
             }
         }
