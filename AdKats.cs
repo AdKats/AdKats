@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.46
+ * Version 7.5.0.47
  * 28-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.46</version_code>
+ * <version_code>7.5.0.47</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.46";
+        private const String PluginVersion = "7.5.0.47";
 
         public enum GameVersionEnum
         {
@@ -40750,9 +40750,9 @@ namespace PRoConEvents
                                     Log.Info("Record " + record.record_id + " target name changed from " + record.target_name + " to " + targetName);
                                     record.target_name = targetName;
                                 }
-                                if (!reader.IsDBNull(6))
+                                if (!reader.IsDBNull(4))
                                 {
-                                    Int64 targetID = reader.GetInt64(6);
+                                    Int64 targetID = reader.GetInt64(4);
                                     if (record.target_player == null)
                                     {
                                         record.target_player = FetchPlayer(false, false, false, null, targetID, null, null, null, null);
@@ -40785,9 +40785,9 @@ namespace PRoConEvents
                                     Log.Info("Record " + record.record_id + " source name changed from " + record.source_name + " to " + sourceName);
                                     record.source_name = sourceName;
                                 }
-                                if (!reader.IsDBNull(8))
+                                if (!reader.IsDBNull(6))
                                 {
-                                    Int64 sourceID = reader.GetInt64(8);
+                                    Int64 sourceID = reader.GetInt64(6);
                                     if (record.source_player == null)
                                     {
                                         record.source_player = FetchPlayer(false, false, false, null, sourceID, null, null, null, null);
