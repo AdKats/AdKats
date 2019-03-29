@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.44
+ * Version 7.5.0.45
  * 28-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.44</version_code>
+ * <version_code>7.5.0.45</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.44";
+        private const String PluginVersion = "7.5.0.45";
 
         public enum GameVersionEnum
         {
@@ -7611,9 +7611,9 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"Short Server Name").Success)
                 {
                     var newName = strValue;
-                    if (String.IsNullOrWhiteSpace(newName) &&
+                    if (String.isNullOrEmpty(newName) &&
                         _serverInfo != null &&
-                        !String.IsNullOrWhiteSpace(_serverInfo.ServerName))
+                        !String.isNullOrEmpty(_serverInfo.ServerName))
                     {
                         newName = _serverInfo.ServerName.Substring(0, Math.Min(30, _serverInfo.ServerName.Length - 1));
                     }
@@ -63042,7 +63042,7 @@ namespace PRoConEvents
                         _plugin.Log.Error("Discord note body empty! Unable to post report.");
                         return;
                     }
-                    if (String.IsNullOrWhiteSpace(_plugin._shortServerName))
+                    if (String.isNullOrEmpty(_plugin._shortServerName))
                     {
                         _plugin._shortServerName = _plugin._serverInfo.ServerName.Substring(0, Math.Min(30, _plugin._serverInfo.ServerName.Length - 1));
                     }
