@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.48
- * 28-MAR-2019
+ * Version 7.5.0.49
+ * 29-MAR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.48</version_code>
+ * <version_code>7.5.0.49</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.48";
+        private const String PluginVersion = "7.5.0.49";
 
         public enum GameVersionEnum
         {
@@ -646,7 +646,7 @@ namespace PRoConEvents
         private DateTime _AutoKickNewPlayerDate = DateTime.UtcNow + TimeSpan.FromDays(7300);
         //Team Power Monitor
         private Boolean _UseTeamPowerMonitorSeeders = false;
-        private Boolean _UseTeamPowerMonitorBalance = false;
+        private Boolean _UseTeamPowerDisplayBalance = false;
         private Boolean _UseTeamPowerMonitorScrambler = false;
         private Boolean _ScrambleRequiredTeamsRemoved = false;
         private Boolean _UseTeamPowerMonitorReassign = false;
@@ -2653,7 +2653,7 @@ namespace PRoConEvents
                     {
                         Log.HandleException(new AException("Error building team power displays.", e));
                     }
-                    buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
+                    //buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
                     buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
                     if (_UseTeamPowerMonitorReassign)
                     {
@@ -2665,6 +2665,7 @@ namespace PRoConEvents
                     }
                     buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Unswitcher", typeof(Boolean), _UseTeamPowerMonitorUnswitcher));
                     buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Seeder Control", typeof(Boolean), _UseTeamPowerMonitorSeeders));
+                    buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Display Team Power In Procon Chat", typeof(Boolean), _UseTeamPowerDisplayBalance));
                 }
                 lstReturn.AddRange(buildList);
             }
@@ -4878,35 +4879,23 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Team Power Active Influence", typeof(Double), _TeamPowerActiveInfluence));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Enable Team Power Balancer").Success)
+                else if (Regex.Match(strVariable, @"Display Team Power In Procon Chat").Success)
                 {
                     //Initial parse
-                    Boolean UseTeamPowerMonitorBalance = Boolean.Parse(strValue);
+                    Boolean UseTeamPowerDisplayBalance = Boolean.Parse(strValue);
                     //Check for changed value
-                    if (UseTeamPowerMonitorBalance != _UseTeamPowerMonitorBalance)
+                    if (UseTeamPowerDisplayBalance != _UseTeamPowerDisplayBalance)
                     {
                         //Assignment
-                        _UseTeamPowerMonitorBalance = UseTeamPowerMonitorBalance;
-                        //Notification
-                        if (_threadsReady)
-                        {
-                            if (_UseTeamPowerMonitorBalance)
-                            {
-                                Log.Info("Team balance is now being controlled by the team power monitor.");
-                            }
-                            else
-                            {
-                                Log.Info("Team balance is no longer being controlled by the team power monitor.");
-                            }
-                        }
+                        _UseTeamPowerDisplayBalance = UseTeamPowerDisplayBalance;
                         //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Balancer", typeof(Boolean), _UseTeamPowerMonitorBalance));
+                        QueueSettingForUpload(new CPluginVariable(@"Display Team Power In Procon Chat", typeof(Boolean), _UseTeamPowerDisplayBalance));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Enable Team Power Scrambler").Success)
                 {
                     //Initial parse
-                    Boolean UseTeamPowerMonitorScrambler = Boolean.Parse(strValue);
+                    Boolean UseTeamPowerMonitorScrambler = false; //Boolean.Parse(strValue);
                     //Check for changed value
                     if (UseTeamPowerMonitorScrambler != _UseTeamPowerMonitorScrambler)
                     {
@@ -10126,7 +10115,7 @@ namespace PRoConEvents
         {
             try
             {
-                if (_UseExperimentalTools &&
+                if (_UseTeamPowerDisplayBalance &&
                     _firstPlayerListComplete)
                 {
                     ATeam t1, t2;
@@ -10724,7 +10713,7 @@ namespace PRoConEvents
                 {
                     foreach (var report in FetchActivePlayerReports())
                     {
-                        FetchRecordUpdate(report, false);
+                        FetchRecordUpdate(report);
                     }
                 }
             }
@@ -12536,7 +12525,7 @@ namespace PRoConEvents
                                             // Update all the reports
                                             foreach (var report in activeReports)
                                             {
-                                                FetchRecordUpdate(report, false);
+                                                FetchRecordUpdate(report);
                                             }
                                             activeReports = activeReports.Where(report => IsActiveReport(report)).ToList();
                                             foreach (ARecord report in activeReports)
@@ -25733,10 +25722,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!AcceptPlayerReport(record))
-                                    {
-                                        SendMessageToSource(record, "Invalid report ID given, unable to submit.");
-                                    }
+                                    AcceptPlayerReport(record);
                                     FinalizeRecord(record);
                                     return;
                                 default:
@@ -25763,10 +25749,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!DenyPlayerReport(record))
-                                    {
-                                        SendMessageToSource(record, "Invalid report ID given, unable to submit.");
-                                    }
+                                    DenyPlayerReport(record);
                                     FinalizeRecord(record);
                                     return;
                                 default:
@@ -25793,10 +25776,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!IgnorePlayerReport(record))
-                                    {
-                                        SendMessageToSource(record, "Invalid report ID given, unable to submit.");
-                                    }
+                                    IgnorePlayerReport(record);
                                     FinalizeRecord(record);
                                     return;
                                 default:
@@ -28733,6 +28713,27 @@ namespace PRoConEvents
                 ARecord reportedRecord = FetchPlayerReportByID(record.target_name);
                 if (reportedRecord != null)
                 {
+                    if (!IsActiveReport(reportedRecord))
+                    {
+                        if (reportedRecord.command_action.command_key == "player_report_ignore")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was ignored, will now be denied.");
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_confirm")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was accepted, will now be denied.");
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_deny")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " is already denied.");
+                            FinalizeRecord(record);
+                            return false;
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_expire")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was expired, will now be denied.");
+                        }
+                    }
                     Log.Debug(() => "Denying player report.", 5);
                     reportedRecord.command_action = GetCommandByKey("player_report_deny");
                     UpdateRecord(reportedRecord);
@@ -28742,6 +28743,10 @@ namespace PRoConEvents
                     record.target_player = reportedRecord.source_player;
                     QueueRecordForProcessing(record);
                     return true;
+                }
+                else
+                {
+                    SendMessageToSource(record, "Invalid report ID given, unable to submit.");
                 }
             }
             catch (Exception e)
@@ -28759,6 +28764,27 @@ namespace PRoConEvents
                 ARecord reportedRecord = FetchPlayerReportByID(record.target_name);
                 if (reportedRecord != null)
                 {
+                    if (!IsActiveReport(reportedRecord))
+                    {
+                        if (reportedRecord.command_action.command_key == "player_report_ignore")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " is already ignored.");
+                            FinalizeRecord(record);
+                            return false;
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_confirm")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was accepted, will now be ignored.");
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_deny")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was denied, will now be ignored.");
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_expire")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was expired, will now be ignored.");
+                        }
+                    }
                     Log.Debug(() => "Ignoring player report.", 5);
                     reportedRecord.command_action = GetCommandByKey("player_report_ignore");
                     UpdateRecord(reportedRecord);
@@ -28767,6 +28793,10 @@ namespace PRoConEvents
                     record.target_player = reportedRecord.source_player;
                     QueueRecordForProcessing(record);
                     return true;
+                }
+                else
+                {
+                    SendMessageToSource(record, "Invalid report ID given, unable to submit.");
                 }
             }
             catch (Exception e)
@@ -28784,6 +28814,27 @@ namespace PRoConEvents
                 ARecord reportedRecord = FetchPlayerReportByID(record.target_name);
                 if (reportedRecord != null)
                 {
+                    if (!IsActiveReport(reportedRecord))
+                    {
+                        if (reportedRecord.command_action.command_key == "player_report_ignore")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was ignored, will now be accepted.");
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_confirm")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " is already accepted.");
+                            FinalizeRecord(record);
+                            return false;
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_deny")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was denied, will now be accepted.");
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_expire")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was expired, will now be accepted.");
+                        }
+                    }
                     Log.Debug(() => "Accepting player report.", 5);
                     ConfirmActiveReport(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been accepted. Thank you.");
@@ -28795,6 +28846,10 @@ namespace PRoConEvents
                     record.record_action_executed = true;
                     QueueRecordForProcessing(record);
                     return true;
+                }
+                else
+                {
+                    SendMessageToSource(record, "Invalid report ID given, unable to submit.");
                 }
             }
             catch (Exception e)
@@ -28856,6 +28911,73 @@ namespace PRoConEvents
                 Log.HandleException(record.record_exception);
             }
             return false;
+        }
+
+        public Boolean IsActiveReport(ARecord aRecord)
+        {
+            try
+            {
+                if (aRecord == null ||
+                    aRecord.record_id < 1 ||
+                    aRecord.command_type == null ||
+                    (aRecord.command_type.command_key != "player_report" && aRecord.command_type.command_key != "player_calladmin") ||
+                    aRecord.command_action == null ||
+                    aRecord.command_action.command_key == "player_report_confirm" ||
+                    aRecord.command_action.command_key == "player_report_ignore" ||
+                    aRecord.command_action.command_key == "player_report_deny" ||
+                    aRecord.command_action.command_key == "player_report_expire" ||
+                    aRecord.target_player == null ||
+                    aRecord.TargetSession != aRecord.target_player.ActiveSession)
+                {
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while checking if a report was active.", e));
+            }
+            return true;
+        }
+
+        public void ConfirmActiveReport(ARecord report)
+        {
+            try
+            {
+                if (report != null &&
+                    IsActiveReport(report))
+                {
+                    // Expire all other active reports against the player since this is the one that we acted on
+                    var reportsToExpire = report.target_player.TargetedRecords.Where(dRecord => IsActiveReport(dRecord) &&
+                                                                                                dRecord.record_id != report.record_id);
+                    foreach (var eReport in reportsToExpire)
+                    {
+                        ExpireActiveReport(eReport);
+                    }
+                    report.command_action = GetCommandByKey("player_report_confirm");
+                    UpdateRecord(report);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while confirming an active report.", e));
+            }
+        }
+
+        public void ExpireActiveReport(ARecord aRecord)
+        {
+            try
+            {
+                if (aRecord != null &&
+                    IsActiveReport(aRecord))
+                {
+                    aRecord.command_action = GetCommandByKey("player_report_expire");
+                    UpdateRecord(aRecord);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while expiring an active report.", e));
+            }
         }
 
         //replaces the message with a pre-message
@@ -39165,7 +39287,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Debug Display Discord Members", typeof(Boolean), _DiscordManager.DebugMembers));
                 // Team Power Monitor
                 QueueSettingForUpload(new CPluginVariable(@"Team Power Active Influence", typeof(Double), _TeamPowerActiveInfluence));
-                QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Balancer", typeof(Boolean), _UseTeamPowerMonitorBalance));
+                QueueSettingForUpload(new CPluginVariable(@"Display Team Power In Procon Chat", typeof(Boolean), _UseTeamPowerDisplayBalance));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
                 QueueSettingForUpload(new CPluginVariable(@"Team Power Join Reassignment Leniency", typeof(Boolean), _UseTeamPowerMonitorReassignLenient));
@@ -40659,6 +40781,7 @@ namespace PRoConEvents
                                 //Fill the command
                                 command.Parameters.AddWithValue("@record_id", record.record_id);
                                 command.Parameters.AddWithValue("@command_numeric", record.command_numeric);
+
                                 //Trim to 500 characters
                                 record.record_message = record.record_message.Length <= 500 ? record.record_message : record.record_message.Substring(0, 500);
                                 command.Parameters.AddWithValue("@record_message", record.record_message);
@@ -40697,7 +40820,7 @@ namespace PRoConEvents
             }
         }
 
-        private ARecord FetchRecordUpdate(ARecord record, Boolean debug)
+        private ARecord FetchRecordUpdate(ARecord record)
         {
             Log.Debug(() => "FetchRecordUpdate starting!", 6);
             //Make sure database connection active
@@ -40712,11 +40835,12 @@ namespace PRoConEvents
             try
             {
                 List<ARecord> reportsToExpire = new List<ARecord>();
+                var reupload = false;
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
-                        String tablename = (debug) ? ("`adkats_records_debug`") : ("`adkats_records_main`");
+                        String tablename = (record.isDebug) ? ("`adkats_records_debug`") : ("`adkats_records_main`");
                         String sql = @"
                         SELECT 
                             `command_type`, 
@@ -40740,8 +40864,18 @@ namespace PRoConEvents
                                 var commandNumeric = reader.GetInt32("command_numeric");
                                 if (commandNumeric != record.command_numeric)
                                 {
-                                    Log.Info("Record " + record.record_id + " command numeric changed from " + record.command_numeric + " to " + commandNumeric);
-                                    record.command_numeric = commandNumeric;
+                                    // Don't allow command numeric updates if the new number is 0, but we already have a number
+                                    if (record.command_numeric != 0 && commandNumeric == 0)
+                                    {
+                                        // In fact, fix the record on the database side
+                                        reupload = true;
+                                        Log.Info("Record " + record.record_id + " had an invalid command numeric. Fixing back to " + record.command_numeric + ".");
+                                    }
+                                    else
+                                    {
+                                        Log.Info("Record " + record.record_id + " command numeric changed from " + record.command_numeric + " to " + commandNumeric);
+                                        record.command_numeric = commandNumeric;
+                                    }
                                 }
                                 var targetName = reader.GetString("target_name");
                                 if (targetName != record.target_name)
@@ -40860,6 +40994,10 @@ namespace PRoConEvents
                 foreach (var report in reportsToExpire)
                 {
                     ExpireActiveReport(report);
+                }
+                if (reupload)
+                {
+                    UpdateRecord(record);
                 }
             }
             catch (Exception e)
@@ -43343,22 +43481,6 @@ namespace PRoConEvents
                         canAssist = false;
                         rejectionMessage += "1 would be too strong";
                     }
-                }
-
-                if ((!auto || canAssist) && _UseExperimentalTools)
-                {
-                    InfoOrRespond(debugRecord,
-                    "Old Diff: " + Math.Round(oldPercDiff, 1) + " | " +
-                    "New Diff: " + Math.Round(newPercDiff, 1).ToString());
-                    InfoOrRespond(debugRecord,
-                    "Accept: " + canAssist + " | " +
-                    "Threshold: " + powerPercentageThreshold + " | " +
-                    "Over: " + powerDifferencePercOverThreshold + " | " +
-                    "Map: " + enemyHasMoreMap + " | " +
-                    "Time: " + roundMinutes);
-                    InfoOrRespond(debugRecord,
-                        "Old " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(oldFriendlyPower) + "):" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(oldEnemyPower) + ") | " +
-                        "New " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(newFriendlyPower) + "):" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(newEnemyPower) + ")");
                 }
             }
             if (!canAssist)
@@ -54386,10 +54508,6 @@ namespace PRoConEvents
                     {
                         return;
                     }
-                    if (_plugin._UseExperimentalTools)
-                    {
-                        _plugin.Log.Warn("Challenge mananger round load triggered for round " + roundID);
-                    }
                     if (ChallengeRoundState == ChallengeState.Playing) 
                     {
                         // We are still in playing state, this is likely due to a server crash or other oddity. Run the end trigger to change the state.
@@ -60016,73 +60134,6 @@ namespace PRoConEvents
             public APlayerStats(Int64 roundID)
             {
                 RoundID = roundID;
-            }
-        }
-
-        public Boolean IsActiveReport(ARecord aRecord)
-        {
-            try
-            {
-                if (aRecord == null ||
-                    aRecord.record_id < 1 ||
-                    aRecord.command_type == null ||
-                    (aRecord.command_type.command_key != "player_report" && aRecord.command_type.command_key != "player_calladmin") ||
-                    aRecord.command_action == null ||
-                    aRecord.command_action.command_key == "player_report_confirm" ||
-                    aRecord.command_action.command_key == "player_report_ignore" ||
-                    aRecord.command_action.command_key == "player_report_deny" ||
-                    aRecord.command_action.command_key == "player_report_expire" ||
-                    aRecord.target_player == null ||
-                    aRecord.TargetSession != aRecord.target_player.ActiveSession)
-                {
-                    return false;
-                }
-            }
-            catch (Exception e)
-            {
-                Log.HandleException(new AException("Error while checking if a report was active.", e));
-            }
-            return true;
-        }
-        
-        public void ConfirmActiveReport(ARecord report)
-        {
-            try
-            {
-                if (report != null &&
-                    IsActiveReport(report))
-                {
-                    // Expire all other active reports against the player since this is the one that we acted on
-                    var reportsToExpire = report.target_player.TargetedRecords.Where(dRecord => IsActiveReport(dRecord) &&
-                                                                                                dRecord.record_id != report.record_id);
-                    foreach (var eReport in reportsToExpire)
-                    {
-                        ExpireActiveReport(eReport);
-                    }
-                    report.command_action = GetCommandByKey("player_report_confirm");
-                    UpdateRecord(report);
-                }
-            }
-            catch (Exception e)
-            {
-                Log.HandleException(new AException("Error while confirming an active report.", e));
-            }
-        }
-
-        public void ExpireActiveReport(ARecord aRecord)
-        {
-            try
-            {
-                if (aRecord != null &&
-                    IsActiveReport(aRecord))
-                {
-                    aRecord.command_action = GetCommandByKey("player_report_expire");
-                    UpdateRecord(aRecord);
-                }
-            }
-            catch (Exception e)
-            {
-                Log.HandleException(new AException("Error while expiring an active report.", e));
             }
         }
 
