@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.49
- * 29-MAR-2019
+ * Version 7.5.0.50
+ * 2-APR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.49</version_code>
+ * <version_code>7.5.0.50</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.49";
+        private const String PluginVersion = "7.5.0.50";
 
         public enum GameVersionEnum
         {
@@ -7600,13 +7600,7 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"Short Server Name").Success)
                 {
                     var newName = MakeAlphanumeric(strValue);
-                    if (String.IsNullOrEmpty(newName) &&
-                        _serverInfo != null &&
-                        !String.IsNullOrEmpty(_serverInfo.ServerName))
-                    {
-                        newName = _serverInfo.ServerName.Substring(0, Math.Min(30, _serverInfo.ServerName.Length - 1));
-                    }
-                    else if (newName.Length > 30)
+                    if (newName.Length > 30)
                     {
                         newName = newName.Substring(0, Math.Min(30, newName.Length - 1));
                     }
@@ -7947,16 +7941,28 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"Send Reports to Discord WebHook").Success)
                 {
                     _UseDiscordForReports = Boolean.Parse(strValue);
+                    if (_UseDiscordForReports && _firstPlayerListComplete && String.IsNullOrEmpty(_shortServerName))
+                    {
+                        Log.Warn("The 'Short Server Name' setting must be filled in before posting discord reports.");
+                    }
                     QueueSettingForUpload(new CPluginVariable(@"Send Reports to Discord WebHook", typeof(Boolean), _UseDiscordForReports));
                 }
                 else if (Regex.Match(strVariable, @"Discord WebHook URL").Success)
                 {
                     _DiscordManager.URL = strValue;
+                    if (_UseDiscordForReports && _firstPlayerListComplete && String.IsNullOrEmpty(_shortServerName))
+                    {
+                        Log.Warn("The 'Short Server Name' setting must be filled in before posting discord reports.");
+                    }
                     QueueSettingForUpload(new CPluginVariable(@"Discord WebHook URL", typeof(String), _DiscordManager.URL));
                 }
                 else if (Regex.Match(strVariable, @"Only Send Discord Reports When Admins Offline").Success)
                 {
                     _DiscordReportsOnlyWhenAdminless = Boolean.Parse(strValue);
+                    if (_UseDiscordForReports && _firstPlayerListComplete && String.IsNullOrEmpty(_shortServerName))
+                    {
+                        Log.Warn("The 'Short Server Name' setting must be filled in before posting discord reports.");
+                    }
                     QueueSettingForUpload(new CPluginVariable(@"Only Send Discord Reports When Admins Offline", typeof(Boolean), _DiscordReportsOnlyWhenAdminless));
                 }
                 else if (false && Regex.Match(strVariable, @"Use Metabans?").Success)
@@ -63088,17 +63094,10 @@ namespace PRoConEvents
                     }
                     if (String.IsNullOrEmpty(_plugin._shortServerName))
                     {
-                        if (_plugin._serverInfo == null ||
-                            String.IsNullOrEmpty(_plugin._serverInfo.ServerName))
-                        {
-                            _plugin._shortServerName = "unknown server";
-                        }
-                        else
-                        {
-                            var serverName = _plugin._serverInfo.ServerName;
-                            _plugin._shortServerName = _plugin.MakeAlphanumeric(serverName.Substring(0, Math.Min(30, serverName.Length - 1)));
-                        }
+                        _plugin.Log.Error("The 'Short Server Name' setting must be filled in before posting discord reports.");
+                        return;
                     }
+                    
                     WebRequest request = WebRequest.Create(URL);
                     request.Method = "POST";
                     request.ContentType = "application/json";
