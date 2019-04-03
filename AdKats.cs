@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.50
- * 2-APR-2019
+ * Version 7.5.0.51
+ * 3-APR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.50</version_code>
+ * <version_code>7.5.0.51</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.50";
+        private const String PluginVersion = "7.5.0.51";
 
         public enum GameVersionEnum
         {
@@ -27354,15 +27354,9 @@ namespace PRoConEvents
                                     FinalizeRecord(record);
                                     return;
                                 case 1:
+                                    record.target_name = parameters[0];
                                     record.record_message = "";
-                                    record.target_name = record.source_name;
-                                    if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player))
-                                    {
-                                        SendMessageToSource(record, "Source player not found, unable to submit.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                    QueueRecordForProcessing(record);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     record.target_name = parameters[0];
