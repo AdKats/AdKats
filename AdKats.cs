@@ -4,7 +4,7 @@
  * Copyright 2014 A Different Kind, LLC
  * 
  * AdKats was inspired by the gaming community A Different Kind (ADK). Visit http://www.ADKGamers.com/ for more information.
- *
+ * 
  * The AdKats Frostbite Plugin is free software: You can redistribute it and/or modify it under the terms of the
  * GNU General Public License as published by the Free Software Foundation, either version 3 of the License,
  * or (at your option) any later version. AdKats is distributed in the hope that it will be useful,
@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.51
- * 3-APR-2019
+ * Version 7.5.0.52
+ * 8-APR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.51</version_code>
+ * <version_code>7.5.0.52</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.51";
+        private const String PluginVersion = "7.5.0.52";
 
         public enum GameVersionEnum
         {
@@ -57197,6 +57197,26 @@ namespace PRoConEvents
                                     });
                                     givenRewards.Add(descriptionString);
                                     break;
+                                case CReward.RewardType.PingWhitelist:
+                                    existingPlayers = _plugin.GetMatchingASPlayersOfGroup("whitelist_ping", Player);
+                                    if (existingPlayers.Any())
+                                    {
+                                        existingMinutes = (Int32)_plugin.NowDuration(existingPlayers.First().player_expiration).TotalMinutes;
+                                    }
+                                    _plugin.QueueRecordForProcessing(new ARecord
+                                    {
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _plugin._serverInfo.ServerID,
+                                        command_type = _plugin.GetCommandByKey("player_whitelistping"),
+                                        command_numeric = existingMinutes + reward.DurationMinutes,
+                                        target_name = Player.player_name,
+                                        target_player = Player,
+                                        source_name = "ChallengeManager",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + descriptionString + ".",
+                                        record_time = _plugin.UtcNow()
+                                    });
+                                    givenRewards.Add(descriptionString);
+                                    break;
                                 case CReward.RewardType.TeamKillTrackerWhitelist:
                                     existingPlayers = _plugin.GetMatchingASPlayersOfGroup("whitelist_teamkill", Player);
                                     if (existingPlayers.Any())
@@ -58640,10 +58660,11 @@ namespace PRoConEvents
                     ReservedSlot,
                     SpectatorSlot,
                     BalanceWhitelist,
+                    PingWhitelist,
                     TeamKillTrackerWhitelist,
                     CommandLock
                 }
-                public static String RewardTypeEnumString = "enum.ChallengeRewardType(None|ReservedSlot|SpectatorSlot|BalanceWhitelist|TeamKillTrackerWhitelist|CommandLock)";
+                public static String RewardTypeEnumString = "enum.ChallengeRewardType(None|ReservedSlot|SpectatorSlot|BalanceWhitelist|PingWhitelist|TeamKillTrackerWhitelist|CommandLock)";
 
                 private AdKats _plugin;
 
