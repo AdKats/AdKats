@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.52
+ * Version 7.5.0.53
  * 8-APR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.52</version_code>
+ * <version_code>7.5.0.53</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.52";
+        private const String PluginVersion = "7.5.0.53";
 
         public enum GameVersionEnum
         {
@@ -58697,6 +58697,9 @@ namespace PRoConEvents
                             break;
                         case CReward.RewardType.BalanceWhitelist:
                             rewardString += " autobalance whitelist";
+                            break;
+                        case CReward.RewardType.PingWhitelist:
+                            rewardString += " ping whitelist";
                             break;
                         case CReward.RewardType.TeamKillTrackerWhitelist:
                             rewardString += " teamkill whitelist";
