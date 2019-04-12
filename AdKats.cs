@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.53
- * 8-APR-2019
+ * Version 7.5.0.54
+ * 12-APR-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.53</version_code>
+ * <version_code>7.5.0.54</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.53";
+        private const String PluginVersion = "7.5.0.54";
 
         public enum GameVersionEnum
         {
@@ -691,6 +691,7 @@ namespace PRoConEvents
         private Boolean _DiscordPlayerPerksTeamKillTrackerWhitelist;
         private Boolean _UseDiscordForReports;
         private Boolean _DiscordReportsOnlyWhenAdminless;
+        private Boolean _DiscordReportsLeftWithoutAction;
 
         //Challenge
         private AChallengeManager ChallengeManager;
@@ -1777,6 +1778,7 @@ namespace PRoConEvents
                     {
                         buildList.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Discord WebHook URL", typeof(String), _DiscordManager.URL));
                         buildList.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Only Send Discord Reports When Admins Offline", typeof(Boolean), _DiscordReportsOnlyWhenAdminless));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Send update if reported players leave without action", typeof(Boolean), _DiscordReportsLeftWithoutAction));
                     }
                 }
                 lstReturn.AddRange(buildList);
@@ -7965,6 +7967,15 @@ namespace PRoConEvents
                     }
                     QueueSettingForUpload(new CPluginVariable(@"Only Send Discord Reports When Admins Offline", typeof(Boolean), _DiscordReportsOnlyWhenAdminless));
                 }
+                else if (Regex.Match(strVariable, @"Send update if reported players leave without action").Success)
+                {
+                    _DiscordReportsLeftWithoutAction = Boolean.Parse(strValue);
+                    if (_UseDiscordForReports && _firstPlayerListComplete && String.IsNullOrEmpty(_shortServerName))
+                    {
+                        Log.Warn("The 'Short Server Name' setting must be filled in before posting discord reports.");
+                    }
+                    QueueSettingForUpload(new CPluginVariable(@"Send update if reported players leave without action", typeof(Boolean), _DiscordReportsLeftWithoutAction));
+                }
                 else if (false && Regex.Match(strVariable, @"Use Metabans?").Success)
                 {
                     var useMetabans = Boolean.Parse(strValue);
@@ -12545,7 +12556,7 @@ namespace PRoConEvents
                                             {
                                                 player.Say("Player " + aPlayer.GetVerboseName() + " you reported has left.");
                                             }
-                                            if (activeReports.Any() && _UseDiscordForReports)
+                                            if (activeReports.Any() && _UseDiscordForReports && _DiscordReportsLeftWithoutAction)
                                             {
                                                 _DiscordManager.PostToDiscord("Reported player " + aPlayer.GetVerboseName() + " left without being acted on.");
                                             }
@@ -39384,6 +39395,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Send Reports to Discord WebHook", typeof(Boolean), _UseDiscordForReports));
                 QueueSettingForUpload(new CPluginVariable(@"Discord WebHook URL", typeof(String), _DiscordManager.URL));
                 QueueSettingForUpload(new CPluginVariable(@"Only Send Discord Reports When Admins Offline", typeof(Boolean), _DiscordReportsOnlyWhenAdminless));
+                QueueSettingForUpload(new CPluginVariable(@"Send update if reported players leave without action", typeof(Boolean), _DiscordReportsLeftWithoutAction));
                 /*
                 QueueSettingForUpload(new CPluginVariable(@"Use Metabans?", typeof(Boolean), _useMetabans));
                 QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof(String), _metabansAPIKey));
