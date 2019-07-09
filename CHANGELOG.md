@@ -3,7 +3,6 @@
     Started by Daniel J. Gradinjan (ColColonCleaner) for A Different Kind (ADK) on Apr. 20, 2013
 </p>
 <h3>Changelog</h3>
-<blockquote>
 <h4>0.0.1 (20-APR-2013)</h4>
 <b>Main: </b> <br/>
 * Initial Version <br/>
@@ -1047,4 +1046,35 @@ Added small improvements to fuzzy player match response text.</li>
 <ul>
     <li><b>No upgrade SQL required.</b></li>
 </ul>
-</blockquote>
+<h4>7.6.0.0 (8-JUL-2019)</h4>
+<b>Enhancements</b><br/>
+<ul>
+	<li>AdKats will now detect reserved slot players from outside the plugin if you are not feeding reserved slots to the server from inside AdKats.</li>
+	<li>Redesign of the reporting system so reports now last longer than one round. They are now actable for the duration AdKats is online or until you reach 999 active reports.</li>
+	<li>Enhanced the memory usage monitoring system, and the plugin will now warn at 512MB of memory used instead of 256MB.</li>
+	<li>Added section 8-3 for posting player reports to discord.</li>
+	<li>Added a short server name option for usage with discord posted reports.</li>
+	<li>Added options to automatically give !lead, !moveme, or !killme privilages to reserved slot players.</li>
+	<li>Added an option to feed new reserved slots to the VSM plugin instead of using AdKats.</li>
+	<li>Added the ability to put [newline] into spambot messages to write multiple lines at once.</li>
+	<li>Added ping whitelist option for challenge rewards.</li>
+</ul>
+<b>Changes</b><br/>
+<ul>
+	<li>Event system is now public. I probably will not get around to documenting it but the feature is massive. Been used internally until now.</li>
+	<li>Completely disabled the team power monitor scrambler.</li>
+	<li>If the ping enforcer is enabled, reports against players for ping are automatically handled.</li>
+	<li>Report wars between players are now blocked.</li>
+	<li>If a player already reported someone and that report is waiting on admin action, they are blocked from reporting the same player again.</li>
+	<li>If a player starts reporting many other players in the server in quick succession (more than 3 in 5 minutes) the additional reports are blocked.</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+	<li>Fixed issue where server rules delay could not be zero.</li>
+	<li>Fixed some issues with the team power join reassigner, and in turn fixed some issues with assist and player moves.</li>
+	<li>Fixed an issue where round ID would not be correctly logged or incremented on new installs.</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
