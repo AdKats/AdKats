@@ -4,7 +4,7 @@
  * Copyright 2014 A Different Kind, LLC
  * 
  * AdKats was inspired by the gaming community A Different Kind (ADK). Visit http://www.ADKGamers.com/ for more information.
- *
+ * 
  * The AdKats Frostbite Plugin is free software: You can redistribute it and/or modify it under the terms of the
  * GNU General Public License as published by the Free Software Foundation, either version 3 of the License,
  * or (at your option) any later version. AdKats is distributed in the hope that it will be useful,
@@ -16,15 +16,16 @@
  * Email System adapted from MorpheusX(AUT)'s "Notify Me!"
  * TeamSpeak Integration by Imisnew2
  * Metabans Integration by Phogue
+ * Discord report posting by jbrunink
  * 
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.5.0.0
- * 21-SEP-2018
+ * Version 7.6.0.0
+ * 8-JUL-2019
  * 
  * Automatic Update Information
- * <version_code>7.5.0.0</version_code>
+ * <version_code>7.6.0.0</version_code>
  */
 
 using System;
@@ -67,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.5.0.0";
+        private const String PluginVersion = "7.6.0.0";
 
         public enum GameVersionEnum
         {
@@ -193,6 +194,10 @@ namespace PRoConEvents
         private readonly Dictionary<String, APlayer> _populationPopulatingPlayers = new Dictionary<String, APlayer>();
         private String _AdKatsLRTExtensionToken = String.Empty;
         private List<CPlayerInfo> _roundOverPlayers = null;
+        private Int32 _MemoryUsageCurrent = 0;
+        private Int32 _MemoryUsageWarn = 512;
+        private Int32 _MemoryUsageRestartPlugin = 1024;
+        private Int32 _MemoryUsageRestartProcon = 2048;
 
         //Debug
         private String _debugSoldierName = "ColColonCleaner";
@@ -261,6 +266,7 @@ namespace PRoConEvents
         private readonly Dictionary<PopulationState, TimeSpan> _populationDurations = new Dictionary<PopulationState, TimeSpan>();
         private Int32 _lowPopulationPlayerCount = 20;
         private Int32 _highPopulationPlayerCount = 40;
+        private String _shortServerName = "";
         private Boolean _automaticServerRestart = false;
         private Boolean _automaticServerRestartProcon = false;
         private Int32 _automaticServerRestartMinHours = 18;
@@ -309,8 +315,7 @@ namespace PRoConEvents
         private readonly Dictionary<String, ARecord> _LoadoutConfirmDictionary = new Dictionary<String, ARecord>();
         private readonly Dictionary<String, ARecord> _ActionConfirmDic = new Dictionary<String, ARecord>();
         private readonly Dictionary<String, Int32> _RoundMutedPlayers = new Dictionary<String, Int32>();
-        private readonly Dictionary<String, ARecord> _RoundReports = new Dictionary<String, ARecord>();
-        private readonly HashSet<String> _RoundReportHistory = new HashSet<String>();
+        private readonly List<ARecord> _PlayerReports = new List<ARecord>();
         private readonly HashSet<String> _PlayersRequestingCommands = new HashSet<String>();
 
         //Threads
@@ -391,6 +396,9 @@ namespace PRoConEvents
         private readonly Dictionary<String, Func<AdKats, Double>> _commandTimeoutDictionary = new Dictionary<string, Func<AdKats, double>>();
         private readonly Dictionary<String, DateTime> _commandUsageTimes = new Dictionary<string, DateTime>();
         private Boolean _AllowAdminSayCommands = true;
+        private Boolean _ReservedSquadLead = false;
+        private Boolean _ReservedSelfMove = false;
+        private Boolean _ReservedSelfKill = false;
         private Boolean _bypassCommandConfirmation = false;
         private List<String> _ExternalPlayerCommands = new List<string>();
         private List<String> _ExternalAdminCommands = new List<string>();
@@ -398,7 +406,7 @@ namespace PRoConEvents
         private Int32 _RequiredReasonLength = 4;
         private Int32 _minimumAssistMinutes = 5;
         //Commands specific
-        private String _ServerVoipAddress = "(TS3) TS.ADKGamers.com:3796";
+        private String _ServerVoipAddress = "Enter teamspeak/discord/etc address here.";
         //Dynamic access
         public Func<AdKats, APlayer, Boolean> AAPerkFunc = ((plugin, aPlayer) => ((plugin._EnableAdminAssistantPerk && aPlayer.player_aa) || (aPlayer.player_reputation > _reputationThresholdGood)));
         public Func<AdKats, APlayer, Boolean> TeamSwapFunc = ((plugin, aPlayer) => ((plugin._EnableAdminAssistantPerk && aPlayer.player_aa) || plugin.GetMatchingVerboseASPlayersOfGroup("whitelist_teamswap", aPlayer).Any()));
@@ -613,7 +621,7 @@ namespace PRoConEvents
         private Boolean _UsePerkExpirationNotify = false;
         private Int32 _PerkExpirationNotifyDays = 7;
         //Orchestration
-        private List<String> _CurrentReservedSlotPlayers;
+        private List<String> _CurrentReservedSlotPlayers = new List<String>();
         private List<String> _CurrentSpectatorListPlayers;
         private Boolean _FeedMultiBalancerWhitelist;
         private Boolean _FeedMultiBalancerWhitelist_Admins = true;
@@ -621,6 +629,7 @@ namespace PRoConEvents
         private Boolean _FeedTeamKillTrackerWhitelist;
         private Boolean _FeedTeamKillTrackerWhitelist_Admins;
         private Boolean _FeedServerReservedSlots;
+        private Boolean _FeedServerReservedSlots_VSM;
         private Boolean _FeedServerReservedSlots_Admins = true;
         private Boolean _FeedServerReservedSlots_Admins_VIPKickWhitelist = false;
         private Boolean _FeedServerSpectatorList;
@@ -637,7 +646,7 @@ namespace PRoConEvents
         private DateTime _AutoKickNewPlayerDate = DateTime.UtcNow + TimeSpan.FromDays(7300);
         //Team Power Monitor
         private Boolean _UseTeamPowerMonitorSeeders = false;
-        private Boolean _UseTeamPowerMonitorBalance = false;
+        private Boolean _UseTeamPowerDisplayBalance = false;
         private Boolean _UseTeamPowerMonitorScrambler = false;
         private Boolean _ScrambleRequiredTeamsRemoved = false;
         private Boolean _UseTeamPowerMonitorReassign = false;
@@ -680,6 +689,9 @@ namespace PRoConEvents
         private Boolean _DiscordPlayerPerksBalanceWhitelist;
         private Boolean _DiscordPlayerPerksPingWhitelist;
         private Boolean _DiscordPlayerPerksTeamKillTrackerWhitelist;
+        private Boolean _UseDiscordForReports;
+        private Boolean _DiscordReportsOnlyWhenAdminless;
+        private Boolean _DiscordReportsLeftWithoutAction;
 
         //Challenge
         private AChallengeManager ChallengeManager;
@@ -901,6 +913,7 @@ namespace PRoConEvents
             AddSettingSection("7", "Punishment Settings");
             AddSettingSection("8", "Email Settings");
             AddSettingSection("8-2", "PushBullet Settings");
+            AddSettingSection("8-3", "Discord WebHook Settings");
             AddSettingSection("9", "TeamSwap Settings");
             AddSettingSection("A10", "Admin Assistant Settings");
             AddSettingSection("A11", "Player Mute Settings");
@@ -960,19 +973,22 @@ namespace PRoConEvents
             //Build event round options enum
             _EventRoundOptionsEnum = String.Empty;
             random = new Random(Environment.TickCount);
-            foreach (String mapMode in AEventOption.ModeNames.Values)
+            foreach (String map in AEventOption.MapNames.Values)
             {
-                foreach (String rule in AEventOption.RuleNames.Values.Where(ruleValue => ruleValue != AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT]))
+                foreach (String mode in AEventOption.ModeNames.Values)
                 {
-                    if (String.IsNullOrEmpty(_EventRoundOptionsEnum))
+                    foreach (String rule in AEventOption.RuleNames.Values.Where(ruleValue => ruleValue != AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT]))
                     {
-                        _EventRoundOptionsEnum += "enum.EventRoundOptionsEnum_" + random.Next(100000, 999999) + "(Remove|";
+                        if (String.IsNullOrEmpty(_EventRoundOptionsEnum))
+                        {
+                            _EventRoundOptionsEnum += "enum.EventRoundOptionsEnum_" + random.Next(100000, 999999) + "(Remove|";
+                        }
+                        else
+                        {
+                            _EventRoundOptionsEnum += "|";
+                        }
+                        _EventRoundOptionsEnum += map + "/" + mode + "/" + rule;
                     }
-                    else
-                    {
-                        _EventRoundOptionsEnum += "|";
-                    }
-                    _EventRoundOptionsEnum += mapMode + "/" + rule;
                 }
             }
             _EventRoundOptionsEnum += ")";
@@ -995,12 +1011,11 @@ namespace PRoConEvents
 
             //Init the pre-message list
             _PreMessageList = new List<String> {
-                "US TEAM: DO NOT BASERAPE, YOU WILL BE PUNISHED.",
-                "RU TEAM: DO NOT BASERAPE, YOU WILL BE PUNISHED.",
-                "US TEAM: DO NOT ENTER THE STREETS BEYOND 'A', YOU WILL BE PUNISHED.",
-                "RU TEAM: DO NOT GO BEYOND THE BLACK LINE ON CEILING BY 'C' FLAG, YOU WILL BE PUNISHED.",
-                "THIS SERVER IS NO EXPLOSIVES, YOU WILL BE PUNISHED FOR INFRACTIONS.",
-                "JOIN OUR TEAMSPEAK AT TS.ADKGAMERS.COM:3796"
+                "Predefined message 1",
+                "Predefined message 2",
+                "Predefined message 3",
+                "Predefined message 4",
+                "Predefined message 5",
             };
 
             //Init the spam message lists
@@ -1216,6 +1231,7 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server IP (Display)", typeof(String), _serverInfo.ServerIP));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server Round (Display)", typeof(String), _roundID));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Server Game (Display)", typeof(String), GameVersion.ToString()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Short Server Name", typeof(String), _shortServerName));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "High Population Value", typeof(Int32), _highPopulationPlayerCount));
                     buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Server Restart When Empty", typeof(Boolean), _automaticServerRestart));
@@ -1224,6 +1240,10 @@ namespace PRoConEvents
                         buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Restart Minimum Uptime Hours", typeof(Int32), _automaticServerRestartMinHours));
                         buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Automatic Procon Reboot When Server Reboots", typeof(Boolean), _automaticServerRestartProcon));
                     }
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Procon Memory Usage MB (Display)", typeof(Int32), _MemoryUsageCurrent));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Procon Memory Usage MB Warning", typeof(Int32), _MemoryUsageWarn));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Procon Memory Usage MB AdKats Restart", typeof(Int32), _MemoryUsageRestartPlugin));
+                    buildList.Add(new CPluginVariable(GetSettingSection("1") + t + "Procon Memory Usage MB Procon Restart", typeof(Int32), _MemoryUsageRestartProcon));
                 }
                 lstReturn.AddRange(buildList);
             }
@@ -1283,7 +1303,7 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    roleEnum += "" + t + "";
+                                    roleEnum += "" + t.ToString();
                                 }
                                 roleEnum += role.role_name;
                             }
@@ -1590,6 +1610,9 @@ namespace PRoConEvents
                     buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "External plugin player commands", typeof(String[]), _ExternalPlayerCommands.ToArray()));
                     buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "External plugin admin commands", typeof(String[]), _ExternalAdminCommands.ToArray()));
                     buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Command Target Whitelist Commands", typeof(String[]), _CommandTargetWhitelistCommands.ToArray()));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Reserved slot grants access to squad lead command", typeof(Boolean), _ReservedSquadLead));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Reserved slot grants access to self-move command", typeof(Boolean), _ReservedSelfMove));
+                    buildList.Add(new CPluginVariable(GetSettingSection("5") + t + "Reserved slot grants access to self-kill command", typeof(Boolean), _ReservedSelfKill));
                 }
                 lstReturn.AddRange(buildList);
             }
@@ -1739,6 +1762,31 @@ namespace PRoConEvents
             {
                 Log.HandleException(new AException("Error building pushbullet setting section.", e));
                 lstReturn.Add(new CPluginVariable(GetSettingSection("8-2") + t + "Failed to build setting section.", typeof(String), ""));
+            }
+        }
+
+        public void BuildDiscordWebHookSettings(List<CPluginVariable> lstReturn)
+        {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
+            try
+            {
+                if (IsActiveSettingSection("8-3"))
+                {
+                    //Discord Settings
+                    buildList.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Send Reports to Discord WebHook", typeof(Boolean), _UseDiscordForReports));
+                    if (_UseDiscordForReports)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Discord WebHook URL", typeof(String), _DiscordManager.URL));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Only Send Discord Reports When Admins Offline", typeof(Boolean), _DiscordReportsOnlyWhenAdminless));
+                        buildList.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Send update if reported players leave without action", typeof(Boolean), _DiscordReportsLeftWithoutAction));
+                    }
+                }
+                lstReturn.AddRange(buildList);
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error building Discord WebHook setting section.", e));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("8-3") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
 
@@ -2056,6 +2104,10 @@ namespace PRoConEvents
                     {
                         buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins));
                         buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Automatic VIP Kick Whitelist for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins_VIPKickWhitelist));
+                    }
+                    else
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Send new reserved slots to VIP Slot Manager", typeof(Boolean), _FeedServerReservedSlots_VSM));
                     }
                     buildList.Add(new CPluginVariable(GetSettingSection("A16") + t + "Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
                     if (_FeedServerSpectatorList)
@@ -2603,7 +2655,7 @@ namespace PRoConEvents
                     {
                         Log.HandleException(new AException("Error building team power displays.", e));
                     }
-                    buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
+                    //buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
                     buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
                     if (_UseTeamPowerMonitorReassign)
                     {
@@ -2615,6 +2667,7 @@ namespace PRoConEvents
                     }
                     buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Unswitcher", typeof(Boolean), _UseTeamPowerMonitorUnswitcher));
                     buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Enable Team Power Seeder Control", typeof(Boolean), _UseTeamPowerMonitorSeeders));
+                    buildList.Add(new CPluginVariable(GetSettingSection(teamPowerSection) + t + "Display Team Power In Procon Chat", typeof(Boolean), _UseTeamPowerDisplayBalance));
                 }
                 lstReturn.AddRange(buildList);
             }
@@ -2894,62 +2947,59 @@ namespace PRoConEvents
             var ev = "Y99";
             try
             {
-                if (IsActiveSettingSection(ex) || IsActiveSettingSection(ev))
+                if ((IsActiveSettingSection(ex) || IsActiveSettingSection(ev)) && _UseExperimentalTools)
                 {
-                    if (_UseExperimentalTools)
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Automatically Poll Server For Event Options", typeof(Boolean), _EventPollAutomatic));
+                    if (_EventPollAutomatic)
                     {
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Automatically Poll Server For Event Options", typeof(Boolean), _EventPollAutomatic));
-                        if (_EventPollAutomatic)
-                        {
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Max Automatic Polls Per Event", typeof(Int32), _EventRoundAutoPollsMax));
-                        }
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Yell Current Winning Rule Option", typeof(Boolean), _eventPollYellWinningRule));
-
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Duration Rounds", typeof(Int32), _EventRoundOptions.Count()));
-                        for (int roundNumber = 0; roundNumber < _EventRoundOptions.Count(); roundNumber++)
-                        {
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundOptions[roundNumber].getModeRuleDisplay()));
-                        }
-
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
-                        if (_EventWeeklyRepeat)
-                        {
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Day", "enum.weekdays(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)", _EventWeeklyDay.ToString()));
-                        }
-                        else
-                        {
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Date", typeof(String), _EventDate.ToShortDateString()));
-                        }
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Hour in 24 format", typeof(Double), _EventHour));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Is it daylight savings?", typeof(String), DateTime.Now.IsDaylightSavingTime() ? "Yes, currently daylight savings." : "No, not daylight savings."));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Announce Day Difference", typeof(Double), _EventAnnounceDayDifference));
-
-                        if (_EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString())
-                        {
-                            var eventDate = _EventDate.AddHours(_EventHour);
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Processed Time Of Event (display)", typeof(String), eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString() + " (" + FormatTimeString(eventDate - DateTime.Now, 3) + ")"));
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Current Round Number (display)", typeof(String), String.Format("{0:n0}", _roundID)));
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Estimated Event Round Number (display)", typeof(String), String.Format("{0:n0}", FetchEstimatedEventRoundNumber())));
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Concrete Event Round Number (display)", typeof(String), _CurrentEventRoundNumber == 999999 ? "Undecided." : String.Format("{0:n0}", _CurrentEventRoundNumber)));
-                        }
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Max Option Count", typeof(Int32), _EventPollMaxOptions));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Mode Rule Combination Count", typeof(Int32), _EventRoundPollOptions.Count()));
-                        for (int optionNumber = 0; optionNumber < _EventRoundPollOptions.Count(); optionNumber++)
-                        {
-                            buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Event Poll Option " + (optionNumber + 1), _EventRoundOptionsEnum, _EventRoundPollOptions[optionNumber].getModeRuleDisplay()));
-                        }
-
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
-
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Base Server Name (display)", typeof(String), ProcessEventServerName(_eventBaseServerName, false, false)));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventCountdownServerName, false, false)));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Concrete Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventConcreteCountdownServerName, false, true)));
-                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Active Server Name (display)", typeof(String), ProcessEventServerName(_eventActiveServerName, true, true)));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Max Automatic Polls Per Event", typeof(Int32), _EventRoundAutoPollsMax));
                     }
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + t + "Yell Current Winning Rule Option", typeof(Boolean), _eventPollYellWinningRule));
+
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Duration Rounds", typeof(Int32), _EventRoundOptions.Count()));
+                    for (int roundNumber = 0; roundNumber < _EventRoundOptions.Count(); roundNumber++)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [1] Round Settings" + t + "Event Round " + (roundNumber + 1) + " Options", _EventRoundOptionsEnum, _EventRoundOptions[roundNumber].getDisplay()));
+                    }
+
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Weekly Events", typeof(Boolean), _EventWeeklyRepeat));
+                    if (_EventWeeklyRepeat)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Day", "enum.weekdays(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)", _EventWeeklyDay.ToString()));
+                    }
+                    else
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Date", typeof(String), _EventDate.ToShortDateString()));
+                    }
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Hour in 24 format", typeof(Double), _EventHour));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Is it daylight savings?", typeof(String), DateTime.Now.IsDaylightSavingTime() ? "Yes, currently daylight savings." : "No, not daylight savings."));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [2] Schedule Settings" + t + "Event Announce Day Difference", typeof(Double), _EventAnnounceDayDifference));
+
+                    if (_EventDate.ToShortDateString() != GetLocalEpochTime().ToShortDateString())
+                    {
+                        var eventDate = _EventDate.AddHours(_EventHour);
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Processed Time Of Event (display)", typeof(String), eventDate.ToShortDateString() + " " + eventDate.ToShortTimeString() + " (" + FormatTimeString(eventDate - DateTime.Now, 3) + ")"));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Current Round Number (display)", typeof(String), String.Format("{0:n0}", _roundID)));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Estimated Event Round Number (display)", typeof(String), String.Format("{0:n0}", FetchEstimatedEventRoundNumber())));
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [3] Schedule Display" + t + "Concrete Event Round Number (display)", typeof(String), _CurrentEventRoundNumber == 999999 ? "Undecided." : String.Format("{0:n0}", _CurrentEventRoundNumber)));
+                    }
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Max Option Count", typeof(Int32), _EventPollMaxOptions));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Poll Mode Rule Combination Count", typeof(Int32), _EventRoundPollOptions.Count()));
+                    for (int optionNumber = 0; optionNumber < _EventRoundPollOptions.Count(); optionNumber++)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [4] Poll Settings" + t + "Event Poll Option " + (optionNumber + 1), _EventRoundOptionsEnum, _EventRoundPollOptions[optionNumber].getDisplay()));
+                    }
+
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Base Server Name", typeof(String), _eventBaseServerName));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Countdown Server Name", typeof(String), _eventCountdownServerName));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Settings" + t + "Event Active Server Name", typeof(String), _eventActiveServerName));
+
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Base Server Name (display)", typeof(String), ProcessEventServerName(_eventBaseServerName, false, false)));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventCountdownServerName, false, false)));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Concrete Countdown Server Name (display)", typeof(String), ProcessEventServerName(_eventConcreteCountdownServerName, false, true)));
+                    buildList.Add(new CPluginVariable(GetSettingSection(ev) + " [5] Name Display" + t + "Processed Active Server Name (display)", typeof(String), ProcessEventServerName(_eventActiveServerName, true, true)));
                 }
                 lstReturn.AddRange(buildList);
             }
@@ -3021,6 +3071,8 @@ namespace PRoConEvents
                     BuildEmailSettings(lstReturn);
 
                     BuildPushbulletSettings(lstReturn);
+
+                    BuildDiscordWebHookSettings(lstReturn);
 
                     BuildTeamswapSettings(lstReturn);
 
@@ -3464,10 +3516,10 @@ namespace PRoConEvents
                     }
                     if (_ServerRulesDelay != delay)
                     {
-                        if (delay <= 0)
+                        if (delay < 0)
                         {
                             Log.Error("Delay cannot be negative.");
-                            delay = 1.0;
+                            delay = 0.1;
                         }
                         _ServerRulesDelay = delay;
                         //Once setting has been changed, upload the change to database
@@ -4704,6 +4756,15 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Automatic VIP Kick Whitelist for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins_VIPKickWhitelist));
                     }
                 }
+                else if (Regex.Match(strVariable, @"Send new reserved slots to VIP Slot Manager").Success)
+                {
+                    Boolean FeedServerReservedSlots_VSM = Boolean.Parse(strValue);
+                    if (FeedServerReservedSlots_VSM != _FeedServerReservedSlots_VSM)
+                    {
+                        _FeedServerReservedSlots_VSM = FeedServerReservedSlots_VSM;
+                        QueueSettingForUpload(new CPluginVariable(@"Send new reserved slots to VIP Slot Manager", typeof(Boolean), _FeedServerReservedSlots_VSM));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Feed Server Spectator List").Success)
                 {
                     Boolean feedSSL = Boolean.Parse(strValue);
@@ -4820,35 +4881,23 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Team Power Active Influence", typeof(Double), _TeamPowerActiveInfluence));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Enable Team Power Balancer").Success)
+                else if (Regex.Match(strVariable, @"Display Team Power In Procon Chat").Success)
                 {
                     //Initial parse
-                    Boolean UseTeamPowerMonitorBalance = Boolean.Parse(strValue);
+                    Boolean UseTeamPowerDisplayBalance = Boolean.Parse(strValue);
                     //Check for changed value
-                    if (UseTeamPowerMonitorBalance != _UseTeamPowerMonitorBalance)
+                    if (UseTeamPowerDisplayBalance != _UseTeamPowerDisplayBalance)
                     {
                         //Assignment
-                        _UseTeamPowerMonitorBalance = UseTeamPowerMonitorBalance;
-                        //Notification
-                        if (_threadsReady)
-                        {
-                            if (_UseTeamPowerMonitorBalance)
-                            {
-                                Log.Info("Team balance is now being controlled by the team power monitor.");
-                            }
-                            else
-                            {
-                                Log.Info("Team balance is no longer being controlled by the team power monitor.");
-                            }
-                        }
+                        _UseTeamPowerDisplayBalance = UseTeamPowerDisplayBalance;
                         //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Balancer", typeof(Boolean), _UseTeamPowerMonitorBalance));
+                        QueueSettingForUpload(new CPluginVariable(@"Display Team Power In Procon Chat", typeof(Boolean), _UseTeamPowerDisplayBalance));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Enable Team Power Scrambler").Success)
                 {
                     //Initial parse
-                    Boolean UseTeamPowerMonitorScrambler = Boolean.Parse(strValue);
+                    Boolean UseTeamPowerMonitorScrambler = false; //Boolean.Parse(strValue);
                     //Check for changed value
                     if (UseTeamPowerMonitorScrambler != _UseTeamPowerMonitorScrambler)
                     {
@@ -6424,18 +6473,27 @@ namespace PRoConEvents
                             }
                             else
                             {
-                                AEventOption.ModeCode chosenMapMode = AEventOption.ModeCode.UNKNOWN;
+                                AEventOption.MapCode chosenMap = AEventOption.MapCode.UNKNOWN;
+                                AEventOption.ModeCode chosenMode = AEventOption.ModeCode.UNKNOWN;
                                 AEventOption.RuleCode chosenRule = AEventOption.RuleCode.UNKNOWN;
                                 Boolean chosen = false;
-                                foreach (AEventOption.ModeCode mapMode in AEventOption.ModeNames.Keys)
+                                foreach (AEventOption.MapCode map in AEventOption.MapNames.Keys)
                                 {
-                                    foreach (AEventOption.RuleCode rule in AEventOption.RuleNames.Keys.Where(rule => rule != AEventOption.RuleCode.ENDEVENT))
+                                    foreach (AEventOption.ModeCode mode in AEventOption.ModeNames.Keys)
                                     {
-                                        if (!optionList.Any(option => option.Mode == mapMode && option.Rule == rule))
+                                        foreach (AEventOption.RuleCode rule in AEventOption.RuleNames.Keys.Where(rule => rule != AEventOption.RuleCode.ENDEVENT))
                                         {
-                                            chosenMapMode = mapMode;
-                                            chosenRule = rule;
-                                            chosen = true;
+                                            if (!optionList.Any(option => option.Map == map && option.Mode == mode && option.Rule == rule))
+                                            {
+                                                chosenMap = map;
+                                                chosenMode = mode;
+                                                chosenRule = rule;
+                                                chosen = true;
+                                                break;
+                                            }
+                                        }
+                                        if (chosen)
+                                        {
                                             break;
                                         }
                                     }
@@ -6448,7 +6506,8 @@ namespace PRoConEvents
                                 {
                                     optionList.Add(new AEventOption()
                                     {
-                                        Mode = chosenMapMode,
+                                        Map = chosenMap,
+                                        Mode = chosenMode,
                                         Rule = chosenRule
                                     });
                                 }
@@ -6456,7 +6515,7 @@ namespace PRoConEvents
                         }
                         _EventRoundOptions = optionList;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                        QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getCode()).ToArray()));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Event Round \d+ Options").Success)
@@ -6470,14 +6529,16 @@ namespace PRoConEvents
                     else
                     {
                         var newOption = AEventOption.FromDisplay(strValue);
-                        if (_EventRoundOptions.Any(option => option.Mode == newOption.Mode && option.Rule == newOption.Rule))
+                        if (_EventRoundOptions.Any(option => option.Map == newOption.Map && 
+                                                             option.Mode == newOption.Mode && 
+                                                             option.Rule == newOption.Rule))
                         {
-                            Log.Error("Event round option " + newOption.getModeRuleDisplay() + " already exists.");
+                            Log.Error("Event round option " + newOption.getDisplay() + " already exists.");
                             return;
                         }
                         _EventRoundOptions[roundNumber] = newOption;
                     }
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getCode()).ToArray()));
                 }
                 else if (Regex.Match(strVariable, @"Event Round Codes").Success)
                 {
@@ -6485,7 +6546,7 @@ namespace PRoConEvents
                     {
                         _EventRoundOptions = CPluginVariable.DecodeStringArray(strValue).Select(option => AEventOption.FromCode(option)).ToList();
                     }
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getCode()).ToArray()));
                 }
                 else if (Regex.Match(strVariable, @"Poll Mode Rule Combination Count").Success)
                 {
@@ -6507,18 +6568,29 @@ namespace PRoConEvents
                             }
                             else
                             {
-                                AEventOption.ModeCode chosenMapMode = AEventOption.ModeCode.UNKNOWN;
+                                AEventOption.MapCode chosenMap = AEventOption.MapCode.UNKNOWN;
+                                AEventOption.ModeCode chosenMode = AEventOption.ModeCode.UNKNOWN;
                                 AEventOption.RuleCode chosenRule = AEventOption.RuleCode.UNKNOWN;
                                 Boolean chosen = false;
-                                foreach (AEventOption.ModeCode mapMode in AEventOption.ModeNames.Keys)
+                                foreach (AEventOption.MapCode mapCode in AEventOption.MapNames.Keys)
                                 {
-                                    foreach (AEventOption.RuleCode rule in AEventOption.RuleNames.Keys.Where(rule => rule != AEventOption.RuleCode.ENDEVENT))
+                                    foreach (AEventOption.ModeCode modeCode in AEventOption.ModeNames.Keys)
                                     {
-                                        if (!optionList.Any(option => option.Mode == mapMode && option.Rule == rule))
+                                        foreach (AEventOption.RuleCode ruleCode in AEventOption.RuleNames.Keys.Where(rule => rule != AEventOption.RuleCode.ENDEVENT))
                                         {
-                                            chosenMapMode = mapMode;
-                                            chosenRule = rule;
-                                            chosen = true;
+                                            if (!optionList.Any(option => option.Map == mapCode &&
+                                                                          option.Mode == modeCode && 
+                                                                          option.Rule == ruleCode))
+                                            {
+                                                chosenMap = mapCode;
+                                                chosenMode = modeCode;
+                                                chosenRule = ruleCode;
+                                                chosen = true;
+                                                break;
+                                            }
+                                        }
+                                        if (chosen)
+                                        {
                                             break;
                                         }
                                     }
@@ -6531,7 +6603,8 @@ namespace PRoConEvents
                                 {
                                     optionList.Add(new AEventOption()
                                     {
-                                        Mode = chosenMapMode,
+                                        Map = chosenMap,
+                                        Mode = chosenMode,
                                         Rule = chosenRule
                                     });
                                 }
@@ -6539,7 +6612,7 @@ namespace PRoConEvents
                         }
                         _EventRoundPollOptions = optionList;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
+                        QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getCode()).ToArray()));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Event Poll Option \d+").Success)
@@ -6553,14 +6626,16 @@ namespace PRoConEvents
                     else
                     {
                         var newOption = AEventOption.FromDisplay(strValue);
-                        if (_EventRoundPollOptions.Any(option => option.Mode == newOption.Mode && option.Rule == newOption.Rule))
+                        if (_EventRoundPollOptions.Any(option => option.Map == newOption.Map &&
+                                                                 option.Mode == newOption.Mode && 
+                                                                 option.Rule == newOption.Rule))
                         {
-                            Log.Error("Event poll option " + newOption.getModeRuleDisplay() + " already exists.");
+                            Log.Error("Event poll option " + newOption.getDisplay() + " already exists.");
                             return;
                         }
                         _EventRoundPollOptions[optionNumber] = newOption;
                     }
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getCode()).ToArray()));
                 }
                 else if (Regex.Match(strVariable, @"Event Round Poll Codes").Success)
                 {
@@ -6568,7 +6643,7 @@ namespace PRoConEvents
                     {
                         _EventRoundPollOptions = CPluginVariable.DecodeStringArray(strValue).Select(option => AEventOption.FromCode(option)).ToList();
                     }
-                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
+                    QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getCode()).ToArray()));
                 }
                 else if (Regex.Match(strVariable, @"Use LIVE Anti Cheat System").Success)
                 {
@@ -6920,6 +6995,36 @@ namespace PRoConEvents
                         _AllowAdminSayCommands = allowSayCommands;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Reserved slot grants access to squad lead command").Success)
+                {
+                    Boolean reservedSquadLead = Boolean.Parse(strValue);
+                    if (_ReservedSquadLead != reservedSquadLead)
+                    {
+                        _ReservedSquadLead = reservedSquadLead;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Reserved slot grants access to squad lead command", typeof(Boolean), _ReservedSquadLead));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Reserved slot grants access to self-move command").Success)
+                {
+                    Boolean reservedSelfMove = Boolean.Parse(strValue);
+                    if (_ReservedSelfMove != reservedSelfMove)
+                    {
+                        _ReservedSelfMove = reservedSelfMove;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Reserved slot grants access to self-move command", typeof(Boolean), _ReservedSelfMove));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Reserved slot grants access to self-kill command").Success)
+                {
+                    Boolean reservedSelfKill = Boolean.Parse(strValue);
+                    if (_ReservedSelfKill != reservedSelfKill)
+                    {
+                        _ReservedSelfKill = reservedSelfKill;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Reserved slot grants access to self-kill command", typeof(Boolean), _ReservedSelfKill));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Bypass all command confirmation -DO NOT USE-").Success)
@@ -7494,6 +7599,16 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
                     }
                 }
+                else if (Regex.Match(strVariable, @"Short Server Name").Success)
+                {
+                    var newName = MakeAlphanumeric(strValue);
+                    if (newName.Length > 30)
+                    {
+                        newName = newName.Substring(0, Math.Min(30, newName.Length - 1));
+                    }
+                    _shortServerName = strValue;
+                    QueueSettingForUpload(new CPluginVariable(@"Short Server Name", typeof(String), _shortServerName));
+                }
                 else if (Regex.Match(strVariable, @"Low Population Value").Success)
                 {
                     Int32 lowPopulationPlayerCount = Int32.Parse(strValue);
@@ -7567,6 +7682,48 @@ namespace PRoConEvents
                         _automaticServerRestartProcon = automaticServerRestartProcon;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Automatic Procon Reboot When Server Reboots", typeof(Boolean), _automaticServerRestartProcon));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Procon Memory Usage MB Warning").Success)
+                {
+                    Int32 MemoryUsageWarn = Int32.Parse(strValue);
+                    if (MemoryUsageWarn != _MemoryUsageWarn)
+                    {
+                        if (MemoryUsageWarn < 256)
+                        {
+                            Log.Error("Memory warning level cannot be less than 256MB.");
+                            MemoryUsageWarn = 256;
+                        }
+                        _MemoryUsageWarn = MemoryUsageWarn;
+                        QueueSettingForUpload(new CPluginVariable(@"Procon Memory Usage MB Warning", typeof(Int32), _MemoryUsageWarn));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Procon Memory Usage MB AdKats Restart").Success)
+                {
+                    Int32 MemoryUsageRestartPlugin = Int32.Parse(strValue);
+                    if (MemoryUsageRestartPlugin != _MemoryUsageRestartPlugin)
+                    {
+                        if (MemoryUsageRestartPlugin < 512)
+                        {
+                            Log.Error("AdKats reboot for memory level cannot be less than 512MB.");
+                            MemoryUsageRestartPlugin = 512;
+                        }
+                        _MemoryUsageRestartPlugin = MemoryUsageRestartPlugin;
+                        QueueSettingForUpload(new CPluginVariable(@"Procon Memory Usage MB AdKats Restart", typeof(Int32), _MemoryUsageRestartPlugin));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Procon Memory Usage MB Procon Restart").Success)
+                {
+                    Int32 MemoryUsageRestartProcon = Int32.Parse(strValue);
+                    if (MemoryUsageRestartProcon != _MemoryUsageRestartProcon)
+                    {
+                        if (MemoryUsageRestartProcon < 1024)
+                        {
+                            Log.Error("Procon shutdown for memory level cannot be less than 1024MB.");
+                            MemoryUsageRestartProcon = 1024;
+                        }
+                        _MemoryUsageRestartProcon = MemoryUsageRestartProcon;
+                        QueueSettingForUpload(new CPluginVariable(@"Procon Memory Usage MB Procon Restart", typeof(Int32), _MemoryUsageRestartProcon));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use IRO Punishment").Success)
@@ -7782,6 +7939,42 @@ namespace PRoConEvents
                 {
                     _PushBulletReportsOnlyWhenAdminless = Boolean.Parse(strValue);
                     QueueSettingForUpload(new CPluginVariable(@"Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
+                }
+                else if (Regex.Match(strVariable, @"Send Reports to Discord WebHook").Success)
+                {
+                    _UseDiscordForReports = Boolean.Parse(strValue);
+                    if (_UseDiscordForReports && _firstPlayerListComplete && String.IsNullOrEmpty(_shortServerName))
+                    {
+                        Log.Warn("The 'Short Server Name' setting must be filled in before posting discord reports.");
+                    }
+                    QueueSettingForUpload(new CPluginVariable(@"Send Reports to Discord WebHook", typeof(Boolean), _UseDiscordForReports));
+                }
+                else if (Regex.Match(strVariable, @"Discord WebHook URL").Success)
+                {
+                    _DiscordManager.URL = strValue;
+                    if (_UseDiscordForReports && _firstPlayerListComplete && String.IsNullOrEmpty(_shortServerName))
+                    {
+                        Log.Warn("The 'Short Server Name' setting must be filled in before posting discord reports.");
+                    }
+                    QueueSettingForUpload(new CPluginVariable(@"Discord WebHook URL", typeof(String), _DiscordManager.URL));
+                }
+                else if (Regex.Match(strVariable, @"Only Send Discord Reports When Admins Offline").Success)
+                {
+                    _DiscordReportsOnlyWhenAdminless = Boolean.Parse(strValue);
+                    if (_UseDiscordForReports && _firstPlayerListComplete && String.IsNullOrEmpty(_shortServerName))
+                    {
+                        Log.Warn("The 'Short Server Name' setting must be filled in before posting discord reports.");
+                    }
+                    QueueSettingForUpload(new CPluginVariable(@"Only Send Discord Reports When Admins Offline", typeof(Boolean), _DiscordReportsOnlyWhenAdminless));
+                }
+                else if (Regex.Match(strVariable, @"Send update if reported players leave without action").Success)
+                {
+                    _DiscordReportsLeftWithoutAction = Boolean.Parse(strValue);
+                    if (_UseDiscordForReports && _firstPlayerListComplete && String.IsNullOrEmpty(_shortServerName))
+                    {
+                        Log.Warn("The 'Short Server Name' setting must be filled in before posting discord reports.");
+                    }
+                    QueueSettingForUpload(new CPluginVariable(@"Send update if reported players leave without action", typeof(Boolean), _DiscordReportsLeftWithoutAction));
                 }
                 else if (false && Regex.Match(strVariable, @"Use Metabans?").Success)
                 {
@@ -8982,7 +9175,7 @@ namespace PRoConEvents
                         _globalTimingOffset = diffUTCGlobal;
 
                         //Inform of IP
-                        Log.Success("Server IP is " + _serverInfo.ServerIP + "");
+                        Log.Success("Server IP is " + _serverInfo.ServerIP.ToString());
 
                         //Set the enabled variable
                         _pluginEnabled = true;
@@ -9038,8 +9231,7 @@ namespace PRoConEvents
                         //Open all handles. Threads will finish on their own.
                         OpenAllHandles();
                         Threading.MonitorShutdown();
-
-                        Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
+                        
                         //Reset all caches and storage
                         if (_UserRemovalQueue != null)
                         {
@@ -9102,13 +9294,9 @@ namespace PRoConEvents
                         {
                             _RoundCookers.Clear();
                         }
-                        if (_RoundReports != null)
+                        if (_PlayerReports != null)
                         {
-                            _RoundReports.Clear();
-                        }
-                        if (_RoundReportHistory != null)
-                        {
-                            _RoundReportHistory.Clear();
+                            _PlayerReports.Clear();
                         }
                         if (_RoundMutedPlayers != null)
                         {
@@ -9374,13 +9562,17 @@ namespace PRoConEvents
         {
             try
             {
-                //Memory Monitor - Every 30 seconds
-                Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
-                if (NowDuration(_LastMemoryWarning).TotalSeconds > 30)
+                //Memory Monitor - Every 60 seconds
+                _MemoryUsageCurrent = (Int32)(GC.GetTotalMemory(true) / 1024 / 1024);
+                if (NowDuration(_LastMemoryWarning).TotalSeconds > 60)
                 {
-                    if (MBUsed > 750 && (UtcNow() - _AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete)
+                    if (_MemoryUsageCurrent >= _MemoryUsageRestartProcon && NowDuration(_proconStartTime).TotalMinutes > 30 && _firstPlayerListComplete)
                     {
-                        Log.Warn(MBUsed + "MB estimated memory used.");
+                        Environment.Exit(2232);
+                    }
+                    else if (_MemoryUsageCurrent >= _MemoryUsageRestartPlugin && NowDuration(_AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete)
+                    {
+                        Log.Warn(_MemoryUsageCurrent + "MB estimated memory used.");
                         QueueRecordForProcessing(new ARecord
                         {
                             record_source = ARecord.Sources.Automated,
@@ -9389,12 +9581,12 @@ namespace PRoConEvents
                             command_numeric = 0,
                             target_name = "AdKats",
                             source_name = "MemoryMonitor",
-                            record_message = MBUsed + "MB estimated memory used",
+                            record_message = _MemoryUsageCurrent + "MB estimated memory used",
                             record_time = UtcNow()
                         });
                         _LastMemoryWarning = UtcNow();
                     }
-                    else if (MBUsed > 250)
+                    else if (_MemoryUsageCurrent >= _MemoryUsageWarn)
                     {
                         String mm = " MAP: ";
                         mm += "1:" + Threading.Count() + ", ";
@@ -9403,7 +9595,7 @@ namespace PRoConEvents
                         mm += "4:" + _ActOnSpawnDictionary.Count() + ", ";
                         mm += "5:" + _LoadoutConfirmDictionary.Count() + ", ";
                         mm += "6:" + _ActionConfirmDic.Count() + ", ";
-                        mm += "7:" + _RoundReports.Count() + ", ";
+                        mm += "7:" + _PlayerReports.Count() + ", ";
                         mm += "8:" + _userCache.Count() + ", ";
                         mm += "9:" + _specialPlayerGroupIDDictionary.Count() + ", ";
                         mm += "10:" + _specialPlayerGroupKeyDictionary.Count() + ", ";
@@ -9446,7 +9638,7 @@ namespace PRoConEvents
                         mm += "49:" + ChallengeManager.Rules.Count() + ", ";
                         mm += "50:" + ChallengeManager.Entries.Count() + ", ";
                         mm += "51:" + ChallengeManager.CompletedRoundEntries.Count() + ", ";
-                        Log.Warn(MBUsed + "MB estimated memory used." + mm);
+                        Log.Warn(_MemoryUsageCurrent + "MB estimated memory used." + mm);
                         _LastMemoryWarning = UtcNow();
                     }
                 }
@@ -9940,7 +10132,7 @@ namespace PRoConEvents
         {
             try
             {
-                if (_UseExperimentalTools &&
+                if (_UseTeamPowerDisplayBalance &&
                     _firstPlayerListComplete)
                 {
                     ATeam t1, t2;
@@ -10162,7 +10354,7 @@ namespace PRoConEvents
                                     Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                                     ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                     _MULTIBalancerUnswitcherDisabled = true;
-                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "0", "true");
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID.ToString(), "0", "true");
                                 }
                             }
                         }
@@ -10370,7 +10562,10 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key)).ToList();
+                        afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key) && 
+                                                                 !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_name) &&
+                                                                 !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_id.ToString()) &&
+                                                                 !_AFKIgnoreRoles.Contains("RLE" + aPlayer.player_role.role_id.ToString())).ToList();
                     }
                     foreach (APlayer aPlayer in afkPlayers)
                     {
@@ -10511,9 +10706,8 @@ namespace PRoConEvents
             {
                 if (ChallengeManager != null)
                 {
-                    // Fail the challenges which are controlled by duration and weren't completed
-                    var roundEntries = ChallengeManager.GetEntries().Where(entry => entry.Rule.Completion == AChallengeManager.CRule.CompletionType.Duration &&
-                                                                                    !entry.Completed &&
+                    // Fail challenges as necessary
+                    var roundEntries = ChallengeManager.GetEntries().Where(entry => !entry.Completed &&
                                                                                     !entry.Failed &&
                                                                                     !entry.Canceled);
                     foreach (var entry in roundEntries)
@@ -10525,6 +10719,24 @@ namespace PRoConEvents
             catch (Exception e)
             {
                 Log.HandleException(new AException("Error running challenge monitor.", e));
+            }
+        }
+
+        private void RunReportMonitor()
+        {
+            try
+            {
+                if (_PlayerReports.Any())
+                {
+                    foreach (var report in FetchActivePlayerReports())
+                    {
+                        FetchRecordUpdate(report);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error running report monitor.", e));
             }
         }
 
@@ -10598,6 +10810,8 @@ namespace PRoConEvents
                                 RunAFKMonitor();
 
                                 RunChallengeMonitor();
+
+                                RunReportMonitor();
 
                                 if (_pluginEnabled && _threadsReady && _firstPlayerListComplete && _enforceSingleInstance)
                                 {
@@ -11488,14 +11702,14 @@ namespace PRoConEvents
                             Log.Info("Clearing squads.");
                             foreach (var aPlayer in playerList.Where(dPlayer => dPlayer.player_type == PlayerType.Player))
                             {
-                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.fbpInfo.TeamID + "", "0", "true");
+                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.fbpInfo.TeamID.ToString(), "0", "true");
                                 Thread.Sleep(20);
                             }
                             Log.Success("Squads cleared.");
                             Log.Info("Moving teams.");
                             foreach (var aMove in moveList.ToList())
                             {
-                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aMove.Player.player_name, aMove.Squad.TeamID + "", "0", "true");
+                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aMove.Player.player_name, aMove.Squad.TeamID.ToString(), "0", "true");
                                 if (aMove.Squad.TeamID == team1.TeamID)
                                 {
                                     aMove.Player.RequiredTeam = team1;
@@ -11514,7 +11728,7 @@ namespace PRoConEvents
                             Log.Info("Assigning squads.");
                             foreach (var aMove in moveList.ToList())
                             {
-                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aMove.Player.player_name, aMove.Squad.TeamID + "", aMove.Squad.SquadID + "", "true");
+                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aMove.Player.player_name, aMove.Squad.TeamID.ToString(), aMove.Squad.SquadID.ToString(), "true");
                                 aMove.Player.RequiredSquad = aMove.Squad.SquadID;
                                 Thread.Sleep(20);
                             }
@@ -11538,7 +11752,7 @@ namespace PRoConEvents
                                         {
                                             if (aPlayer.fbpInfo.TeamID != aPlayer.RequiredTeam.TeamID || aPlayer.fbpInfo.SquadID != aPlayer.RequiredSquad)
                                             {
-                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
+                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID.ToString(), aPlayer.RequiredSquad.ToString(), "false");
                                                 Thread.Sleep(50);
                                             }
                                         }
@@ -11778,7 +11992,13 @@ namespace PRoConEvents
                         aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey &&
                         (!PlayerIsAdmin(aPlayer) || !aPlayer.player_spawnedRound))
                     {
-                        if (RunAssist(aPlayer, null, null, true) &&
+                        if (aPlayer.fbpInfo.TeamID == 0)
+                        {
+                            // They aren't officially on a team yet, just force the required team until that happens.
+                            ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID.ToString(), aPlayer.RequiredSquad > 0 ? aPlayer.RequiredSquad.ToString() : "1", "true");
+                            moveAccepted = false;
+                        }
+                        else if (RunAssist(aPlayer, null, null, true) &&
                             _roundState == RoundState.Playing &&
                             _serverInfo.GetRoundElapsedTime().TotalMinutes > _minimumAssistMinutes)
                         {
@@ -11800,7 +12020,7 @@ namespace PRoConEvents
                                     {
                                         PlayerSayMessage(_debugSoldierName, message);
                                     }
-                                    else if (_UseExperimentalTools)
+                                    else
                                     {
                                         ProconChatWrite(Log.CViolet(message));
                                     }
@@ -11813,7 +12033,7 @@ namespace PRoConEvents
                             Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                             ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                             _MULTIBalancerUnswitcherDisabled = true;
-                            ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad > 0 ? aPlayer.RequiredSquad + "" : "1", "true");
+                            ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID.ToString(), aPlayer.RequiredSquad > 0 ? aPlayer.RequiredSquad.ToString() : "1", "true");
                         }
                     }
                     ATeam team1, team2, winningTeam, losingTeam, powerTeam, weakTeam, mapUpTeam, mapDownTeam;
@@ -11964,10 +12184,12 @@ namespace PRoConEvents
                                         ProconChatWrite(message);
                                     }
                                     moveAccepted = false;
+                                    // Assign the team
+                                    aPlayer.RequiredTeam = weakTeam;
                                     Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                                     ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                     _MULTIBalancerUnswitcherDisabled = true;
-                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, weakTeam.TeamID + "", "0", "true");
+                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID.ToString(), "0", "true");
                                 }
                             }
                         }
@@ -11990,7 +12212,7 @@ namespace PRoConEvents
                                 Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                 _MULTIBalancerUnswitcherDisabled = true;
-                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, weakTeam.TeamID + "", "0", "true");
+                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, weakTeam.TeamID.ToString(), "0", "true");
                             }
                         }
                     }
@@ -12090,7 +12312,7 @@ namespace PRoConEvents
                         Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                         ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                         _MULTIBalancerUnswitcherDisabled = true;
-                        ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", aPlayer.RequiredSquad + "", "false");
+                        ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID.ToString(), aPlayer.RequiredSquad.ToString(), "false");
                     }
                 }
             }
@@ -12315,15 +12537,28 @@ namespace PRoConEvents
                                                 toldAdmins = true;
                                                 OnlineAdminSayMessage(aPlayer.GetVerboseName() + " left from " + GetPlayerTeamKey(aPlayer) + " " + typeString, aPlayer.player_name);
                                             }
-                                            List<ARecord> reports = aPlayer.TargetedRecords.Where(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin").ToList();
-                                            Dictionary<string, APlayer> reporters = new Dictionary<string, APlayer>();
-                                            foreach (ARecord report in reports.Where(report => report.source_player != null))
+                                            var activeReports = aPlayer.TargetedRecords.Where(aRecord => aRecord.source_player != null &&
+                                                                                                         IsActiveReport(aRecord)).ToList();
+                                            // Update all the reports
+                                            foreach (var report in activeReports)
                                             {
-                                                reporters[report.source_player.player_name] = report.source_player;
+                                                FetchRecordUpdate(report);
                                             }
-                                            foreach (APlayer player in reporters.Values)
+                                            activeReports = activeReports.Where(report => IsActiveReport(report)).ToList();
+                                            foreach (ARecord report in activeReports)
+                                            {
+                                                // Expire all active reports for the player
+                                                report.command_action = GetCommandByKey("player_report_expire");
+                                                UpdateRecord(report);
+                                            }
+                                            foreach (APlayer player in activeReports.Where(report => report.source_player != null)
+                                                                             .Select(report => report.source_player).Distinct())
                                             {
                                                 player.Say("Player " + aPlayer.GetVerboseName() + " you reported has left.");
+                                            }
+                                            if (activeReports.Any() && _UseDiscordForReports && _DiscordReportsLeftWithoutAction)
+                                            {
+                                                _DiscordManager.PostToDiscord("Reported player " + aPlayer.GetVerboseName() + " left without being acted on.");
                                             }
                                         }
                                     }
@@ -12554,7 +12789,7 @@ namespace PRoConEvents
                                     else
                                     {
                                         //Player is not already online, handle fetching
-                                        //First check if the player is rejoining current session
+                                        //First check if the player is rejoining current AdKats session
                                         aPlayer = _PlayerLeftDictionary.Values.FirstOrDefault(oPlayer => oPlayer.player_guid == playerInfo.GUID);
                                         if (aPlayer != null)
                                         {
@@ -12595,6 +12830,9 @@ namespace PRoConEvents
                                             {
                                                 OnlineAdminSayMessage("Kicked player " + aPlayer.GetVerboseName() + " re-joined.");
                                             }
+                                            // Increment the player's active session
+                                            // Helps us determine which session a record came from
+                                            aPlayer.ActiveSession++;
                                         }
                                         else
                                         {
@@ -12701,7 +12939,7 @@ namespace PRoConEvents
                                                 Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
                                                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                                 _MULTIBalancerUnswitcherDisabled = true;
-                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "1", "false");
+                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID.ToString(), "1", "false");
                                             }
                                         }
                                         switch (aPlayer.fbpInfo.Type)
@@ -13134,6 +13372,9 @@ namespace PRoConEvents
                             //Immediately request another player list to make sure we haven't missed anyone who just joined.
                             DoPlayerListTrigger();
 
+                            //Do another access fetch to make sure server information is current
+                            FetchAllAccess(true);
+
                             //Register external plugin commands
                             RegisterCommand(_issueCommandMatchCommand);
                             RegisterCommand(_fetchAuthorizedSoldiersMatchCommand);
@@ -13383,7 +13624,7 @@ namespace PRoConEvents
         {
             try
             {
-                if (!_pluginEnabled || !_threadsReady || !_firstPlayerListComplete || _roundID <= 1)
+                if (!_pluginEnabled || !_threadsReady || !_firstPlayerListComplete || _roundID < 1)
                 {
                     return;
                 }
@@ -14411,8 +14652,6 @@ namespace PRoConEvents
                     _lastNukeTeam = null;
                     _roundAssists.Clear();
                     _PlayersAutoAssistedThisRound = false;
-                    _RoundReports.Clear();
-                    _RoundReportHistory.Clear();
                     _RoundMutedPlayers.Clear();
                     _ActionConfirmDic.Clear();
                     _ActOnSpawnDictionary.Clear();
@@ -14490,16 +14729,26 @@ namespace PRoConEvents
 
         private void ProcessEventMapMode(Int32 eventRoundNumber)
         {
-            ProcessEventMapMode(GetEventRoundModeCode(eventRoundNumber));
+            ProcessEventMapMode(GetEventRoundMapCode(eventRoundNumber), GetEventRoundModeCode(eventRoundNumber));
         }
 
-        private void ProcessEventMapMode(AEventOption.ModeCode mapModeCode)
+        private void ProcessEventMapMode(AEventOption.MapCode mapCode, AEventOption.ModeCode modeCode)
         {
             var delayMS = 250;
             Log.Debug(() => "Entering ProcessEventMapMode", 7);
             try
             {
-                switch (mapModeCode)
+                var mapFile = "XP0_Metro";
+                switch (mapCode)
+                {
+                    case AEventOption.MapCode.MET:
+                        mapFile = "XP0_Metro";
+                        break;
+                    case AEventOption.MapCode.LOC:
+                        mapFile = "MP_Prison";
+                        break;
+                }
+                switch (modeCode)
                 {
                     case AEventOption.ModeCode.UNKNOWN:
                         Int32 GoalTickets = 0;
@@ -14510,191 +14759,208 @@ namespace PRoConEvents
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "100");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.T200:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.T300:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.T400:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "TeamDeathMatch0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "TeamDeathMatch0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "400");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.R200:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.R300:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.R400:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "RushLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "RushLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "400");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.C500:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 500;
                         TicketRatio = 800 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.C1000:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 1000;
                         TicketRatio = 800 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.C2000:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 2000;
                         TicketRatio = 800 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.F9:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "CaptureTheFlag0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "300");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.F6:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "CaptureTheFlag0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "200");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.F3:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "CaptureTheFlag0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "CaptureTheFlag0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", "100");
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.D500:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 500;
                         TicketRatio = 300 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.HD500:
                         ProcessPresetHardcore();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 500;
                         TicketRatio = 300 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.D750:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 750;
                         TicketRatio = 300 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.D1000:
                         ProcessPresetNormal();
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "100");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "Domination0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", mapFile, "Domination0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 1000;
                         TicketRatio = 300 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event round setup complete!");
                         OnlineAdminSayMessage("Event round setup complete!");
                         break;
                     case AEventOption.ModeCode.RESET:
@@ -14702,13 +14968,14 @@ namespace PRoConEvents
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.roundTimeLimit", "300");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.clear");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
-                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "XP0_Metro", "ConquestLarge0", "1");
+                        ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.add", "MP_Prison", "ConquestLarge0", "1");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.save");
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "mapList.setNextMapIndex", "0");
                         GoalTickets = 1600;
                         TicketRatio = 800 / 100.0;
                         GMC = (Int32)Math.Ceiling(GoalTickets / TicketRatio);
                         ExecuteCommandWithDelay(delayMS, "procon.protected.send", "vars.gameModeCounter", GMC.ToString());
+                        Log.Info("Event RESET complete!");
                         break;
                     default:
                         Log.Error("Unknown mode type when processing event transition.");
@@ -14803,12 +15070,21 @@ namespace PRoConEvents
                             Threading.Wait(100);
                         }
                         // The new _roundID is fetched by now
-                        if (EventActive(nRound))
+                        if (EventActive(nRound + 1))
+                        {
+                            // The round before the event, make sure xVotemap is not active
+                            // The map voting will be handled by the event script
+                            ExecuteCommand("procon.protected.plugins.enable", "xVotemap", "False");
+                        }
+                        else if (EventActive(nRound))
                         {
                             var nextCode = GetEventRoundRuleCode(GetActiveEventRoundNumber(false));
                             if (nextCode == AEventOption.RuleCode.AO ||
+                                nextCode == AEventOption.RuleCode.ARO ||
+                                nextCode == AEventOption.RuleCode.LMGO ||
                                 nextCode == AEventOption.RuleCode.BKO ||
-                                nextCode == AEventOption.RuleCode.CAI)
+                                nextCode == AEventOption.RuleCode.CAI ||
+                                nextCode == AEventOption.RuleCode.PO)
                             {
                                 ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
                             }
@@ -14818,6 +15094,7 @@ namespace PRoConEvents
                             }
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Admins", "True");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Reputable Players", "True");
+                            ExecuteCommand("procon.protected.plugins.enable", "xVotemap", "False");
                             //ACTIVE ROUND
                             for (int i = 0; i < 8; i++)
                             {
@@ -14834,7 +15111,7 @@ namespace PRoConEvents
                                 AdminTellMessage("PREPARING EVENT! TESTING! TESTING!");
                                 Thread.Sleep(2000);
                             }
-                            ProcessEventMapMode(AEventOption.ModeCode.D500);
+                            ProcessEventMapMode(AEventOption.MapCode.MET, AEventOption.ModeCode.D500);
                         }
                         else if (nRound >= _CurrentEventRoundNumber + _EventRoundOptions.Count())
                         {
@@ -14843,15 +15120,16 @@ namespace PRoConEvents
                             _CurrentEventRoundNumber = 999999;
                             QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
                             ExecuteCommand("procon.protected.plugins.enable", "AdKatsLRT", "True");
+                            ExecuteCommand("procon.protected.plugins.enable", "xVotemap", "True");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Admins", "False");
                             SetExternalPluginSetting("AdKatsLRT", "Spawn Enforce Reputable Players", "False");
-                            for (int i = 0; i < 8; i++)
+                            for (int i = 0; i < 6; i++)
                             {
                                 AdminTellMessage("EVENT IS OVER, THANK YOU FOR COMING!");
                                 Thread.Sleep(2000);
                             }
-                            ProcessEventMapMode(AEventOption.ModeCode.RESET);
-                            for (int i = 0; i < 8; i++)
+                            ProcessEventMapMode(AEventOption.MapCode.MET, AEventOption.ModeCode.RESET);
+                            for (int i = 0; i < 10; i++)
                             {
                                 AdminTellMessage("EVENT IS OVER, THANK YOU FOR COMING!");
                                 Thread.Sleep(2000);
@@ -15531,6 +15809,10 @@ namespace PRoConEvents
                         return "EXPLOSIVES ONLY!";
                     case AEventOption.RuleCode.AO:
                         return "AUTO-PRIMARIES ONLY!";
+                    case AEventOption.RuleCode.ARO:
+                        return "ASSAULT RIFLES ONLY!";
+                    case AEventOption.RuleCode.LMGO:
+                        return "LMGS ONLY!";
                     case AEventOption.RuleCode.GO:
                         return "GRENADES ONLY!";
                     case AEventOption.RuleCode.HO:
@@ -15573,15 +15855,19 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.RTO:
                         return "REPAIR TOOL ONLY! Only kills with repair tools and EOD bots are allowed.";
                     case AEventOption.RuleCode.PO:
-                        return "PISTOLS ONLY! Only kills with pistols are allowed. NO G18/93R. NO Shorty 12G. NO Knives.";
+                        return "PISTOLS ONLY! Only kills with pistols are allowed. NO G18/93R. NO Shorty 12G. Knives allowed.";
                     case AEventOption.RuleCode.SO:
-                        return "SHOTGUNS ONLY! Only kills with shotguns are allowed. Any ammo type. NO Knives.";
+                        return "SHOTGUNS ONLY! Only kills with shotguns are allowed. Any ammo type. Knives allowed.";
                     case AEventOption.RuleCode.NE:
                         return "NO EXPLOSIVES! Kills with explosive weapons are NOT allowed, all others are allowed.";
                     case AEventOption.RuleCode.EO:
                         return "EXPLOSIVES ONLY! Only explosive weapons are allowed. NO shotgun frag rounds. NO Knives.";
                     case AEventOption.RuleCode.AO:
-                        return "AUTO-PRIMARIES ONLY! Only automatic primary weapons. Assault rifles, LMGs, Burst, etc.";
+                        return "AUTO-PRIMARIES ONLY! Only automatic primary weapons. Assault rifles, LMGs, Burst, etc. Knives allowed.";
+                    case AEventOption.RuleCode.ARO:
+                        return "ASSAULT RIFLES ONLY! Only kills with assault rifles are allowed. Knives allowed.";
+                    case AEventOption.RuleCode.LMGO:
+                        return "LMGS ONLY! Only kills with light machine guns are allowed. Knives allowed.";
                     case AEventOption.RuleCode.GO:
                         return "GRENADES ONLY! Only kills with grenades are allowed. M67, V40, etc. NO Knives.";
                     case AEventOption.RuleCode.HO:
@@ -15626,21 +15912,45 @@ namespace PRoConEvents
             return 999999;
         }
 
+        private AEventOption.MapCode GetEventRoundMapCode(Int32 eventRoundNumber)
+        {
+            Log.Debug(() => "Entering GetEventRoundMapCode", 7);
+            try
+            {
+                if (!_EventRoundOptions.Any() || 
+                    eventRoundNumber < 0 || 
+                    eventRoundNumber >= _EventRoundOptions.Count())
+                {
+                    Log.Error("Event round number " + eventRoundNumber + " was invalid when fetching map code.");
+                    return AEventOption.MapCode.UNKNOWN;
+                }
+                return _EventRoundOptions[eventRoundNumber].Map;
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while getting event round map code.", e));
+            }
+            Log.Debug(() => "Exiting GetEventRoundMapCode", 7);
+            return AEventOption.MapCode.UNKNOWN;
+        }
+
         private AEventOption.ModeCode GetEventRoundModeCode(Int32 eventRoundNumber)
         {
             Log.Debug(() => "Entering GetEventRoundMapModeCode", 7);
             try
             {
-                if (!_EventRoundOptions.Any() || eventRoundNumber < 0 || eventRoundNumber >= _EventRoundOptions.Count())
+                if (!_EventRoundOptions.Any() || 
+                    eventRoundNumber < 0 || 
+                    eventRoundNumber >= _EventRoundOptions.Count())
                 {
-                    Log.Error("Event round number " + eventRoundNumber + " was invalid when fetching map mode code.");
+                    Log.Error("Event round number " + eventRoundNumber + " was invalid when fetching mode code.");
                     return AEventOption.ModeCode.UNKNOWN;
                 }
                 return _EventRoundOptions[eventRoundNumber].Mode;
             }
             catch (Exception e)
             {
-                Log.HandleException(new AException("Error while getting event round map mode code.", e));
+                Log.HandleException(new AException("Error while getting event round mode code.", e));
             }
             Log.Debug(() => "Exiting GetEventRoundMapModeCode", 7);
             return AEventOption.ModeCode.UNKNOWN;
@@ -15731,6 +16041,8 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.PO:
                         // PISTOLS ONLY!
                         if ((aKill.weaponDamage != DamageTypes.Handgun || aKill.weaponCode == "U_M93R" || aKill.weaponCode == "U_Glock18") &&
+                            !aKill.weaponCode.ToLower().Contains("knife") &&
+                            !aKill.weaponCode.ToLower().Contains("melee") &&
                             aKill.weaponCode != "DamageArea")
                         {
                             return true;
@@ -15739,6 +16051,8 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.SO:
                         // SHOTGUNS ONLY!
                         if (aKill.weaponDamage != DamageTypes.Shotgun &&
+                            !aKill.weaponCode.ToLower().Contains("knife") &&
+                            !aKill.weaponCode.ToLower().Contains("melee") &&
                             aKill.weaponCode != "DamageArea")
                         {
                             return true;
@@ -15765,7 +16079,7 @@ namespace PRoConEvents
                     case AEventOption.RuleCode.AO:
                         // AUTOMATIC PRIMARIES ONLY!
                         if ((!aKill.weaponCode.ToLower().Contains("knife") &&
-                             !aKill.weaponCode.ToLower().Contains("melee") && 
+                             !aKill.weaponCode.ToLower().Contains("melee") &&
                              aKill.weaponDamage != DamageTypes.AssaultRifle &&
                              aKill.weaponDamage != DamageTypes.Carbine &&
                              aKill.weaponDamage != DamageTypes.LMG &&
@@ -15773,6 +16087,26 @@ namespace PRoConEvents
                              aKill.weaponCode != "U_Groza-4" &&
                              aKill.weaponCode != "DamageArea") ||
                             aKill.weaponCode == "dlSHTR")
+                        {
+                            return true;
+                        }
+                        break;
+                    case AEventOption.RuleCode.ARO:
+                        // ASSAULT RIFLES ONLY!
+                        if (!aKill.weaponCode.ToLower().Contains("knife") &&
+                            !aKill.weaponCode.ToLower().Contains("melee") &&
+                            aKill.weaponDamage != DamageTypes.AssaultRifle &&
+                            aKill.weaponCode != "DamageArea")
+                        {
+                            return true;
+                        }
+                        break;
+                    case AEventOption.RuleCode.LMGO:
+                        // LMGS ONLY!
+                        if (!aKill.weaponCode.ToLower().Contains("knife") &&
+                            !aKill.weaponCode.ToLower().Contains("melee") &&
+                            aKill.weaponDamage != DamageTypes.LMG &&
+                            aKill.weaponCode != "DamageArea")
                         {
                             return true;
                         }
@@ -18618,6 +18952,11 @@ namespace PRoConEvents
                     message = message.Replace(bypassPrefix, "");
                     bypass = true;
                 }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
+                }
                 if (bypass)
                 {
                     whitelistedPlayers.Clear();
@@ -18705,6 +19044,11 @@ namespace PRoConEvents
                     message = message.Replace(bypassPrefix, "");
                     bypass = true;
                 }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
+                }
                 if (bypass)
                 {
                     whitelistedPlayers.Clear();
@@ -18791,6 +19135,11 @@ namespace PRoConEvents
                 {
                     message = message.Replace(bypassPrefix, "");
                     bypass = true;
+                }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
                 }
                 if (bypass)
                 {
@@ -18915,6 +19264,11 @@ namespace PRoConEvents
                 {
                     message = message.Replace(bypassPrefix, "");
                 }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
+                }
                 if (displayProconChat)
                 {
                     ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Say > " + message);
@@ -18965,6 +19319,11 @@ namespace PRoConEvents
                 while (message.Contains(bypassPrefix))
                 {
                     message = message.Replace(bypassPrefix, "");
+                }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
                 }
                 if (displayProconChat)
                 {
@@ -19022,11 +19381,16 @@ namespace PRoConEvents
                 {
                     message = message.Replace(bypassPrefix, "");
                 }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
+                }
                 if (displayProconChat)
                 {
                     ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Yell[" + duration + "s] > " + message);
                 }
-                ExecuteCommand("procon.protected.send", "admin.yell", ((GameVersion == GameVersionEnum.BF4) ? (Environment.NewLine) : ("")) + message.ToUpper(), duration + "", "all");
+                ExecuteCommand("procon.protected.send", "admin.yell", ((GameVersion == GameVersionEnum.BF4) ? (Environment.NewLine) : ("")) + message.ToUpper(), duration.ToString(), "all");
             }
             catch (Exception e)
             {
@@ -19062,13 +19426,18 @@ namespace PRoConEvents
                 {
                     message = message.Replace(bypassPrefix, "");
                 }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
+                }
                 if (displayProconChat)
                 {
                     ProconChatWrite(((spambotMessage) ? (Log.FBold(Log.CPink("SpamBot")) + " ") : ("")) + "Yell[" + _YellDuration + "s] > " + Log.CBlue(target) + " > " + message);
                 }
                 for (int count = 0; count < spamCount; count++)
                 {
-                    ExecuteCommand("procon.protected.send", "admin.yell", ((GameVersion != GameVersionEnum.BF3) ? (Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "player", target);
+                    ExecuteCommand("procon.protected.send", "admin.yell", ((GameVersion != GameVersionEnum.BF3) ? (Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration.ToString(), "player", target);
                     Threading.Wait(50);
                 }
             }
@@ -19099,6 +19468,11 @@ namespace PRoConEvents
                 while (message.Contains(bypassPrefix))
                 {
                     message = message.Replace(bypassPrefix, "");
+                }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
                 }
                 if (displayProconChat)
                 {
@@ -19133,6 +19507,11 @@ namespace PRoConEvents
                 while (message.Contains(bypassPrefix))
                 {
                     message = message.Replace(bypassPrefix, "");
+                }
+                const string newlinePrefix = "[newline]";
+                while (message.Contains(newlinePrefix))
+                {
+                    message = message.Replace(newlinePrefix, Environment.NewLine);
                 }
                 if (displayProconChat)
                 {
@@ -20028,18 +20407,12 @@ namespace PRoConEvents
                                     FinalizeRecord(record);
                                     return;
                                 }
+                                string lowerM = " " + record.record_message.ToLower() + " ";
                                 if (_UseExperimentalTools)
                                 {
-                                    string lowerM = " " + record.record_message.ToLower() + " ";
                                     if (lowerM.Contains("headgl") || lowerM.Contains("head gl"))
                                     {
                                         SendMessageToSource(record, "'Head Glitching' related actions are not bannable.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                    if (lowerM.Contains(" ping") || lowerM.Contains(" pings"))
-                                    {
-                                        SendMessageToSource(record, "Automatic system handles ping, do not report for it.");
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -20050,87 +20423,94 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    //Block report wars
-                                    if (record.target_player != null &&
-                                        record.target_player.TargetedRecords.Count(aRecord =>
-                                            aRecord.source_name == record.source_name &&
-                                            (aRecord.command_type.command_key == "player_report" ||
-                                                aRecord.command_type.command_key == "player_calladmin") &&
-                                            NowDuration(aRecord.record_time).TotalMinutes < 5 &&
-                                            aRecord.command_action.command_key != "player_report_confirm") >= 1 &&
-                                        record.source_player != null &&
-                                        record.source_player.TargetedRecords.Count(aRecord =>
-                                            aRecord.source_name == record.target_name &&
-                                            (aRecord.command_type.command_key == "player_report" ||
-                                                aRecord.command_type.command_key == "player_calladmin") &&
-                                            NowDuration(aRecord.record_time).TotalMinutes < 5 &&
-                                            aRecord.command_action.command_key != "player_report_confirm") >= 1)
+                                }
+                                //Block reports for ping if the ping enforcer is enabled
+                                if ((lowerM.Contains(" ping") || lowerM.Contains(" pings")) && _pingEnforcerEnable)
+                                {
+                                    SendMessageToSource(record, "Automatic system handles ping, do not report for it.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                //Block report wars
+                                if (record.target_player != null &&
+                                    record.target_player.TargetedRecords.Count(aRecord =>
+                                        aRecord.source_name == record.source_name &&
+                                        (aRecord.command_type.command_key == "player_report" ||
+                                            aRecord.command_type.command_key == "player_calladmin") &&
+                                        NowDuration(aRecord.record_time).TotalMinutes < 5 &&
+                                        aRecord.command_action.command_key != "player_report_confirm") >= 1 &&
+                                    record.source_player != null &&
+                                    record.source_player.TargetedRecords.Count(aRecord =>
+                                        aRecord.source_name == record.target_name &&
+                                        (aRecord.command_type.command_key == "player_report" ||
+                                            aRecord.command_type.command_key == "player_calladmin") &&
+                                        NowDuration(aRecord.record_time).TotalMinutes < 5 &&
+                                        aRecord.command_action.command_key != "player_report_confirm") >= 1)
+                                {
+                                    SendMessageToSource(record, "Do not have report wars. If this is urgent please contact an admin in teamspeak; " + GetChatCommandByKey("self_voip") + " for the address.");
+                                    QueueRecordForProcessing(new ARecord
                                     {
-                                        SendMessageToSource(record, "Do not have report wars. If this is urgent please contact an admin in teamspeak; " + GetChatCommandByKey("self_voip") + " for the address.");
-                                        QueueRecordForProcessing(new ARecord
-                                        {
-                                            record_source = ARecord.Sources.Automated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("player_log"),
-                                            command_numeric = 0,
-                                            target_name = record.source_name,
-                                            target_player = record.source_player,
-                                            source_name = "AutoAdmin",
-                                            record_message = "Report war blocked bwetween " + record.GetSourceName() + " and " + record.GetTargetNames(),
-                                            record_time = UtcNow()
-                                        });
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                    //Block multiple reports of the same player from one source
-                                    if (record.target_player != null &&
-                                        record.target_player.TargetedRecords.Count(aRecord =>
-                                            aRecord.source_name == record.source_name &&
-                                            (aRecord.command_type.command_key == "player_report" ||
-                                                aRecord.command_type.command_key == "player_calladmin") &&
-                                            NowDuration(aRecord.record_time).TotalMinutes < 5 &&
-                                            aRecord.command_action.command_key != "player_report_confirm") >= 2)
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("player_log"),
+                                        command_numeric = 0,
+                                        target_name = record.source_name,
+                                        target_player = record.source_player,
+                                        source_name = "AutoAdmin",
+                                        record_message = "Report war blocked bwetween " + record.GetSourceName() + " and " + record.GetTargetNames(),
+                                        record_time = UtcNow()
+                                    });
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                //Block multiple reports of the same player from one source
+                                if (record.target_player != null &&
+                                    record.target_player.TargetedRecords.Count(aRecord =>
+                                        aRecord.source_name == record.source_name &&
+                                        (aRecord.command_type.command_key == "player_report" ||
+                                            aRecord.command_type.command_key == "player_calladmin") &&
+                                        NowDuration(aRecord.record_time).TotalMinutes < 5 &&
+                                        aRecord.command_action.command_key != "player_report_confirm") >= 2)
+                                {
+                                    SendMessageToSource(record, "You already reported " + record.target_player.GetVerboseName() + ". If this is urgent please contact an admin in teamspeak; @ts for the address.");
+                                    QueueRecordForProcessing(new ARecord
                                     {
-                                        SendMessageToSource(record, "You already reported " + record.target_player.GetVerboseName() + ". If this is urgent please contact an admin in teamspeak; @ts for the address.");
-                                        QueueRecordForProcessing(new ARecord
-                                        {
-                                            record_source = ARecord.Sources.Automated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("player_log"),
-                                            command_numeric = 0,
-                                            target_name = record.source_name,
-                                            target_player = record.source_player,
-                                            source_name = "AutoAdmin",
-                                            record_message = "Report spam blocked on " + record.GetTargetNames(),
-                                            record_time = UtcNow()
-                                        });
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                    //Block multiple reports of the same player from multiple sources
-                                    if (record.target_player != null &&
-                                        record.target_player.TargetedRecords.Count(aRecord =>
-                                            (aRecord.command_type.command_key == "player_report" ||
-                                                aRecord.command_type.command_key == "player_calladmin") &&
-                                            NowDuration(aRecord.record_time).TotalMinutes < 5 &&
-                                            aRecord.command_action.command_key != "player_report_confirm") >= 3)
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("player_log"),
+                                        command_numeric = 0,
+                                        target_name = record.source_name,
+                                        target_player = record.source_player,
+                                        source_name = "AutoAdmin",
+                                        record_message = "Report spam blocked on " + record.GetTargetNames(),
+                                        record_time = UtcNow()
+                                    });
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                //Block multiple reports of the same player from multiple sources
+                                if (record.target_player != null &&
+                                    record.target_player.TargetedRecords.Count(aRecord =>
+                                        (aRecord.command_type.command_key == "player_report" ||
+                                            aRecord.command_type.command_key == "player_calladmin") &&
+                                        NowDuration(aRecord.record_time).TotalMinutes < 5 &&
+                                        aRecord.command_action.command_key != "player_report_confirm") >= 3)
+                                {
+                                    SendMessageToSource(record, record.target_player.GetVerboseName() + " has already been reported. If this is urgent please contact an admin in teamspeak; @ts for the address.");
+                                    QueueRecordForProcessing(new ARecord
                                     {
-                                        SendMessageToSource(record, record.target_player.GetVerboseName() + " has already been reported. If this is urgent please contact an admin in teamspeak; @ts for the address.");
-                                        QueueRecordForProcessing(new ARecord
-                                        {
-                                            record_source = ARecord.Sources.Automated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("player_log"),
-                                            command_numeric = 0,
-                                            target_name = record.source_name,
-                                            target_player = record.source_player,
-                                            source_name = "AutoAdmin",
-                                            record_message = "Report spam blocked on " + record.GetTargetNames(),
-                                            record_time = UtcNow()
-                                        });
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("player_log"),
+                                        command_numeric = 0,
+                                        target_name = record.source_name,
+                                        target_player = record.source_player,
+                                        source_name = "AutoAdmin",
+                                        record_message = "Report spam blocked on " + record.GetTargetNames(),
+                                        record_time = UtcNow()
+                                    });
+                                    FinalizeRecord(record);
+                                    return;
                                 }
                             }
                             break;
@@ -20555,6 +20935,14 @@ namespace PRoConEvents
                         SendMessageToSource(record, "You are running an outdated version of AdKats. Update " + _latestPluginVersion + " is released.");
                     }
                 }
+                if (record.SourceSession == 0 && record.source_player != null)
+                {
+                    record.SourceSession = record.source_player.ActiveSession;
+                }
+                if (record.TargetSession == 0 && record.target_player != null)
+                {
+                    record.TargetSession = record.target_player.ActiveSession;
+                }
                 Log.Debug(() => "Preparing to queue " + record.command_type.command_key + " record for processing", 6);
                 //Set the record update time
                 record.record_time_update = UtcNow();
@@ -20960,7 +21348,7 @@ namespace PRoConEvents
                                     record.record_message = "MovePlayer";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
@@ -21003,7 +21391,7 @@ namespace PRoConEvents
                                     record.record_message = "ForceMovePlayer";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
@@ -21145,7 +21533,7 @@ namespace PRoConEvents
                                     record.record_message = "Debug Assist Player";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
@@ -21212,7 +21600,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         SendMessageToSource(record, "No reason given, unable to submit.");
                                     }
@@ -21231,7 +21619,7 @@ namespace PRoConEvents
                                     }
 
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
@@ -21281,7 +21669,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         SendMessageToSource(record, "No reason given, unable to submit.");
                                     }
@@ -21300,7 +21688,7 @@ namespace PRoConEvents
                                     }
 
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
@@ -21350,7 +21738,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         SendMessageToSource(record, "No reason given, unable to submit.");
                                     }
@@ -21369,7 +21757,7 @@ namespace PRoConEvents
                                     }
 
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
@@ -21419,7 +21807,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         SendMessageToSource(record, "No reason given, unable to submit.");
                                         FinalizeRecord(record);
@@ -21438,7 +21826,7 @@ namespace PRoConEvents
                                     }
 
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
@@ -21553,7 +21941,7 @@ namespace PRoConEvents
                                     Log.Debug(() => "target: " + record.target_name, 6);
 
                                     //Handle based on report ID as only option
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         SendMessageToSource(record, "No reason given, unable to submit.");
                                         FinalizeRecord(record);
@@ -21575,7 +21963,7 @@ namespace PRoConEvents
                                     Log.Debug(() => "reason: " + record.record_message, 6);
 
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
@@ -21625,7 +22013,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         SendMessageToSource(record, "No reason given, unable to submit.");
                                         FinalizeRecord(record);
@@ -21644,7 +22032,7 @@ namespace PRoConEvents
                                     }
 
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
@@ -21756,7 +22144,7 @@ namespace PRoConEvents
                                     Log.Debug(() => "target: " + record.target_name, 6);
 
                                     //Handle based on report ID as only option
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         SendMessageToSource(record, "No reason given, unable to submit.");
                                         FinalizeRecord(record);
@@ -21780,7 +22168,7 @@ namespace PRoConEvents
                                     Log.Debug(() => "reason: " + record.record_message, 6);
 
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
@@ -23316,7 +23704,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         SendMessageToSource(record, "No reason given, unable to submit.");
                                         FinalizeRecord(record);
@@ -23335,7 +23723,7 @@ namespace PRoConEvents
                                     }
 
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
@@ -23378,7 +23766,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         SendMessageToSource(record, "No reason given, unable to submit.");
                                         FinalizeRecord(record);
@@ -23397,7 +23785,7 @@ namespace PRoConEvents
                                     }
 
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
@@ -23447,7 +23835,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         SendMessageToSource(record, "No reason given, unable to submit.");
                                         FinalizeRecord(record);
@@ -23466,7 +23854,7 @@ namespace PRoConEvents
                                     }
 
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
@@ -23523,7 +23911,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Joining Player";
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
@@ -24138,7 +24526,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Marking Player";
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
@@ -24173,7 +24561,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Loadout Fetching Player";
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
@@ -24208,7 +24596,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Fetching Player Ping";
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
@@ -24243,7 +24631,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Forcing Player Manual Ping";
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
@@ -24278,7 +24666,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Loadout Forcing Player";
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
@@ -24313,7 +24701,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Loadout Ignoring Player";
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
@@ -24337,7 +24725,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         SendMessageToSource(record, "No log message given, unable to submit.");
                                     }
@@ -24356,7 +24744,7 @@ namespace PRoConEvents
                                     }
 
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
@@ -24882,7 +25270,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Telling Player Rules";
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
@@ -25068,7 +25456,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Telling Player Commands";
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
@@ -25118,7 +25506,7 @@ namespace PRoConEvents
                                     }
                                     record.target_name = parameters[0];
                                     record.record_message = "Requesting Player Reputation";
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
@@ -25221,8 +25609,9 @@ namespace PRoConEvents
                                 return;
                             }
 
+                            // Get the latest active report associated with this player
                             ARecord aRecord = null;
-                            foreach (ARecord reportRecord in _RoundReports.Values)
+                            foreach (ARecord reportRecord in FetchActivePlayerReports())
                             {
                                 if (reportRecord.target_player.player_id == record.target_player.player_id)
                                 {
@@ -25293,7 +25682,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Giving Player Squad Lead";
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, false, true);
                                     }
@@ -25315,7 +25704,7 @@ namespace PRoConEvents
                             switch (parameters.Length)
                             {
                                 case 0:
-                                    record.record_message = "Listing Round Reports";
+                                    record.record_message = "Listing player reports";
                                     if (record.record_source == ARecord.Sources.InGame)
                                     {
                                         record.target_name = record.source_name;
@@ -25350,10 +25739,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!AcceptRoundReport(record))
-                                    {
-                                        SendMessageToSource(record, "Invalid report ID given, unable to submit.");
-                                    }
+                                    AcceptPlayerReport(record);
                                     FinalizeRecord(record);
                                     return;
                                 default:
@@ -25380,10 +25766,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!DenyRoundReport(record))
-                                    {
-                                        SendMessageToSource(record, "Invalid report ID given, unable to submit.");
-                                    }
+                                    DenyPlayerReport(record);
                                     FinalizeRecord(record);
                                     return;
                                 default:
@@ -25410,10 +25793,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!IgnoreRoundReport(record))
-                                    {
-                                        SendMessageToSource(record, "Invalid report ID given, unable to submit.");
-                                    }
+                                    IgnorePlayerReport(record);
                                     FinalizeRecord(record);
                                     return;
                                 default:
@@ -26004,7 +26384,7 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
-                            if (!_FeedServerReservedSlots)
+                            if (!_FeedServerReservedSlots && !_FeedServerReservedSlots_VSM)
                             {
                                 SendMessageToSource(record, "Enable 'Feed Server Reserved Slots' to use this command.");
                                 FinalizeRecord(record);
@@ -26279,7 +26659,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Report Whitelist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26322,7 +26702,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing SpamBot Whitelist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26358,7 +26738,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Spectator Blacklist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26394,7 +26774,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Report Source Blacklist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26430,7 +26810,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Report Target Whitelist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26466,7 +26846,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Auto-Assist Blacklist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26509,7 +26889,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Admin Assistant Whitelist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26552,7 +26932,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Ping Whitelist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26588,7 +26968,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing AntiCheat Whitelist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26631,7 +27011,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Spectator Slot";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26674,7 +27054,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Reserved Slot";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26717,7 +27097,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Autobalance Whitelist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26760,7 +27140,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Autobalance Dispersion";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26803,7 +27183,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Populator Whitelist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26846,7 +27226,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing TeamKillTracker Whitelist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -26985,15 +27365,9 @@ namespace PRoConEvents
                                     FinalizeRecord(record);
                                     return;
                                 case 1:
+                                    record.target_name = parameters[0];
                                     record.record_message = "";
-                                    record.target_name = record.source_name;
-                                    if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player))
-                                    {
-                                        SendMessageToSource(record, "Source player not found, unable to submit.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                    QueueRecordForProcessing(record);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     record.target_name = parameters[0];
@@ -27244,7 +27618,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing All-Caps Chat Blacklist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -27435,7 +27809,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Challenge Playing Status";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -27592,7 +27966,7 @@ namespace PRoConEvents
                                     record.record_message = "Removing Challenge Ignoring Status";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -27749,7 +28123,7 @@ namespace PRoConEvents
                                     record.record_message = "Challenge AutoKill Status";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
+                                    if (!HandlePlayerReport(record))
                                     {
                                         CompleteTargetInformation(record, false, true, true);
                                     }
@@ -28268,96 +28642,212 @@ namespace PRoConEvents
             Log.Debug(() => "Exiting cancelSourcePendingAction", 7);
         }
 
-        public ARecord FetchRoundReport(String reportID, Boolean remove)
+        public List<ARecord> FetchActivePlayerReports()
+        {
+            try
+            {
+                return _PlayerReports.ToList().Where(dRecord => IsActiveReport(dRecord)).ToList();
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while fetching active player reports.", e));
+            }
+            return new List<ARecord>();
+        }
+
+        public ARecord FetchPlayerReportByID(String reportIDString)
         {
             ARecord reportedRecord = null;
             try
             {
-                lock (_RoundReports)
+                Int32 parsedReportID = 0;
+                if (Int32.TryParse(reportIDString, out parsedReportID) && parsedReportID > 0)
                 {
-                    if (_RoundReports.TryGetValue(reportID, out reportedRecord) && remove)
+                    lock (_PlayerReports)
                     {
-                        if (_RoundReports.Remove(reportID))
-                        {
-                            Log.Debug(() => "Round report [" + reportID + "] removed.", 3);
-                            _RoundReportHistory.Add(reportID);
-                        }
+                        reportedRecord = _PlayerReports.ToList().FirstOrDefault(dRecord => dRecord.command_numeric == parsedReportID);
                     }
                 }
             }
             catch (Exception e)
             {
-                Log.HandleException(new AException("Error while fetching round report.", e));
+                Log.HandleException(new AException("Error while fetching player report by report ID.", e));
             }
             return reportedRecord;
         }
 
-        public Boolean DenyRoundReport(ARecord record)
+        private Int32 AddRecordToReports(ARecord aRecord)
+        {
+            if (aRecord == null)
+            {
+                throw new ArgumentNullException("Records cannot be null when adding to reports.");
+            }
+            try
+            {
+                Int32 reportID = aRecord.command_numeric;
+                if (reportID == 0)
+                {
+                    var currentReports = _PlayerReports.ToList();
+                    if (currentReports.Count() > 500)
+                    {
+                        // Remove the oldest 50 reports if we are over 500 reports in the log
+                        var oldest50Reports = currentReports.OrderBy(record => record.record_id).Take(50);
+                        // Can't call RemoveAll with a list -_-
+                        foreach (var report in oldest50Reports)
+                        {
+                            _PlayerReports.Remove(report);
+                        }
+                    }
+                    Random random = new Random();
+                    do
+                    {
+                        reportID = random.Next(100, 999);
+                    } while (_PlayerReports.Any(dRecord => dRecord.command_numeric == reportID &&
+                                                           IsActiveReport(dRecord)));
+                    aRecord.command_numeric = reportID;
+                    _PlayerReports.Add(aRecord);
+                }
+                return reportID;
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while adding record to report list.", e));
+            }
+            return 0;
+        }
+
+        public Boolean DenyPlayerReport(ARecord record)
         {
             try
             {
-                Log.Debug(() => "Attempting to handle based on round report.", 6);
-                ARecord reportedRecord = FetchRoundReport(record.target_name, true);
+                Log.Debug(() => "Attempting to handle based on player report.", 6);
+                ARecord reportedRecord = FetchPlayerReportByID(record.target_name);
                 if (reportedRecord != null)
                 {
-                    Log.Debug(() => "Denying round report.", 5);
+                    if (!IsActiveReport(reportedRecord))
+                    {
+                        if (reportedRecord.command_action.command_key == "player_report_ignore")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was ignored, will now be denied.");
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_confirm")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was accepted, will now be denied.");
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_deny")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " is already denied.");
+                            FinalizeRecord(record);
+                            return false;
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_expire")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was expired, will now be denied.");
+                        }
+                    }
+                    Log.Debug(() => "Denying player report.", 5);
                     reportedRecord.command_action = GetCommandByKey("player_report_deny");
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been denied.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been denied by " + record.GetSourceName() + ".");
-
                     record.target_name = reportedRecord.source_name;
                     record.target_player = reportedRecord.source_player;
                     QueueRecordForProcessing(record);
                     return true;
                 }
+                else
+                {
+                    SendMessageToSource(record, "Invalid report ID given, unable to submit.");
+                }
             }
             catch (Exception e)
             {
-                Log.HandleException(new AException("Error while denying round report.", e));
+                Log.HandleException(new AException("Error while denying player report.", e));
             }
             return false;
         }
 
-        public Boolean IgnoreRoundReport(ARecord record)
+        public Boolean IgnorePlayerReport(ARecord record)
         {
             try
             {
-                Log.Debug(() => "Attempting to handle based on round report.", 6);
-                ARecord reportedRecord = FetchRoundReport(record.target_name, true);
+                Log.Debug(() => "Attempting to handle based on player report.", 6);
+                ARecord reportedRecord = FetchPlayerReportByID(record.target_name);
                 if (reportedRecord != null)
                 {
-                    Log.Debug(() => "Ignoring round report.", 5);
+                    if (!IsActiveReport(reportedRecord))
+                    {
+                        if (reportedRecord.command_action.command_key == "player_report_ignore")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " is already ignored.");
+                            FinalizeRecord(record);
+                            return false;
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_confirm")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was accepted, will now be ignored.");
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_deny")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was denied, will now be ignored.");
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_expire")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was expired, will now be ignored.");
+                        }
+                    }
+                    Log.Debug(() => "Ignoring player report.", 5);
                     reportedRecord.command_action = GetCommandByKey("player_report_ignore");
                     UpdateRecord(reportedRecord);
-                    //Do not inform the player their report was ignored
-                    //SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been ignored.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been ignored by " + record.GetSourceName() + ".");
-
                     record.target_name = reportedRecord.source_name;
                     record.target_player = reportedRecord.source_player;
                     QueueRecordForProcessing(record);
                     return true;
                 }
+                else
+                {
+                    SendMessageToSource(record, "Invalid report ID given, unable to submit.");
+                }
             }
             catch (Exception e)
             {
-                Log.HandleException(new AException("Error while ignoring round report.", e));
+                Log.HandleException(new AException("Error while ignoring player report.", e));
             }
             return false;
         }
 
-        public Boolean AcceptRoundReport(ARecord record)
+        public Boolean AcceptPlayerReport(ARecord record)
         {
             try
             {
-                Log.Debug(() => "Attempting to handle based on round report.", 6);
-                ARecord reportedRecord = FetchRoundReport(record.target_name, true);
+                Log.Debug(() => "Attempting to handle based on player report.", 6);
+                ARecord reportedRecord = FetchPlayerReportByID(record.target_name);
                 if (reportedRecord != null)
                 {
-                    Log.Debug(() => "Accepting round report.", 5);
-                    reportedRecord.command_action = GetCommandByKey("player_report_confirm");
-                    UpdateRecord(reportedRecord);
+                    if (!IsActiveReport(reportedRecord))
+                    {
+                        if (reportedRecord.command_action.command_key == "player_report_ignore")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was ignored, will now be accepted.");
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_confirm")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " is already accepted.");
+                            FinalizeRecord(record);
+                            return false;
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_deny")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was denied, will now be accepted.");
+                        }
+                        else if (reportedRecord.command_action.command_key == "player_report_expire")
+                        {
+                            SendMessageToSource(record, "Report " + reportedRecord.command_numeric + " was expired, will now be accepted.");
+                        }
+                    }
+                    Log.Debug(() => "Accepting player report.", 5);
+                    ConfirmActiveReport(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been accepted. Thank you.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been accepted by " + record.GetSourceName() + ".");
 
@@ -28368,22 +28858,31 @@ namespace PRoConEvents
                     QueueRecordForProcessing(record);
                     return true;
                 }
+                else
+                {
+                    SendMessageToSource(record, "Invalid report ID given, unable to submit.");
+                }
             }
             catch (Exception e)
             {
-                Log.HandleException(new AException("Error while denying round report.", e));
+                Log.HandleException(new AException("Error while denying player report.", e));
             }
             return false;
         }
 
-        public Boolean HandleRoundReport(ARecord record)
+        public Boolean HandlePlayerReport(ARecord record)
         {
             try
             {
-                Log.Debug(() => "Attempting to handle based on round report.", 6);
-                ARecord reportedRecord = FetchRoundReport(record.target_name, false);
+                Log.Debug(() => "Attempting to handle based on player report.", 6);
+                ARecord reportedRecord = FetchPlayerReportByID(record.target_name);
                 if (reportedRecord != null)
                 {
+                    if (!IsActiveReport(reportedRecord))
+                    {
+                        SendMessageToSource(record, "Report [" + record.target_name + "] has already been acted on.");
+                        return true;
+                    }
                     if (record.source_player != null && !PlayerIsAdmin(record.source_player))
                     {
                         return false;
@@ -28392,11 +28891,6 @@ namespace PRoConEvents
                     {
                         SendMessageToSource(record, "Report [" + record.target_name + "] cannot be acted on. " + FormatTimeString(TimeSpan.FromSeconds(_MinimumReportHandleSeconds - (UtcNow() - reportedRecord.record_time).TotalSeconds), 2) + " remaining.");
                         return true;
-                    }
-                    if (_RoundReports.Remove(record.target_name))
-                    {
-                        Log.Debug(() => "Round report [" + record.target_name + "] removed.", 3);
-                        _RoundReportHistory.Add(record.target_name);
                     }
                     if (reportedRecord.isContested)
                     {
@@ -28407,11 +28901,10 @@ namespace PRoConEvents
                         }
                         return true;
                     }
-                    Log.Debug(() => "Handling round report.", 5);
+                    Log.Debug(() => "Handling player report.", 5);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been acted on. Thank you.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been acted on by " + record.GetSourceName() + ".");
-                    reportedRecord.command_action = GetCommandByKey("player_report_confirm");
-                    UpdateRecord(reportedRecord);
+                    ConfirmActiveReport(reportedRecord);
 
                     record.target_name = reportedRecord.target_name;
                     record.target_player = reportedRecord.target_player;
@@ -28422,18 +28915,80 @@ namespace PRoConEvents
                     QueueRecordForProcessing(record);
                     return true;
                 }
-                if (_RoundReportHistory.Contains(record.target_name))
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AException("Error while handling player report.", e);
+                Log.HandleException(record.record_exception);
+            }
+            return false;
+        }
+
+        public Boolean IsActiveReport(ARecord aRecord)
+        {
+            try
+            {
+                if (aRecord == null ||
+                    aRecord.record_id < 1 ||
+                    aRecord.command_type == null ||
+                    (aRecord.command_type.command_key != "player_report" && aRecord.command_type.command_key != "player_calladmin") ||
+                    aRecord.command_action == null ||
+                    aRecord.command_action.command_key == "player_report_confirm" ||
+                    aRecord.command_action.command_key == "player_report_ignore" ||
+                    aRecord.command_action.command_key == "player_report_deny" ||
+                    aRecord.command_action.command_key == "player_report_expire" ||
+                    aRecord.target_player == null ||
+                    aRecord.TargetSession != aRecord.target_player.ActiveSession)
                 {
-                    SendMessageToSource(record, "Report [" + record.target_name + "] has already been acted on.");
-                    return true;
+                    return false;
                 }
             }
             catch (Exception e)
             {
-                record.record_exception = new AException("Error while handling round report.", e);
-                Log.HandleException(record.record_exception);
+                Log.HandleException(new AException("Error while checking if a report was active.", e));
             }
-            return false;
+            return true;
+        }
+
+        public void ConfirmActiveReport(ARecord report)
+        {
+            try
+            {
+                if (report != null &&
+                    IsActiveReport(report))
+                {
+                    // Expire all other active reports against the player since this is the one that we acted on
+                    var reportsToExpire = report.target_player.TargetedRecords.Where(dRecord => IsActiveReport(dRecord) &&
+                                                                                                dRecord.record_id != report.record_id);
+                    foreach (var eReport in reportsToExpire)
+                    {
+                        ExpireActiveReport(eReport);
+                    }
+                    report.command_action = GetCommandByKey("player_report_confirm");
+                    UpdateRecord(report);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while confirming an active report.", e));
+            }
+        }
+
+        public void ExpireActiveReport(ARecord aRecord)
+        {
+            try
+            {
+                if (aRecord != null &&
+                    IsActiveReport(aRecord))
+                {
+                    aRecord.command_action = GetCommandByKey("player_report_expire");
+                    UpdateRecord(aRecord);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while expiring an active report.", e));
+            }
         }
 
         //replaces the message with a pre-message
@@ -29158,7 +29713,7 @@ namespace PRoConEvents
                         LeadCurrentSquad(record);
                         break;
                     case "self_reportlist":
-                        SendRoundReports(record);
+                        SendPlayerReports(record);
                         break;
                     case "plugin_restart":
                         RebootPlugin(record);
@@ -29690,19 +30245,19 @@ namespace PRoConEvents
                     Log.Debug(() => "Ban '" + banMessage + "'", 3);
                     if (!String.IsNullOrEmpty(record.target_player.player_guid))
                     {
-                        ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_player.player_guid, "seconds", seconds + "", banMessage);
+                        ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_player.player_guid, "seconds", seconds.ToString(), banMessage);
                         ExecuteCommand("procon.protected.send", "banList.save");
                         ExecuteCommand("procon.protected.send", "banList.list");
                     }
                     else if (!String.IsNullOrEmpty(record.target_player.player_ip))
                     {
-                        ExecuteCommand("procon.protected.send", "banList.add", "ip", record.target_player.player_ip, "seconds", seconds + "", banMessage);
+                        ExecuteCommand("procon.protected.send", "banList.add", "ip", record.target_player.player_ip, "seconds", seconds.ToString(), banMessage);
                         ExecuteCommand("procon.protected.send", "banList.save");
                         ExecuteCommand("procon.protected.send", "banList.list");
                     }
                     else if (!String.IsNullOrEmpty(record.target_player.player_name))
                     {
-                        ExecuteCommand("procon.protected.send", "banList.add", "id", record.target_player.player_name, "seconds", seconds + "", banMessage);
+                        ExecuteCommand("procon.protected.send", "banList.add", "id", record.target_player.player_name, "seconds", seconds.ToString(), banMessage);
                         ExecuteCommand("procon.protected.send", "banList.save");
                         ExecuteCommand("procon.protected.send", "banList.list");
                     }
@@ -30376,11 +30931,21 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                using (MySqlConnection connection = GetDatabaseConnection())
+
+                // Thanks XTheLoneShadowX for this idea
+                if (!_FeedServerReservedSlots && _FeedServerReservedSlots_VSM)
                 {
-                    using (MySqlCommand command = connection.CreateCommand())
+                    var commandString = "/vsm-addvip " + record.target_player.player_name + " +" + Math.Round(TimeSpan.FromMinutes(record.command_numeric).TotalDays);
+                    AdminSayMessage(commandString);
+                    FetchAllAccess(true);
+                }
+                else
+                {
+                    using (MySqlConnection connection = GetDatabaseConnection())
                     {
-                        command.CommandText = @"
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"
                         DELETE FROM
                             `adkats_specialplayers`
                         WHERE `player_group` = @player_group
@@ -30404,34 +30969,35 @@ namespace PRoConEvents
                             UTC_TIMESTAMP(),
                             DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
-                        if (record.target_player.player_id <= 0)
-                        {
-                            Log.Error("Player ID invalid when assigning special player entry. Unable to complete.");
-                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
-                            FinalizeRecord(record);
-                            return;
-                        }
-                        if (record.command_numeric > 10518984)
-                        {
-                            record.command_numeric = 10518984;
-                        }
-                        command.Parameters.AddWithValue("@player_group", "slot_reserved");
-                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
-                        command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
-                        command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
-                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
+                            if (record.target_player.player_id <= 0)
+                            {
+                                Log.Error("Player ID invalid when assigning special player entry. Unable to complete.");
+                                SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            if (record.command_numeric > 10518984)
+                            {
+                                record.command_numeric = 10518984;
+                            }
+                            command.Parameters.AddWithValue("@player_group", "slot_reserved");
+                            command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                            command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
+                            command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                            command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
 
-                        Int32 rowsAffected = SafeExecuteNonQuery(command);
-                        if (rowsAffected > 0)
-                        {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " reserved slot.";
-                            SendMessageToSource(record, message);
-                            Log.Debug(() => message, 3);
-                            FetchAllAccess(true);
-                        }
-                        else
-                        {
-                            Log.Error("Unable to add player to reserved slot. Error uploading.");
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " reserved slot.";
+                                SendMessageToSource(record, message);
+                                Log.Debug(() => message, 3);
+                                FetchAllAccess(true);
+                            }
+                            else
+                            {
+                                Log.Error("Unable to add player to reserved slot. Error uploading.");
+                            }
                         }
                     }
                 }
@@ -32584,7 +33150,7 @@ namespace PRoConEvents
                     {
                         //Unlock target squad
                         SendMessageToSource(record, "Unlocking target squad if needed, please wait.");
-                        ExecuteCommand("procon.protected.send", "squad.private", record.target_player.fbpInfo.TeamID + "", record.target_player.fbpInfo.SquadID + "", "false");
+                        ExecuteCommand("procon.protected.send", "squad.private", record.target_player.fbpInfo.TeamID.ToString(), record.target_player.fbpInfo.SquadID.ToString(), "false");
                         //If anything longer is needed...tisk tisk
                         Threading.Wait(500);
                     }
@@ -32605,7 +33171,7 @@ namespace PRoConEvents
                             record.source_player.RequiredTeam = targetTeam;
                             _LastPlayerMoveIssued = UtcNow();
                             SendMessageToSource(record, "Attempting to join " + record.GetTargetNames());
-                            ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_player.player_name, record.target_player.fbpInfo.TeamID + "", record.target_player.fbpInfo.SquadID + "", "true");
+                            ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_player.player_name, record.target_player.fbpInfo.TeamID.ToString(), record.target_player.fbpInfo.SquadID.ToString(), "true");
                         }
                     }
                 }
@@ -32631,7 +33197,7 @@ namespace PRoConEvents
                 record.record_action_executed = true;
                 //Unlock squad
                 SendMessageToSource(record, "Unlocking your squad for entry.");
-                ExecuteCommand("procon.protected.send", "squad.private", record.source_player.fbpInfo.TeamID + "", record.source_player.fbpInfo.SquadID + "", "false");
+                ExecuteCommand("procon.protected.send", "squad.private", record.source_player.fbpInfo.TeamID.ToString(), record.source_player.fbpInfo.SquadID.ToString(), "false");
                 Threading.Wait(500);
                 //Move to specific squad
                 Log.Debug(() => "MULTIBalancer Unswitcher Disabled", 3);
@@ -32643,7 +33209,7 @@ namespace PRoConEvents
                     record.target_player.RequiredTeam = sourceTeam;
                     _LastPlayerMoveIssued = UtcNow();
                     SendMessageToSource(record, "Pulling " + record.GetTargetNames() + " to your squad.");
-                    ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_player.player_name, sourceTeam.TeamID + "", record.source_player.fbpInfo.SquadID + "", "true");
+                    ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_player.player_name, sourceTeam.TeamID.ToString(), record.source_player.fbpInfo.SquadID.ToString(), "true");
                 }
             }
             catch (Exception e)
@@ -32660,17 +33226,7 @@ namespace PRoConEvents
             Log.Debug(() => "Entering reportTarget", 6);
             try
             {
-                Random random = new Random();
-                Int32 reportID = record.command_numeric;
-                if (record.command_numeric == 0)
-                {
-                    do
-                    {
-                        reportID = random.Next(100, 999);
-                    } while (_RoundReports.ContainsKey(reportID + ""));
-                    record.command_numeric = reportID;
-                    _RoundReports.Add(reportID + "", record);
-                }
+                Int32 reportID = AddRecordToReports(record);
                 record.record_action_executed = true;
                 if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) &&
                     record.target_player != null &&
@@ -32697,12 +33253,11 @@ namespace PRoConEvents
                     {
                         SendMessageToSource(record, "Your report [" + reportID + "] has been acted on. Thank you.");
                         OnlineAdminSayMessage("Report " + reportID + " is being acted on by Loadout Enforcer.");
-                        record.command_action = GetCommandByKey("player_report_confirm");
-                        UpdateRecord(record);
+                        ConfirmActiveReport(record);
                         return;
                     }
                 }
-                AttemptReportAutoAction(record, reportID + "");
+                AttemptReportAutoAction(record, reportID.ToString());
                 String sourceAAIdentifier = (record.source_player != null && record.source_player.player_aa) ? ("(AA)") : ("");
                 String targetAAIdentifier = (record.target_player != null && record.target_player.player_aa) ? ("(AA)") : ("");
                 String slotID = (record.target_player != null) ? (record.target_player.player_slot) : (null);
@@ -32722,6 +33277,7 @@ namespace PRoConEvents
                         sourcePlayerInfo = " (OFFLINE)";
                     }
                 }
+                var sourceString = sourceAAIdentifier + record.GetSourceName() + sourcePlayerInfo;
                 String targetPlayerInfo = "";
                 if (record.target_player != null && record.target_player.fbpInfo != null)
                 {
@@ -32734,8 +33290,9 @@ namespace PRoConEvents
                         targetPlayerInfo = " (OFFLINE)";
                     }
                 }
-                OnlineAdminSayMessage("R[" + reportID + "] Source: " + sourceAAIdentifier + record.GetSourceName() + sourcePlayerInfo);
-                OnlineAdminSayMessage("R[" + reportID + "] Target: " + targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo);
+                var targetString = targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo;
+                OnlineAdminSayMessage("R[" + reportID + "] Source: " + sourceString);
+                OnlineAdminSayMessage("R[" + reportID + "] Target: " + targetString);
                 OnlineAdminSayMessage("R[" + reportID + "] Reason: " + record.record_message);
                 if (record.isLoadoutChecked)
                 {
@@ -32789,6 +33346,18 @@ namespace PRoConEvents
                         _PushBulletHandler.PushReport(record);
                     }
                 }
+                if (_UseDiscordForReports)
+                {
+                    if (_DiscordReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any())
+                    {
+                        Log.Debug(() => "Discord report cancelled, admins online.", 3);
+                    }
+                    else
+                    {
+                        Log.Debug(() => "Preparing to send Discord report.", 3);
+                        _DiscordManager.PostReport(record, "REPORT", sourceString, targetString);
+                    }
+                }
                 if (record.source_player != null && record.source_name != record.target_name && record.source_player.player_type == PlayerType.Spectator)
                 {
                     //Custom record to boost rep for reporting from spectator mode
@@ -32821,17 +33390,7 @@ namespace PRoConEvents
             Log.Debug(() => "Entering callAdminOnTarget", 6);
             try
             {
-                Random random = new Random();
-                Int32 reportID = record.command_numeric;
-                if (record.command_numeric == 0)
-                {
-                    do
-                    {
-                        reportID = random.Next(100, 999);
-                    } while (_RoundReports.ContainsKey(reportID + ""));
-                    record.command_numeric = reportID;
-                    _RoundReports.Add(reportID + "", record);
-                }
+                Int32 reportID = AddRecordToReports(record);
                 record.record_action_executed = true;
                 if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) &&
                     record.target_player != null &&
@@ -32861,12 +33420,11 @@ namespace PRoConEvents
                     {
                         SendMessageToSource(record, "Your report [" + reportID + "] has been acted on. Thank you.");
                         OnlineAdminSayMessage("Report " + reportID + " is being acted on by Loadout Enforcer.");
-                        record.command_action = GetCommandByKey("player_report_confirm");
-                        UpdateRecord(record);
+                        ConfirmActiveReport(record);
                         return;
                     }
                 }
-                AttemptReportAutoAction(record, reportID + "");
+                AttemptReportAutoAction(record, reportID.ToString());
                 String sourceAAIdentifier = (record.source_player != null && record.source_player.player_aa) ? ("(AA)") : ("");
                 String targetAAIdentifier = (record.target_player != null && record.target_player.player_aa) ? ("(AA)") : ("");
                 String slotID = (record.target_player != null) ? (record.target_player.player_slot) : (null);
@@ -32879,13 +33437,14 @@ namespace PRoConEvents
                 {
                     if (record.source_player.player_online)
                     {
-                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.source_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.fbpInfo.TeamID == record.source_player.fbpInfo.TeamID).OrderBy(aPlayer => aPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(record.source_player) + 1) + ")";
+                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.source_player) + "/" + (_PlayerDictionary.Values.Where(aPlayer => aPlayer.fbpInfo.TeamID == record.source_player.fbpInfo.TeamID).OrderBy(aPlayer => aPlayer.fbpInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + ")";
                     }
                     else
                     {
                         sourcePlayerInfo = " (OFFLINE)";
                     }
                 }
+                var sourceString = sourceAAIdentifier + record.GetSourceName() + sourcePlayerInfo;
                 String targetPlayerInfo = "";
                 if (record.target_player != null && record.target_player.fbpInfo != null)
                 {
@@ -32898,8 +33457,9 @@ namespace PRoConEvents
                         targetPlayerInfo = " (OFFLINE)";
                     }
                 }
-                OnlineAdminSayMessage("A[" + reportID + "] Source: " + sourceAAIdentifier + record.GetSourceName() + sourcePlayerInfo);
-                OnlineAdminSayMessage("A[" + reportID + "] Target: " + targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo);
+                var targetString = targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo;
+                OnlineAdminSayMessage("A[" + reportID + "] Source: " + sourceString);
+                OnlineAdminSayMessage("A[" + reportID + "] Target: " + targetString);
                 OnlineAdminSayMessage("A[" + reportID + "] Reason: " + record.record_message);
                 if (record.isLoadoutChecked)
                 {
@@ -32928,7 +33488,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        Log.Debug(() => "Preparing to send report email.", 3);
+                        Log.Debug(() => "Preparing to send admin call email.", 3);
                         _EmailHandler.SendReport(record);
                     }
                 }
@@ -32936,12 +33496,24 @@ namespace PRoConEvents
                 {
                     if (_PushBulletReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any())
                     {
-                        Log.Debug(() => "PushBullet report cancelled, admins online.", 3);
+                        Log.Debug(() => "PushBullet admin call cancelled, admins online.", 3);
                     }
                     else
                     {
-                        Log.Debug(() => "Preparing to send PushBullet report.", 3);
+                        Log.Debug(() => "Preparing to send PushBullet admin call.", 3);
                         _PushBulletHandler.PushReport(record);
+                    }
+                }
+                if (_UseDiscordForReports)
+                {
+                    if (_DiscordReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any())
+                    {
+                        Log.Debug(() => "Discord admin call cancelled, admins online.", 3);
+                    }
+                    else
+                    {
+                        Log.Debug(() => "Preparing to send Discord admin call.", 3);
+                        _DiscordManager.PostReport(record, "ADMIN CALL", sourceString, targetString);
                     }
                 }
             }
@@ -32984,17 +33556,14 @@ namespace PRoConEvents
                     Thread.CurrentThread.Name = "ReportAutoHandler";
                     //If admins are online, act after 45 seconds. If they are not, act after 5 seconds.
                     Threading.Wait(TimeSpan.FromSeconds((adminsOnline) ? (45.0) : (5.0)));
-                    //Get the reported record
-                    ARecord reportedRecord;
-                    if (_RoundReports.TryGetValue(reportID, out reportedRecord))
+                    //Get the report record
+                    ARecord reportRecord = FetchPlayerReportByID(reportID);
+                    if (reportRecord != null)
                     {
-                        if (CanPunish(reportedRecord, 90) || !adminsOnline)
+                        if (CanPunish(reportRecord, 90) || !adminsOnline)
                         {
-                            //Remove it from the reports for this round
-                            _RoundReports.Remove(reportID);
                             //Update it in the database
-                            reportedRecord.command_action = GetCommandByKey("player_report_confirm");
-                            UpdateRecord(reportedRecord);
+                            ConfirmActiveReport(reportRecord);
                             //Get target information
                             ARecord aRecord = new ARecord
                             {
@@ -33002,20 +33571,20 @@ namespace PRoConEvents
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("player_punish"),
                                 command_numeric = 0,
-                                target_name = reportedRecord.target_player.player_name,
-                                target_player = reportedRecord.target_player,
+                                target_name = reportRecord.target_player.player_name,
+                                target_player = reportRecord.target_player,
                                 source_name = "ProconAdmin",
-                                record_message = reportedRecord.record_message,
+                                record_message = reportRecord.record_message,
                                 record_time = UtcNow()
                             };
                             //Inform the reporter that they helped the admins
-                            SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been acted on. Thank you.");
+                            SendMessageToSource(reportRecord, "Your report [" + reportRecord.command_numeric + "] has been acted on. Thank you.");
                             //Queue for processing
                             QueueRecordForProcessing(aRecord);
                         }
                         else
                         {
-                            SendMessageToSource(reportedRecord, "Reported player has already been acted on.");
+                            SendMessageToSource(reportRecord, "Reported player has already been acted on.");
                         }
                     }
                 }
@@ -33603,7 +34172,7 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                ExecuteCommand("procon.protected.send", "mapList.endRound", record.command_numeric + "");
+                ExecuteCommand("procon.protected.send", "mapList.endRound", record.command_numeric.ToString());
                 SendMessageToSource(record, "Ended round with " + record.GetTargetNames() + " winning.");
             }
             catch (Exception e)
@@ -35110,13 +35679,13 @@ namespace PRoConEvents
             Log.Debug(() => "Exiting SendUptime", 6);
         }
 
-        public void SendRoundReports(ARecord record)
+        public void SendPlayerReports(ARecord record)
         {
-            Log.Debug(() => "Entering SendRoundReports", 6);
+            Log.Debug(() => "Entering SendPlayerReports", 6);
             try
             {
                 record.record_action_executed = true;
-                List<ARecord> lastMissedReports = _RoundReports.Values.OrderByDescending(aRecord => aRecord.record_time).Take(6).Reverse().ToList();
+                List<ARecord> lastMissedReports = FetchActivePlayerReports().OrderByDescending(aRecord => aRecord.record_time).Take(6).Reverse().ToList();
                 Boolean listed = false;
                 foreach (ARecord rRecord in lastMissedReports)
                 {
@@ -35135,16 +35704,16 @@ namespace PRoConEvents
                 }
                 if (!listed)
                 {
-                    SendMessageToSource(record, "No missed round reports were found.");
+                    SendMessageToSource(record, "No missed player reports were found.");
                 }
             }
             catch (Exception e)
             {
-                record.record_exception = new AException("Error while sending round reports.", e);
+                record.record_exception = new AException("Error while sending player reports.", e);
                 Log.HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            Log.Debug(() => "Exiting SendRoundReports", 6);
+            Log.Debug(() => "Exiting SendPlayerReports", 6);
         }
 
         public void RebootPlugin(ARecord record)
@@ -35310,8 +35879,8 @@ namespace PRoConEvents
                         }
                         SendMessageToSource(record, "Location: " + playerLoc);
                         Threading.Wait(2000);
-                        IEnumerable<ARecord> reportsFrom = _RoundReports.Values.Where(aRecord => aRecord.source_name == record.target_name);
-                        IEnumerable<ARecord> reportsAgainst = _RoundReports.Values.Where(aRecord => aRecord.target_name == record.target_name);
+                        IEnumerable<ARecord> reportsFrom = _PlayerReports.Where(aRecord => aRecord.source_name == record.target_name);
+                        IEnumerable<ARecord> reportsAgainst = _PlayerReports.Where(aRecord => aRecord.target_name == record.target_name);
                         String playerReps = "None from or against.";
                         if (reportsAgainst.Any() || reportsFrom.Any())
                         {
@@ -35377,7 +35946,7 @@ namespace PRoConEvents
                         {
                             pingKicksText = "Kicked " + pingKicks.Count() + " time(s) for high ping.";
                         }
-                        SendMessageToSource(record, "Ping Kicks: " + pingKicksText + " Current Ping [" + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping_avg, 2) + "") : ("Missing")) + "].");
+                        SendMessageToSource(record, "Ping Kicks: " + pingKicksText + " Current Ping [" + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping_avg, 2).ToString()) : ("Missing")) + "].");
                         Threading.Wait(2000);
                         //Reputation
                         SendMessageToSource(record, "Reputation: " + Math.Round(record.target_player.player_reputation, 2));
@@ -35482,6 +36051,29 @@ namespace PRoConEvents
                                 String expiration = (expireDuration.TotalDays > 500.0) ? ("Permanent") : (FormatTimeString(expireDuration, 3));
                                 var groupName = !String.IsNullOrEmpty(asPlayer.tempCreationType) ? asPlayer.tempCreationType : asPlayer.player_group.group_name;
                                 SendMessageToSource(record, groupName + ": " + expiration);
+                                if (groupKey == "slot_reserved" && 
+                                    record.target_player != null &&
+                                    record.target_player.player_role != null &&
+                                    record.target_player.player_role.RoleAllowedCommands != null &&
+                                    (_ReservedSelfKill || _ReservedSelfMove || _ReservedSquadLead))
+                                {
+                                    var allowedCommands = record.target_player.player_role.RoleAllowedCommands;
+                                    if (!allowedCommands.ContainsKey("self_lead") && _ReservedSquadLead)
+                                    {
+                                        Threading.Wait(1000);
+                                        SendMessageToSource(record, GetChatCommandByKey("self_lead") + " Command Access: " + expiration);
+                                    }
+                                    if (!allowedCommands.ContainsKey("self_teamswap") && _ReservedSelfMove)
+                                    {
+                                        Threading.Wait(1000);
+                                        SendMessageToSource(record, GetChatCommandByKey("self_teamswap") + " Command Access: " + expiration);
+                                    }
+                                    if (!allowedCommands.ContainsKey("self_kill") && _ReservedSelfKill)
+                                    {
+                                        Threading.Wait(1000);
+                                        SendMessageToSource(record, GetChatCommandByKey("self_kill") + " Command Access: " + expiration);
+                                    }
+                                }
                             }
                         }
                     }
@@ -35553,7 +36145,7 @@ namespace PRoConEvents
                             // This option will clear the existing event options from the plugin and start new
                             SendMessageToSource(record, "Removing all existing event rounds.");
                             _EventRoundOptions.Clear();
-                            QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                            QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getCode()).ToArray()));
                             UpdateSettingPage();
                         }
                         else
@@ -35593,196 +36185,12 @@ namespace PRoConEvents
                             // This poll has two stages. Choosing the rules and choosing the mode.
                             AEventOption.RuleCode chosenRule = AEventOption.RuleCode.UNKNOWN;
                             AEventOption.ModeCode chosenMode = AEventOption.ModeCode.UNKNOWN;
-                            _ActivePoll.Title = "Choose event rules with !#";
-                            // Get the available rule options
-                            var existingEventRules = _EventRoundOptions
-                                                        .Select(option => option.Rule)
-                                                        .Distinct()
-                                                        .ToList();
-                            var rng = new Random(Environment.TickCount);
-                            var availableRuleOptions = _EventRoundPollOptions
-                                                        .Where(option => !existingEventRules.Contains(option.Rule))
-                                                        .Select(option => option.Rule)
-                                                        .Distinct()
-                                                        .OrderBy(option => rng.Next())
-                                                        .ToList();
-                            if (availableRuleOptions.Count() <= 3)
-                            {
-                                // They used almost all the rules during this event
-                                // Just give them everything
-                                foreach (var option in _EventRoundPollOptions
-                                                        .Select(option => option.Rule)
-                                                        .Distinct()
-                                                        .OrderBy(option => rng.Next())
-                                                        .ToList())
-                                {
-                                    if (!availableRuleOptions.Contains(option))
-                                    {
-                                        availableRuleOptions.Add(option);
-                                    }
-                                }
-                            }
-                            List<AEventOption.RuleCode> chosenRules = new List<AEventOption.RuleCode>();
-                            // Add the remaining available rules to the chosen list
-                            foreach (var rule in availableRuleOptions)
-                            {
-                                if (!chosenRules.Contains(rule))
-                                {
-                                    chosenRules.Add(rule);
-                                }
-                            }
-                            foreach (var option in chosenRules)
-                            {
-                                if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
-                                {
-                                    break;
-                                }
-                                // Add the name of the option to the chosen list
-                                _ActivePoll.AddOption(AEventOption.RuleNames[option], false);
-                            }
-                            if (_EventRoundOptions.Count() >= _EventRoundAutoPollsMax)
-                            {
-                                _ActivePoll.AddOption(AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT], false);
-                            }
+                            AEventOption.MapCode chosenMap = AEventOption.MapCode.UNKNOWN;
 
-                            while (_pluginEnabled &&
-                                   _roundState == RoundState.Playing &&
-                                   NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
-                                   _ActivePoll.Votes.Count() < _PollMaxVotes &&
-                                   !_ActivePoll.Completed &&
-                                   !_ActivePoll.Canceled)
-                            {
-                                if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
-                                {
-                                    // Print the poll
-                                    _ActivePoll.PrintPoll(_eventPollYellWinningRule);
-                                }
 
-                                Threading.Wait(100);
-                            }
+                            ///////////////////////////RULE POLL/////////////////////////////
+                            DoEventRulePoll(chosenRule, chosenMode, chosenMap);
 
-                            if (_ActivePoll.Completed)
-                            {
-                                AdminSayMessage("Event rule poll completed with current winner.");
-                            }
-                            // Only continue if the poll has not been canceled
-                            if (_pluginEnabled &&
-                                !_ActivePoll.Canceled)
-                            {
-
-                                // Get the outcome
-                                var ruleString = _ActivePoll.GetWinningOption("won", false);
-                                chosenRule = AEventOption.RuleFromDisplay(ruleString);
-
-                                if (chosenRule == AEventOption.RuleCode.ENDEVENT)
-                                {
-                                    for (int i = 0; i < 5; i++)
-                                    {
-                                        AdminTellMessage("Server voted to end the event. Normal rules next round.");
-                                        Thread.Sleep(500);
-                                    }
-                                }
-                                else
-                                {
-                                    // Get the available mode options for the chosen rule
-                                    var availableModeOptions = _EventRoundPollOptions
-                                                                .Where(option => option.Rule == chosenRule)
-                                                                .Select(option => option.Mode)
-                                                                .Distinct()
-                                                                .OrderBy(option => rng.Next())
-                                                                .ToList();
-
-                                    if (availableModeOptions.Count() == 1)
-                                    {
-                                        // There is only one option for the poll, so just select it and finish
-                                        chosenMode = availableModeOptions.First();
-                                        var option = new AEventOption()
-                                        {
-                                            Mode = chosenMode,
-                                            Rule = chosenRule
-                                        };
-                                        _EventRoundOptions.Add(option);
-                                        QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
-                                        AdminTellMessage("EVENT POLL COMPLETE! Next event round is " + option.getModeRuleDisplay());
-
-                                        // If the event isn't active or set up with a date, make the event start next round.
-                                        if (!EventActive() &&
-                                            _CurrentEventRoundNumber == 999999)
-                                        {
-                                            _CurrentEventRoundNumber = _roundID + 1;
-                                            QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
-                                        }
-
-                                        UpdateSettingPage();
-                                    }
-                                    else
-                                    {
-                                        // Reset the poll for the next stage
-                                        _ActivePoll.Reset();
-
-                                        _ActivePoll.Title = "Choose '" + ruleString + "' mode with !#";
-                                        foreach (var option in availableModeOptions)
-                                        {
-                                            if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
-                                            {
-                                                break;
-                                            }
-                                            // Add the name of the option to the chosen list
-                                            _ActivePoll.AddOption(AEventOption.ModeNames[option], false);
-                                        }
-
-                                        while (_pluginEnabled &&
-                                               _roundState == RoundState.Playing &&
-                                               NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
-                                               _ActivePoll.Votes.Count() < _PollMaxVotes &&
-                                               !_ActivePoll.Completed &&
-                                               !_ActivePoll.Canceled)
-                                        {
-                                            if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
-                                            {
-                                                // Print the poll
-                                                // Do not announce the current mode leader
-                                                _ActivePoll.PrintPoll(false);
-                                            }
-
-                                            Threading.Wait(100);
-                                        }
-
-                                        if (_ActivePoll.Completed)
-                                        {
-                                            AdminSayMessage("Event mode poll completed with current winner.");
-                                        }
-
-                                        // Only continue if the round is still active
-                                        // And the poll has not been canceled
-                                        if (_pluginEnabled &&
-                                            !_ActivePoll.Canceled)
-                                        {
-
-                                            // Get the outcome
-                                            chosenMode = AEventOption.ModeFromDisplay(_ActivePoll.GetWinningOption("won", false));
-                                            var option = new AEventOption()
-                                            {
-                                                Mode = chosenMode,
-                                                Rule = chosenRule
-                                            };
-                                            _EventRoundOptions.Add(option);
-                                            QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
-                                            AdminTellMessage("EVENT POLL COMPLETE! Next event round is " + option.getModeRuleDisplay());
-
-                                            // If the event isn't active or set up with a date, make the event start next round.
-                                            if (!EventActive() &&
-                                                _CurrentEventRoundNumber == 999999)
-                                            {
-                                                _CurrentEventRoundNumber = _roundID + 1;
-                                                QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
-                                            }
-
-                                            UpdateSettingPage();
-                                        }
-                                    }
-                                }
-                            }
 
                             if (_ActivePoll.Canceled)
                             {
@@ -35818,6 +36226,329 @@ namespace PRoConEvents
                 FinalizeRecord(record);
             }
             Log.Debug(() => "Exiting TriggerTargetPoll", 6);
+        }
+
+        private void DoEventRulePoll(AEventOption.RuleCode chosenRule, AEventOption.ModeCode chosenMode, AEventOption.MapCode chosenMap)
+        {
+            Log.Debug(() => "Entering DoEventRulePoll", 3);
+            try
+            {
+                ///////////////////////////RULE POLL/////////////////////////////
+
+                _ActivePoll.Title = "Choose event rules with !#";
+                // Get the available rule options
+                var existingEventRules = _EventRoundOptions
+                                            .Select(option => option.Rule)
+                                            .Distinct()
+                                            .ToList();
+                var rng = new Random(Environment.TickCount);
+                var availableRuleOptions = _EventRoundPollOptions
+                                            .Where(option => !existingEventRules.Contains(option.Rule))
+                                            .Select(option => option.Rule)
+                                            .Distinct()
+                                            .OrderBy(option => rng.Next())
+                                            .ToList();
+                // Conditionally remove some rule options
+                if (_populationStatus != PopulationState.High)
+                {
+                    // In medium/low population, do not allow melee/explosive rules to show up
+                    availableRuleOptions.Remove(AEventOption.RuleCode.DO);
+                    availableRuleOptions.Remove(AEventOption.RuleCode.EO);
+                    availableRuleOptions.Remove(AEventOption.RuleCode.GO);
+                    availableRuleOptions.Remove(AEventOption.RuleCode.KO);
+                    availableRuleOptions.Remove(AEventOption.RuleCode.RTO);
+                    availableRuleOptions.Remove(AEventOption.RuleCode.TR);
+                }
+                if (availableRuleOptions.Count() <= 3)
+                {
+                    availableRuleOptions = _EventRoundPollOptions
+                                            .Select(option => option.Rule)
+                                            .Distinct()
+                                            .OrderBy(option => rng.Next())
+                                            .ToList();
+                    // Conditionally remove some rule options
+                    if (_populationStatus != PopulationState.High)
+                    {
+                        // In medium/low population, do not allow melee/explosive rules to show up
+                        availableRuleOptions.Remove(AEventOption.RuleCode.DO);
+                        availableRuleOptions.Remove(AEventOption.RuleCode.EO);
+                        availableRuleOptions.Remove(AEventOption.RuleCode.GO);
+                        availableRuleOptions.Remove(AEventOption.RuleCode.KO);
+                        availableRuleOptions.Remove(AEventOption.RuleCode.RTO);
+                        availableRuleOptions.Remove(AEventOption.RuleCode.TR);
+                    }
+                }
+                List<AEventOption.RuleCode> chosenRules = new List<AEventOption.RuleCode>();
+                // Add the remaining available rules to the chosen list
+                foreach (var rule in availableRuleOptions)
+                {
+                    if (!chosenRules.Contains(rule))
+                    {
+                        chosenRules.Add(rule);
+                    }
+                }
+                foreach (var option in chosenRules)
+                {
+                    if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
+                    {
+                        break;
+                    }
+                    // Add the name of the option to the chosen list
+                    _ActivePoll.AddOption(AEventOption.RuleNames[option], false);
+                }
+                if (_EventRoundOptions.Count() >= _EventRoundAutoPollsMax)
+                {
+                    _ActivePoll.AddOption(AEventOption.RuleNames[AEventOption.RuleCode.ENDEVENT], false);
+                }
+
+                while (_pluginEnabled &&
+                       _roundState == RoundState.Playing &&
+                       NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
+                       _ActivePoll.Votes.Count() < _PollMaxVotes &&
+                       !_ActivePoll.Completed &&
+                       !_ActivePoll.Canceled)
+                {
+                    if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
+                    {
+                        // Print the poll
+                        _ActivePoll.PrintPoll(_eventPollYellWinningRule);
+                    }
+
+                    Threading.Wait(100);
+                }
+
+                if (_ActivePoll.Completed)
+                {
+                    AdminSayMessage("Event rule poll completed with current winner.");
+                }
+
+                // Only continue if the poll has not been canceled
+                if (_pluginEnabled &&
+                    !_ActivePoll.Canceled)
+                {
+
+                    // Get the outcome
+                    var ruleString = _ActivePoll.GetWinningOption("won", false);
+                    chosenRule = AEventOption.RuleFromDisplay(ruleString);
+
+                    if (chosenRule == AEventOption.RuleCode.ENDEVENT)
+                    {
+                        for (int i = 0; i < 6; i++)
+                        {
+                            AdminTellMessage("Event ended by vote. Normal rules next round.");
+                            Thread.Sleep(500);
+                        }
+                    }
+                    else
+                    {
+                        ///////////////////////////MODE POLL/////////////////////////////
+                        DoEventModePoll(chosenRule, chosenMode, chosenMap);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while handling poll completion.", e));
+            }
+            Log.Debug(() => "Exiting DoEventRulePoll", 3);
+        }
+
+        private void DoEventModePoll(AEventOption.RuleCode chosenRule, AEventOption.ModeCode chosenMode, AEventOption.MapCode chosenMap)
+        {
+            Log.Debug(() => "Entering DoEventModePoll", 3);
+            try
+            {
+                ///////////////////////////MODE POLL/////////////////////////////
+
+                // Get the available mode options for the chosen rule
+                var rng = new Random(Environment.TickCount);
+                var availableModeOptions = _EventRoundPollOptions
+                                            .Where(option => option.Rule == chosenRule)
+                                            .Select(option => option.Mode)
+                                            .Distinct()
+                                            .OrderBy(option => rng.Next())
+                                            .ToList();
+
+                if (availableModeOptions.Count() == 1)
+                {
+                    // There is only one option for the poll, so just select it
+                    chosenMode = availableModeOptions.First();
+
+                    ///////////////////////////MAP POLL/////////////////////////////
+                    DoEventMapPoll(chosenRule, chosenMode, chosenMap);
+                }
+                else
+                {
+                    // Reset the poll for the next stage
+                    _ActivePoll.Reset();
+
+                    _ActivePoll.Title = "Choose '" + AEventOption.RuleNames[chosenRule] + "' mode with !#";
+                    foreach (var option in availableModeOptions)
+                    {
+                        if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
+                        {
+                            break;
+                        }
+                        // Add the name of the option to the chosen list
+                        _ActivePoll.AddOption(AEventOption.ModeNames[option], false);
+                    }
+
+                    while (_pluginEnabled &&
+                           _roundState == RoundState.Playing &&
+                           NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
+                           _ActivePoll.Votes.Count() < _PollMaxVotes &&
+                           !_ActivePoll.Completed &&
+                           !_ActivePoll.Canceled)
+                    {
+                        if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
+                        {
+                            // Print the poll
+                            _ActivePoll.PrintPoll(_eventPollYellWinningRule);
+                        }
+
+                        Threading.Wait(100);
+                    }
+
+                    if (_ActivePoll.Completed)
+                    {
+                        AdminSayMessage("Event mode poll completed with current winner.");
+                    }
+
+                    // Only continue if the poll has not been canceled
+                    if (_pluginEnabled &&
+                        !_ActivePoll.Canceled)
+                    {
+
+                        // Get the outcome
+                        chosenMode = AEventOption.ModeFromDisplay(_ActivePoll.GetWinningOption("won", false));
+
+                        ///////////////////////////MAP POLL/////////////////////////////
+                        DoEventMapPoll(chosenRule, chosenMode, chosenMap);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while handling poll completion.", e));
+            }
+            Log.Debug(() => "Exiting DoEventModePoll", 3);
+        }
+
+        private void DoEventMapPoll(AEventOption.RuleCode chosenRule, AEventOption.ModeCode chosenMode, AEventOption.MapCode chosenMap)
+        {
+            Log.Debug(() => "Entering DoEventMapPoll", 3);
+            try
+            {
+                ///////////////////////////MAP POLL/////////////////////////////
+
+                // Get the available map options for the chosen rule
+                var rng = new Random(Environment.TickCount);
+                var availableMapOptions = _EventRoundPollOptions
+                                            .Where(option => option.Rule == chosenRule &&
+                                                             option.Mode == chosenMode)
+                                            .Select(option => option.Map)
+                                            .Distinct()
+                                            .OrderBy(option => rng.Next())
+                                            .ToList();
+
+                if (availableMapOptions.Count() == 1)
+                {
+                    // There is only one option for the poll, so just select it and finish
+                    chosenMap = availableMapOptions.First();
+
+                    ///////////////////////////COMPLETION//////////////////////
+                    DoEventPollCompletion(chosenRule, chosenMode, chosenMap);
+                }
+                else
+                {
+                    // Reset the poll for the next stage
+                    _ActivePoll.Reset();
+
+                    _ActivePoll.Title = "Choose '" + AEventOption.RuleNames[chosenRule] + "' map with !#";
+                    foreach (var option in availableMapOptions)
+                    {
+                        if (_ActivePoll.Options.Count() >= _EventPollMaxOptions)
+                        {
+                            break;
+                        }
+                        // Add the name of the option to the chosen list
+                        _ActivePoll.AddOption(AEventOption.MapNames[option], false);
+                    }
+
+                    while (_pluginEnabled &&
+                           _roundState == RoundState.Playing &&
+                           NowDuration(_ActivePoll.StartTime) < _PollMaxDuration &&
+                           _ActivePoll.Votes.Count() < _PollMaxVotes &&
+                           !_ActivePoll.Completed &&
+                           !_ActivePoll.Canceled)
+                    {
+                        if (NowDuration(_ActivePoll.PrintTime) > _PollPrintInterval)
+                        {
+                            // Print the poll
+                            // Do not announce the current map leader
+                            _ActivePoll.PrintPoll(false);
+                        }
+
+                        Threading.Wait(100);
+                    }
+
+                    if (_ActivePoll.Completed)
+                    {
+                        AdminSayMessage("Event map poll completed with current winner.");
+                    }
+
+                    // Only continue if the poll has not been canceled
+                    if (_pluginEnabled &&
+                        !_ActivePoll.Canceled)
+                    {
+
+                        // Get the outcome
+                        chosenMap = AEventOption.MapFromDisplay(_ActivePoll.GetWinningOption("won", false));
+
+                        ///////////////////////////COMPLETION//////////////////////
+                        DoEventPollCompletion(chosenRule, chosenMode, chosenMap);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while handling poll completion.", e));
+            }
+            Log.Debug(() => "Exiting DoEventMapPoll", 3);
+        }
+
+        private void DoEventPollCompletion(AEventOption.RuleCode chosenRule, AEventOption.ModeCode chosenMode, AEventOption.MapCode chosenMap)
+        {
+            Log.Debug(() => "Entering DoEventPollCompletion", 3);
+            try
+            {
+                ///////////////////////////COMPLETION//////////////////////
+
+                var option = new AEventOption()
+                {
+                    Map = chosenMap,
+                    Mode = chosenMode,
+                    Rule = chosenRule
+                };
+                _EventRoundOptions.Add(option);
+                QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getCode()).ToArray()));
+                AdminTellMessage("EVENT POLL COMPLETE! Next event round is " + option.getDisplay());
+
+                // If the event isn't active or set up with a date, make the event start next round.
+                if (!EventActive() &&
+                    _CurrentEventRoundNumber == 999999)
+                {
+                    _CurrentEventRoundNumber = _roundID + 1;
+                    QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
+                }
+
+                UpdateSettingPage();
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while handling poll completion.", e));
+            }
+            Log.Debug(() => "Exiting DoEventPollCompletion", 3);
         }
 
         public void SendTargetChat(ARecord record)
@@ -36241,7 +36972,10 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key)).ToList();
+                    afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key) &&
+                                                             !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_name) &&
+                                                             !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_id.ToString()) &&
+                                                             !_AFKIgnoreRoles.Contains("RLE" + aPlayer.player_role.role_id.ToString())).ToList();
                 }
                 if (afkPlayers.Any())
                 {
@@ -36826,6 +37560,23 @@ namespace PRoConEvents
                     Log.Error("Command was null in hasAccess.");
                     return false;
                 }
+                if ((_ReservedSelfKill || _ReservedSelfMove || _ReservedSquadLead) && 
+                    GetMatchingVerboseASPlayersOfGroup("slot_reserved", aPlayer).Any())
+                {
+                    // Yes these could be just one if block. readability yo.
+                    if (_ReservedSquadLead && command.command_key == "self_lead")
+                    {
+                        return true;
+                    }
+                    if (_ReservedSelfMove && command.command_key == "self_teamswap")
+                    {
+                        return true;
+                    }
+                    if (_ReservedSelfKill && command.command_key == "self_kill")
+                    {
+                        return true;
+                    }
+                }
                 lock (aPlayer.player_role)
                 {
                     lock (aPlayer.player_role.RoleAllowedCommands)
@@ -37185,7 +37936,7 @@ namespace PRoConEvents
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Save Sessiondata to DB?", "Yes");
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Log playerdata only (no playerstats)?", "No");
                                 Double slOffset = UtcNow().Subtract(DateTime.Now).TotalHours;
-                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Servertime Offset", slOffset + "");
+                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Servertime Offset", slOffset.ToString());
                             }
                             if (_PostStatLoggerChatManually)
                             {
@@ -37211,7 +37962,7 @@ namespace PRoConEvents
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Save Sessiondata to DB?", "Yes");
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Log playerdata only (no playerstats)?", "No");
                                 Double slOffset = UtcNow().Subtract(DateTime.Now).TotalHours;
-                                SetExternalPluginSetting("CChatGUIDStatsLogger", "Servertime Offset", slOffset + "");
+                                SetExternalPluginSetting("CChatGUIDStatsLogger", "Servertime Offset", slOffset.ToString());
                             }
                             if (_PostStatLoggerChatManually)
                             {
@@ -38491,6 +39242,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Automatic TeamKillTracker Whitelist for Admins", typeof(Boolean), _FeedTeamKillTrackerWhitelist_Admins));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic VIP Kick Whitelist for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins_VIPKickWhitelist));
+                QueueSettingForUpload(new CPluginVariable(@"Send new reserved slots to VIP Slot Manager", typeof(Boolean), _FeedServerReservedSlots_VSM));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Spectator Slot for Admins", typeof(Boolean), _FeedServerSpectatorList_Admins));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof(Boolean), _FeedServerReservedSlots));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
@@ -38546,7 +39298,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Debug Display Discord Members", typeof(Boolean), _DiscordManager.DebugMembers));
                 // Team Power Monitor
                 QueueSettingForUpload(new CPluginVariable(@"Team Power Active Influence", typeof(Double), _TeamPowerActiveInfluence));
-                QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Balancer", typeof(Boolean), _UseTeamPowerMonitorBalance));
+                QueueSettingForUpload(new CPluginVariable(@"Display Team Power In Procon Chat", typeof(Boolean), _UseTeamPowerDisplayBalance));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Scrambler", typeof(Boolean), _UseTeamPowerMonitorScrambler));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Team Power Join Reassignment", typeof(Boolean), _UseTeamPowerMonitorReassign));
                 QueueSettingForUpload(new CPluginVariable(@"Team Power Join Reassignment Leniency", typeof(Boolean), _UseTeamPowerMonitorReassignLenient));
@@ -38571,9 +39323,9 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Event Test Round Number", typeof(Int32), _EventTestRoundNumber));
                 QueueSettingForUpload(new CPluginVariable(@"Event Current Round Number", typeof(Int32), _CurrentEventRoundNumber));
                 QueueSettingForUpload(new CPluginVariable(@"Event Announce Day Difference", typeof(Double), _EventAnnounceDayDifference));
-                QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getModeRuleCode()).ToArray()));
+                QueueSettingForUpload(new CPluginVariable(@"Event Round Codes", typeof(String[]), _EventRoundOptions.Select(round => round.getCode()).ToArray()));
                 QueueSettingForUpload(new CPluginVariable(@"Poll Max Option Count", typeof(Double), _EventPollMaxOptions));
-                QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getModeRuleCode()).ToArray()));
+                QueueSettingForUpload(new CPluginVariable(@"Event Round Poll Codes", typeof(String[]), _EventRoundPollOptions.Select(option => option.getCode()).ToArray()));
                 QueueSettingForUpload(new CPluginVariable(@"Event Base Server Name", typeof(String), _eventBaseServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Countdown Server Name", typeof(String), _eventCountdownServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Event Concrete Countdown Server Name", typeof(String), _eventConcreteCountdownServerName));
@@ -38602,16 +39354,24 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Required Reason Length", typeof(Int32), _RequiredReasonLength));
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Report Handle Seconds", typeof(Int32), _MinimumReportHandleSeconds));
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Minutes Into Round To Use Assist", typeof(Int32), _minimumAssistMinutes));
+                QueueSettingForUpload(new CPluginVariable(@"Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
+                QueueSettingForUpload(new CPluginVariable(@"Reserved slot grants access to squad lead command", typeof(Boolean), _ReservedSquadLead));
+                QueueSettingForUpload(new CPluginVariable(@"Reserved slot grants access to self-move command", typeof(Boolean), _ReservedSelfMove));
+                QueueSettingForUpload(new CPluginVariable(@"Reserved slot grants access to self-kill command", typeof(Boolean), _ReservedSelfKill));
                 QueueSettingForUpload(new CPluginVariable(@"Banned Tags", typeof(String), CPluginVariable.EncodeStringArray(_BannedTags)));
                 QueueSettingForUpload(new CPluginVariable(@"Punishment Hierarchy", typeof(String), CPluginVariable.EncodeStringArray(_PunishmentHierarchy)));
                 QueueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Forgives", typeof(Boolean), _AutomaticForgives));
                 QueueSettingForUpload(new CPluginVariable(@"Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
+                QueueSettingForUpload(new CPluginVariable(@"Short Server Name", typeof(String), _shortServerName));
                 QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
                 QueueSettingForUpload(new CPluginVariable(@"High Population Value", typeof(Int32), _highPopulationPlayerCount));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Server Restart When Empty", typeof(Boolean), _automaticServerRestart));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Restart Minimum Uptime Hours", typeof(Int32), _automaticServerRestartMinHours));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Procon Reboot When Server Reboots", typeof(Boolean), _automaticServerRestartProcon));
+                QueueSettingForUpload(new CPluginVariable(@"Procon Memory Usage MB Warning", typeof(Int32), _MemoryUsageWarn));
+                QueueSettingForUpload(new CPluginVariable(@"Procon Memory Usage MB AdKats Restart", typeof(Int32), _MemoryUsageRestartPlugin));
+                QueueSettingForUpload(new CPluginVariable(@"Procon Memory Usage MB Procon Restart", typeof(Int32), _MemoryUsageRestartProcon));
                 QueueSettingForUpload(new CPluginVariable(@"Use IRO Punishment", typeof(Boolean), _IROActive));
                 QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Overrides Low Pop", typeof(Boolean), _IROOverridesLowPop));
                 QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Infractions Required to Override", typeof(Int32), _IROOverridesLowPopInfractions));
@@ -38632,6 +39392,10 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"PushBullet Note Target", typeof(String), _PushBulletHandler.DefaultTarget.ToString()));
                 QueueSettingForUpload(new CPluginVariable(@"PushBullet Channel Tag", typeof(String), _PushBulletHandler.DefaultChannelTag));
                 QueueSettingForUpload(new CPluginVariable(@"Only Send PushBullet Reports When Admins Offline", typeof(Boolean), _PushBulletReportsOnlyWhenAdminless));
+                QueueSettingForUpload(new CPluginVariable(@"Send Reports to Discord WebHook", typeof(Boolean), _UseDiscordForReports));
+                QueueSettingForUpload(new CPluginVariable(@"Discord WebHook URL", typeof(String), _DiscordManager.URL));
+                QueueSettingForUpload(new CPluginVariable(@"Only Send Discord Reports When Admins Offline", typeof(Boolean), _DiscordReportsOnlyWhenAdminless));
+                QueueSettingForUpload(new CPluginVariable(@"Send update if reported players leave without action", typeof(Boolean), _DiscordReportsLeftWithoutAction));
                 /*
                 QueueSettingForUpload(new CPluginVariable(@"Use Metabans?", typeof(Boolean), _useMetabans));
                 QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof(String), _metabansAPIKey));
@@ -39153,7 +39917,6 @@ namespace PRoConEvents
                     ARecord aRecord = new ARecord
                     {
                         isAliveChecked = record.isAliveChecked,
-                        isConfirmed = record.isConfirmed,
                         isContested = record.isContested,
                         isDebug = record.isDebug,
                         isIRO = record.isIRO,
@@ -40030,6 +40793,7 @@ namespace PRoConEvents
                                 //Fill the command
                                 command.Parameters.AddWithValue("@record_id", record.record_id);
                                 command.Parameters.AddWithValue("@command_numeric", record.command_numeric);
+
                                 //Trim to 500 characters
                                 record.record_message = record.record_message.Length <= 500 ? record.record_message : record.record_message.Substring(0, 500);
                                 command.Parameters.AddWithValue("@record_message", record.record_message);
@@ -40068,6 +40832,194 @@ namespace PRoConEvents
             }
         }
 
+        private ARecord FetchRecordUpdate(ARecord record)
+        {
+            Log.Debug(() => "FetchRecordUpdate starting!", 6);
+            //Make sure database connection active
+            if (_databaseConnectionCriticalState)
+            {
+                return record;
+            }
+            if (record.record_id < 1)
+            {
+                return record;
+            }
+            try
+            {
+                List<ARecord> reportsToExpire = new List<ARecord>();
+                var reupload = false;
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        String tablename = (record.isDebug) ? ("`adkats_records_debug`") : ("`adkats_records_main`");
+                        String sql = @"
+                        SELECT 
+                            `command_type`, 
+                            `command_action`, 
+                            `command_numeric`, 
+                            `target_name`, 
+                            `target_id`, 
+                            `source_name`,
+                            `source_id`, 
+                            `record_message`
+                        FROM 
+                            " + tablename + @" 
+                        WHERE 
+                            `record_id` = " + record.record_id;
+                        command.CommandText = sql;
+                        using (MySqlDataReader reader = SafeExecuteReader(command))
+                        {
+                            //Grab the record
+                            if (reader.Read())
+                            {
+                                var commandNumeric = reader.GetInt32("command_numeric");
+                                if (commandNumeric != record.command_numeric)
+                                {
+                                    // Don't allow command numeric updates if the new number is 0, but we already have a number
+                                    if (record.command_numeric != 0 && commandNumeric == 0)
+                                    {
+                                        // In fact, fix the record on the database side
+                                        reupload = true;
+                                        Log.Info("Record " + record.record_id + " had an invalid command numeric. Fixing back to " + record.command_numeric + ".");
+                                    }
+                                    else
+                                    {
+                                        Log.Info("Record " + record.record_id + " command numeric changed from " + record.command_numeric + " to " + commandNumeric);
+                                        record.command_numeric = commandNumeric;
+                                    }
+                                }
+                                var targetName = reader.GetString("target_name");
+                                if (targetName != record.target_name)
+                                {
+                                    Log.Info("Record " + record.record_id + " target name changed from " + record.target_name + " to " + targetName);
+                                    record.target_name = targetName;
+                                }
+                                if (!reader.IsDBNull(4))
+                                {
+                                    Int64 targetID = reader.GetInt64(4);
+                                    if (record.target_player == null)
+                                    {
+                                        record.target_player = FetchPlayer(false, false, false, null, targetID, null, null, null, null);
+                                        if (record.target_player == null)
+                                        {
+                                            Log.Error("Unable to fetch target player for ID " + targetID + " when fetching record " + record.record_id + " updates.");
+                                        }
+                                        else
+                                        {
+                                            Log.Info("Record " + record.record_id + " added target player " + record.target_player.GetVerboseName());
+                                        }
+                                    }
+                                    else if (targetID != record.target_player.player_id)
+                                    {
+                                        var newPlayer = FetchPlayer(false, false, false, null, targetID, null, null, null, null);
+                                        if (newPlayer == null)
+                                        {
+                                            Log.Error("Unable to fetch target player change for ID " + targetID + " when fetching record " + record.record_id + " updates.");
+                                        }
+                                        else
+                                        {
+                                            Log.Info("Record " + record.record_id + " target player changed from " + record.target_player.GetVerboseName() + " to " + newPlayer.GetVerboseName());
+                                            record.target_player = newPlayer;
+                                        }
+                                    }
+                                }
+                                var sourceName = reader.GetString("source_name");
+                                if (sourceName != record.source_name)
+                                {
+                                    Log.Info("Record " + record.record_id + " source name changed from " + record.source_name + " to " + sourceName);
+                                    record.source_name = sourceName;
+                                }
+                                if (!reader.IsDBNull(6))
+                                {
+                                    Int64 sourceID = reader.GetInt64(6);
+                                    if (record.source_player == null)
+                                    {
+                                        record.source_player = FetchPlayer(false, false, false, null, sourceID, null, null, null, null);
+                                        if (record.source_player == null)
+                                        {
+                                            Log.Error("Unable to fetch source player for ID " + sourceID + " when fetching record " + record.record_id + " updates.");
+                                        }
+                                        else
+                                        {
+                                            Log.Info("Record " + record.record_id + " added source player " + record.source_player.GetVerboseName());
+                                        }
+                                    }
+                                    else if (sourceID != record.source_player.player_id)
+                                    {
+                                        var newPlayer = FetchPlayer(false, false, false, null, sourceID, null, null, null, null);
+                                        if (newPlayer == null)
+                                        {
+                                            Log.Error("Unable to fetch source player change for ID " + sourceID + " when fetching record " + record.record_id + " updates.");
+                                        }
+                                        else
+                                        {
+                                            Log.Info("Record " + record.record_id + " source player changed from " + record.source_player.GetVerboseName() + " to " + newPlayer.GetVerboseName());
+                                            record.source_player = newPlayer;
+                                        }
+                                    }
+                                }
+                                var recordMessage = reader.GetString("record_message");
+                                if (recordMessage != record.record_message)
+                                {
+                                    Log.Info("Record " + record.record_id + " message changed from '" + record.record_message + "' to '" + recordMessage + "'");
+                                    record.record_message = recordMessage;
+                                }
+                                Int32 commandTypeInt = reader.GetInt32("command_type");
+                                ACommand commandType;
+                                if (!_CommandIDDictionary.TryGetValue(commandTypeInt, out commandType))
+                                {
+                                    Log.Error("Unable to parse command type " + commandTypeInt + " when fetching record " + record.record_id + " updates.");
+                                }
+                                if (commandType.command_key != record.command_type.command_key)
+                                {
+                                    Log.Info("Record " + record.record_id + " command type changed from " + record.command_type.command_name + " to " + commandType.command_name);
+                                    record.command_type = commandType;
+                                }
+                                Int32 commandActionInt = reader.GetInt32("command_action");
+                                ACommand commandAction;
+                                if (!_CommandIDDictionary.TryGetValue(commandActionInt, out commandAction))
+                                {
+                                    Log.Error("Unable to parse command action " + commandTypeInt + " when fetching record " + record.record_id + " updates.");
+                                }
+                                if (commandAction.command_key != record.command_action.command_key)
+                                {
+                                    Log.Info("Record " + record.record_id + " command action changed from " + record.command_action.command_name + " to " + commandAction.command_name);
+                                    record.command_action = commandAction;
+                                    if (record.command_action.command_key == "player_report_confirm" && 
+                                        record.target_player != null)
+                                    {
+                                        // Expire all other active reports against the player since this is the one that we acted on
+                                        reportsToExpire.AddRange(record.target_player.TargetedRecords.Where(aRecord => IsActiveReport(aRecord) && 
+                                                                                                                       aRecord.record_id != record.record_id));
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                Log.Error("Unable to fetch update for record " + record.record_id + " no matching record found.");
+                            }
+                        }
+                    }
+                }
+                // Need to do this separately because otherwise it's stacked database contexts
+                foreach (var report in reportsToExpire)
+                {
+                    ExpireActiveReport(report);
+                }
+                if (reupload)
+                {
+                    UpdateRecord(record);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error while fetching record update", e));
+            }
+
+            Log.Debug(() => "FetchRecordUpdate finished!", 6);
+            return record;
+        }
 
         private ARecord FetchRecordByID(Int64 recordID, Boolean debug)
         {
@@ -40141,7 +41093,7 @@ namespace PRoConEvents
                                 {
                                     record.source_player = new APlayer(this)
                                     {
-                                        player_id = reader.GetInt64(6)
+                                        player_id = reader.GetInt64(8)
                                     };
                                 }
                                 record.record_message = reader.GetString("record_message");
@@ -40185,7 +41137,6 @@ namespace PRoConEvents
             Log.Debug(() => "fetchRecordByID finished!", 6);
             return record;
         }
-
 
         private List<ARecord> FetchRecentRecords(Int64? player_id, Int64? command_id, Int64 limit_days, Int64 limit_records, Boolean target_only, Boolean debug)
         {
@@ -40461,7 +41412,6 @@ namespace PRoConEvents
             return records;
         }
 
-
         private List<APlayer> FetchExternalOnlinePlayers()
         {
             Log.Debug(() => "FetchExternalOnlinePlayers starting!", 6);
@@ -40566,9 +41516,7 @@ namespace PRoConEvents
 	                        AND
 	                        `tbl_server`.`GameID` = `tbl_playerdata`.`GameID`
                         WHERE
-	                        `tbl_currentplayers`.`ServerID` != @current_server_id 
-                        GROUP BY
-	                        `tbl_playerdata`.`PlayerID`";
+	                        `tbl_currentplayers`.`ServerID` != @current_server_id";
                         command.CommandText = sql;
                         command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
                         using (MySqlDataReader reader = SafeExecuteReader(command))
@@ -41734,7 +42682,7 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    var infoString = "No player matching search information. " + allowUpdate + ", " + allowOtherGames + ", " + ((gameID != null) ? (gameID + "") : ("No game ID")) + ", " + playerID + ", " + ((!String.IsNullOrEmpty(playerName)) ? (playerName) : ("No name search")) + ", " + ((!String.IsNullOrEmpty(playerGUID)) ? (playerGUID) : ("No GUID search")) + ", " + ((!String.IsNullOrEmpty(playerIP)) ? (playerIP) : ("No IP search")) + ", " + ((!String.IsNullOrEmpty(playerDiscordID)) ? (playerDiscordID) : ("No Discord ID search"));
+                                    var infoString = "No player matching search information. " + allowUpdate + ", " + allowOtherGames + ", " + ((gameID != null) ? (gameID.ToString()) : ("No game ID")) + ", " + playerID + ", " + ((!String.IsNullOrEmpty(playerName)) ? (playerName) : ("No name search")) + ", " + ((!String.IsNullOrEmpty(playerGUID)) ? (playerGUID) : ("No GUID search")) + ", " + ((!String.IsNullOrEmpty(playerIP)) ? (playerIP) : ("No IP search")) + ", " + ((!String.IsNullOrEmpty(playerDiscordID)) ? (playerDiscordID) : ("No Discord ID search"));
                                     if (_debugDisplayPlayerFetches)
                                     {
                                         Log.Info(infoString);
@@ -42546,22 +43494,6 @@ namespace PRoConEvents
                         rejectionMessage += "1 would be too strong";
                     }
                 }
-
-                if ((!auto || canAssist) && _UseExperimentalTools)
-                {
-                    InfoOrRespond(debugRecord,
-                    "Old Diff: " + Math.Round(oldPercDiff, 1) + " | " +
-                    "New Diff: " + Math.Round(newPercDiff, 1) + "");
-                    InfoOrRespond(debugRecord,
-                    "Accept: " + canAssist + " | " +
-                    "Threshold: " + powerPercentageThreshold + " | " +
-                    "Over: " + powerDifferencePercOverThreshold + " | " +
-                    "Map: " + enemyHasMoreMap + " | " +
-                    "Time: " + roundMinutes);
-                    InfoOrRespond(debugRecord,
-                        "Old " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(oldFriendlyPower) + "):" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(oldEnemyPower) + ") | " +
-                        "New " + friendlyTeam.GetTeamIDKey() + "(" + Math.Round(newFriendlyPower) + "):" + enemyTeam.GetTeamIDKey() + "(" + Math.Round(newEnemyPower) + ")");
-                }
             }
             if (!canAssist)
             {
@@ -42571,7 +43503,7 @@ namespace PRoConEvents
                     rejectionMessage = realRecord.GetSourceName() + " (" + Math.Round(realRecord.target_player.GetPower(true)) + ") assist to " + enemyTeam.GetTeamIDKey() + " rejected (" + rejectionMessage + ").";
                     if (!auto)
                     {
-                        rejectionMessage += " Queued #" + (_AssistAttemptQueue.Count() + 1) + " for 5min auto-assist.";
+                        rejectionMessage += " Queued #" + (_AssistAttemptQueue.Count() + 1) + " for auto-assist.";
                         lock (_AssistAttemptQueue)
                         {
                             _AssistAttemptQueue.Enqueue(realRecord);
@@ -42704,7 +43636,7 @@ namespace PRoConEvents
 
         private DateTime FetchFutureRoundDate(Int32 TargetRoundID)
         {
-            if (_roundID <= 1 || TargetRoundID <= 1 || _databaseConnectionCriticalState)
+            if (_roundID < 1 || TargetRoundID <= 1 || _databaseConnectionCriticalState)
             {
                 return DateTime.MinValue;
             }
@@ -43109,7 +44041,7 @@ namespace PRoConEvents
                                     //Permabans and Temp bans longer than 1 year will be defaulted to permaban
                                     if (totalBanSeconds > 0 && totalBanSeconds < 31536000)
                                     {
-                                        ExecuteCommand("procon.protected.send", "banList.add", "id", aBan.ban_record.target_player.player_name, "seconds", totalBanSeconds + "", aBan.ban_record.record_message);
+                                        ExecuteCommand("procon.protected.send", "banList.add", "id", aBan.ban_record.target_player.player_name, "seconds", totalBanSeconds.ToString(), aBan.ban_record.record_message);
                                     }
                                     else
                                     {
@@ -43124,7 +44056,7 @@ namespace PRoConEvents
                                     //Permabans and Temp bans longer than 1 year will be defaulted to permaban
                                     if (totalBanSeconds > 0 && totalBanSeconds < 31536000)
                                     {
-                                        ExecuteCommand("procon.protected.send", "banList.add", "guid", aBan.ban_record.target_player.player_guid, "seconds", totalBanSeconds + "", aBan.ban_record.record_message);
+                                        ExecuteCommand("procon.protected.send", "banList.add", "guid", aBan.ban_record.target_player.player_guid, "seconds", totalBanSeconds.ToString(), aBan.ban_record.record_message);
                                     }
                                     else
                                     {
@@ -43139,7 +44071,7 @@ namespace PRoConEvents
                                     //Permabans and Temp bans longer than 1 year will be defaulted to permaban
                                     if (totalBanSeconds > 0 && totalBanSeconds < 31536000)
                                     {
-                                        ExecuteCommand("procon.protected.send", "banList.add", "ip", aBan.ban_record.target_player.player_ip, "seconds", totalBanSeconds + "", aBan.ban_record.record_message);
+                                        ExecuteCommand("procon.protected.send", "banList.add", "ip", aBan.ban_record.target_player.player_ip, "seconds", totalBanSeconds.ToString(), aBan.ban_record.record_message);
                                     }
                                     else
                                     {
@@ -44200,12 +45132,12 @@ namespace PRoConEvents
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(40))
                                 {
-                                    SendNonQuery("Adding command admin_accept", "INSERT INTO `adkats_commands` VALUES(40, 'Active', 'admin_accept', 'Log', 'Accept Round Report', 'accept', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command admin_accept", "INSERT INTO `adkats_commands` VALUES(40, 'Active', 'admin_accept', 'Log', 'Accept player report', 'accept', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(41))
                                 {
-                                    SendNonQuery("Adding command admin_deny", "INSERT INTO `adkats_commands` VALUES(41, 'Active', 'admin_deny', 'Log', 'Deny Round Report', 'deny', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command admin_deny", "INSERT INTO `adkats_commands` VALUES(41, 'Active', 'admin_deny', 'Log', 'Deny player report', 'deny', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(42))
@@ -44306,7 +45238,7 @@ namespace PRoConEvents
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(61))
                                 {
-                                    SendNonQuery("Adding command admin_ignore", "INSERT INTO `adkats_commands` VALUES(61, 'Active', 'admin_ignore', 'Log', 'Ignore Round Report', 'ignore', TRUE, 'Any')", true);
+                                    SendNonQuery("Adding command admin_ignore", "INSERT INTO `adkats_commands` VALUES(61, 'Active', 'admin_ignore', 'Log', 'Ignore player report', 'ignore', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(62))
@@ -44408,7 +45340,7 @@ namespace PRoConEvents
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(80))
                                 {
-                                    SendNonQuery("Adding command self_reportlist", "INSERT INTO `adkats_commands` VALUES(80, 'Active', 'self_reportlist', 'Log', 'List Round Reports', 'reportlist', FALSE, 'Any')", true);
+                                    SendNonQuery("Adding command self_reportlist", "INSERT INTO `adkats_commands` VALUES(80, 'Active', 'self_reportlist', 'Log', 'List player reports', 'reportlist', FALSE, 'Any')", true);
                                     newCommands = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(81))
@@ -44743,6 +45675,11 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command player_challenge_complete", "INSERT INTO `adkats_commands` VALUES(144, 'Invisible', 'player_challenge_complete', 'Log', 'Player Completed Challenge', 'challengecomplete', TRUE, 'Any')", true);
                                     newCommands = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(145))
+                                {
+                                    SendNonQuery("Adding command player_report_expire", "INSERT INTO `adkats_commands` VALUES(145, 'Invisible', 'player_report_expire', 'Log', 'Report Player (Expired)', 'expirereport', TRUE, 'Any')", true);
+                                    newCommands = true;
+                                }
                                 if (newCommands)
                                 {
                                     FetchCommands();
@@ -44841,7 +45778,7 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["self_rep"] = "Returns your current server reputation.";
             _CommandDescriptionDictionary["player_repboost"] = "Invisible command. Boosts player rep for a given reason.";
             _CommandDescriptionDictionary["player_log"] = "Logs the given information to the player's record.";
-            _CommandDescriptionDictionary["player_whitelistping"] = "Whitelists a player from ping kick (ADK only).";
+            _CommandDescriptionDictionary["player_whitelistping"] = "Whitelists a player from ping kick.";
             _CommandDescriptionDictionary["player_ban_temp_old"] = "Invisible command. Set to all disabled temp-bans.";
             _CommandDescriptionDictionary["player_ban_perm_old"] = "Invisible command. Set to all disabled permabans.";
             _CommandDescriptionDictionary["player_pm_send"] = "Sends a private message to the targeted player.";
@@ -44850,7 +45787,7 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_whitelistaa"] = "Whitelists a player for Admin Assistant status.";
             _CommandDescriptionDictionary["self_surrender"] = "Votes to end the round with current winning team as winner, then start the next.";
             _CommandDescriptionDictionary["self_votenext"] = "Votes to end the round with current winning team as winner, then start the next.";
-            _CommandDescriptionDictionary["self_reportlist"] = "Lists the latest unused round reports.";
+            _CommandDescriptionDictionary["self_reportlist"] = "Lists the latest unused player reports.";
             _CommandDescriptionDictionary["plugin_restart"] = "Reboots AdKats.";
             _CommandDescriptionDictionary["self_nosurrender"] = "Votes against ending the round with surrender.";
             _CommandDescriptionDictionary["player_whitelistspambot"] = "Whitelists a player from seeing any messages from the SpamBot.";
@@ -44906,6 +45843,7 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_challenge_autokill_remove"] = "Removes a player from challenge autokill status.";
             _CommandDescriptionDictionary["player_challenge_play_remove"] = "Removes a player from challenge playing status.";
             _CommandDescriptionDictionary["player_challenge_ignore_remove"] = "Removes a player from challenge ignoring status.";
+            _CommandDescriptionDictionary["player_report_expire"] = "Invisible command. Assigned when a reported player leaves the server without the report being acted on.";
         }
 
         private void FillReadableMapModeDictionaries()
@@ -45847,6 +46785,33 @@ namespace PRoConEvents
                                             }
                                         }
                                     }
+                                    //Pull players from reserved slots outside of the plugin
+                                    if (!_FeedServerReservedSlots && _CurrentReservedSlotPlayers != null && _CurrentReservedSlotPlayers.Any())
+                                    {
+                                        lock (_CurrentReservedSlotPlayers)
+                                        {
+                                            foreach (var playerName in _CurrentReservedSlotPlayers)
+                                            {
+                                                // Fetch player matching the name
+                                                var aPlayer = FetchPlayer(false, false, false, null, -1, playerName, null, null, null);
+                                                if (aPlayer == null || tempASPlayers.Any(asp => asp.player_object != null && 
+                                                                                                asp.player_object.player_id == aPlayer.player_id))
+                                                {
+                                                    continue;
+                                                }
+                                                tempASPlayers.Add(new ASpecialPlayer(this)
+                                                {
+                                                    player_game = (int)_serverInfo.GameID,
+                                                    player_server = (int)_serverInfo.ServerID,
+                                                    player_group = asGroup,
+                                                    player_identifier = aPlayer.player_name,
+                                                    player_object = aPlayer,
+                                                    player_effective = UtcNow(),
+                                                    player_expiration = UtcNow().Add(TimeSpan.FromDays(7300))
+                                                });
+                                            }
+                                        }
+                                    }
                                     break;
                                 case "slot_spectator":
                                     //Pull players from user list
@@ -46095,6 +47060,7 @@ namespace PRoConEvents
                                 }
                                 if (String.IsNullOrEmpty(playerIdentifier))
                                 {
+                                    Log.Warn("Unable to add asplayer to master list.");
                                     continue;
                                 }
                                 //Key is a concatination of group and identifier
@@ -46103,6 +47069,7 @@ namespace PRoConEvents
                                 {
                                     validVerboseSpecialPlayers.Add(key);
                                 }
+
                                 _verboseSpecialPlayerCache[key] = asPlayer;
                             }
                         }
@@ -49221,7 +50188,7 @@ namespace PRoConEvents
             }
             if (aPlayer.player_id > 0)
             {
-                processedString = processedString.Replace("%player_id%", aPlayer.player_id + "");
+                processedString = processedString.Replace("%player_id%", aPlayer.player_id.ToString());
             }
             if (!String.IsNullOrEmpty(aPlayer.player_name))
             {
@@ -50263,7 +51230,7 @@ namespace PRoConEvents
 
             //Other plugins
             //1 - MULTIBalancer - With ColColonCleaner balance mods
-            if (_UseExperimentalTools && GameVersion == GameVersionEnum.BF4)
+            if (false && _UseExperimentalTools && GameVersion == GameVersionEnum.BF4)
             {
                 String externalPluginSource;
                 using (WebClient client = new WebClient())
@@ -52048,14 +53015,14 @@ namespace PRoConEvents
                 {
                     if (Enabled && !enable)
                     {
-                        _plugin.Log.Success("DISABLING CHALLENGE MANAGER");
+                        _plugin.Log.Success("Disabling challenge manager.");
                         CancelActiveRoundRule();
                         ChallengeRoundState = ChallengeState.Init;
                         Enabled = enable;
                     }
                     else if (!Enabled && enable)
                     {
-                        _plugin.Log.Success("ENABLING CHALLENGE MANAGER");
+                        _plugin.Log.Success("Enabling challenge manager.");
                         if (Loaded)
                         {
                             Enabled = enable;
@@ -52724,10 +53691,6 @@ namespace PRoConEvents
                                     entry.RefreshProgress(null);
                                 }
                             }
-                        }
-                        if (_plugin._UseExperimentalTools)
-                        {
-                            _plugin.Log.Success("CHALLENGE entries loaded in " + Math.Round(_plugin.NowDuration(startTime).TotalMilliseconds) + "ms.");
                         }
                     }
                     finally
@@ -53534,9 +54497,8 @@ namespace PRoConEvents
                     ChallengeRoundState = ChallengeState.Ended;
                     // Fail the active round rule if applicable
                     FailActiveRoundRule();
-                    // Fail the challenges which are controlled by round count and weren't completed
-                    var roundEntries = GetEntries().Where(entry => entry.Rule.Completion == CRule.CompletionType.Rounds &&
-                                                                   !entry.Completed &&
+                    // Fail challenges as necessary
+                    var roundEntries = GetEntries().Where(entry => !entry.Completed &&
                                                                    !entry.Failed &&
                                                                    !entry.Canceled);
                     foreach (var entry in roundEntries)
@@ -53557,10 +54519,6 @@ namespace PRoConEvents
                     if (!Enabled)
                     {
                         return;
-                    }
-                    if (_plugin._UseExperimentalTools)
-                    {
-                        _plugin.Log.Warn("Challenge mananger round load triggered for round " + roundID);
                     }
                     if (ChallengeRoundState == ChallengeState.Playing) 
                     {
@@ -56081,6 +57039,25 @@ namespace PRoConEvents
                             {
                                 _plugin.Log.Error("Unable to do validation on entry " + ID + ", completion type is invalid.");
                             }
+
+                            // Automatically cancel challenges that haven't been updated in 10 days.
+                            if (Details.Any())
+                            {
+                                DateTime lastModifyTime = Details.Max(detail => detail.Kill.TimeStamp);
+                                TimeSpan durationSinceModified = _plugin.NowDuration(lastModifyTime);
+                                if (durationSinceModified > TimeSpan.FromDays(10))
+                                {
+                                    DoCancel();
+                                }
+                            }
+                            else
+                            {
+                                TimeSpan durationSinceStarted = _plugin.NowDuration(StartTime);
+                                if (durationSinceStarted > TimeSpan.FromDays(10))
+                                {
+                                    DoCancel();
+                                }
+                            }
                         }
                     }
                     catch (Exception e)
@@ -56223,6 +57200,26 @@ namespace PRoConEvents
                                         record_source = ARecord.Sources.Automated,
                                         server_id = _plugin._serverInfo.ServerID,
                                         command_type = _plugin.GetCommandByKey("player_whitelistbalance"),
+                                        command_numeric = existingMinutes + reward.DurationMinutes,
+                                        target_name = Player.player_name,
+                                        target_player = Player,
+                                        source_name = "ChallengeManager",
+                                        record_message = Player.GetVerboseName() + " completed tier " + reward.Tier + " challenge, assigning " + descriptionString + ".",
+                                        record_time = _plugin.UtcNow()
+                                    });
+                                    givenRewards.Add(descriptionString);
+                                    break;
+                                case CReward.RewardType.PingWhitelist:
+                                    existingPlayers = _plugin.GetMatchingASPlayersOfGroup("whitelist_ping", Player);
+                                    if (existingPlayers.Any())
+                                    {
+                                        existingMinutes = (Int32)_plugin.NowDuration(existingPlayers.First().player_expiration).TotalMinutes;
+                                    }
+                                    _plugin.QueueRecordForProcessing(new ARecord
+                                    {
+                                        record_source = ARecord.Sources.Automated,
+                                        server_id = _plugin._serverInfo.ServerID,
+                                        command_type = _plugin.GetCommandByKey("player_whitelistping"),
                                         command_numeric = existingMinutes + reward.DurationMinutes,
                                         target_name = Player.player_name,
                                         target_player = Player,
@@ -57675,10 +58672,11 @@ namespace PRoConEvents
                     ReservedSlot,
                     SpectatorSlot,
                     BalanceWhitelist,
+                    PingWhitelist,
                     TeamKillTrackerWhitelist,
                     CommandLock
                 }
-                public static String RewardTypeEnumString = "enum.ChallengeRewardType(None|ReservedSlot|SpectatorSlot|BalanceWhitelist|TeamKillTrackerWhitelist|CommandLock)";
+                public static String RewardTypeEnumString = "enum.ChallengeRewardType(None|ReservedSlot|SpectatorSlot|BalanceWhitelist|PingWhitelist|TeamKillTrackerWhitelist|CommandLock)";
 
                 private AdKats _plugin;
 
@@ -57711,6 +58709,9 @@ namespace PRoConEvents
                             break;
                         case CReward.RewardType.BalanceWhitelist:
                             rewardString += " autobalance whitelist";
+                            break;
+                        case CReward.RewardType.PingWhitelist:
+                            rewardString += " ping whitelist";
                             break;
                         case CReward.RewardType.TeamKillTrackerWhitelist:
                             rewardString += " teamkill whitelist";
@@ -58172,6 +59173,17 @@ namespace PRoConEvents
 
         public class AEventOption
         {
+            public enum MapCode
+            {
+                UNKNOWN,
+                RESET,
+                MET,
+                LOC
+            };
+            public static readonly Dictionary<MapCode, String> MapNames = new Dictionary<MapCode, String> {
+                {MapCode.MET, "Operation Metro"},
+                {MapCode.LOC, "Operation Locker"}
+            };
             public enum ModeCode
             {
                 UNKNOWN,
@@ -58211,7 +59223,7 @@ namespace PRoConEvents
                 {ModeCode.D500, "Domination 500"},
                 {ModeCode.HD500, "HC Domination 500"},
                 {ModeCode.D750, "Domination 750"},
-                {ModeCode.D1000, "Domination 1000"},
+                {ModeCode.D1000, "Domination 1000"}
             };
             public enum RuleCode
             {
@@ -58222,6 +59234,8 @@ namespace PRoConEvents
                 NE,
                 GO,
                 AO,
+                ARO,
+                LMGO,
                 PO,
                 SO,
                 EO,
@@ -58236,12 +59250,13 @@ namespace PRoConEvents
                 TR
             };
             public static readonly Dictionary<RuleCode, String> RuleNames = new Dictionary<RuleCode, String> {
-                {RuleCode.ENDEVENT, "End The Event"},
                 {RuleCode.AW, "All Weapons"},
                 {RuleCode.KO, "Knives Only"},
                 {RuleCode.NE, "No Explosives"},
                 {RuleCode.GO, "Grenades Only"},
                 {RuleCode.AO, "Automatics Only"},
+                {RuleCode.ARO, "Assault Rifles Only"},
+                {RuleCode.LMGO, "LMGs Only"},
                 {RuleCode.PO, "Pistols Only"},
                 {RuleCode.SO, "Shotguns Only"},
                 {RuleCode.EO, "Explosives Only"},
@@ -58253,9 +59268,11 @@ namespace PRoConEvents
                 {RuleCode.HO, "Headshots Only"},
                 {RuleCode.NH, "No Headshots"},
                 {RuleCode.CAI, "Cowboys and Indians"},
-                {RuleCode.TR, "Troll Rules"}
+                {RuleCode.TR, "Troll Rules"},
+                {RuleCode.ENDEVENT, "End The Event"}
             };
 
+            public MapCode Map;
             public ModeCode Mode;
             public RuleCode Rule;
 
@@ -58263,19 +59280,20 @@ namespace PRoConEvents
             {
                 return new AEventOption()
                 {
+                    Map = MapNames.FirstOrDefault().Key,
                     Mode = ModeNames.FirstOrDefault().Key,
                     Rule = RuleNames.FirstOrDefault().Key
                 };
             }
 
-            public String getModeRuleDisplay()
+            public String getDisplay()
             {
-                return ModeNames[Mode] + "/" + RuleNames[Rule];
+                return MapNames[Map] + "/" + ModeNames[Mode] + "/" + RuleNames[Rule];
             }
 
-            public String getModeRuleCode()
+            public String getCode()
             {
-                return Mode + "-" + Rule;
+                return Map + "-" + Mode + "-" + Rule;
             }
 
             public static RuleCode RuleFromDisplay(String ruleDisplay)
@@ -58296,6 +59314,15 @@ namespace PRoConEvents
                 return ModeNames.FirstOrDefault(mode => mode.Value == modeDisplay).Key;
             }
 
+            public static MapCode MapFromDisplay(String mapDisplay)
+            {
+                if (!MapNames.Any(map => map.Value == mapDisplay))
+                {
+                    return MapNames.FirstOrDefault().Key;
+                }
+                return MapNames.FirstOrDefault(map => map.Value == mapDisplay).Key;
+            }
+
             public static AEventOption FromDisplay(String display)
             {
                 if (!display.Contains('/'))
@@ -58303,16 +59330,18 @@ namespace PRoConEvents
                     return Default();
                 }
                 var split = display.Split('/');
-                if (split.Length != 2 ||
-                    !ModeNames.Any(mode => mode.Value == split[0]) ||
-                    !RuleNames.Any(rule => rule.Value == split[1]))
+                if (split.Length != 3 ||
+                    !MapNames.Any(map => map.Value == split[0]) ||
+                    !ModeNames.Any(mode => mode.Value == split[1]) ||
+                    !RuleNames.Any(rule => rule.Value == split[2]))
                 {
                     return Default();
                 }
                 return new AEventOption()
                 {
-                    Mode = ModeNames.FirstOrDefault(mode => mode.Value == split[0]).Key,
-                    Rule = RuleNames.FirstOrDefault(rule => rule.Value == split[1]).Key
+                    Map = MapNames.FirstOrDefault(map => map.Value == split[0]).Key,
+                    Mode = ModeNames.FirstOrDefault(mode => mode.Value == split[1]).Key,
+                    Rule = RuleNames.FirstOrDefault(rule => rule.Value == split[2]).Key
                 };
             }
 
@@ -58323,19 +59352,22 @@ namespace PRoConEvents
                     return Default();
                 }
                 var split = code.Split('-');
-                if (split.Length != 2)
+                if (split.Length != 3)
                 {
                     return Default();
                 }
-                var parsedMode = (ModeCode)Enum.Parse(typeof(ModeCode), split[0]);
-                var parsedRule = (RuleCode)Enum.Parse(typeof(RuleCode), split[1]);
-                if (!ModeNames.ContainsKey(parsedMode) ||
+                var parsedMap = (MapCode)Enum.Parse(typeof(MapCode), split[0]);
+                var parsedMode = (ModeCode)Enum.Parse(typeof(ModeCode), split[1]);
+                var parsedRule = (RuleCode)Enum.Parse(typeof(RuleCode), split[2]);
+                if (!MapNames.ContainsKey(parsedMap) ||
+                    !ModeNames.ContainsKey(parsedMode) ||
                     !RuleNames.ContainsKey(parsedRule))
                 {
                     return Default();
                 }
                 return new AEventOption()
                 {
+                    Map = parsedMap,
                     Mode = parsedMode,
                     Rule = parsedRule
                 };
@@ -58708,6 +59740,7 @@ namespace PRoConEvents
             public APlayer conversationPartner = null;
             public Int32 AllCapsMessages = 0;
             public List<DateTime> TeamMoves;
+            public Int32 ActiveSession = 1;
 
             public Dictionary<Int64, APlayerStats> RoundStats;
             public Int64 BL_SPM;
@@ -58741,6 +59774,7 @@ namespace PRoConEvents
                 LastUsage = DateTime.UtcNow;
                 TeamMoves = new List<DateTime>();
                 PrintThreadID = "";
+                ActiveSession = 1;
             }
 
             public void Say(String message)
@@ -59183,7 +60217,6 @@ namespace PRoConEvents
             public Boolean external_responseRequested;
 
             //Internal processing
-            public Boolean isConfirmed;
             public Boolean isAliveChecked;
             public Boolean isLoadoutChecked;
             public Boolean targetLoadoutActed = false;
@@ -59202,8 +60235,10 @@ namespace PRoConEvents
             public Int64 server_id = -1;
             public String source_name = null;
             public APlayer source_player = null;
+            public Int32 SourceSession = 0;
             public String target_name = null;
             public APlayer target_player = null;
+            public Int32 TargetSession = 0;
             public DateTime record_creationTime;
             public AccessMethod record_access = AccessMethod.HiddenInternal;
             public Boolean record_held;
@@ -60006,7 +61041,7 @@ namespace PRoConEvents
                 Plugin.Log.Debug(() => "Sending PushBullet report [" + record.command_numeric + "] on " + record.GetTargetNames(), 3);
                 String title = record.GetTargetNames() + " reported in [" + Plugin.GameVersion + "] " + Plugin._serverInfo.ServerName.Substring(0, Math.Min(15, Plugin._serverInfo.ServerName.Length - 1));
                 StringBuilder bb = new StringBuilder();
-                bb.Append("AdKats Round Report [" + record.command_numeric + "]");
+                bb.Append("AdKats player report [" + record.command_numeric + "]");
                 bb.AppendLine();
                 bb.AppendLine();
                 bb.Append(record.GetSourceName() + " reported " + record.GetTargetNames() + " for " + record.record_message);
@@ -60403,7 +61438,7 @@ namespace PRoConEvents
                     var weapon = Weapons.Values.FirstOrDefault(dWeapon => dWeapon.Code == weaponCode);
                     if (weapon == null)
                     {
-                        _plugin.Log.HandleException(new AException("No matching weapon in dictionary for " + weaponCode + " when fetching damage type."));
+                        _plugin.Log.HandleException(new AException("No weapon defined for code " + weaponCode + " when fetching damage type. Is your DEF file updated?"));
                         return DamageTypes.None;
                     }
                     return weapon.Damage;
@@ -60577,9 +61612,9 @@ namespace PRoConEvents
                             sb.Append("<h3>" + record.GetSourceName() + " has reported " + record.GetTargetNames() + " for " + record.record_message + "</h3>");
                             sb.Append("<p>");
                             CPlayerInfo playerInfo = record.target_player.fbpInfo;
-                            //sb.Append("<h4>Current Information on " + record.target_name + ":</h4>");
-                            int numReports = Plugin._RoundReports.Values.Count(aRecord => aRecord.target_name == record.target_name);
-                            sb.Append("Reported " + numReports + " times during the current round.<br/>");
+                            int numReports = Plugin._PlayerReports.Count(aRecord => aRecord.target_player.player_id == record.target_player.player_id &&
+                                                                                    aRecord.TargetSession == aRecord.target_player.ActiveSession);
+                            sb.Append("Reported " + numReports + " times during their current session.<br/>");
                             sb.Append("Has " + Plugin.FetchPoints(record.target_player, false, true) + " infraction points.<br/>");
                             sb.Append("Score: " + playerInfo.Score + "<br/>");
                             sb.Append("Kills: " + playerInfo.Kills + "<br/>");
@@ -60601,7 +61636,6 @@ namespace PRoConEvents
                             processedCustomHTML = processedCustomHTML.Replace("%mode_name%", Plugin.GetCurrentReadableMode());
                             sb.Append(processedCustomHTML);
                             sb.Append("</p>");
-                            //TODO: Add chat back for ADK usage.
                             if (record.target_player != null)
                             {
                                 sb.Append("<table>");
@@ -61616,6 +62650,7 @@ namespace PRoConEvents
             public VoipJoinDisplayType JoinDisplay = VoipJoinDisplayType.Disabled;
             public String JoinMessage = "%playerusername% joined discord! Welcome!";
             private TimeSpan _UpdateDuration = TimeSpan.FromSeconds(29);
+            public String URL;
             //Vars
             public String ServerName;
             public String InstantInvite;
@@ -62034,6 +63069,89 @@ namespace PRoConEvents
                 public String ID;
                 public String Name;
                 public Int32 Position;
+            }
+
+            // Thanks to jbrunink for this code snippet
+            public void PostReport(ARecord record, String type, String sourceInfo, String targetInfo)
+            {
+                if (record.target_player == null)
+                {
+                    _plugin.SendMessageToSource(record, "Unable to send report. No target player found.");
+                    return;
+                }
+                var debugString = "Sending Discord report [" + record.command_numeric + "] on " + record.GetTargetNames();
+                _plugin.Log.Debug(() => debugString, 3);
+                if (_plugin._UseExperimentalTools)
+                {
+                    _plugin.Log.Info(debugString);
+                }
+
+                String blockOpener = "```" + Environment.NewLine;
+                String blockCloser = "```";
+                
+                StringBuilder bb = new StringBuilder();
+                bb.Append(blockOpener);
+                bb.Append(_plugin.GameVersion + " " + type + " [" + record.command_numeric + "]" + Environment.NewLine);
+                bb.Append("Source: " + sourceInfo + Environment.NewLine);
+                bb.Append("Target: " + targetInfo + Environment.NewLine);
+                bb.Append("Reason: " + record.record_message);
+                bb.Append(Environment.NewLine);
+                bb.Append(record.GetTargetNames() + 
+                       " rank(" + record.target_player.fbpInfo.Rank + 
+                    "), score(" + record.target_player.fbpInfo.Score + 
+                    "), kills(" + record.target_player.fbpInfo.Kills + 
+                    "), deaths(" + record.target_player.fbpInfo.Deaths + 
+                    "), k/d(" + Math.Round(record.target_player.fbpInfo.Kdr, 1) + ")" + Environment.NewLine);
+                bb.Append(blockCloser);
+                String body = bb.ToString();
+
+                PostToDiscord(body);
+            }
+
+            public void PostToDiscord(String body)
+            {
+                try
+                {
+                    if (String.IsNullOrEmpty(URL))
+                    {
+                        _plugin.Log.Error("Discord WebHook URL empty! Unable to post report.");
+                        return;
+                    }
+                    if (String.IsNullOrEmpty(body))
+                    {
+                        _plugin.Log.Error("Discord note body empty! Unable to post report.");
+                        return;
+                    }
+                    if (String.IsNullOrEmpty(_plugin._shortServerName))
+                    {
+                        _plugin.Log.Error("The 'Short Server Name' setting must be filled in before posting discord reports.");
+                        return;
+                    }
+                    
+                    WebRequest request = WebRequest.Create(URL);
+                    request.Method = "POST";
+                    request.ContentType = "application/json";
+                    String jsonBody = JSON.JsonEncode(new Hashtable {
+                        {"avatar_url", "https://avatars1.githubusercontent.com/u/9680130"},
+                        {"username", "AdKats (" + _plugin._shortServerName + ")"},
+                        {"content", body}
+                    });
+                    byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
+                    request.ContentLength = byteArray.Length;
+                    Stream requestStream = request.GetRequestStream();
+                    requestStream.Write(byteArray, 0, byteArray.Length);
+                    requestStream.Close();
+                }
+                catch (WebException e)
+                {
+                    WebResponse response = e.Response;
+                    _plugin.Log.Info("RESPONSE: " + new StreamReader(response.GetResponseStream()).ReadToEnd());
+                    _plugin.Log.HandleException(new AException("Web error posting to Discord WebHook.", e));
+                }
+                catch (Exception e)
+                {
+                    _plugin.Log.HandleException(new AException("Error posting to Discord WebHook.", e));
+                }
             }
         }
 
