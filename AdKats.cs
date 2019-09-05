@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.6.0.0
- * 8-JUL-2019
+ * Version 7.6.0.1
+ * 4-SEP-2019
  * 
  * Automatic Update Information
- * <version_code>7.6.0.0</version_code>
+ * <version_code>7.6.0.1</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.6.0.0";
+        private const String PluginVersion = "7.6.0.1";
 
         public enum GameVersionEnum
         {
@@ -40986,12 +40986,26 @@ namespace PRoConEvents
                                 {
                                     Log.Info("Record " + record.record_id + " command action changed from " + record.command_action.command_name + " to " + commandAction.command_name);
                                     record.command_action = commandAction;
-                                    if (record.command_action.command_key == "player_report_confirm" && 
-                                        record.target_player != null)
+                                    if (record.target_player != null)
                                     {
-                                        // Expire all other active reports against the player since this is the one that we acted on
-                                        reportsToExpire.AddRange(record.target_player.TargetedRecords.Where(aRecord => IsActiveReport(aRecord) && 
-                                                                                                                       aRecord.record_id != record.record_id));
+                                        if (record.command_action.command_key == "player_report_confirm")
+                                        {
+                                            // Expire all other active reports against the player since this is the one that we acted on
+                                            reportsToExpire.AddRange(record.target_player.TargetedRecords.Where(aRecord => IsActiveReport(aRecord) &&
+                                                                                                                           aRecord.record_id != record.record_id));
+
+                                            SendMessageToSource(record, "Your report [" + record.command_numeric + "] has been accepted. Thank you.");
+                                            OnlineAdminSayMessage("Report [" + record.command_numeric + "] has been accepted.");
+                                        }
+                                        else if (record.command_action.command_key == "player_report_deny")
+                                        {
+                                            SendMessageToSource(record, "Your report [" + record.command_numeric + "] has been denied.");
+                                            OnlineAdminSayMessage("Report [" + record.command_numeric + "] has been denied.");
+                                        }
+                                        else if (record.command_action.command_key == "player_report_ignore")
+                                        {
+                                            OnlineAdminSayMessage("Report [" + record.command_numeric + "] has been ignored by " + record.GetSourceName() + ".");
+                                        }
                                     }
                                 }
                             }
