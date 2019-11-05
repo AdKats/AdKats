@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.6.0.1
- * 4-SEP-2019
+ * Version 7.6.0.2
+ * 5-NOV-2019
  * 
  * Automatic Update Information
- * <version_code>7.6.0.1</version_code>
+ * <version_code>7.6.0.2</version_code>
  */
 
 using System;
@@ -9425,7 +9425,7 @@ namespace PRoConEvents
                     {
                         try
                         {
-                            _pluginLinks = Util.ClientDownloadTimer(client, "http://adkats.gamerethos.net/api/fetch/links?cacherand=" + Environment.TickCount);
+                            _pluginLinks = Util.ClientDownloadTimer(client, "http://api.myrcon.net/api/plugins/adkats/links?cacherand=" + Environment.TickCount);
                             Log.Debug(() => "Plugin links fetched from backup location.", 1);
                         }
                         catch (Exception)
@@ -9444,7 +9444,7 @@ namespace PRoConEvents
                     {
                         try
                         {
-                            _pluginDescription = Util.ClientDownloadTimer(client, "http://adkats.gamerethos.net/api/fetch/readme?cacherand=" + Environment.TickCount);
+                            _pluginDescription = Util.ClientDownloadTimer(client, "http://api.myrcon.net/api/plugins/adkats/readme?cacherand=" + Environment.TickCount);
                             Log.Debug(() => "Plugin readme fetched from backup location.", 1);
                         }
                         catch (Exception)
@@ -9463,7 +9463,7 @@ namespace PRoConEvents
                     {
                         try
                         {
-                            _pluginChangelog = Util.ClientDownloadTimer(client, "http://adkats.gamerethos.net/api/fetch/changelog?cacherand=" + Environment.TickCount);
+                            _pluginChangelog = Util.ClientDownloadTimer(client, "http://api.myrcon.net/api/plugins/adkats/changelog?cacherand=" + Environment.TickCount);
                             Log.Debug(() => "Plugin changelog fetched from backup location.", 1);
                         }
                         catch (Exception)
@@ -38766,7 +38766,7 @@ namespace PRoConEvents
                         {
                             try
                             {
-                                command.CommandText = Util.ClientDownloadTimer(client, "http://adkats.gamerethos.net/api/fetch/sqlsetup?cacherand=" + Environment.TickCount);
+                                command.CommandText = Util.ClientDownloadTimer(client, "http://api.myrcon.net/api/plugins/adkats/sqlsetup?cacherand=" + Environment.TickCount);
                                 Log.Debug(() => "SQL setup script fetched from backup location.", 1);
                             }
                             catch (Exception)
@@ -49756,7 +49756,7 @@ namespace PRoConEvents
                 {
                     try
                     {
-                        repInfo = Util.ClientDownloadTimer(client, "http://adkats.gamerethos.net/api/fetch/reputation" + "?cacherand=" + Environment.TickCount);
+                        repInfo = Util.ClientDownloadTimer(client, "http://api.myrcon.net/api/plugins/adkats/reputation" + "?cacherand=" + Environment.TickCount);
                         Log.Debug(() => "Reputation definitions fetched from backup location.", 1);
                     }
                     catch (Exception)
@@ -49827,7 +49827,7 @@ namespace PRoConEvents
                 {
                     try
                     {
-                        groupInfo = Util.ClientDownloadTimer(client, "http://adkats.gamerethos.net/api/fetch/specialgroups" + "?cacherand=" + Environment.TickCount);
+                        groupInfo = Util.ClientDownloadTimer(client, "http://api.myrcon.net/api/plugins/adkats/specialgroups" + "?cacherand=" + Environment.TickCount);
                         Log.Debug(() => "Special group definitions fetched from backup location.", 1);
                     }
                     catch (Exception)
@@ -50036,7 +50036,7 @@ namespace PRoConEvents
                     {
                         try
                         {
-                            updateInfo = Util.ClientDownloadTimer(client, "http://adkats.gamerethos.net/api/fetch/sqlupdates" + "?cacherand=" + Environment.TickCount);
+                            updateInfo = Util.ClientDownloadTimer(client, "http://api.myrcon.net/api/plugins/adkats/sqlupdates" + "?cacherand=" + Environment.TickCount);
                             Log.Debug(() => "SQL updates fetched from backup location.", 1);
                         }
                         catch (Exception)
@@ -51529,8 +51529,8 @@ namespace PRoConEvents
                                 {
                                     try
                                     {
-                                        string stableURL = "http://adkats.gamerethos.net/api/fetch/branch/master" + "?cacherand=" + Environment.TickCount;
-                                        string testURL = "http://adkats.gamerethos.net/api/fetch/branch/test" + "?cacherand=" + Environment.TickCount;
+                                        string stableURL = "http://api.myrcon.net/api/plugins/adkats/branch/master" + "?cacherand=" + Environment.TickCount;
+                                        string testURL = "http://api.myrcon.net/api/plugins/adkats/branch/test" + "?cacherand=" + Environment.TickCount;
                                         if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                         {
                                             pluginSource = Util.ClientDownloadTimer(client, stableURL);
@@ -61401,7 +61401,7 @@ namespace PRoConEvents
                     {
                         try
                         {
-                            downloadString = _plugin.Util.ClientDownloadTimer(client, "http://adkats.gamerethos.net/api/fetch/weaponnames" + "?cacherand=" + Environment.TickCount);
+                            downloadString = _plugin.Util.ClientDownloadTimer(client, "http://api.myrcon.net/api/plugins/adkats/weaponnames" + "?cacherand=" + Environment.TickCount);
                             _plugin.Log.Debug(() => "Weapon names fetched from backup location.", 1);
                         }
                         catch (Exception)
@@ -62601,7 +62601,7 @@ namespace PRoConEvents
                     {
                         try
                         {
-                            weaponInfo = Plugin.Util.ClientDownloadTimer(client, "http://adkats.gamerethos.net/api/fetch/weapons" + "?cacherand=" + Environment.TickCount);
+                            weaponInfo = Plugin.Util.ClientDownloadTimer(client, "http://api.myrcon.net/api/plugins/adkats/weapons" + "?cacherand=" + Environment.TickCount);
                             Plugin.Log.Debug(() => "Weapon statistic definitions fetched from backup location.", 1);
                         }
                         catch (Exception)
