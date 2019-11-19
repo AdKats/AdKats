@@ -789,5 +789,7 @@
             "damage_max": 100,
             "damage_min": 100
         }
-    ]
+    ],
+	"BFHL": [],
+	"BFBC2": []
 }
