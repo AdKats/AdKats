@@ -80,7 +80,7 @@
       "message_name": "Added created and updated columns to playerdata table",
       "message_success": "Added created and updated columns to playerdata table",
       "message_failure": "Failed add created and updated columns to playerdata table",
-      "update_checks_hasResults": true,
+      "update_checks_hasResults": false,
       "update_checks": [
         "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '%DATABASENAME%' AND `TABLE_NAME` = 'tbl_playerdata' AND `COLUMN_NAME` = 'created_at'",
         "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '%DATABASENAME%' AND `TABLE_NAME` = 'tbl_playerdata' AND `COLUMN_NAME` = 'updated_at'",
