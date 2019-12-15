@@ -52576,6 +52576,7 @@ namespace PRoConEvents
             return 0;
         }
 
+        // TODO: Update for new API
         private void FetchIPLocation(APlayer aPlayer)
         {
             if (String.IsNullOrEmpty(aPlayer.player_ip) || (aPlayer.location != null && aPlayer.location.status == "success" && aPlayer.player_ip == aPlayer.location.IP))
