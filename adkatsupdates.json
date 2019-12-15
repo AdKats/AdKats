@@ -1,77 +1,101 @@
 {
-	"SQLUpdates":[ 
-		{
-			"update_id":"command57adminfix",
-			"version_minimum":"6.0.0.0",
-			"version_maximum":null,
-			"message_name":"Fix command 57 admin-only status",
-			"message_success":"Command 57 admin-only status fixed",
-			"message_failure":"Failed to fix command 57 admin-only status",
-			"update_checks_hasResults":true,
-			"update_checks":[
-				"SELECT command_id FROM %DATABASENAME%.adkats_commands WHERE command_id = 57",
-				"SELECT command_id FROM %DATABASENAME%.adkats_commands WHERE command_id = 57 AND command_playerInteraction = 1"
-			],
-			"update_execute_requiresModRows":true,
-			"update_execute":[
-				"UPDATE %DATABASENAME%.adkats_commands SET command_playerInteraction = 0 WHERE command_id = 57"
-			],
-			"update_success":[],
-			"update_failure":[]
-		},
-		{
-			"update_id":"increaseSettingMaxSize",
-			"version_minimum":"6.0.0.0",
-			"version_maximum":null,
-			"message_name":"Increasing max size of setting values",
-			"message_success":"Setting value max size increased to 3000 characters",
-			"message_failure":"Failed to increase setting value max size",
-			"update_checks_hasResults":true,
-			"update_checks":[
-				"SHOW FIELDS FROM %DATABASENAME%.`adkats_settings` WHERE `Field` = 'setting_value' AND `TYPE` = 'varchar(1500)'"
-			],
-			"update_execute_requiresModRows":false,
-			"update_execute":[
-				"ALTER TABLE %DATABASENAME%.`adkats_settings` MODIFY `setting_value` VARCHAR(3000);"
-			],
-			"update_success":[],
-			"update_failure":[]
-		},
-		{
-			"update_id":"increaseSPGroupMaxSize",
-			"version_minimum":"6.0.0.0",
-			"version_maximum":null,
-			"message_name":"Increasing special player group size",
-			"message_success":"Increased special player group size",
-			"message_failure":"Failed to increase special player group size",
-			"update_checks_hasResults":true,
-			"update_checks":[
-			"SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '%DATABASENAME%' AND `TABLE_NAME` = 'adkats_specialplayers' AND `COLUMN_NAME` = 'player_group' AND `CHARACTER_MAXIMUM_LENGTH` <= 99"
-			],
-			"update_execute_requiresModRows":false,
-			"update_execute":[
-			"ALTER TABLE %DATABASENAME%.`adkats_specialplayers` CHANGE COLUMN `player_group` `player_group` VARCHAR(100) CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci' NOT NULL"
-			],
-			"update_success":[],
-			"update_failure":[]
-		},
-		{
-			"update_id":"addCommandAccessMethod",
-			"version_minimum":"6.0.3.0",
-			"version_maximum":null,
-			"message_name":"Adding command access method",
-			"message_success":"Added command access method",
-			"message_failure":"Failed to add command access method",
-			"update_checks_hasResults":false,
-			"update_checks":[
-				"SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '%DATABASENAME%' AND `TABLE_NAME`='adkats_commands' AND `COLUMN_NAME` = 'command_access'"
-			],
-			"update_execute_requiresModRows":false,
-			"update_execute":[
-				"ALTER TABLE `%DATABASENAME%`.`adkats_commands` ADD COLUMN `command_access` ENUM('Any', 'AnyHidden', 'AnyVisible', 'GlobalVisible', 'TeamVisible', 'SquadVisible') NOT NULL DEFAULT 'Any' AFTER `command_playerInteraction`;"
-			],
-			"update_success":[],
-			"update_failure":[]
-		}
-	]
+  "SQLUpdates": [
+    {
+      "update_id": "command57adminfix",
+      "version_minimum": "6.0.0.0",
+      "version_maximum": null,
+      "message_name": "Fix command 57 admin-only status",
+      "message_success": "Command 57 admin-only status fixed",
+      "message_failure": "Failed to fix command 57 admin-only status",
+      "update_checks_hasResults": true,
+      "update_checks": [
+        "SELECT command_id FROM %DATABASENAME%.adkats_commands WHERE command_id = 57",
+        "SELECT command_id FROM %DATABASENAME%.adkats_commands WHERE command_id = 57 AND command_playerInteraction = 1"
+      ],
+      "update_execute_requiresModRows": true,
+      "update_execute": [
+        "UPDATE %DATABASENAME%.adkats_commands SET command_playerInteraction = 0 WHERE command_id = 57"
+      ],
+      "update_success": [],
+      "update_failure": []
+    },
+    {
+      "update_id": "increaseSettingMaxSize",
+      "version_minimum": "6.0.0.0",
+      "version_maximum": null,
+      "message_name": "Increasing max size of setting values",
+      "message_success": "Setting value max size increased to 3000 characters",
+      "message_failure": "Failed to increase setting value max size",
+      "update_checks_hasResults": true,
+      "update_checks": [
+        "SHOW FIELDS FROM %DATABASENAME%.`adkats_settings` WHERE `Field` = 'setting_value' AND `TYPE` = 'varchar(1500)'"
+      ],
+      "update_execute_requiresModRows": false,
+      "update_execute": [
+        "ALTER TABLE %DATABASENAME%.`adkats_settings` MODIFY `setting_value` VARCHAR(3000);"
+      ],
+      "update_success": [],
+      "update_failure": []
+    },
+    {
+      "update_id": "increaseSPGroupMaxSize",
+      "version_minimum": "6.0.0.0",
+      "version_maximum": null,
+      "message_name": "Increasing special player group size",
+      "message_success": "Increased special player group size",
+      "message_failure": "Failed to increase special player group size",
+      "update_checks_hasResults": true,
+      "update_checks": [
+        "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '%DATABASENAME%' AND `TABLE_NAME` = 'adkats_specialplayers' AND `COLUMN_NAME` = 'player_group' AND `CHARACTER_MAXIMUM_LENGTH` <= 99"
+      ],
+      "update_execute_requiresModRows": false,
+      "update_execute": [
+        "ALTER TABLE %DATABASENAME%.`adkats_specialplayers` CHANGE COLUMN `player_group` `player_group` VARCHAR(100) CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci' NOT NULL"
+      ],
+      "update_success": [],
+      "update_failure": []
+    },
+    {
+      "update_id": "addCommandAccessMethod",
+      "version_minimum": "6.0.3.0",
+      "version_maximum": null,
+      "message_name": "Adding command access method",
+      "message_success": "Added command access method",
+      "message_failure": "Failed to add command access method",
+      "update_checks_hasResults": false,
+      "update_checks": [
+        "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '%DATABASENAME%' AND `TABLE_NAME`='adkats_commands' AND `COLUMN_NAME` = 'command_access'"
+      ],
+      "update_execute_requiresModRows": false,
+      "update_execute": [
+        "ALTER TABLE `%DATABASENAME%`.`adkats_commands` ADD COLUMN `command_access` ENUM('Any', 'AnyHidden', 'AnyVisible', 'GlobalVisible', 'TeamVisible', 'SquadVisible') NOT NULL DEFAULT 'Any' AFTER `command_playerInteraction`;"
+      ],
+      "update_success": [],
+      "update_failure": []
+    },
+    {
+      "update_id": "checkPlayerdataCreatedUpdateColumnsIndexes",
+      "version_minimum": "6.0.0.0",
+      "version_maximum": null,
+      "message_name": "Added created and updated columns to playerdata table",
+      "message_success": "Added created and updated columns to playerdata table",
+      "message_failure": "Failed add created and updated columns to playerdata table",
+      "update_checks_hasResults": false,
+      "update_checks": [
+        "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '%DATABASENAME%' AND `TABLE_NAME` = 'tbl_playerdata' AND `COLUMN_NAME` = 'created_at'",
+        "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '%DATABASENAME%' AND `TABLE_NAME` = 'tbl_playerdata' AND `COLUMN_NAME` = 'updated_at'",
+        "SHOW INDEX FROM `%DATABASENAME%`.`tbl_playerdata` WHERE Key_name = 'created_at'",
+        "SHOW INDEX FROM `%DATABASENAME%`.`tbl_playerdata` WHERE Key_name = 'updated_at'"
+      ],
+      "update_execute_requiresModRows": false,
+      "update_execute": [
+        "ALTER TABLE %DATABASENAME%.`tbl_playerdata` ADD `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `CountryCode`",
+        "ALTER TABLE %DATABASENAME%.`tbl_playerdata` ADD `updated_at` TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `created_at`",
+        "ALTER TABLE %DATABASENAME%.`tbl_playerdata` ADD INDEX `created_at` (`created_at`)",
+        "ALTER TABLE %DATABASENAME%.`tbl_playerdata` ADD INDEX `updated_at` (`updated_at`)"
+      ],
+      "update_success": [],
+      "update_failure": []
+    }
+  ]
 }
