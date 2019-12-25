@@ -1,4 +1,4 @@
-[//]: # "<latest_stable_release>7.6.0.0</latest_stable_release>"
+[//]: # "<latest_stable_release>7.6.0.3</latest_stable_release>"
 <p>
     <a name=adkats />
     <img src="https://i.imgur.com/r9pwH3A.png" alt="AdKats Advanced In-Game Admin Tools">
@@ -7,7 +7,7 @@
     <b>New Extension! Click below to enforce BF4 loadouts on-spawn!</b>
 </p>
 <p>
-    <a href="https://forum.myrcon.com/showthread.php?9373-On-Spawn-Loadout-Enforcer-for-Infantry-Vehicles-AdKatsLRT-2-0-0-0" name=thread>
+    <a href="https://myrcon.net/files/file/32-on-spawn-loadout-enforcer-for-infantryvehicles-adkatslrt/" name=thread>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Loadout.jpg" alt="AdKats Thread">
     </a>
 </p>
