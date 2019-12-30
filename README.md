@@ -1731,7 +1731,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </tr>
     <tr>
         <td><b>Link Player to Discord Member</b></td>
-        <td>fping</td>
+        <td>discordlink</td>
         <td>
             [player][discordmember]
         </td>
