@@ -1960,13 +1960,37 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
-        <td><b>Un-Report Blacklist Player</b></td>
+        <td><b>Un-Report Whitelist Player</b></td>
         <td>unrwhitelist</td>
         <td>
             [player]
         </td>
         <td>
             The in-game command used for removing a player from Report Whitelist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Report Source Blacklist Player</b></td>
+        <td>rblacklist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to the Report Source Blacklist for all servers. Players under this group cannot issue reports against anyone.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Un-Report Source Blacklist Player</b></td>
+        <td>unrblacklist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from Report Source Blacklist for all servers.
         </td>
     </tr>
     <tr>
