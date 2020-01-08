@@ -1,4 +1,4 @@
-[//]: # "<latest_stable_release>7.6.0.0</latest_stable_release>"
+[//]: # "<latest_stable_release>7.6.0.3</latest_stable_release>"
 <p>
     <a name=adkats />
     <img src="https://i.imgur.com/r9pwH3A.png" alt="AdKats Advanced In-Game Admin Tools">
@@ -7,7 +7,7 @@
     <b>New Extension! Click below to enforce BF4 loadouts on-spawn!</b>
 </p>
 <p>
-    <a href="https://forum.myrcon.com/showthread.php?9373-On-Spawn-Loadout-Enforcer-for-Infantry-Vehicles-AdKatsLRT-2-0-0-0" name=thread>
+    <a href="https://myrcon.net/files/file/32-on-spawn-loadout-enforcer-for-infantryvehicles-adkatslrt/" name=thread>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Loadout.jpg" alt="AdKats Thread">
     </a>
 </p>
@@ -1731,7 +1731,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </tr>
     <tr>
         <td><b>Link Player to Discord Member</b></td>
-        <td>fping</td>
+        <td>discordlink</td>
         <td>
             [player][discordmember]
         </td>
@@ -1960,13 +1960,37 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
     <tr>
-        <td><b>Un-Report Blacklist Player</b></td>
+        <td><b>Un-Report Whitelist Player</b></td>
         <td>unrwhitelist</td>
         <td>
             [player]
         </td>
         <td>
             The in-game command used for removing a player from Report Whitelist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Report Source Blacklist Player</b></td>
+        <td>rblacklist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to the Report Source Blacklist for all servers. Players under this group cannot issue reports against anyone.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Un-Report Source Blacklist Player</b></td>
+        <td>unrblacklist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from Report Source Blacklist for all servers.
         </td>
     </tr>
     <tr>
