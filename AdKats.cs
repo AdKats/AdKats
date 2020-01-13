@@ -9500,7 +9500,7 @@ namespace PRoConEvents
                                     <h2 style='color:#DF0101;'>
                                         You are running an outdated version! Version " + latestStableVersion + @" is available for download!
                                     </h2>
-                                    <a href='https://sourceforge.net/projects/adkats/files/latest/download' target='_blank'>
+                                    <a href='https://myrcon.net/files/file/30-advanced-in-game-admin-and-ban-enforcer-adkats/' target='_blank'>
                                         Download Version " + latestStableVersion + @"!
                                     </a><br/>
                                     Download link below.";
