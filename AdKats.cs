@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.6.0.3
+ * Version 7.6.0.4
  * 14-NOV-2019
  * 
  * Automatic Update Information
- * <version_code>7.6.0.3</version_code>
+ * <version_code>7.6.0.4</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.6.0.3";
+        private const String PluginVersion = "7.6.0.4";
 
         public enum GameVersionEnum
         {
@@ -4225,10 +4225,10 @@ namespace PRoConEvents
                             Log.Error("Minimum seconds between nukes must be positive.");
                             surrenderAutoNukeMinBetween = 1;
                         }
-                        if (surrenderAutoNukeMinBetween > 120)
+                        if (surrenderAutoNukeMinBetween > 300)
                         {
-                            Log.Error("Minimum seconds between nukes cannot be longer than 120 seconds.");
-                            surrenderAutoNukeMinBetween = 120;
+                            Log.Error("Minimum seconds between nukes cannot be longer than 300 seconds.");
+                            surrenderAutoNukeMinBetween = 300;
                         }
                         _surrenderAutoNukeMinBetween = surrenderAutoNukeMinBetween;
                         //Once setting has been changed, upload the change to database
