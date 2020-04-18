@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.6.0.4
- * 14-NOV-2019
+ * Version 7.6.0.5
+ * 18-APR-2020
  * 
  * Automatic Update Information
- * <version_code>7.6.0.4</version_code>
+ * <version_code>7.6.0.5</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.6.0.4";
+        private const String PluginVersion = "7.6.0.5";
 
         public enum GameVersionEnum
         {
@@ -9140,7 +9140,9 @@ namespace PRoConEvents
                             return;
                         }
 
-                        if (GameVersion == GameVersionEnum.BF3 || GameVersion == GameVersionEnum.BF4)
+                        if (GameVersion == GameVersionEnum.BF3 || 
+                            GameVersion == GameVersionEnum.BF4 || 
+                            GameVersion == GameVersionEnum.BFHL)
                         {
                             //Fetch all weapon information
                             if (WeaponDictionary.PopulateDictionaries())
