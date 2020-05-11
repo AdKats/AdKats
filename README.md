@@ -278,7 +278,7 @@
     <li>
         <b>Install XpKiller's Stat logger plugin.</b>
         Download and install the latest universal version of XpKiller's
-        <a href="https://myrcon.net/index.php?/topic/11-chat-guid-stats-and-mapstats-logger-1003-by-xpkiller/" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>.
+        <a href="https://myrcon.net/topic/162-chat-guid-stats-and-mapstats-logger-1003/" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>.
         Make sure stat logger is running without error for a few minutes after its own installation BEFORE you attempt to do anything with AdKats installation. It needs to add an entry to the tbl_server table before AdKats can properly start up.
         If you are already running the BF3 only version of stat logger, that is fine, but the universal version is preferred for full functionality.
     </li>
