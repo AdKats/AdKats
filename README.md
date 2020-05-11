@@ -243,7 +243,7 @@
 </p>
 <p>
     The latest universal version of XpKiller's Stat Logger can be downloaded from here: <a
-        href="https://myrcon.net/index.php?/topic/11-chat-guid-stats-and-mapstats-logger-1003-by-xpkiller/" target="_blank">Procon Chat, GUID, Stats and Mapstats
+        href="https://myrcon.net/topic/162-chat-guid-stats-and-mapstats-logger-1003/" target="_blank">Procon Chat, GUID, Stats and Mapstats
     Logger</a>
 </p>
 <p>
