@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.6.0.6
+ * Version 7.6.0.7
  * 16-MAY-2020
  * 
  * Automatic Update Information
- * <version_code>7.6.0.6</version_code>
+ * <version_code>7.6.0.7</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.6.0.6";
+        private const String PluginVersion = "7.6.0.7";
 
         public enum GameVersionEnum
         {
@@ -52699,6 +52699,10 @@ namespace PRoConEvents
         {
             Int32 upperCount = 0;
             Int32 totalCount = 0;
+            if (String.IsNullOrWhiteSpace(input))
+            {
+                return 0;
+            }
             try
             {
                 foreach (var character in input.ToCharArray())
@@ -52716,7 +52720,7 @@ namespace PRoConEvents
             }
             catch (Exception e)
             {
-                Log.HandleException(new AException("Error getting string upper percentage.", e));
+                Log.HandleException(new AException("Error getting string upper percentage. " + input.Length + "," + upperCount + "," + totalCount, e));
             }
             return 0;
         }
