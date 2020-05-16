@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.6.0.5
- * 18-APR-2020
+ * Version 7.6.0.6
+ * 16-MAY-2020
  * 
  * Automatic Update Information
- * <version_code>7.6.0.5</version_code>
+ * <version_code>7.6.0.6</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.6.0.5";
+        private const String PluginVersion = "7.6.0.6";
 
         public enum GameVersionEnum
         {
@@ -43950,7 +43950,9 @@ namespace PRoConEvents
                         SELECT 
                             COUNT(*) AS `ban_count`
                         FROM 
-	                        `adkats_bans`";
+	                        `adkats_bans`
+                        WHERE 
+                            `ban_status` = 'Active'";
 
                         using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
@@ -43980,7 +43982,9 @@ namespace PRoConEvents
 	                        `ban_enforceGUID`, 
 	                        `ban_enforceIP` 
                         FROM 
-	                        `adkats_bans`";
+	                        `adkats_bans`
+                        WHERE 
+                            `ban_status` = 'Active'";
 
                         List<ABan> importedBans = new List<ABan>();
                         using (MySqlDataReader reader = SafeExecuteReader(command))
@@ -44010,6 +44014,10 @@ namespace PRoConEvents
                                     ban_enforceGUID = (reader.GetString("ban_enforceGUID") == "Y"),
                                     ban_enforceIP = (reader.GetString("ban_enforceIP") == "Y")
                                 };
+                                if (aBan.ban_status != "Active") 
+                                {
+                                    continue;
+                                }
                                 if (aBan.ban_record == null)
                                 {
                                     aBan.ban_record = new ARecord
@@ -52704,7 +52712,7 @@ namespace PRoConEvents
                         }
                     }
                 }
-                return (Int32)Math.Round((Double)upperCount / (Double)totalCount * 100.0);
+                return (Int32)Math.Ceiling((Double)upperCount / (Double)totalCount * 100.0);
             }
             catch (Exception e)
             {
