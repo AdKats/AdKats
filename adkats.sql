@@ -52,6 +52,14 @@ CREATE TRIGGER `tbl_chatlog_player_id_insert` BEFORE INSERT ON `tbl_chatlog`
   END
 $$
 
+DROP TRIGGER IF EXISTS `Server_GameID_Zero_Prevention`$$
+CREATE TRIGGER `Server_GameID_Zero_Prevention` BEFORE UPDATE ON `tbl_server`
+ FOR EACH ROW BEGIN
+    IF NEW.GameID IS NULL OR NEW.GameID = 0
+        THEN SET NEW.GameID = OLD.GameID;
+    END IF;
+END$$
+
 DROP TRIGGER IF EXISTS `Player_Update_BlankDataFix`$$
 DROP TRIGGER IF EXISTS `Player_Update_BlankDataFix2`$$
 CREATE TRIGGER `Player_Update_BlankDataFix2` BEFORE UPDATE ON `tbl_playerdata`
@@ -79,6 +87,9 @@ CREATE TRIGGER `Player_Update_BlankDataFix2` BEFORE UPDATE ON `tbl_playerdata`
     END IF;
     IF NEW.ClanTag IS NULL
         THEN SET NEW.ClanTag = OLD.ClanTag;
+    END IF;
+    IF NEW.GameID IS NULL OR NEW.GameID = 0
+        THEN SET NEW.GameID = OLD.GameID;
     END IF;
 END$$
 
