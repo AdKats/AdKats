@@ -93,6 +93,30 @@ CREATE TRIGGER `Player_Update_BlankDataFix2` BEFORE UPDATE ON `tbl_playerdata`
     END IF;
 END$$
 
+DROP TRIGGER IF EXISTS `Server_GameID_Zero_Insert`$$
+CREATE TRIGGER `Server_GameID_Zero_Insert` BEFORE INSERT ON `tbl_server`
+ FOR EACH ROW BEGIN
+    IF NEW.GameID IS NULL OR NEW.GameID = 0
+        THEN SET NEW.GameID = NULL;
+    END IF;
+END$$
+
+DROP TRIGGER IF EXISTS `Server_GameID_Zero_Update`$$
+CREATE TRIGGER `Server_GameID_Zero_Update` BEFORE UPDATE ON `tbl_server`
+ FOR EACH ROW BEGIN
+    IF NEW.GameID IS NULL OR NEW.GameID = 0
+        THEN SET NEW.GameID = OLD.GameID;
+    END IF;
+END$$
+
+DROP TRIGGER IF EXISTS `Player_GameID_Zero_Insert`$$
+CREATE TRIGGER `Player_GameID_Zero_Insert` BEFORE INSERT ON `tbl_playerdata`
+ FOR EACH ROW BEGIN
+	IF NEW.GameID IS NULL OR NEW.GameID = 0
+    	THEN SET NEW.GameID = NULL;
+	END IF;
+END$$
+
 DELIMITER ;
 
 DROP TABLE IF EXISTS `adkats_battlelog_players`;
