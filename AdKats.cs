@@ -34029,16 +34029,16 @@ namespace PRoConEvents
             Log.Debug(() => "Entering PurgeExtendedRoundStats", 6);
             try
             {
-                //Purge all extended round stats older than 60 days
+                //Purge all extended round stats older than two years
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
-                        command.CommandText = @"delete from tbl_extendedroundstats where tbl_extendedroundstats.roundstat_time < date_sub(sysdate(), interval 60 day)";
+                        command.CommandText = @"delete from tbl_extendedroundstats where tbl_extendedroundstats.roundstat_time < date_sub(sysdate(), interval 2 year)";
                         Int32 affectedRows = SafeExecuteNonQuery(command);
                         if (affectedRows > 0)
                         {
-                            Log.Debug(() => "Purged " + affectedRows + " extended round stats older than 60 days.", 5);
+                            Log.Debug(() => "Purged " + affectedRows + " extended round stats older than 2 years.", 5);
                         }
                     }
                 }
@@ -34055,16 +34055,16 @@ namespace PRoConEvents
             Log.Debug(() => "Entering PurgeOutdatedStatistics", 6);
             try
             {
-                //Purge all Adkats statistics older than 90 days
+                //Purge all Adkats statistics older than 180 days
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
-                        command.CommandText = @"delete from adkats_statistics where adkats_statistics.stat_time < date_sub(sysdate(), interval 90 day)";
+                        command.CommandText = @"delete from adkats_statistics where adkats_statistics.stat_time < date_sub(sysdate(), interval 180 day)";
                         Int32 affectedRows = SafeExecuteNonQuery(command);
                         if (affectedRows > 0)
                         {
-                            Log.Debug(() => "Purged " + affectedRows + " AdKats statistics older than 90 days.", 5);
+                            Log.Debug(() => "Purged " + affectedRows + " AdKats statistics older than 180 days.", 5);
                         }
                     }
                 }
