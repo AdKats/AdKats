@@ -723,6 +723,7 @@ CREATE TABLE `tbl_extendedroundstats` (
 	`team1_tpm` double NOT NULL,
 	`team2_tpm` double NOT NULL,
 	`roundstat_time` datetime NOT NULL,
+  `map` varchar(25) NULL DEFAULT NULL,
 	PRIMARY KEY (`roundstat_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Extended Round Stats';
 
