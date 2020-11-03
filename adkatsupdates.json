@@ -110,7 +110,7 @@
     ],
     "update_execute_requiresModRows": false,
     "update_execute": [
-      "ALTER TABLE `%DATABASENAME%`.`tbl_extendedroundstats` ADD COLUMN  ADD `map` VARCHAR(25) NULL DEFAULT NULL AFTER `roundstat_time`;"
+      "ALTER TABLE `%DATABASENAME%`.`tbl_extendedroundstats` ADD `map` VARCHAR(25) NULL DEFAULT NULL AFTER `roundstat_time`;"
     ],
     "update_success": [],
     "update_failure": []
