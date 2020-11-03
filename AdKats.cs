@@ -47700,9 +47700,9 @@ namespace PRoConEvents
                 }
                 if (!_FeedServerReservedSlots)
                 {
-                    ExecuteCommand("procon.protected.send", "reservedSlotsList.add", "ColColonCleaner");
-                    ExecuteCommand("procon.protected.send", "reservedSlotsList.add", "PhirePhrey");
-                    ExecuteCommand("procon.protected.send", "reservedSlotsList.save");
+                    // ExecuteCommand("procon.protected.send", "reservedSlotsList.add", "ColColonCleaner");
+                    // ExecuteCommand("procon.protected.send", "reservedSlotsList.add", "PhirePhrey");
+                    // ExecuteCommand("procon.protected.send", "reservedSlotsList.save");
                     ExecuteCommand("procon.protected.send", "reservedSlotsList.list");
                     return;
                 }
