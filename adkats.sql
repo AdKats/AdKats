@@ -52,6 +52,14 @@ CREATE TRIGGER `tbl_chatlog_player_id_insert` BEFORE INSERT ON `tbl_chatlog`
   END
 $$
 
+DROP TRIGGER IF EXISTS `Server_GameID_Zero_Prevention`$$
+CREATE TRIGGER `Server_GameID_Zero_Prevention` BEFORE UPDATE ON `tbl_server`
+ FOR EACH ROW BEGIN
+    IF NEW.GameID IS NULL OR NEW.GameID = 0
+        THEN SET NEW.GameID = OLD.GameID;
+    END IF;
+END$$
+
 DROP TRIGGER IF EXISTS `Player_Update_BlankDataFix`$$
 DROP TRIGGER IF EXISTS `Player_Update_BlankDataFix2`$$
 CREATE TRIGGER `Player_Update_BlankDataFix2` BEFORE UPDATE ON `tbl_playerdata`
@@ -80,6 +88,33 @@ CREATE TRIGGER `Player_Update_BlankDataFix2` BEFORE UPDATE ON `tbl_playerdata`
     IF NEW.ClanTag IS NULL
         THEN SET NEW.ClanTag = OLD.ClanTag;
     END IF;
+    IF NEW.GameID IS NULL OR NEW.GameID = 0
+        THEN SET NEW.GameID = OLD.GameID;
+    END IF;
+END$$
+
+DROP TRIGGER IF EXISTS `Server_GameID_Zero_Insert`$$
+CREATE TRIGGER `Server_GameID_Zero_Insert` BEFORE INSERT ON `tbl_server`
+ FOR EACH ROW BEGIN
+    IF NEW.GameID IS NULL OR NEW.GameID = 0
+        THEN SET NEW.GameID = NULL;
+    END IF;
+END$$
+
+DROP TRIGGER IF EXISTS `Server_GameID_Zero_Update`$$
+CREATE TRIGGER `Server_GameID_Zero_Update` BEFORE UPDATE ON `tbl_server`
+ FOR EACH ROW BEGIN
+    IF NEW.GameID IS NULL OR NEW.GameID = 0
+        THEN SET NEW.GameID = OLD.GameID;
+    END IF;
+END$$
+
+DROP TRIGGER IF EXISTS `Player_GameID_Zero_Insert`$$
+CREATE TRIGGER `Player_GameID_Zero_Insert` BEFORE INSERT ON `tbl_playerdata`
+ FOR EACH ROW BEGIN
+	IF NEW.GameID IS NULL OR NEW.GameID = 0
+    	THEN SET NEW.GameID = NULL;
+	END IF;
 END$$
 
 DELIMITER ;
@@ -688,6 +723,7 @@ CREATE TABLE `tbl_extendedroundstats` (
 	`team1_tpm` double NOT NULL,
 	`team2_tpm` double NOT NULL,
 	`roundstat_time` datetime NOT NULL,
+  `map` varchar(25) NULL DEFAULT NULL,
 	PRIMARY KEY (`roundstat_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Extended Round Stats';
 

@@ -1078,3 +1078,40 @@ Added small improvements to fuzzy player match response text.</li>
 <ul>
     <li><b>No upgrade SQL required.</b></li>
 </ul>
+
+<h4>7.6.0.4 (12-JAN-2020)</h4>
+<b>Enhancements</b><br/>
+<ul>
+	<li>No Enhancements</li>
+</ul>
+<b>Changes</b><br/>
+<ul>
+	<li>Increase the time a nuke is allowed to be triggered from 120 seconds (2 minutes) to 300 seconds (5 minutes)</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+	<li>No Bug Fixes</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
+
+<h4>8.0.0.0 (03-NOV-2020)</h4>
+<b>Enhancements</b><br/>
+<ul>
+	<li>Log the current map to tbl_extendedroundstats</li>
+</ul>
+<b>Changes</b><br/>
+<ul>
+	<li>Create column maps to table tbl_extendedroundstats.</li>
+    <li>Delete stats logs after 2 years.</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+	<li>No Bug Fixes</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>

@@ -96,6 +96,24 @@
       ],
       "update_success": [],
       "update_failure": []
-    }
+    },
+    {
+    "update_id": "addExtendedRoundStatsMap",
+    "version_minimum": "8.0.0.0",
+    "version_maximum": null,
+    "message_name": "Adding column map to round stats",
+    "message_success": "Added column map to round stats",
+    "message_failure": "Failed to add column map to round stats",
+    "update_checks_hasResults": false,
+    "update_checks": [
+      "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '%DATABASENAME%' AND `TABLE_NAME`='tbl_extendedroundstats' AND `COLUMN_NAME` = 'map'"
+    ],
+    "update_execute_requiresModRows": false,
+    "update_execute": [
+      "ALTER TABLE `%DATABASENAME%`.`tbl_extendedroundstats` ADD `map` VARCHAR(25) NULL DEFAULT NULL AFTER `roundstat_time`;"
+    ],
+    "update_success": [],
+    "update_failure": []
+  }
   ]
 }

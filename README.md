@@ -1,4 +1,4 @@
-[//]: # "<latest_stable_release>7.6.0.3</latest_stable_release>"
+[//]: # "<latest_stable_release>8.0.0.0</latest_stable_release>"
 <p>
     <a name=adkats />
     <img src="https://i.imgur.com/r9pwH3A.png" alt="AdKats Advanced In-Game Admin Tools">
@@ -3156,7 +3156,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </li>
     <li><b>'Custom HTML Addition.'</b> - 
         Custom HTML to add to the end of each email. 
-        String replacements include: %player_id%, $player_name%, %player_guid%, %player_pbguid%, %player_ip%
+        String replacements include: %player_id%, %player_name%, %player_guid%, %player_pbguid%, %player_ip%
     </li>
     <li><b>'Extra Recipient Email Addresses.'</b> - 
         List of all extra email addresses beside user email addresses that you would like to blast.
