@@ -13681,7 +13681,8 @@ namespace PRoConEvents
                                         `team2_tickets`,
                                         `team1_tpm`, 
                                         `team2_tpm`,
-                                        `roundstat_time`
+                                        `roundstat_time`,
+                                        `map`
                                     ) 
                                     VALUES 
                                     (
@@ -13698,7 +13699,8 @@ namespace PRoConEvents
                                         @team2_tickets,
                                         @team1_tpm, 
                                         @team2_tpm,
-                                        UTC_TIMESTAMP()
+                                        UTC_TIMESTAMP(),
+                                        @map
                                     )";
                                     command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                                     command.Parameters.AddWithValue("@round_id", _roundID);
@@ -13713,6 +13715,7 @@ namespace PRoConEvents
                                     command.Parameters.AddWithValue("@team2_tickets", team2.TeamTicketCount);
                                     command.Parameters.AddWithValue("@team1_tpm", Math.Round(team1.GetTicketDifferenceRate(), 2));
                                     command.Parameters.AddWithValue("@team2_tpm", Math.Round(team2.GetTicketDifferenceRate(), 2));
+                                    command.Parameters.AddWithValue("@map", _serverInfo.InfoObject.Map);
                                     if (team1.TeamPlayerCount > 0 || team2.TeamPlayerCount > 0)
                                     {
                                         try
