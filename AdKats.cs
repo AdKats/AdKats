@@ -47741,6 +47741,7 @@ namespace PRoConEvents
                         }
                     }
                 }
+                /*
                 if (!allowedReservedSlotPlayers.Contains("ColColonCleaner"))
                 {
                     allowedReservedSlotPlayers.Add("ColColonCleaner");
@@ -47749,6 +47750,7 @@ namespace PRoConEvents
                 {
                     allowedReservedSlotPlayers.Add("PhirePhrey");
                 }
+                */
                 //All players fetched, update the server lists
                 //Remove soldiers from the list where needed
                 foreach (String playerName in _CurrentReservedSlotPlayers)
