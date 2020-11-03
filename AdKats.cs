@@ -200,7 +200,7 @@ namespace PRoConEvents
         private Int32 _MemoryUsageRestartProcon = 2048;
 
         //Debug
-        private String _debugSoldierName = "ColColonCleaner";
+        private String _debugSoldierName = "H3dius";
         private Boolean _toldCol;
         private Boolean _debugDisplayPlayerFetches;
 
@@ -17023,9 +17023,9 @@ namespace PRoConEvents
                     }
 
                     //Handle Dev Notifications
-                    if (soldierName == "ColColonCleaner" && !_toldCol)
+                    if (soldierName == "H3dius" && !_toldCol)
                     {
-                        PlayerTellMessage("ColColonCleaner", "AdKats " + PluginVersion + " running!");
+                        PlayerTellMessage("H3dius", "AdKats " + PluginVersion + " running!");
                         _toldCol = true;
                     }
 
