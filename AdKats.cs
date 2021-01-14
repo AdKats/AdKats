@@ -38413,6 +38413,12 @@ namespace PRoConEvents
                         switch (cBan.BanLength.Subset)
                         {
                             case TimeoutSubset.TimeoutSubsetType.Seconds:
+                                //Don't import bans 1s or less.  BA/BF4DB kick players using 1s bans.
+                                if (cBan.BanLength.Seconds <= 1)
+                                {
+                                    Log.Debug(() => "Skipping import of ban with 1 second length, likely from BA/BF4DB plugins", 5);
+                                    continue;
+                                }
                                 record.command_type = GetCommandByKey("player_ban_temp");
                                 record.command_action = GetCommandByKey("player_ban_temp");
                                 record.command_numeric = cBan.BanLength.Seconds / 60;
