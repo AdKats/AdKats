@@ -193,7 +193,7 @@
     </li>
 </ul>
 <p>
-    <a href="https://myrcon.net/index.php?/topic/6-advanced-in-game-admin-and-ban-enforcer-adkats-7600-by-colcoloncleaner/" name=thread>
+    <a href="https://myrcon.net/topic/459-advanced-in-game-admin-and-ban-enforcer-adkats/" name=thread>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Thread.jpg" alt="AdKats Thread">
     </a>
 </p>
