@@ -1,4 +1,4 @@
-[//]: # "<latest_stable_release>7.6.0.5</latest_stable_release>"
+[//]: # "<latest_stable_release>7.6.0.9</latest_stable_release>"
 <p>
     <a name=adkats />
     <img src="https://i.imgur.com/r9pwH3A.png" alt="AdKats Advanced In-Game Admin Tools">
@@ -2705,16 +2705,12 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         <td>Source updates.</td>
     </tr>
     <tr>
-        <td>adkats.gamerethos.net</td>
+        <td>api.myrcon.net</td>
         <td>Version management, and backup source for definition files.</td>
     </tr>
     <tr>
         <td>ip-api.com</td>
         <td>Player location tracking.</td>
-    </tr>
-    <tr>
-        <td>metabans.com</td>
-        <td>Ban enforcer posting.</td>
     </tr>
     <tr>
         <td>www.timeanddate.com</td>
