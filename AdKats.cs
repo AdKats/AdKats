@@ -9006,31 +9006,31 @@ namespace PRoConEvents
                             return;
                     }
                 }
-            }
-            else if (Regex.Match(strVariable, @"Use Proxy for Battlelog").Success)
-            {
-                _UseProxy = Boolean.Parse(strValue);
-                if (_UseProxy && _firstPlayerListComplete && String.IsNullOrEmpty(_ProxyURL))
+                else if (Regex.Match(strVariable, @"Use Proxy for Battlelog").Success)
                 {
-                    Log.Warn("The 'Proxy URL' setting must be filled in before using a proxy.");
+                    _UseProxy = Boolean.Parse(strValue);
+                    if (_UseProxy && _firstPlayerListComplete && String.IsNullOrEmpty(_ProxyURL))
+                    {
+                        Log.Warn("The 'Proxy URL' setting must be filled in before using a proxy.");
+                    }
+                    QueueSettingForUpload(new CPluginVariable(@"Use Proxy for Battlelog", typeof(Boolean), _UseProxy));
                 }
-                QueueSettingForUpload(new CPluginVariable(@"Use Proxy for Battlelog", typeof(Boolean), _UseProxy));
-            }
-            else if (Regex.Match(strVariable, @"Proxy URL").Success)
-            {
-                try
+                else if (Regex.Match(strVariable, @"Proxy URL").Success)
                 {
-                    Uri uri = new Uri(strValue);
-                    Log.Debug(() => "Proxy URL set to " + strValue + ".", 1);
-                }
-                catch(UriFormatException)
-                {
-                    strValue = "";
-                    Log.Warn("Invalid Proxy URL! Make sure that the URI is valid!");
-                }
+                    try
+                    {
+                        Uri uri = new Uri(strValue);
+                        Log.Debug(() => "Proxy URL set to " + strValue + ".", 1);
+                    }
+                    catch(UriFormatException)
+                    {
+                        strValue = "";
+                        Log.Warn("Invalid Proxy URL! Make sure that the URI is valid!");
+                    }
 
-                _ProxyURL = strValue;
-                QueueSettingForUpload(new CPluginVariable(@"Proxy URL", typeof(String), _ProxyURL));
+                    _ProxyURL = strValue;
+                    QueueSettingForUpload(new CPluginVariable(@"Proxy URL", typeof(String), _ProxyURL));
+                }
             }
             catch (Exception e)
             {
