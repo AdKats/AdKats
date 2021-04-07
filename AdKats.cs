@@ -21,6 +21,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
+ * Version 7.6.0.10
+ * 06-APR-2020
  * 
  * Automatic Update Information
  * <version_code>7.6.0.10</version_code>
