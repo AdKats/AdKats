@@ -867,6 +867,10 @@ namespace PRoConEvents
         private String _eventConcreteCountdownServerName = "Event Concrete Countdown Server Name";
         private String _eventActiveServerName = "Event Active Server Name";
         private readonly HashSet<String> _DetectedWeaponCodes = new HashSet<String>();
+        
+        // Proxy
+        private Boolean _UseProxy = false;
+        private String _ProxyURL = "";
 
         //Settings display
         private Dictionary<String, String> _SettingSections = new Dictionary<String, String>();
@@ -947,6 +951,7 @@ namespace PRoConEvents
             AddSettingSection("C32", "Challenge Settings");
             AddSettingSection("D98", "Database Timing Mismatch");
             AddSettingSection("D99", "Debugging");
+            AddSettingSection("X98", "Proxy Settings");  
             AddSettingSection("X99", "Experimental");
             AddSettingSection("Y99", "Event Automation");
             //Build setting section enum
@@ -2912,6 +2917,30 @@ namespace PRoConEvents
                 lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
+        
+         public void BuildProxySettings(List<CPluginVariable> lstReturn)
+        {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
+            var proxySection = "X98";
+            try
+            {
+                if (IsActiveSettingSection(proxySection))
+                {
+                    buildList.Add(new CPluginVariable(GetSettingSection(proxySection) + t + "Use Proxy for Battlelog", typeof(Boolean), _UseProxy));
+
+                    if (_UseProxy)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(proxySection) + t + "Proxy URL", typeof(String), _ProxyURL));
+                    }
+                }
+                lstReturn.AddRange(buildList);
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error building proxy setting section.", e));
+                lstReturn.Add(new CPluginVariable(GetSettingSection(proxySection) + t + "Failed to build setting section.", typeof(String), ""));
+            }
+        }
 
         public void BuildExperimentalSettings(List<CPluginVariable> lstReturn)
         {
@@ -3131,6 +3160,8 @@ namespace PRoConEvents
                     BuildChallengeSettings(lstReturn);
 
                     BuildDebugSettings(lstReturn);
+                    
+                    BuildProxySettings(lstReturn);
 
                     BuildExperimentalSettings(lstReturn);
 
@@ -8975,6 +9006,31 @@ namespace PRoConEvents
                             return;
                     }
                 }
+            }
+            else if (Regex.Match(strVariable, @"Use Proxy for Battlelog").Success)
+            {
+                _UseProxy = Boolean.Parse(strValue);
+                if (_UseProxy && _firstPlayerListComplete && String.IsNullOrEmpty(_ProxyURL))
+                {
+                    Log.Warn("The 'Proxy URL' setting must be filled in before using a proxy.");
+                }
+                QueueSettingForUpload(new CPluginVariable(@"Use Proxy for Battlelog", typeof(Boolean), _UseProxy));
+            }
+            else if (Regex.Match(strVariable, @"Proxy URL").Success)
+            {
+                try
+                {
+                    Uri uri = new Uri(strValue);
+                    Log.Debug(() => "Proxy URL set to " + strValue + ".", 1);
+                }
+                catch(UriFormatException)
+                {
+                    strValue = "";
+                    Log.Warn("Invalid Proxy URL! Make sure that the URI is valid!");
+                }
+
+                _ProxyURL = strValue;
+                QueueSettingForUpload(new CPluginVariable(@"Proxy URL", typeof(String), _ProxyURL));
             }
             catch (Exception e)
             {
@@ -39537,6 +39593,8 @@ namespace PRoConEvents
                     QueueSettingForUpload(new CPluginVariable(@"Use Server-Wide Round Rules", typeof(Boolean), ChallengeManager.EnableServerRoundRules));
                     QueueSettingForUpload(new CPluginVariable(@"Use Different Round Rule For Each Player", typeof(Boolean), ChallengeManager.RandomPlayerRoundRules));
                 }
+                QueueSettingForUpload(new CPluginVariable(@"Use Proxy for Battlelog", typeof(Boolean), _UseProxy));
+                QueueSettingForUpload(new CPluginVariable(@"Proxy URL", typeof(String), _ProxyURL));
                 Log.Debug(() => "uploadAllSettings finished!", 6);
             }
             catch (Exception e)
@@ -48822,6 +48880,10 @@ namespace PRoConEvents
                     Log.Debug(() => "Preparing to fetch battlelog info for BF3 player " + aPlayer.GetVerboseName(), 7);
                     using (WebClient client = new WebClient())
                     {
+                        if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                        {
+                            client.Proxy = new WebProxy(_ProxyURL, true); 
+                        }
                         try
                         {
                             DoBattlelogWait();
@@ -48883,6 +48945,10 @@ namespace PRoConEvents
                     Log.Debug(() => "Preparing to fetch battlelog info for BF4 player " + aPlayer.GetVerboseName(), 7);
                     using (WebClient client = new WebClient())
                     {
+                        if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                        {
+                            client.Proxy = new WebProxy(_ProxyURL, true); 
+                        }
                         try
                         {
                             if (String.IsNullOrEmpty(aPlayer.player_battlelog_personaID))
@@ -49036,6 +49102,10 @@ namespace PRoConEvents
                     Log.Debug(() => "Preparing to fetch battlelog info for BFHL player " + aPlayer.GetVerboseName(), 7);
                     using (WebClient client = new WebClient())
                     {
+                        if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                        {
+                            client.Proxy = new WebProxy(_ProxyURL, true); 
+                        }
                         try
                         {
                             if (String.IsNullOrEmpty(aPlayer.player_battlelog_personaID))
@@ -49174,6 +49244,10 @@ namespace PRoConEvents
             {
                 using (WebClient client = new WebClient())
                 {
+                    if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                    {
+                        client.Proxy = new WebProxy(_ProxyURL, true); 
+                    }
                     try
                     {
                         //Fetch stats
@@ -49373,6 +49447,10 @@ namespace PRoConEvents
             {
                 using (WebClient client = new WebClient())
                 {
+                    if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                    {
+                        client.Proxy = new WebProxy(_ProxyURL, true); 
+                    }               
                     try
                     {
                         //Fetch stats
@@ -49612,6 +49690,10 @@ namespace PRoConEvents
             {
                 using (WebClient client = new WebClient())
                 {
+                    if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                    {
+                        client.Proxy = new WebProxy(_ProxyURL, true); 
+                    }
                     try
                     {
                         //Fetch stats
