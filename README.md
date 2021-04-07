@@ -1,4 +1,4 @@
-[//]: # "<latest_stable_release>7.6.0.9</latest_stable_release>"
+[//]: # "<latest_stable_release>7.6.0.10</latest_stable_release>"
 <p>
     <a name=adkats />
     <img src="https://i.imgur.com/r9pwH3A.png" alt="AdKats Advanced In-Game Admin Tools">
@@ -4200,5 +4200,14 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Command Entry'</b> -
         Enter commands here just like in game, mainly for debug purposes. 
         Don't let more than one person use this at any time.
+    </li>
+</ul>
+<h3>X98. Proxy Settings:</h3>
+<ul>
+    <li><b>'Use Proxy for Battlelog'</b> -
+        Send all battlelog requests over a proxy server.
+    </li>
+    <li><b>'Proxy URL'</b> -
+        The full URI of the proxy in the format `http://IP:PORT` or `http://USER:PW@IP:PORT`.
     </li>
 </ul>
