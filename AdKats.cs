@@ -48978,7 +48978,7 @@ namespace PRoConEvents
                                             // KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
                                             // warnMessage += " Player kicked from server.";
                                             // Workaround for profiles without a soldier.
-                                            warnMessage += " Profile without a soldier!";
+                                            warnMessage += " Profile without a BF4 soldier or Battlelog issues.";
                                             Log.Warn(warnMessage);
                                             return true;
                                         }
@@ -49152,7 +49152,7 @@ namespace PRoConEvents
                                         {
                                             // KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
                                             // warnMessage += " Player kicked from server.";
-                                            warnMessage += " Profile without a soldier!";
+                                            warnMessage += " Profile without a BFH soldier or Battlelog issues.";
                                             Log.Warn(warnMessage);
                                             return true; 
                                         }
