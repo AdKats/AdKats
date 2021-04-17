@@ -48975,8 +48975,12 @@ namespace PRoConEvents
                                         var warnMessage = "Could not find persona ID for " + aPlayer.player_name + ".";
                                         if (!String.IsNullOrEmpty(personaResponse))
                                         {
-                                            KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
-                                            warnMessage += " Player kicked from server.";
+                                            // KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
+                                            // warnMessage += " Player kicked from server.";
+                                            // Workaround for profiles without a soldier.
+                                            warnMessage += " Profile without a soldier!";
+                                            Log.Warn(warnMessage);
+                                            return true;
                                         }
                                         else
                                         {
@@ -49146,8 +49150,11 @@ namespace PRoConEvents
                                         var warnMessage = "Could not find persona ID for " + aPlayer.player_name + ".";
                                         if (!String.IsNullOrEmpty(response))
                                         {
-                                            KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
-                                            warnMessage += " Player kicked from server.";
+                                            // KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
+                                            // warnMessage += " Player kicked from server.";
+                                            warnMessage += " Profile without a soldier!";
+                                            Log.Warn(warnMessage);
+                                            return true; 
                                         }
                                         else
                                         {
