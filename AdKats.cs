@@ -9019,12 +9019,15 @@ namespace PRoConEvents
                 {
                     try
                     {
-                        Uri uri = new Uri(strValue);
-                        Log.Debug(() => "Proxy URL set to " + strValue + ".", 1);
+                        if (!String.IsNullOrEmpty(strValue))
+                        {
+                            Uri uri = new Uri(strValue);
+                            Log.Debug(() => "Proxy URL set to " + strValue + ".", 1);
+                        }
                     }
                     catch(UriFormatException)
                     {
-                        strValue = "";
+                        strValue = _ProxyURL;
                         Log.Warn("Invalid Proxy URL! Make sure that the URI is valid!");
                     }
 
