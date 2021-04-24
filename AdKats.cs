@@ -21,11 +21,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.6.0.9
- * 16-MAY-2020
+ * Version 7.6.0.10
+ * 24-April-2021
  * 
  * Automatic Update Information
- * <version_code>7.6.0.9</version_code>
+ * <version_code>7.6.0.10</version_code>
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.6.0.9";
+        private const String PluginVersion = "7.6.0.10";
 
         public enum GameVersionEnum
         {
@@ -234,7 +234,7 @@ namespace PRoConEvents
         private DateTime _LastServerInfoTrigger = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private DateTime _LastServerInfoReceive = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private Object _battlelogLocker = new Object();
-        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(2.5);
+        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(10);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private readonly TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(6);
         private Object _IPAPILocker = new Object();
@@ -13586,9 +13586,9 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                             SELECT
-	                            IFNULL(MAX(`round_id`), 0) AS `max_round_id`
+                                IFNULL(MAX(`round_id`), 0) AS `max_round_id`
                             FROM
-	                            `tbl_extendedroundstats`
+                                `tbl_extendedroundstats`
                             WHERE 
                                 `server_id` = @server_id";
                         command.Parameters.AddWithValue("server_id", _serverInfo.ServerID);
@@ -17977,7 +17977,7 @@ namespace PRoConEvents
                         {
                             if (_BattlelogFetchQueue.Count >= 5)
                             {
-                                Log.Debug(() => "AntiCheat waiting on battlelog fetches to complete [" + _BattlelogFetchQueue.Count + "].", 4);
+                                Log.Debug(() => "AntiCheat waiting on battlelog fetches to complete. In Queue [" + _BattlelogFetchQueue.Count + "].", 4);
                                 Threading.Wait(TimeSpan.FromSeconds(10));
                                 continue;
                             }
@@ -29148,8 +29148,12 @@ namespace PRoConEvents
                 Log.Debug(() => "Preparing to queue player for battlelog info fetch.", 6);
                 lock (_BattlelogFetchQueue)
                 {
-                    _BattlelogFetchQueue.Enqueue(aPlayer);
-                    Log.Debug(() => "Player queued for battlelog info fetch.", 6);
+                    if (!_BattlelogFetchQueue.Contains(aPlayer))
+                    {
+                        _BattlelogFetchQueue.Enqueue(aPlayer);
+                        Log.Debug(() => "Player queued for battlelog info fetch.", 6);
+                    }
+
                     _BattlelogCommWaitHandle.Set();
                 }
             }
@@ -29191,18 +29195,29 @@ namespace PRoConEvents
                                 aPlayer = _BattlelogFetchQueue.Dequeue();
                             }
 
+                            // Skip player if they left the server already while in queue.
+                            if (!_PlayerDictionary.ContainsKey(aPlayer.player_name))
+                            {
+                                continue;
+                            }
+
                             Log.Debug(() => "Preparing to fetch battlelog info for player", 6);
 
                             //Old Tag
                             String oldTag = aPlayer.player_clanTag;
                             //Run the appropriate action
-                            if (!FetchPlayerBattlelogInformation(aPlayer) && _PlayerDictionary.ContainsKey(aPlayer.player_name))
+
+                            FetchPlayerBattlelogInformation(aPlayer);
+
+
+                            // Avoid requeueing players if we can't fetch their battlelog infomation.
+                            /*if (_PlayerDictionary.ContainsKey(aPlayer.player_name))
                             {
                                 //No info found/error, requeue them for fetching
                                 Log.Debug(() => "Battlelog info fetch for " + aPlayer.GetVerboseName() + " failed. Requeueing.", 6);
                                 Thread.Sleep(TimeSpan.FromSeconds(1.0));
                                 QueuePlayerForBattlelogInfoFetch(aPlayer);
-                            }
+                            }*/
 
                             Log.Debug(() => "Battlelog info fetched for " + aPlayer.GetVerboseName() + ".", 6);
 
@@ -30718,19 +30733,19 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
+                            `player_group`,
+                            `player_id`,
                             `player_server`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
+                            @player_group,
+                            @player_id,
                             @player_server,
                             @player_identifier,
                             UTC_TIMESTAMP(),
@@ -30793,19 +30808,19 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
+                            `player_group`,
+                            `player_id`,
                             `player_server`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
+                            @player_group,
+                            @player_id,
                             @player_server,
                             @player_identifier,
                             UTC_TIMESTAMP(),
@@ -30868,21 +30883,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
+                            `player_group`,
+                            `player_id`,
                             `player_server`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
+                            @player_group,
+                            @player_id,
                             @player_server,
-	                        @player_name,
+                            @player_name,
                             UTC_TIMESTAMP(),
                             DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
@@ -30953,21 +30968,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
+                            `player_group`,
+                            `player_id`,
                             `player_server`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
+                            @player_group,
+                            @player_id,
                             @player_server,
-	                        @player_name,
+                            @player_name,
                             UTC_TIMESTAMP(),
                             DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
@@ -31029,21 +31044,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
+                            `player_group`,
+                            `player_id`,
                             `player_server`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
+                            @player_group,
+                            @player_id,
                             @player_server,
-	                        @player_name,
+                            @player_name,
                             UTC_TIMESTAMP(),
                             DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
@@ -31112,21 +31127,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            @player_group,
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -31194,21 +31209,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            @player_group,
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -31274,21 +31289,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            @player_group,
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -31354,21 +31369,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            @player_group,
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -31434,21 +31449,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            @player_group,
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -31574,21 +31589,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            @player_group,
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -31730,21 +31745,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            @player_group,
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -31870,21 +31885,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            @player_group,
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -32010,21 +32025,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            @player_group,
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -32690,21 +32705,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            @player_group,
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -32828,21 +32843,21 @@ namespace PRoConEvents
                         WHERE `player_group` = @player_group
                           AND (`player_id` = @player_id OR `player_identifier` = @player_name);
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        @player_group,
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            @player_group,
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -32998,15 +33013,15 @@ namespace PRoConEvents
                         {
                             command.CommandText = @"
                             REPLACE INTO
-	                            `adkats_battlecries`
+                                `adkats_battlecries`
                             (
-	                            `player_id`,
-	                            `player_battlecry`
+                                `player_id`,
+                                `player_battlecry`
                             )
                             VALUES
                             (
-	                            @player_id,
-	                            @player_battlecry
+                                @player_id,
+                                @player_battlecry
                             )";
                             command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                             command.Parameters.AddWithValue("@player_battlecry", record.target_player.player_battlecry);
@@ -33627,21 +33642,21 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        'challenge_play',
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            'challenge_play',
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -33768,21 +33783,21 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        'challenge_ignore',
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            'challenge_ignore',
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -33909,21 +33924,21 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         INSERT INTO
-	                        `adkats_specialplayers`
+                            `adkats_specialplayers`
                         (
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_identifier`,
-	                        `player_effective`,
-	                        `player_expiration`
+                            `player_group`,
+                            `player_id`,
+                            `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
-	                        'challenge_autokill',
-	                        @player_id,
-	                        @player_name,
-	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                            'challenge_autokill',
+                            @player_id,
+                            @player_name,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
                         if (record.target_player.player_id <= 0)
                         {
@@ -39684,32 +39699,32 @@ namespace PRoConEvents
                         INSERT INTO 
                         `" + _mySqlSchemaName + @"`.`adkats_commands` 
                         (
-	                        `command_id`,
-	                        `command_active`,
-	                        `command_key`,
-	                        `command_logging`,
-	                        `command_name`,
-	                        `command_text`,
+                            `command_id`,
+                            `command_active`,
+                            `command_key`,
+                            `command_logging`,
+                            `command_name`,
+                            `command_text`,
                             `command_playerInteraction`,
                             `command_access`
                         ) 
                         VALUES 
                         (
-	                        @command_id,
-	                        @command_active,
-	                        @command_key,
-	                        @command_logging,
-	                        @command_name,
-	                        @command_text,
+                            @command_id,
+                            @command_active,
+                            @command_key,
+                            @command_logging,
+                            @command_name,
+                            @command_text,
                             @command_playerInteraction,
                             @command_access
                         ) 
                         ON DUPLICATE KEY 
                         UPDATE 
-	                        `command_active` = @command_active, 
-	                        `command_logging` = @command_logging, 
-	                        `command_name` = @command_name, 
-	                        `command_text` = @command_text,
+                            `command_active` = @command_active, 
+                            `command_logging` = @command_logging, 
+                            `command_name` = @command_name, 
+                            `command_text` = @command_text,
                             `command_playerInteraction` = @command_playerInteraction,
                             `command_access` = @command_access";
 
@@ -40456,15 +40471,15 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         SELECT 
-	                        command_type,
-	                        command_action,
-	                        count(record_id) command_count
+                            command_type,
+                            command_action,
+                            count(record_id) command_count
                         FROM
-	                        adkats_records_main
+                            adkats_records_main
                         WHERE
-	                        source_id = @player_id
+                            source_id = @player_id
                         AND
-	                        target_name <> source_name
+                            target_name <> source_name
                         GROUP BY command_type, command_action";
 
                         command.Parameters.AddWithValue("player_id", aPlayer.player_id);
@@ -40490,15 +40505,15 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         SELECT 
-	                        command_type,
-	                        command_action,
-	                        count(record_id) command_count
+                            command_type,
+                            command_action,
+                            count(record_id) command_count
                         FROM
-	                        adkats_records_main
+                            adkats_records_main
                         WHERE
-	                        target_id = @player_id
+                            target_id = @player_id
                         AND
-	                        target_name <> source_name
+                            target_name <> source_name
                         GROUP BY command_type, command_action";
                         command.Parameters.AddWithValue("player_id", aPlayer.player_id);
                         using (MySqlDataReader reader = SafeExecuteReader(command))
@@ -40525,17 +40540,17 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         SELECT
-	                        command_type,
-	                        command_action,
-	                        count(record_id) command_count
+                            command_type,
+                            command_action,
+                            count(record_id) command_count
                         FROM
-	                        adkats_records_main
+                            adkats_records_main
                         WHERE
-	                        source_id = @player_id
+                            source_id = @player_id
                         AND
-	                        target_id = source_id
+                            target_id = source_id
                         AND
-	                        command_type = 51
+                            command_type = 51
                         AND 
                             command_action = 51
                         GROUP BY command_type, command_action";
@@ -40579,14 +40594,14 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         REPLACE INTO
-	                        adkats_player_reputation
+                            adkats_player_reputation
                         VALUES 
                         (
-	                        @player_id,
-	                        @game_id,
-	                        @target_rep,
-	                        @source_rep,
-	                        @total_rep,
+                            @player_id,
+                            @game_id,
+                            @target_rep,
+                            @source_rep,
+                            @total_rep,
                             @total_rep_co
                         )";
                         if (aPlayer.player_id <= 0)
@@ -41179,29 +41194,29 @@ namespace PRoConEvents
                         String tablename = (debug) ? ("`adkats_records_debug`") : ("`adkats_records_main`");
                         String sql = @"
                         (SELECT 
-	                        `record_id`, 
-	                        `server_id`, 
-	                        `command_type`, 
-	                        `command_action`, 
-	                        `command_numeric`, 
-	                        `target_name`, 
-	                        `target_id`, 
-	                        `source_name`, 
-	                        `source_id`,
-	                        `record_message`, 
-	                        `record_time` 
+                            `record_id`, 
+                            `server_id`, 
+                            `command_type`, 
+                            `command_action`, 
+                            `command_numeric`, 
+                            `target_name`, 
+                            `target_id`, 
+                            `source_name`, 
+                            `source_id`,
+                            `record_message`, 
+                            `record_time` 
                         FROM 
-	                        " + tablename + @" 
+                            " + tablename + @" 
                         WHERE
-	                        `record_id` = `record_id`";
+                            `record_id` = `record_id`";
                         if (command_id != null && command_id > 0)
                         {
                             sql += @" 
                             AND
                             (
-	                            `command_type` = @command_id
-	                            OR
-	                            `command_action` = @command_id
+                                `command_type` = @command_id
+                                OR
+                                `command_action` = @command_id
                             )";
                             command.Parameters.AddWithValue("@command_id", command_id);
                         }
@@ -41210,20 +41225,20 @@ namespace PRoConEvents
                             sql += @" 
                             AND 
                             (
-	                            `target_id` = @player_id
-	                            " + ((target_only) ? ("") : (" OR `source_id` = @player_id ")) + @"
+                                `target_id` = @player_id
+                                " + ((target_only) ? ("") : (" OR `source_id` = @player_id ")) + @"
                             )";
                             command.Parameters.AddWithValue("@player_id", player_id);
                         }
                         sql += @" 
                         AND
                         (
-	                        DATE_ADD(`record_time`, INTERVAL @limit_days DAY) > UTC_TIMESTAMP()
+                            DATE_ADD(`record_time`, INTERVAL @limit_days DAY) > UTC_TIMESTAMP()
                         )
                         ORDER BY
-	                        `record_id` DESC
+                            `record_id` DESC
                         LIMIT
-	                        @limit_records)
+                            @limit_records)
                         ORDER BY `record_id` ASC";
                         command.Parameters.AddWithValue("@limit_days", limit_days);
                         command.Parameters.AddWithValue("@limit_records", limit_records);
@@ -41452,27 +41467,27 @@ namespace PRoConEvents
                     {
                         String sql = @"
                         SELECT 
-	                        `tbl_server`.`ServerID` AS `server_id`,
-	                        `tbl_server`.`ServerName` AS `server_name`,
-	                        `tbl_playerdata`.`PlayerID` AS `player_id`,
-	                        `tbl_playerdata`.`SoldierName` AS `player_name`,
-	                        `tbl_playerdata`.`EAGUID` AS `player_guid`
+                            `tbl_server`.`ServerID` AS `server_id`,
+                            `tbl_server`.`ServerName` AS `server_name`,
+                            `tbl_playerdata`.`PlayerID` AS `player_id`,
+                            `tbl_playerdata`.`SoldierName` AS `player_name`,
+                            `tbl_playerdata`.`EAGUID` AS `player_guid`
                         FROM 
-	                        `tbl_currentplayers`
+                            `tbl_currentplayers`
                         INNER JOIN
-	                        `tbl_server`
+                            `tbl_server`
                         ON
-	                        `tbl_server`.`ServerID` = `tbl_currentplayers`.`ServerID`
+                            `tbl_server`.`ServerID` = `tbl_currentplayers`.`ServerID`
                         INNER JOIN
-	                        `tbl_playerdata`
+                            `tbl_playerdata`
                         ON
-	                        `tbl_currentplayers`.`EA_GUID` = `tbl_playerdata`.`EAGUID`
-	                        AND
-	                        `tbl_server`.`GameID` = `tbl_playerdata`.`GameID`
+                            `tbl_currentplayers`.`EA_GUID` = `tbl_playerdata`.`EAGUID`
+                            AND
+                            `tbl_server`.`GameID` = `tbl_playerdata`.`GameID`
                         WHERE
-	                        `tbl_currentplayers`.`ServerID` != @current_server_id 
+                            `tbl_currentplayers`.`ServerID` != @current_server_id 
                         GROUP BY
-	                        `tbl_playerdata`.`PlayerID`";
+                            `tbl_playerdata`.`PlayerID`";
                         command.CommandText = sql;
                         command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
                         using (MySqlDataReader reader = SafeExecuteReader(command))
@@ -41520,25 +41535,25 @@ namespace PRoConEvents
                     {
                         String sql = @"
                         SELECT 
-	                        `tbl_server`.`ServerID` AS `server_id`,
-	                        `tbl_server`.`ServerName` AS `server_name`,
-	                        `tbl_playerdata`.`PlayerID` AS `player_id`,
-	                        `tbl_playerdata`.`SoldierName` AS `player_name`,
-	                        `tbl_playerdata`.`EAGUID` AS `player_guid`
+                            `tbl_server`.`ServerID` AS `server_id`,
+                            `tbl_server`.`ServerName` AS `server_name`,
+                            `tbl_playerdata`.`PlayerID` AS `player_id`,
+                            `tbl_playerdata`.`SoldierName` AS `player_name`,
+                            `tbl_playerdata`.`EAGUID` AS `player_guid`
                         FROM 
-	                        `tbl_currentplayers`
+                            `tbl_currentplayers`
                         INNER JOIN
-	                        `tbl_server`
+                            `tbl_server`
                         ON
-	                        `tbl_server`.`ServerID` = `tbl_currentplayers`.`ServerID`
+                            `tbl_server`.`ServerID` = `tbl_currentplayers`.`ServerID`
                         INNER JOIN
-	                        `tbl_playerdata`
+                            `tbl_playerdata`
                         ON
-	                        `tbl_currentplayers`.`EA_GUID` = `tbl_playerdata`.`EAGUID`
-	                        AND
-	                        `tbl_server`.`GameID` = `tbl_playerdata`.`GameID`
+                            `tbl_currentplayers`.`EA_GUID` = `tbl_playerdata`.`EAGUID`
+                            AND
+                            `tbl_server`.`GameID` = `tbl_playerdata`.`GameID`
                         WHERE
-	                        `tbl_currentplayers`.`ServerID` != @current_server_id";
+                            `tbl_currentplayers`.`ServerID` != @current_server_id";
                         command.CommandText = sql;
                         command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
                         using (MySqlDataReader reader = SafeExecuteReader(command))
@@ -41590,13 +41605,13 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         SELECT
-	                        `setting_plugin`,
-	                        `setting_name`,
-	                        `setting_value`
+                            `setting_plugin`,
+                            `setting_name`,
+                            `setting_value`
                         FROM
-	                        `adkats_orchestration`
+                            `adkats_orchestration`
                         WHERE
-	                        `setting_server` = @server_id";
+                            `setting_server` = @server_id";
                         command.Parameters.AddWithValue("server_id", _serverInfo.ServerID);
                         using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
@@ -41641,7 +41656,7 @@ namespace PRoConEvents
                         SELECT 
                             COUNT(ban_id) AS `ban_count`
                         FROM 
-	                        `adkats_bans` 
+                            `adkats_bans` 
                         WHERE 
                             `adkats_bans`.`ban_enforceName` = 'Y' 
                         AND 
@@ -41691,7 +41706,7 @@ namespace PRoConEvents
                         SELECT 
                             COUNT(ban_id) AS `ban_count`
                         FROM 
-	                        `adkats_bans` 
+                            `adkats_bans` 
                         WHERE 
                             `adkats_bans`.`ban_enforceGUID` = 'Y' 
                         AND 
@@ -41741,7 +41756,7 @@ namespace PRoConEvents
                         SELECT 
                             COUNT(ban_id) AS `ban_count` 
                         FROM 
-	                        `adkats_bans` 
+                            `adkats_bans` 
                         WHERE 
                             `adkats_bans`.`ban_enforceIP` = 'Y' 
                         AND 
@@ -41873,31 +41888,31 @@ namespace PRoConEvents
                         }
                         command.CommandText = @"
                         INSERT INTO 
-	                        `adkats_users`
+                            `adkats_users`
                         (
-	                        " + ((aUser.user_id > 0) ? ("`user_id`,") : ("")) + @"
-	                        `user_name`,
-	                        `user_email`,
-	                        `user_phone`,
-	                        `user_role`,
+                            " + ((aUser.user_id > 0) ? ("`user_id`,") : ("")) + @"
+                            `user_name`,
+                            `user_email`,
+                            `user_phone`,
+                            `user_role`,
                             `user_expiration`,
                             `user_notes`
                         )
                         VALUES
                         (
-	                        " + ((aUser.user_id > 0) ? ("@user_id,") : ("")) + @"
-	                        @user_name,
-	                        @user_email,
-	                        @user_phone,
-	                        @user_role,
+                            " + ((aUser.user_id > 0) ? ("@user_id,") : ("")) + @"
+                            @user_name,
+                            @user_email,
+                            @user_phone,
+                            @user_role,
                             @user_expiration,
                             @user_notes
                         )
                         ON DUPLICATE KEY UPDATE
-	                        `user_name` = @user_name,
-	                        `user_email` = @user_email,
-	                        `user_phone` = @user_phone,
-	                        `user_role` = @user_role,
+                            `user_name` = @user_name,
+                            `user_email` = @user_email,
+                            `user_phone` = @user_phone,
+                            `user_role` = @user_role,
                             `user_expiration` = @user_expiration,
                             `user_notes` = @user_notes";
                         if (aUser.user_id > 0)
@@ -41946,18 +41961,18 @@ namespace PRoConEvents
                                 //Set the insert command structure
                                 command.CommandText = @"
                                 INSERT INTO
-	                                `adkats_usersoldiers`
+                                    `adkats_usersoldiers`
                                 (
-	                                `user_id`,
-	                                `player_id`
+                                    `user_id`,
+                                    `player_id`
                                 )
                                 VALUES
                                 (
-	                                @user_id,
-	                                @player_id
+                                    @user_id,
+                                    @player_id
                                 )
                                 ON DUPLICATE KEY UPDATE
-	                                `player_id` = @player_id";
+                                    `player_id` = @player_id";
                                 //Set values
                                 command.Parameters.AddWithValue("@user_id", aUser.user_id);
                                 command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
@@ -42101,19 +42116,19 @@ namespace PRoConEvents
                         //Set the insert command structure
                         command.CommandText = @"
                                 INSERT INTO 
-	                                `adkats_roles`
+                                    `adkats_roles`
                                 (
-	                                `role_key`,
-	                                `role_name`
+                                    `role_key`,
+                                    `role_name`
                                 )
                                 VALUES
                                 (
-	                                @role_key,
-	                                @role_name
+                                    @role_key,
+                                    @role_name
                                 )
                                 ON DUPLICATE KEY UPDATE
-	                                `role_key` = @role_key,
-	                                `role_name` = @role_name";
+                                    `role_key` = @role_key,
+                                    `role_name` = @role_name";
                         //Set values
                         command.Parameters.AddWithValue("@role_key", aRole.role_key);
                         command.Parameters.AddWithValue("@role_name", aRole.role_name);
@@ -42150,19 +42165,19 @@ namespace PRoConEvents
                             //Set the insert command structure
                             command.CommandText = @"
                                     INSERT INTO 
-	                                    `adkats_rolecommands`
+                                        `adkats_rolecommands`
                                     (
-	                                    `role_id`,
-	                                    `command_id`
+                                        `role_id`,
+                                        `command_id`
                                     )
                                     VALUES
                                     (
-	                                    @role_id,
-	                                    @command_id
+                                        @role_id,
+                                        @command_id
                                     )
                                     ON DUPLICATE KEY UPDATE
-	                                    `role_id` = @role_id,
-	                                    `command_id` = @command_id";
+                                        `role_id` = @role_id,
+                                        `command_id` = @command_id";
                             //Set values
                             command.Parameters.AddWithValue("@role_id", aRole.role_id);
                             command.Parameters.AddWithValue("@command_id", aCommand.command_id);
@@ -42198,19 +42213,19 @@ namespace PRoConEvents
                         {
                             command.CommandText = @"
                                     INSERT INTO 
-	                                    `adkats_rolegroups`
+                                        `adkats_rolegroups`
                                     (
-	                                    `role_id`,
-	                                    `group_key`
+                                        `role_id`,
+                                        `group_key`
                                     )
                                     VALUES
                                     (
-	                                    @role_id,
-	                                    @group_key
+                                        @role_id,
+                                        @group_key
                                     )
                                     ON DUPLICATE KEY UPDATE
-	                                    `role_id` = @role_id,
-	                                    `group_key` = @group_key";
+                                        `role_id` = @role_id,
+                                        `group_key` = @group_key";
                             //Set values
                             command.Parameters.AddWithValue("@role_id", aRole.role_id);
                             command.Parameters.AddWithValue("@group_key", aGroup.group_key);
@@ -42273,41 +42288,41 @@ namespace PRoConEvents
                             INSERT INTO 
                             `" + _mySqlSchemaName + @"`.`adkats_bans` 
                             (
-	                            `player_id`, 
-	                            `latest_record_id`, 
-	                            `ban_status`, 
-	                            `ban_notes`, 
-	                            `ban_startTime`, 
-	                            `ban_endTime`, 
-	                            `ban_enforceName`, 
-	                            `ban_enforceGUID`, 
-	                            `ban_enforceIP`, 
-	                            `ban_sync`
+                                `player_id`, 
+                                `latest_record_id`, 
+                                `ban_status`, 
+                                `ban_notes`, 
+                                `ban_startTime`, 
+                                `ban_endTime`, 
+                                `ban_enforceName`, 
+                                `ban_enforceGUID`, 
+                                `ban_enforceIP`, 
+                                `ban_sync`
                             ) 
                             VALUES 
                             (
-	                            @player_id, 
-	                            @latest_record_id, 
-	                            @ban_status, 
-	                            @ban_notes, 
-	                            @ban_startTime, 
-	                            DATE_ADD(@ban_startTime, INTERVAL @ban_durationMinutes MINUTE), 
-	                            @ban_enforceName, 
-	                            @ban_enforceGUID, 
-	                            @ban_enforceIP, 
-	                            @ban_sync
+                                @player_id, 
+                                @latest_record_id, 
+                                @ban_status, 
+                                @ban_notes, 
+                                @ban_startTime, 
+                                DATE_ADD(@ban_startTime, INTERVAL @ban_durationMinutes MINUTE), 
+                                @ban_enforceName, 
+                                @ban_enforceGUID, 
+                                @ban_enforceIP, 
+                                @ban_sync
                             ) 
                             ON DUPLICATE KEY 
                             UPDATE 
-	                            `latest_record_id` = @latest_record_id, 
-	                            `ban_status` = @ban_status, 
-	                            `ban_notes` = @ban_notes, 
-	                            `ban_startTime` = @ban_startTime, 
-	                            `ban_endTime` = DATE_ADD(@ban_startTime, INTERVAL @ban_durationMinutes MINUTE), 
-	                            `ban_enforceName` = @ban_enforceName, 
-	                            `ban_enforceGUID` = @ban_enforceGUID, 
-	                            `ban_enforceIP` = @ban_enforceIP, 
-	                            `ban_sync` = @ban_sync";
+                                `latest_record_id` = @latest_record_id, 
+                                `ban_status` = @ban_status, 
+                                `ban_notes` = @ban_notes, 
+                                `ban_startTime` = @ban_startTime, 
+                                `ban_endTime` = DATE_ADD(@ban_startTime, INTERVAL @ban_durationMinutes MINUTE), 
+                                `ban_enforceName` = @ban_enforceName, 
+                                `ban_enforceGUID` = @ban_enforceGUID, 
+                                `ban_enforceIP` = @ban_enforceIP, 
+                                `ban_sync` = @ban_sync";
 
                             command.Parameters.AddWithValue("@player_id", aBan.ban_record.target_player.player_id);
                             command.Parameters.AddWithValue("@latest_record_id", aBan.ban_record.record_id);
@@ -42433,11 +42448,11 @@ namespace PRoConEvents
                 {
                     command.CommandText = @"
                     SELECT 
-	                    `PlayerID` AS `player_id`
+                        `PlayerID` AS `player_id`
                     FROM 
-	                    `tbl_playerdata`
+                        `tbl_playerdata`
                     WHERE
-	                    `SoldierName` LIKE '%" + playerName + "%'";
+                        `SoldierName` LIKE '%" + playerName + "%'";
                     //Attempt to execute the query
                     using (MySqlDataReader reader = SafeExecuteReader(command))
                     {
@@ -42868,7 +42883,7 @@ namespace PRoConEvents
                                 WHERE
                                     tbl_server_player.PlayerID = @player_id
                                 ORDER BY 
-	                                tbl_playerstats.FirstSeenOnServer
+                                    tbl_playerstats.FirstSeenOnServer
                                 LIMIT 1";
                                 command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
                                 using (MySqlDataReader reader = SafeExecuteReader(command))
@@ -42897,9 +42912,9 @@ namespace PRoConEvents
                                 WHERE
                                     tbl_server_player.PlayerID = @player_id
                                 AND
-	                                tbl_server_player.Serverid = @server_id
+                                    tbl_server_player.Serverid = @server_id
                                 ORDER BY
-	                                Serverid ASC";
+                                    Serverid ASC";
                                 command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
                                 command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                                 using (MySqlDataReader reader = SafeExecuteReader(command))
@@ -43025,7 +43040,7 @@ namespace PRoConEvents
                             {
                                 command.CommandText = @"
                                 REPLACE INTO
-	                                `adkats_battlelog_players`
+                                    `adkats_battlelog_players`
                                 (
                                     `player_id`,
                                     `persona_id`,
@@ -43161,26 +43176,26 @@ namespace PRoConEvents
                         {
                             command.CommandText = @"
                             SELECT
-	                            *
+                                *
                             FROM
                             (SELECT 
-	                            `target_id` AS `player_id`, 
-	                            `target_name` AS `player_name`, 
-	                            COUNT(`record_id`) AS `population_count` 
+                                `target_id` AS `player_id`, 
+                                `target_name` AS `player_name`, 
+                                COUNT(`record_id`) AS `population_count` 
                             FROM 
-	                            `adkats_records_main` 
+                                `adkats_records_main` 
                             WHERE 
-	                            `server_id` = @server_id
+                                `server_id` = @server_id
                             AND
-	                            `command_type` = 88
+                                `command_type` = 88
                             AND 
-	                            DATE_ADD(`record_time`, INTERVAL @duration_minutes MINUTE) > UTC_TIMESTAMP()
+                                DATE_ADD(`record_time`, INTERVAL @duration_minutes MINUTE) > UTC_TIMESTAMP()
                             GROUP BY
-	                            `target_id`
+                                `target_id`
                             ORDER BY
-	                            `population_count` DESC, `target_name` ASC) AS InnerResults
+                                `population_count` DESC, `target_name` ASC) AS InnerResults
                             WHERE
-	                            `population_count` >= @population_minimum";
+                                `population_count` >= @population_minimum";
                             command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                             command.Parameters.AddWithValue("@duration_minutes", (Int32)duration.TotalMinutes);
                             command.Parameters.AddWithValue("@population_minimum", minPopulations);
@@ -43189,24 +43204,24 @@ namespace PRoConEvents
                         {
                             command.CommandText = @"
                             SELECT
-	                            *
+                                *
                             FROM
                             (SELECT 
-	                            `target_id` AS `player_id`, 
-	                            `target_name` AS `player_name`, 
-	                            COUNT(`record_id`) AS `population_count` 
+                                `target_id` AS `player_id`, 
+                                `target_name` AS `player_name`, 
+                                COUNT(`record_id`) AS `population_count` 
                             FROM 
-	                            `adkats_records_main` 
+                                `adkats_records_main` 
                             WHERE 
-	                            `command_type` = 88
+                                `command_type` = 88
                             AND 
-	                            DATE_ADD(`record_time`, INTERVAL @duration_minutes MINUTE) > UTC_TIMESTAMP()
+                                DATE_ADD(`record_time`, INTERVAL @duration_minutes MINUTE) > UTC_TIMESTAMP()
                             GROUP BY
-	                            `target_id`
+                                `target_id`
                             ORDER BY
-	                            `population_count` DESC, `target_name` ASC) AS InnerResults
+                                `population_count` DESC, `target_name` ASC) AS InnerResults
                             WHERE
-	                            `population_count` >= @population_minimum";
+                                `population_count` >= @population_minimum";
                             command.Parameters.AddWithValue("@duration_minutes", (Int32)duration.TotalMinutes);
                             command.Parameters.AddWithValue("@population_minimum", minPopulations);
                         }
@@ -43621,22 +43636,22 @@ namespace PRoConEvents
                             //Non-active round inclusion is good for estimating long-term
                             command.CommandText = @"
                             SELECT
-	                            TIMESTAMPDIFF(SECOND, MIN(`roundstart_time`), MAX(`roundstart_time`)) / 
-	                            (REPLACE(COUNT(`round_id`), 0, 1.0)) / 60.0 as `AvgRoundDuration`
+                                TIMESTAMPDIFF(SECOND, MIN(`roundstart_time`), MAX(`roundstart_time`)) / 
+                                (REPLACE(COUNT(`round_id`), 0, 1.0)) / 60.0 as `AvgRoundDuration`
                             FROM
                             (SELECT 
-	                            `round_id`, 
-	                            `roundstat_time` AS `roundstart_time`
+                                `round_id`, 
+                                `roundstat_time` AS `roundstart_time`
                             FROM 
-	                            `tbl_extendedroundstats` 
+                                `tbl_extendedroundstats` 
                             WHERE 
-	                            `server_id` = @ServerID
+                                `server_id` = @ServerID
                             AND
-	                            TIMESTAMPDIFF(MINUTE, `roundstat_time`, UTC_TIMESTAMP()) < 15080
+                                TIMESTAMPDIFF(MINUTE, `roundstat_time`, UTC_TIMESTAMP()) < 15080
                             GROUP BY 
-	                            `round_id`
+                                `round_id`
                             ORDER BY
-	                            `roundstat_id` DESC) AS `RoundStartTimes`";
+                                `roundstat_id` DESC) AS `RoundStartTimes`";
                         }
                         command.Parameters.AddWithValue("@ServerID", _serverInfo.ServerID);
                         using (MySqlDataReader reader = SafeExecuteReader(command))
@@ -43671,30 +43686,30 @@ namespace PRoConEvents
                         //The most ham-handed SQL I've ever written
                         command.CommandText = @"
                         SELECT
-	                        *,
+                            *,
                             (@TargetRound - `CurrentRoundId`) AS `RemainingRounds`,
                             `AvgRoundDuration` * (@TargetRound - `CurrentRoundId`) AS `RemainingMinutes`,
                             DATE_ADD(UTC_TIMESTAMP(), INTERVAL `AvgRoundDuration` * (@TargetRound - `CurrentRoundId`) MINUTE) AS `TargetTime`
                         FROM
-	                        (SELECT 
-	                        (SELECT MAX(`round_id`) FROM `tbl_extendedroundstats` WHERE `server_id` = @ServerID) AS `CurrentRoundId`,
-	                        (SELECT
-		                        TIMESTAMPDIFF(SECOND, MIN(`roundstart_time`), MAX(`roundstart_time`)) / 
-		                        (REPLACE(COUNT(`round_id`), 0, 1.0)) / 60.0
-	                        FROM
-	                        (SELECT 
-		                        `round_id`, 
-		                        `roundstat_time` AS `roundstart_time`
-	                        FROM 
-		                        `tbl_extendedroundstats` 
-	                        WHERE 
-		                        `server_id` = @ServerID 
-	                        AND
-		                        TIMESTAMPDIFF(MINUTE, `roundstat_time`, UTC_TIMESTAMP()) < 10080
-	                        GROUP BY 
-		                        `round_id`
-	                        ORDER BY
-		                        `roundstat_id` DESC) AS `RoundStartTimes`) AS `AvgRoundDuration`) AS `RoundInfo`";
+                            (SELECT 
+                            (SELECT MAX(`round_id`) FROM `tbl_extendedroundstats` WHERE `server_id` = @ServerID) AS `CurrentRoundId`,
+                            (SELECT
+                                TIMESTAMPDIFF(SECOND, MIN(`roundstart_time`), MAX(`roundstart_time`)) / 
+                                (REPLACE(COUNT(`round_id`), 0, 1.0)) / 60.0
+                            FROM
+                            (SELECT 
+                                `round_id`, 
+                                `roundstat_time` AS `roundstart_time`
+                            FROM 
+                                `tbl_extendedroundstats` 
+                            WHERE 
+                                `server_id` = @ServerID 
+                            AND
+                                TIMESTAMPDIFF(MINUTE, `roundstat_time`, UTC_TIMESTAMP()) < 10080
+                            GROUP BY 
+                                `round_id`
+                            ORDER BY
+                                `roundstat_id` DESC) AS `RoundStartTimes`) AS `AvgRoundDuration`) AS `RoundInfo`";
                         command.Parameters.AddWithValue("@ServerID", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@TargetRound", TargetRoundID);
                         using (MySqlDataReader reader = SafeExecuteReader(command))
@@ -43886,22 +43901,22 @@ namespace PRoConEvents
                         //Build the query
                         command.CommandText = @"
                         SELECT
-	                        `ban_id`
+                            `ban_id`
                         FROM
-	                        `tbl_playerdata`
+                            `tbl_playerdata`
                         INNER JOIN
-	                        `adkats_bans`
+                            `adkats_bans`
                         ON
-	                        `PlayerID` = `player_id`
+                            `PlayerID` = `player_id`
                         INNER JOIN
-	                        `adkats_records_main`
+                            `adkats_records_main`
                         ON
-	                        `latest_record_id` = `record_id`
+                            `latest_record_id` = `record_id`
                         WHERE 
-	                        `ban_status` = 'Active'
+                            `ban_status` = 'Active'
                         AND
                         (
-	                        `SoldierName` LIKE @PlayerSubstring
+                            `SoldierName` LIKE @PlayerSubstring
                             OR
                             `target_name` LIKE @PlayerSubstring
                         )
@@ -43956,7 +43971,7 @@ namespace PRoConEvents
                         SELECT 
                             COUNT(*) AS `ban_count`
                         FROM 
-	                        `adkats_bans`
+                            `adkats_bans`
                         WHERE 
                             `ban_status` = 'Active'";
 
@@ -43979,16 +43994,16 @@ namespace PRoConEvents
                             `ban_id`, 
                             `player_id`, 
                             `latest_record_id`, 
-	                        `ban_status`, 
+                            `ban_status`, 
                             `ban_notes`, 
-	                        `ban_sync`, 
-	                        `ban_startTime`, 
-	                        `ban_endTime`, 
-	                        `ban_enforceName`, 
-	                        `ban_enforceGUID`, 
-	                        `ban_enforceIP` 
+                            `ban_sync`, 
+                            `ban_startTime`, 
+                            `ban_endTime`, 
+                            `ban_enforceName`, 
+                            `ban_enforceGUID`, 
+                            `ban_enforceIP` 
                         FROM 
-	                        `adkats_bans`
+                            `adkats_bans`
                         WHERE 
                             `ban_status` = 'Active'";
 
@@ -44463,15 +44478,15 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         SELECT 
-	                        `record_time` AS `latest_time` 
+                            `record_time` AS `latest_time` 
                         FROM 
-	                        `adkats_records_main`
+                            `adkats_records_main`
                         INNER JOIN
-	                        `adkats_commands`
+                            `adkats_commands`
                         ON
-	                        `adkats_records_main`.`command_type` = `adkats_commands`.`command_id`
+                            `adkats_records_main`.`command_type` = `adkats_commands`.`command_id`
                         WHERE 
-	                        `adkats_commands`.`command_key` = 'player_punish' 
+                            `adkats_commands`.`command_key` = 'player_punish' 
                         AND 
                             `adkats_records_main`.`target_id` = " + record.target_player.player_id + @" 
                         AND 
@@ -44576,38 +44591,38 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         SELECT 
-	                        `InnerResults`.*,
-	                        ROUND(`top_count`/REPLACE(`round_count`, 0, 1), 2) AS `top_round_ratio`
+                            `InnerResults`.*,
+                            ROUND(`top_count`/REPLACE(`round_count`, 0, 1), 2) AS `top_round_ratio`
                         FROM
                         ( SELECT
-	                        (SELECT
-		                        COUNT(`stat_id`)
-	                         FROM
-		                        `adkats_statistics`
-	                         WHERE
-		                        `server_id` = @server_id
-	                         AND
-		                        `target_id` = @target_id
-	                         AND
-		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 90 DAY)
-	                         AND
-		                        (
-			                        `stat_type` = 'player_win'
-			                        OR
-			                        `stat_type` = 'player_loss'
-		                        )) AS `round_count`,
-	                        (SELECT
-		                        COUNT(`stat_id`)
-	                         FROM
-		                        `adkats_statistics`
-	                         WHERE
-		                        `server_id` = @server_id
-	                         AND
-		                        `target_id` = @target_id
-	                         AND
-		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 90 DAY)
-	                         AND
-		                        `stat_type` = 'player_top') AS `top_count`
+                            (SELECT
+                                COUNT(`stat_id`)
+                             FROM
+                                `adkats_statistics`
+                             WHERE
+                                `server_id` = @server_id
+                             AND
+                                `target_id` = @target_id
+                             AND
+                                `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 90 DAY)
+                             AND
+                                (
+                                    `stat_type` = 'player_win'
+                                    OR
+                                    `stat_type` = 'player_loss'
+                                )) AS `round_count`,
+                            (SELECT
+                                COUNT(`stat_id`)
+                             FROM
+                                `adkats_statistics`
+                             WHERE
+                                `server_id` = @server_id
+                             AND
+                                `target_id` = @target_id
+                             AND
+                                `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 90 DAY)
+                             AND
+                                `stat_type` = 'player_top') AS `top_count`
                         FROM DUAL ) AS `InnerResults`";
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@target_id", aPlayer.player_id);
@@ -44657,25 +44672,25 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         (SELECT
-	                        `tbl_chatlog`.`logDate` as `chat_time`,
-	                        `tbl_chatlog`.`logSoldierName` as `chat_player`,
-	                        `tbl_chatlog`.`logMessage` as `chat_message`
+                            `tbl_chatlog`.`logDate` as `chat_time`,
+                            `tbl_chatlog`.`logSoldierName` as `chat_player`,
+                            `tbl_chatlog`.`logMessage` as `chat_message`
                         FROM 
-	                        `tbl_chatlog` 
+                            `tbl_chatlog` 
                         WHERE 
                         (
-	                        `tbl_chatlog`.`logPlayerID` = @player1_id
+                            `tbl_chatlog`.`logPlayerID` = @player1_id
                         OR
-	                        `tbl_chatlog`.`logPlayerID` = @player2_id
+                            `tbl_chatlog`.`logPlayerID` = @player2_id
                         )
                         AND
-	                        `tbl_chatlog`.`ServerID` = @server_id
+                            `tbl_chatlog`.`ServerID` = @server_id
                         AND 
-	                        DATE_ADD(`tbl_chatlog`.`logDate`, INTERVAL @limit_days DAY) > UTC_TIMESTAMP()
+                            DATE_ADD(`tbl_chatlog`.`logDate`, INTERVAL @limit_days DAY) > UTC_TIMESTAMP()
                         ORDER BY 
-	                        `ID` DESC
+                            `ID` DESC
                         LIMIT
-	                        @limit_lines)
+                            @limit_lines)
                         ORDER BY `chat_time` ASC";
                         command.Parameters.AddWithValue("@player1_id", player1_id);
                         command.Parameters.AddWithValue("@player2_id", player2_id);
@@ -44719,20 +44734,20 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         (SELECT
-	                        `tbl_chatlog`.`logDate` as `chat_time`,
-	                        `tbl_chatlog`.`logMessage` as `chat_message`
+                            `tbl_chatlog`.`logDate` as `chat_time`,
+                            `tbl_chatlog`.`logMessage` as `chat_message`
                         FROM 
-	                        `tbl_chatlog` 
+                            `tbl_chatlog` 
                         WHERE 
                             `tbl_chatlog`.`logPlayerID` = @player_id
                         AND
-	                        `tbl_chatlog`.`ServerID` = @server_id
+                            `tbl_chatlog`.`ServerID` = @server_id
                         AND 
-	                        DATE_ADD(`tbl_chatlog`.`logDate`, INTERVAL @limit_days DAY) > UTC_TIMESTAMP()
+                            DATE_ADD(`tbl_chatlog`.`logDate`, INTERVAL @limit_days DAY) > UTC_TIMESTAMP()
                         ORDER BY 
-	                        `ID` DESC
+                            `ID` DESC
                         LIMIT
-	                        @limit_lines)
+                            @limit_lines)
                         ORDER BY `chat_time` ASC";
                         command.Parameters.AddWithValue("@player_id", player_id);
                         command.Parameters.AddWithValue("@limit_lines", limit_lines);
@@ -44774,16 +44789,16 @@ namespace PRoConEvents
                         {
                             const string sql = @"
                             SELECT 
-	                            `command_id`,
-	                            `command_active`,
-	                            `command_key`,
-	                            `command_logging`,
-	                            `command_name`,
-	                            `command_text`,
+                                `command_id`,
+                                `command_active`,
+                                `command_key`,
+                                `command_logging`,
+                                `command_name`,
+                                `command_text`,
                                 `command_playerInteraction`,
                                 `command_access`
                             FROM 
-	                            `adkats_commands`";
+                                `adkats_commands`";
                             sqlcommand.CommandText = sql;
                             HashSet<long> validIDs = new HashSet<Int64>();
                             using (MySqlDataReader reader = SafeExecuteReader(sqlcommand))
@@ -45994,11 +46009,11 @@ namespace PRoConEvents
                         {
                             const string sql = @"
                             SELECT 
-	                            `role_id`,
-	                            `role_key`,
-	                            `role_name`
+                                `role_id`,
+                                `role_key`,
+                                `role_name`
                             FROM 
-	                            `adkats_roles`";
+                                `adkats_roles`";
                             command.CommandText = sql;
                             HashSet<long> validIDs = new HashSet<Int64>();
                             using (MySqlDataReader reader = SafeExecuteReader(command))
@@ -46061,10 +46076,10 @@ namespace PRoConEvents
                         {
                             const string sql = @"
                             SELECT 
-	                            `role_id`,
-	                            `command_id`
+                                `role_id`,
+                                `command_id`
                             FROM 
-	                            `adkats_rolecommands`
+                                `adkats_rolecommands`
                             ORDER BY
                                 `role_id`
                             ASC";
@@ -46187,10 +46202,10 @@ namespace PRoConEvents
                         {
                             const string sql = @"
                             SELECT 
-	                            `role_id`,
-	                            `group_key`
+                                `role_id`,
+                                `group_key`
                             FROM 
-	                            `adkats_rolegroups`
+                                `adkats_rolegroups`
                             ORDER BY
                                 `role_id`
                             ASC";
@@ -46351,15 +46366,15 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         SELECT 
-	                        `adkats_users`.`user_id`,
-	                        `adkats_users`.`user_name`,
-	                        `adkats_users`.`user_email`,
-	                        `adkats_users`.`user_phone`,
-	                        `adkats_users`.`user_role`,
-	                        `adkats_users`.`user_expiration`,
-	                        `adkats_users`.`user_notes`
+                            `adkats_users`.`user_id`,
+                            `adkats_users`.`user_name`,
+                            `adkats_users`.`user_email`,
+                            `adkats_users`.`user_phone`,
+                            `adkats_users`.`user_role`,
+                            `adkats_users`.`user_expiration`,
+                            `adkats_users`.`user_notes`
                         FROM 
-	                        `adkats_users`";
+                            `adkats_users`";
                         List<long> validIDs = new List<Int64>();
                         using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
@@ -46450,14 +46465,14 @@ namespace PRoConEvents
                         {
                             command.CommandText = @"
                             SELECT 
-	                            `adkats_users`.`user_id`,
-	                            `adkats_usersoldiers`.`player_id`
+                                `adkats_users`.`user_id`,
+                                `adkats_usersoldiers`.`player_id`
                             FROM 
-	                            `adkats_users`
+                                `adkats_users`
                             INNER JOIN
-	                            `adkats_usersoldiers`
+                                `adkats_usersoldiers`
                             ON 
-	                            `adkats_users`.`user_id` = `adkats_usersoldiers`.`user_id`
+                                `adkats_users`.`user_id` = `adkats_usersoldiers`.`user_id`
                             ORDER BY 
                                 `user_id`
                             ASC";
@@ -46466,14 +46481,14 @@ namespace PRoConEvents
                         {
                             command.CommandText = @"
                             SELECT 
-	                            `adkats_users`.`user_id`,
-	                            `adkats_usersoldiers`.`player_id`
+                                `adkats_users`.`user_id`,
+                                `adkats_usersoldiers`.`player_id`
                             FROM 
-	                            `adkats_users`
+                                `adkats_users`
                             INNER JOIN
-	                            `adkats_usersoldiers`
+                                `adkats_usersoldiers`
                             ON 
-	                            `adkats_users`.`user_id` = `adkats_usersoldiers`.`user_id`
+                                `adkats_users`.`user_id` = `adkats_usersoldiers`.`user_id`
                             ORDER BY 
                                 `user_id`
                             ASC";
@@ -46537,33 +46552,33 @@ namespace PRoConEvents
                             command.CommandText = @"
                             SELECT
                                 `specialplayer_id`,
-	                            `player_group`,
-	                            `player_id`,
-	                            `player_game`,
-	                            `player_server`,
-	                            `player_identifier`,
-	                            `player_effective`,
-	                            `player_expiration`
+                                `player_group`,
+                                `player_id`,
+                                `player_game`,
+                                `player_server`,
+                                `player_identifier`,
+                                `player_effective`,
+                                `player_expiration`
                             FROM 
-	                            `adkats_specialplayers`
+                                `adkats_specialplayers`
                             WHERE
-	                            `player_effective` <= UTC_TIMESTAMP()
+                                `player_effective` <= UTC_TIMESTAMP()
                             AND
-	                            `player_expiration` > UTC_TIMESTAMP()
+                                `player_expiration` > UTC_TIMESTAMP()
                             AND
                             (
-	                            `player_game` IS NULL
-	                            OR
-	                            `player_game` = @playerGame
+                                `player_game` IS NULL
+                                OR
+                                `player_game` = @playerGame
                             )
                             AND
                             (
-	                            `player_server` IS NULL
-	                            OR
-	                            `player_server` = @playerServer
+                                `player_server` IS NULL
+                                OR
+                                `player_server` = @playerServer
                             )
                             ORDER BY 
-	                            `player_group`
+                                `player_group`
                             DESC";
                             command.Parameters.AddWithValue("@playerGame", _serverInfo.GameID);
                             command.Parameters.AddWithValue("@playerServer", _serverInfo.ServerID);
@@ -47271,26 +47286,26 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"
                         (SELECT
-	                         'isAdminAssistant'
+                             'isAdminAssistant'
                          FROM 
-	                         `adkats_records_main`
+                             `adkats_records_main`
                          WHERE (
-	                         SELECT count(`command_action`) 
-	                         FROM `adkats_records_main` 
-	                         WHERE `command_action` = " + GetCommandByKey("player_report_confirm").command_id + @"
-	                         AND `source_id` = " + aPlayer.player_id + @" 
-	                         AND (`adkats_records_main`.`record_time` BETWEEN date_sub(UTC_TIMESTAMP(),INTERVAL 30 DAY) AND UTC_TIMESTAMP())
+                             SELECT count(`command_action`) 
+                             FROM `adkats_records_main` 
+                             WHERE `command_action` = " + GetCommandByKey("player_report_confirm").command_id + @"
+                             AND `source_id` = " + aPlayer.player_id + @" 
+                             AND (`adkats_records_main`.`record_time` BETWEEN date_sub(UTC_TIMESTAMP(),INTERVAL 30 DAY) AND UTC_TIMESTAMP())
                          ) >= " + _MinimumRequiredMonthlyReports + @" LIMIT 1)
                         UNION
                         (SELECT
-	                         'isGrandfatheredAdminAssistant'
+                             'isGrandfatheredAdminAssistant'
                          FROM 
-	                         `adkats_records_main`
+                             `adkats_records_main`
                          WHERE (
-	                         SELECT count(`command_action`) 
-	                         FROM `adkats_records_main` 
-	                         WHERE `command_action` = " + GetCommandByKey("player_report_confirm").command_id + @" 
-	                         AND `source_id` = " + aPlayer.player_id + @"
+                             SELECT count(`command_action`) 
+                             FROM `adkats_records_main` 
+                             WHERE `command_action` = " + GetCommandByKey("player_report_confirm").command_id + @" 
+                             AND `source_id` = " + aPlayer.player_id + @"
                          ) >= 75 LIMIT 1)";
                         using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
@@ -48906,8 +48921,8 @@ namespace PRoConEvents
                                         var warnMessage = "Could not find persona ID for " + aPlayer.player_name + ".";
                                         if (!String.IsNullOrEmpty(personaResponse))
                                         {
-                                            KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
-                                            warnMessage += " Player kicked from server.";
+                                            /*KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
+                                            warnMessage += " Player kicked from server.";*/
                                         }
                                         else
                                         {
@@ -49073,8 +49088,8 @@ namespace PRoConEvents
                                         var warnMessage = "Could not find persona ID for " + aPlayer.player_name + ".";
                                         if (!String.IsNullOrEmpty(response))
                                         {
-                                            KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
-                                            warnMessage += " Player kicked from server.";
+                                            /*KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
+                                            warnMessage += " Player kicked from server.";*/
                                         }
                                         else
                                         {
@@ -55096,17 +55111,17 @@ namespace PRoConEvents
                             {
                                 command.CommandText = @"
                                 INSERT INTO 
-	                                `adkats_challenge_definition` 
+                                    `adkats_challenge_definition` 
                                 (
-	                                `Name`, 
-	                                `CreateTime`, 
-	                                `ModifyTime`
+                                    `Name`, 
+                                    `CreateTime`, 
+                                    `ModifyTime`
                                 ) 
                                 VALUES 
                                 (
-	                                @Name, 
-	                                @CreateTime, 
-	                                @ModifyTime
+                                    @Name, 
+                                    @CreateTime, 
+                                    @ModifyTime
                                 )";
                                 command.Parameters.AddWithValue("@Name", Name);
                                 command.Parameters.AddWithValue("@CreateTime", CreateTime);
@@ -55189,12 +55204,12 @@ namespace PRoConEvents
                             {
                                 command.CommandText = @"
                                 UPDATE 
-	                                `adkats_challenge_definition` 
+                                    `adkats_challenge_definition` 
                                 SET
-	                                `Name` = @Name,
-	                                `ModifyTime` = @ModifyTime
+                                    `Name` = @Name,
+                                    `ModifyTime` = @ModifyTime
                                 WHERE
-	                                `ID` = @ID";
+                                    `ID` = @ID";
                                 command.Parameters.AddWithValue("@ID", ID);
                                 command.Parameters.AddWithValue("@Name", Name);
                                 command.Parameters.AddWithValue("@ModifyTime", ModifyTime);
@@ -55450,9 +55465,9 @@ namespace PRoConEvents
                             {
                                 command.CommandText = @"
                                 DELETE FROM 
-	                                `adkats_challenge_definition` 
+                                    `adkats_challenge_definition` 
                                 WHERE
-	                                `ID` = @ID;";
+                                    `ID` = @ID;";
                                 command.Parameters.AddWithValue("@ID", ID);
                                 if (_plugin.SafeExecuteNonQuery(command) > 0)
                                 {
@@ -55576,32 +55591,32 @@ namespace PRoConEvents
                                 {
                                     command.CommandText = @"
                                     INSERT INTO 
-	                                    `adkats_challenge_definition_detail` 
+                                        `adkats_challenge_definition_detail` 
                                     (
-	                                    `DefID`, 
-	                                    `DetailID`, 
-	                                    `Type`, 
-	                                    `Damage`, 
-	                                    `WeaponCount`, 
-	                                    `Weapon`, 
-	                                    `KillCount`, 
-	                                    `CreateTime`, 
-	                                    `ModifyTime`
+                                        `DefID`, 
+                                        `DetailID`, 
+                                        `Type`, 
+                                        `Damage`, 
+                                        `WeaponCount`, 
+                                        `Weapon`, 
+                                        `KillCount`, 
+                                        `CreateTime`, 
+                                        `ModifyTime`
                                     ) 
                                     VALUES 
                                     (
-	                                    @DefID, 
-	                                    @DetailID, 
-	                                    @Type, 
-	                                    @Damage, 
-	                                    @WeaponCount, 
-	                                    @Weapon, 
-	                                    @KillCount,
-	                                    @CreateTime,
-	                                    @ModifyTime
+                                        @DefID, 
+                                        @DetailID, 
+                                        @Type, 
+                                        @Damage, 
+                                        @WeaponCount, 
+                                        @Weapon, 
+                                        @KillCount,
+                                        @CreateTime,
+                                        @ModifyTime
                                     )
                                     ON DUPLICATE KEY UPDATE
-	                                    `Type` = @Type
+                                        `Type` = @Type
                                     AND `Damage` = @Damage
                                     AND `WeaponCount` = @WeaponCount
                                     AND `Weapon` = @Weapon
@@ -55659,17 +55674,17 @@ namespace PRoConEvents
                                 {
                                     command.CommandText = @"
                                     UPDATE
-	                                    `adkats_challenge_definition_detail` 
+                                        `adkats_challenge_definition_detail` 
                                     SET
-	                                    `Type` = @Type,
-	                                    `Damage` = @Damage,
-	                                    `WeaponCount` = @WeaponCount,
-	                                    `Weapon` = @Weapon,
-	                                    `KillCount` = @KillCount,
-	                                    `CreateTime` = @CreateTime,
-	                                    `ModifyTime` = @ModifyTime
+                                        `Type` = @Type,
+                                        `Damage` = @Damage,
+                                        `WeaponCount` = @WeaponCount,
+                                        `Weapon` = @Weapon,
+                                        `KillCount` = @KillCount,
+                                        `CreateTime` = @CreateTime,
+                                        `ModifyTime` = @ModifyTime
                                     WHERE
-	                                    `DefID` = @DefID
+                                        `DefID` = @DefID
                                     AND `DetailID` = @DetailID";
                                     command.Parameters.AddWithValue("@DefID", Definition.ID);
                                     command.Parameters.AddWithValue("@DetailID", DetailID);
@@ -55899,11 +55914,11 @@ namespace PRoConEvents
                                 {
                                     command.CommandText = @"
                                     UPDATE IGNORE 
-	                                    `adkats_challenge_definition_detail` 
+                                        `adkats_challenge_definition_detail` 
                                     SET
-	                                    `DetailID` = @NewDetailID
+                                        `DetailID` = @NewDetailID
                                     WHERE
-	                                    `DefID` = @DefID
+                                        `DefID` = @DefID
                                     AND `DetailID` = @OldDetailID";
                                     command.Parameters.AddWithValue("@DefID", Definition.ID);
                                     command.Parameters.AddWithValue("@OldDetailID", DetailID);
@@ -56252,37 +56267,37 @@ namespace PRoConEvents
                             {
                                 command.CommandText = @"
                                 INSERT INTO 
-	                                `adkats_challenge_rule` 
+                                    `adkats_challenge_rule` 
                                 (
-	                                `ServerID`, 
-	                                `DefID`, 
-	                                `Enabled`, 
-	                                `Name`, 
-	                                `Tier`, 
-	                                `CompletionType`, 
-	                                `RoundCount`, 
-	                                `DurationMinutes`, 
-	                                `DeathCount`, 
-	                                `CreateTime`, 
-	                                `ModifyTime`, 
-	                                `RoundLastUsedTime`,
-	                                `PersonalLastUsedTime`
+                                    `ServerID`, 
+                                    `DefID`, 
+                                    `Enabled`, 
+                                    `Name`, 
+                                    `Tier`, 
+                                    `CompletionType`, 
+                                    `RoundCount`, 
+                                    `DurationMinutes`, 
+                                    `DeathCount`, 
+                                    `CreateTime`, 
+                                    `ModifyTime`, 
+                                    `RoundLastUsedTime`,
+                                    `PersonalLastUsedTime`
                                 ) 
                                 VALUES 
                                 (
-	                                @ServerID, 
-	                                @DefID, 
-	                                @Enabled, 
-	                                @Name, 
-	                                @Tier, 
-	                                @CompletionType, 
+                                    @ServerID, 
+                                    @DefID, 
+                                    @Enabled, 
+                                    @Name, 
+                                    @Tier, 
+                                    @CompletionType, 
                                     @RoundCount, 
-	                                @DurationMinutes,
+                                    @DurationMinutes,
                                     @DeathCount,
-	                                @CreateTime,
-	                                @ModifyTime,
-	                                @RoundLastUsedTime,
-	                                @PersonalLastUsedTime
+                                    @CreateTime,
+                                    @ModifyTime,
+                                    @RoundLastUsedTime,
+                                    @PersonalLastUsedTime
                                 )";
                                 if (ServerID <= 0)
                                 {
@@ -56349,21 +56364,21 @@ namespace PRoConEvents
                             {
                                 command.CommandText = @"
                                 UPDATE 
-	                                `adkats_challenge_rule` 
+                                    `adkats_challenge_rule` 
                                 SET
-	                                `DefID` = @DefID,
-	                                `Enabled` = @Enabled,
-	                                `Name` = @Name,
-	                                `Tier` = @Tier,
-	                                `CompletionType` = @CompletionType,
-	                                `RoundCount` = @RoundCount,
-	                                `DurationMinutes` = @DurationMinutes,
-	                                `DeathCount` = @DeathCount,
-	                                `ModifyTime` = @ModifyTime,
-	                                `RoundLastUsedTime` = @RoundLastUsedTime,
-	                                `PersonalLastUsedTime` = @PersonalLastUsedTime
+                                    `DefID` = @DefID,
+                                    `Enabled` = @Enabled,
+                                    `Name` = @Name,
+                                    `Tier` = @Tier,
+                                    `CompletionType` = @CompletionType,
+                                    `RoundCount` = @RoundCount,
+                                    `DurationMinutes` = @DurationMinutes,
+                                    `DeathCount` = @DeathCount,
+                                    `ModifyTime` = @ModifyTime,
+                                    `RoundLastUsedTime` = @RoundLastUsedTime,
+                                    `PersonalLastUsedTime` = @PersonalLastUsedTime
                                 WHERE
-	                                `ID` = @ID";
+                                    `ID` = @ID";
                                 command.Parameters.AddWithValue("@ID", ID);
                                 command.Parameters.AddWithValue("@DefID", Definition.ID);
                                 command.Parameters.AddWithValue("@Enabled", Enabled);
@@ -56550,9 +56565,9 @@ namespace PRoConEvents
                             {
                                 command.CommandText = @"
                                 DELETE FROM 
-	                                `adkats_challenge_rule`
+                                    `adkats_challenge_rule`
                                 WHERE
-	                                `ID` = @ID";
+                                    `ID` = @ID";
                                 command.Parameters.AddWithValue("@ID", ID);
                                 if (_plugin.SafeExecuteNonQuery(command) > 0)
                                 {
@@ -57476,27 +57491,27 @@ namespace PRoConEvents
                             {
                                 command.CommandText = @"
                                 INSERT INTO 
-	                                `adkats_challenge_entry` 
+                                    `adkats_challenge_entry` 
                                 (
-	                                `PlayerID`,
-	                                `RuleID`,
-	                                `Completed`,
-	                                `Failed`,
-	                                `Canceled`,
-	                                `StartRound`,
-	                                `StartTime`,
+                                    `PlayerID`,
+                                    `RuleID`,
+                                    `Completed`,
+                                    `Failed`,
+                                    `Canceled`,
+                                    `StartRound`,
+                                    `StartTime`,
                                     `CompleteTime`
                                 ) 
                                 VALUES 
                                 (
-	                                @PlayerID,
-	                                @RuleID,
-	                                @Completed,
-	                                @Failed,
-	                                @Canceled,
-	                                @StartRound,
-	                                @StartTime,
-	                                @CompleteTime
+                                    @PlayerID,
+                                    @RuleID,
+                                    @Completed,
+                                    @Failed,
+                                    @Canceled,
+                                    @StartRound,
+                                    @StartTime,
+                                    @CompleteTime
                                 )";
                                 command.Parameters.AddWithValue("@PlayerID", Player.player_id);
                                 command.Parameters.AddWithValue("@RuleID", Rule.ID);
@@ -57549,14 +57564,14 @@ namespace PRoConEvents
                             {
                                 command.CommandText = @"
                                 UPDATE 
-	                                `adkats_challenge_entry` 
+                                    `adkats_challenge_entry` 
                                 SET
-	                                `Completed` = @Completed,
-	                                `Failed` = @Failed,
-	                                `Canceled` = @Canceled,
-	                                `CompleteTime` = @CompleteTime
+                                    `Completed` = @Completed,
+                                    `Failed` = @Failed,
+                                    `Canceled` = @Canceled,
+                                    `CompleteTime` = @CompleteTime
                                 WHERE
-	                                `ID` = @ID";
+                                    `ID` = @ID";
                                 command.Parameters.AddWithValue("@ID", ID);
                                 command.Parameters.AddWithValue("@Completed", Completed);
                                 command.Parameters.AddWithValue("@Failed", Failed);
@@ -58563,23 +58578,23 @@ namespace PRoConEvents
                                 {
                                     command.CommandText = @"
                                     INSERT INTO 
-	                                    `adkats_challenge_entry_detail` 
+                                        `adkats_challenge_entry_detail` 
                                     (
-	                                    `EntryID`, 
-	                                    `DetailID`, 
-	                                    `VictimID`, 
-	                                    `Weapon`, 
-	                                    `RoundID`, 
-	                                    `DetailTime`
+                                        `EntryID`, 
+                                        `DetailID`, 
+                                        `VictimID`, 
+                                        `Weapon`, 
+                                        `RoundID`, 
+                                        `DetailTime`
                                     ) 
                                     VALUES 
                                     (
-	                                    @EntryID, 
-	                                    @DetailID, 
-	                                    @VictimID, 
-	                                    @Weapon, 
-	                                    @RoundID, 
-	                                    @DetailTime
+                                        @EntryID, 
+                                        @DetailID, 
+                                        @VictimID, 
+                                        @Weapon, 
+                                        @RoundID, 
+                                        @DetailTime
                                     )";
                                     command.Parameters.AddWithValue("@EntryID", Entry.ID);
                                     command.Parameters.AddWithValue("@DetailID", DetailID);
@@ -58835,25 +58850,25 @@ namespace PRoConEvents
                             {
                                 command.CommandText = @"
                                 INSERT INTO 
-	                                `adkats_challenge_reward` 
+                                    `adkats_challenge_reward` 
                                 (
-	                                `ServerID`, 
-	                                `Tier`, 
-	                                `Reward`, 
-	                                `Enabled`, 
-	                                `DurationMinutes`, 
-	                                `CreateTime`, 
-	                                `ModifyTime`
+                                    `ServerID`, 
+                                    `Tier`, 
+                                    `Reward`, 
+                                    `Enabled`, 
+                                    `DurationMinutes`, 
+                                    `CreateTime`, 
+                                    `ModifyTime`
                                 ) 
                                 VALUES 
                                 (
-	                                @ServerID, 
-	                                @Tier, 
-	                                @Reward, 
-	                                @Enabled, 
-	                                @DurationMinutes,
-	                                @CreateTime,
-	                                @ModifyTime
+                                    @ServerID, 
+                                    @Tier, 
+                                    @Reward, 
+                                    @Enabled, 
+                                    @DurationMinutes,
+                                    @CreateTime,
+                                    @ModifyTime
                                 )";
                                 if (ServerID <= 0)
                                 {
@@ -58912,14 +58927,14 @@ namespace PRoConEvents
                             {
                                 command.CommandText = @"
                                 UPDATE 
-	                                `adkats_challenge_reward` 
+                                    `adkats_challenge_reward` 
                                 SET
-	                                `ServerID` = @ServerID,
-	                                `Tier` = @Tier,
-	                                `Reward` = @Reward,
-	                                `Enabled` = @Enabled,
-	                                `DurationMinutes` = @DurationMinutes,
-	                                `ModifyTime` = @ModifyTime
+                                    `ServerID` = @ServerID,
+                                    `Tier` = @Tier,
+                                    `Reward` = @Reward,
+                                    `Enabled` = @Enabled,
+                                    `DurationMinutes` = @DurationMinutes,
+                                    `ModifyTime` = @ModifyTime
                                 WHERE `ID` = @ID";
                                 command.Parameters.AddWithValue("@ID", ID);
                                 command.Parameters.AddWithValue("@ServerID", ServerID);
@@ -59052,7 +59067,7 @@ namespace PRoConEvents
                             {
                                 command.CommandText = @"
                                 DELETE FROM 
-	                                `adkats_challenge_reward`
+                                    `adkats_challenge_reward`
                                 WHERE `ID` = @ID";
                                 command.Parameters.AddWithValue("@ID", ID);
                                 if (_plugin.SafeExecuteNonQuery(command) > 0)
