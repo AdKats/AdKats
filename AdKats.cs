@@ -51182,24 +51182,38 @@ namespace PRoConEvents
             }
         }
         
-        public class GZipWebClient : WebClient
-        {
+        public class GZipWebClient : WebClient {
             private String ua;
-    
-            public GZipWebClient(String ua = "Mozilla/5.0 (compatible; PRoCon 1; AdKats)")
-            {
-                this.ua = ua;
-            }
-            
-            protected override WebRequest GetWebRequest(Uri address)
-            {
-                HttpWebRequest request = (HttpWebRequest)base.GetWebRequest(address);
-                request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-                request.UserAgent = ua;
-                return request;
-            }
-        }
 
+            public GZipWebClient(String ua = "Mozilla/5.0 (compatible; PRoCon 1; AdKats)") {
+                this.ua = ua; 
+                base.Headers["User-Agent"] = ua;
+            }
+
+            public string GZipDownloadString(string address) {
+                return this.GZipDownloadString(new Uri(address));
+            }
+
+            public string GZipDownloadString(Uri address) {
+                base.Headers[HttpRequestHeader.UserAgent] = ua;
+                base.Headers[HttpRequestHeader.AcceptEncoding] = "gzip";
+                var stream = this.OpenRead(address);
+                if (stream == null)
+                    return "";
+                
+                
+                var contentEncoding = ResponseHeaders[HttpResponseHeader.ContentEncoding];
+                base.Headers.Remove(HttpRequestHeader.AcceptEncoding);
+                
+                if (!string.IsNullOrEmpty(contentEncoding) && contentEncoding.ToLower().Contains("gzip")) {
+                    stream = new GZipStream(stream, CompressionMode.Decompress);
+                }
+                var reader = new StreamReader(stream);
+                return reader.ReadToEnd();
+            }
+        } 
+        
+        
         public class Utilities
         {
             private Logger Log;
@@ -51228,12 +51242,12 @@ namespace PRoConEvents
                 }
             }
 
-            public String ClientDownloadTimer(WebClient wClient, String url)
+            public String ClientDownloadTimer(GZipWebClient wClient, String url)
             {
                 Log.Debug(() => "Preparing to download from " + GetDomainName(url), 7);
                 Stopwatch timer = new Stopwatch();
                 timer.Start();
-                String returnString = wClient.DownloadString(url);
+                String returnString = wClient.GZipDownloadString(url);
                 timer.Stop();
                 Log.Debug(() => "Downloaded from " + GetDomainName(url) + " in " + timer.ElapsedMilliseconds + "ms", 7);
                 return returnString;
