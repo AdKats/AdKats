@@ -228,11 +228,10 @@
     <br/>
     <b>Getting a Database:</b>
     This plugin requires a MySQL database, and XpKiller's Stat logger plugin to operate. If you do not have an existing
-    database and/or a Procon layer we suggest using Branzone's hosting services. Our group has been with them across
-    BF3, BF4, and Hardline with no issues.<br/>
-    <b>Web/Database Hosting Suggestion:</b><a href="https://www.branzone.com/aff.php?aff=226&pid=266" target="_blank">
+    database and/or a Procon layer we suggest using EZRCON's hosting services.<br/>
+    <b>Database Hosting Suggestion:</b><a href="https://ezrcon.com/link.php?id=5" target="_blank">
     Branzone MySQL Databases</a><br/>
-    <b>Procon Layer Hosting Suggestion:</b><a href="https://www.branzone.com/aff.php?aff=226&pid=192" target="_blank">
+    <b>Procon Layer Hosting Suggestion:</b><a href="https://ezrcon.com/link.php?id=6" target="_blank">
     Branzone Procon Layers</a>
 </p>
 <h4><b>2. XpKiller's "Procon Chat, GUID, Stats and Mapstats Logger" Plugin</b></h4>
@@ -295,7 +294,7 @@
     </li>
     <li>
         <b>Download the plugin.</b>
-        Download the <a href="https://sourceforge.net/projects/adkats/files/latest/download" target="_blank">Latest
+        Download the <a href="https://myrcon.net/files/file/30-advanced-in-game-admin-and-ban-enforcer-adkats/" target="_blank">Latest
         Stable Release of AdKats</a>. If you want to try the latest features/fixes which aren't part of the stable release yet then just use the /pupdate command once your instance of AdKats is running, then reboot your procon layer.
     </li>
     <li>
