@@ -867,6 +867,10 @@ namespace PRoConEvents
         private String _eventConcreteCountdownServerName = "Event Concrete Countdown Server Name";
         private String _eventActiveServerName = "Event Active Server Name";
         private readonly HashSet<String> _DetectedWeaponCodes = new HashSet<String>();
+        
+        // Proxy
+        private Boolean _UseProxy = false;
+        private String _ProxyURL = "";
 
         //Settings display
         private Dictionary<String, String> _SettingSections = new Dictionary<String, String>();
@@ -947,6 +951,7 @@ namespace PRoConEvents
             AddSettingSection("C32", "Challenge Settings");
             AddSettingSection("D98", "Database Timing Mismatch");
             AddSettingSection("D99", "Debugging");
+            AddSettingSection("X98", "Proxy Settings");  
             AddSettingSection("X99", "Experimental");
             AddSettingSection("Y99", "Event Automation");
             //Build setting section enum
@@ -2912,6 +2917,30 @@ namespace PRoConEvents
                 lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + t + "Failed to build setting section.", typeof(String), ""));
             }
         }
+        
+         public void BuildProxySettings(List<CPluginVariable> lstReturn)
+        {
+            List<CPluginVariable> buildList = new List<CPluginVariable>();
+            var proxySection = "X98";
+            try
+            {
+                if (IsActiveSettingSection(proxySection))
+                {
+                    buildList.Add(new CPluginVariable(GetSettingSection(proxySection) + t + "Use Proxy for Battlelog", typeof(Boolean), _UseProxy));
+
+                    if (_UseProxy)
+                    {
+                        buildList.Add(new CPluginVariable(GetSettingSection(proxySection) + t + "Proxy URL", typeof(String), _ProxyURL));
+                    }
+                }
+                lstReturn.AddRange(buildList);
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error building proxy setting section.", e));
+                lstReturn.Add(new CPluginVariable(GetSettingSection(proxySection) + t + "Failed to build setting section.", typeof(String), ""));
+            }
+        }
 
         public void BuildExperimentalSettings(List<CPluginVariable> lstReturn)
         {
@@ -3131,6 +3160,8 @@ namespace PRoConEvents
                     BuildChallengeSettings(lstReturn);
 
                     BuildDebugSettings(lstReturn);
+                    
+                    BuildProxySettings(lstReturn);
 
                     BuildExperimentalSettings(lstReturn);
 
@@ -3357,7 +3388,7 @@ namespace PRoConEvents
                     {
                         return;
                     }
-                    using (WebClient client = new WebClient())
+                    using (GZipWebClient client = new GZipWebClient(compress:false))
                     {
                         try
                         {
@@ -8975,6 +9006,34 @@ namespace PRoConEvents
                             return;
                     }
                 }
+                else if (Regex.Match(strVariable, @"Use Proxy for Battlelog").Success)
+                {
+                    _UseProxy = Boolean.Parse(strValue);
+                    if (_UseProxy && _firstPlayerListComplete && String.IsNullOrEmpty(_ProxyURL))
+                    {
+                        Log.Warn("The 'Proxy URL' setting must be filled in before using a proxy.");
+                    }
+                    QueueSettingForUpload(new CPluginVariable(@"Use Proxy for Battlelog", typeof(Boolean), _UseProxy));
+                }
+                else if (Regex.Match(strVariable, @"Proxy URL").Success)
+                {
+                    try
+                    {
+                        if (!String.IsNullOrEmpty(strValue))
+                        {
+                            Uri uri = new Uri(strValue);
+                            Log.Debug(() => "Proxy URL set to " + strValue + ".", 1);
+                        }
+                    }
+                    catch(UriFormatException)
+                    {
+                        strValue = _ProxyURL;
+                        Log.Warn("Invalid Proxy URL! Make sure that the URI is valid!");
+                    }
+
+                    _ProxyURL = strValue;
+                    QueueSettingForUpload(new CPluginVariable(@"Proxy URL", typeof(String), _ProxyURL));
+                }
             }
             catch (Exception e)
             {
@@ -9415,7 +9474,7 @@ namespace PRoConEvents
                     Thread.CurrentThread.Name = "DescFetching";
                     _pluginDescFetchProgress = "Started";
                     //Create web client
-                    WebClient client = new WebClient();
+                    GZipWebClient client = new GZipWebClient(compress:false);
                     //Download the readme and changelog
                     Log.Debug(() => "Fetching plugin links...", 2);
                     try
@@ -38778,7 +38837,7 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
-                        WebClient client = new WebClient();
+                        GZipWebClient client = new GZipWebClient(compress:false);
                         Log.Debug(() => "Fetching plugin changelog...", 2);
                         try
                         {
@@ -39552,6 +39611,8 @@ namespace PRoConEvents
                     QueueSettingForUpload(new CPluginVariable(@"Use Server-Wide Round Rules", typeof(Boolean), ChallengeManager.EnableServerRoundRules));
                     QueueSettingForUpload(new CPluginVariable(@"Use Different Round Rule For Each Player", typeof(Boolean), ChallengeManager.RandomPlayerRoundRules));
                 }
+                QueueSettingForUpload(new CPluginVariable(@"Use Proxy for Battlelog", typeof(Boolean), _UseProxy));
+                QueueSettingForUpload(new CPluginVariable(@"Proxy URL", typeof(String), _ProxyURL));
                 Log.Debug(() => "uploadAllSettings finished!", 6);
             }
             catch (Exception e)
@@ -47471,7 +47532,7 @@ namespace PRoConEvents
         public Boolean GetGlobalUTCTimestamp(out DateTime globalUTCTime)
         {
             globalUTCTime = UtcNow();
-            using (WebClient client = new WebClient())
+            using (GZipWebClient client = new GZipWebClient(compress:false))
             {
                 try
                 {
@@ -48835,8 +48896,12 @@ namespace PRoConEvents
                 if (GameVersion == GameVersionEnum.BF3)
                 {
                     Log.Debug(() => "Preparing to fetch battlelog info for BF3 player " + aPlayer.GetVerboseName(), 7);
-                    using (WebClient client = new WebClient())
+                    using (GZipWebClient client = new GZipWebClient())
                     {
+                        if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                        {
+                            client.SetProxy(_ProxyURL);
+                        }
                         try
                         {
                             DoBattlelogWait();
@@ -48896,8 +48961,12 @@ namespace PRoConEvents
                 else if (GameVersion == GameVersionEnum.BF4)
                 {
                     Log.Debug(() => "Preparing to fetch battlelog info for BF4 player " + aPlayer.GetVerboseName(), 7);
-                    using (WebClient client = new WebClient())
+                    using (GZipWebClient client = new GZipWebClient())
                     {
+                        if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                        {
+                            client.SetProxy(_ProxyURL);
+                        }
                         try
                         {
                             if (String.IsNullOrEmpty(aPlayer.player_battlelog_personaID))
@@ -48921,8 +48990,12 @@ namespace PRoConEvents
                                         var warnMessage = "Could not find persona ID for " + aPlayer.player_name + ".";
                                         if (!String.IsNullOrEmpty(personaResponse))
                                         {
-                                            /*KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
-                                            warnMessage += " Player kicked from server.";*/
+                                            // KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
+                                            // warnMessage += " Player kicked from server.";
+                                            // Workaround for profiles without a soldier.
+                                            warnMessage += " Profile without a BF4 soldier or Battlelog issues.";
+                                            Log.Warn(warnMessage);
+                                            return true;
                                         }
                                         else
                                         {
@@ -49049,8 +49122,12 @@ namespace PRoConEvents
                 else if (GameVersion == GameVersionEnum.BFHL)
                 {
                     Log.Debug(() => "Preparing to fetch battlelog info for BFHL player " + aPlayer.GetVerboseName(), 7);
-                    using (WebClient client = new WebClient())
+                    using (GZipWebClient client = new GZipWebClient())
                     {
+                        if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                        { 
+                            client.SetProxy(_ProxyURL);
+                        }
                         try
                         {
                             if (String.IsNullOrEmpty(aPlayer.player_battlelog_personaID))
@@ -49088,8 +49165,11 @@ namespace PRoConEvents
                                         var warnMessage = "Could not find persona ID for " + aPlayer.player_name + ".";
                                         if (!String.IsNullOrEmpty(response))
                                         {
-                                            /*KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
-                                            warnMessage += " Player kicked from server.";*/
+                                            // KickPlayerMessage(aPlayer, "Battlelog info fetch issue. Please re-join.");
+                                            // warnMessage += " Player kicked from server.";
+                                            warnMessage += " Profile without a BFH soldier or Battlelog issues.";
+                                            Log.Warn(warnMessage);
+                                            return true; 
                                         }
                                         else
                                         {
@@ -49187,8 +49267,12 @@ namespace PRoConEvents
             }
             if (GameVersion == GameVersionEnum.BF3)
             {
-                using (WebClient client = new WebClient())
+                using (GZipWebClient client = new GZipWebClient())
                 {
+                    if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                    {
+                        client.SetProxy(_ProxyURL);
+                    }
                     try
                     {
                         //Fetch stats
@@ -49386,8 +49470,12 @@ namespace PRoConEvents
             }
             else if (GameVersion == GameVersionEnum.BF4)
             {
-                using (WebClient client = new WebClient())
+                using (GZipWebClient client = new GZipWebClient())
                 {
+                    if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                    {
+                        client.SetProxy(_ProxyURL);
+                    }               
                     try
                     {
                         //Fetch stats
@@ -49625,8 +49713,12 @@ namespace PRoConEvents
             }
             else if (GameVersion == GameVersionEnum.BFHL)
             {
-                using (WebClient client = new WebClient())
+                using (GZipWebClient client = new GZipWebClient())
                 {
+                    if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                    {
+                        client.SetProxy(_ProxyURL);
+                    }
                     try
                     {
                         //Fetch stats
@@ -49774,7 +49866,7 @@ namespace PRoConEvents
         {
             Log.Debug(() => "Entering FetchAdKatsReputationDefinitions", 7);
             ArrayList repTable = null;
-            using (WebClient client = new WebClient())
+            using (GZipWebClient client = new GZipWebClient(compress:false))
             {
                 String repInfo;
                 Log.Debug(() => "Fetching reputation definitions...", 2);
@@ -49845,7 +49937,7 @@ namespace PRoConEvents
         {
             Log.Debug(() => "Entering FetchASpecialGroupDefinitions", 7);
             List<ASpecialGroup> SpecialGroupsList = null;
-            using (WebClient client = new WebClient())
+            using (GZipWebClient client = new GZipWebClient(compress:false))
             {
                 String groupInfo;
                 Log.Debug(() => "Fetching special group definitions...", 2);
@@ -50053,7 +50145,7 @@ namespace PRoConEvents
         {
             Log.Debug(() => "Entering FetchSQLUpdates", 7);
             List<ASQLUpdate> SQLUpdates = new List<ASQLUpdate>();
-            using (WebClient client = new WebClient())
+            using (GZipWebClient client = new GZipWebClient(compress:false))
             {
                 try
                 {
@@ -51104,7 +51196,70 @@ namespace PRoConEvents
                 }
             }
         }
+        
+        public class GZipWebClient : WebClient {
+            private String ua;
+            private bool compress;
 
+            public GZipWebClient(String ua = "Mozilla/5.0 (compatible; PRoCon 1; AdKats)", bool compress = true) {
+                this.ua = ua;
+                this.compress = compress;
+                base.Headers["User-Agent"] = ua;
+            }
+
+            public string GZipDownloadString(string address) {
+                return this.GZipDownloadString(new Uri(address));
+            }
+            
+            public string GZipDownloadString(Uri address) {
+                base.Headers[HttpRequestHeader.UserAgent] = ua;
+                
+                if (compress == false)
+                    return base.DownloadString(address);
+                
+                base.Headers[HttpRequestHeader.AcceptEncoding] = "gzip";
+                var stream = this.OpenRead(address);
+                if (stream == null)
+                    return "";
+                
+                var contentEncoding = ResponseHeaders[HttpResponseHeader.ContentEncoding];
+                base.Headers.Remove(HttpRequestHeader.AcceptEncoding);
+
+                Stream decompressedStream = null;
+                StreamReader reader = null;
+                if (!string.IsNullOrEmpty(contentEncoding) && contentEncoding.ToLower().Contains("gzip")) {
+                    decompressedStream = new GZipStream(stream, CompressionMode.Decompress);
+                    reader = new StreamReader(decompressedStream);
+                }
+                else {
+                    reader = new StreamReader(stream);
+                }
+                var data =  reader.ReadToEnd();
+                reader.Close();
+                decompressedStream?.Close();
+                stream.Close();
+                return data;
+            }
+
+            public void SetProxy(String proxyURL)
+            {
+                if(!String.IsNullOrEmpty(proxyURL))
+                {
+                    Uri uri = new Uri(proxyURL);
+                    this.Proxy = new WebProxy(proxyURL, true); 
+                    if (!String.IsNullOrEmpty(uri.UserInfo))
+                    {
+                        string[] parameters = uri.UserInfo.Split(':');
+                        if (parameters.Length < 2) 
+                        {
+                            return;
+                        }
+                        this.Proxy.Credentials = new NetworkCredential(parameters[0], parameters[1]);
+                    }
+                }
+            }
+        } 
+        
         public class Utilities
         {
             private Logger Log;
@@ -51113,13 +51268,13 @@ namespace PRoConEvents
             {
                 Log = log;
             }
-
-            public String ClientDownloadTimer(WebClient wClient, String url)
+            
+            public String ClientDownloadTimer(GZipWebClient wClient, String url)
             {
                 Log.Debug(() => "Preparing to download from " + GetDomainName(url), 7);
                 Stopwatch timer = new Stopwatch();
                 timer.Start();
-                String returnString = wClient.DownloadString(url);
+                String returnString = wClient.GZipDownloadString(url);
                 timer.Stop();
                 Log.Debug(() => "Downloaded from " + GetDomainName(url) + " in " + timer.ElapsedMilliseconds + "ms", 7);
                 return returnString;
@@ -51278,7 +51433,7 @@ namespace PRoConEvents
             if (false && _UseExperimentalTools && GameVersion == GameVersionEnum.BF4)
             {
                 String externalPluginSource;
-                using (WebClient client = new WebClient())
+                using (GZipWebClient client = new GZipWebClient(compress:false))
                 {
                     try
                     {
@@ -51392,7 +51547,7 @@ namespace PRoConEvents
             if (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken))
             {
                 String extensionSource;
-                using (WebClient client = new WebClient())
+                using (GZipWebClient client = new GZipWebClient(compress:false))
                 {
                     try
                     {
@@ -51541,7 +51696,7 @@ namespace PRoConEvents
                                 Log.Info("Preparing to download plugin update to version " + _latestPluginVersion);
                             }
                             String pluginSource = null;
-                            using (WebClient client = new WebClient())
+                            using (GZipWebClient client = new GZipWebClient(compress:false))
                             {
                                 try
                                 {
@@ -52757,7 +52912,7 @@ namespace PRoConEvents
                 return;
             }
             IPAPILocation loc = new IPAPILocation(aPlayer.player_ip);
-            using (WebClient client = new WebClient())
+            using (GZipWebClient client = new GZipWebClient(compress:false))
             {
                 try
                 {
@@ -61427,7 +61582,7 @@ namespace PRoConEvents
             {
                 _plugin.Log.Debug(() => "Entering FetchAWeaponNames", 7);
                 Hashtable weaponNames = null;
-                using (WebClient client = new WebClient())
+                using (GZipWebClient client = new GZipWebClient(compress:false))
                 {
                     String downloadString;
                     _plugin.Log.Debug(() => "Fetching weapon names...", 2);
@@ -62627,7 +62782,7 @@ namespace PRoConEvents
             private Hashtable FetchWeaponDefinitions()
             {
                 Hashtable statTable = null;
-                using (WebClient client = new WebClient())
+                using (GZipWebClient client = new GZipWebClient(compress:false))
                 {
                     String weaponInfo;
                     Plugin.Log.Debug(() => "Fetching weapon statistic definitions...", 2);
@@ -62818,7 +62973,7 @@ namespace PRoConEvents
                     //Attempt to fetch and parse
                     if (!String.IsNullOrEmpty(widgetURL))
                     {
-                        using (WebClient client = new WebClient())
+                        using (GZipWebClient client = new GZipWebClient(compress:false))
                         {
                             try
                             {

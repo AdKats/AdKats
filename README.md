@@ -4202,3 +4202,12 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         Don't let more than one person use this at any time.
     </li>
 </ul>
+<h3>X98. Proxy Settings:</h3>
+<ul>
+    <li><b>'Use Proxy for Battlelog'</b> -
+        Send all battlelog requests over a proxy server.
+    </li>
+    <li><b>'Proxy URL'</b> -
+        The full URI of the proxy in the format `http://IP:PORT` or `http://USER:PW@IP:PORT`.
+    </li>
+</ul>

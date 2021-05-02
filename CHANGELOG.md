@@ -1111,3 +1111,22 @@ Added small improvements to fuzzy player match response text.</li>
 <ul>
     <li><b>No upgrade SQL required.</b></li>
 </ul>
+
+<h4>7.6.0.10 (06-APR-2021)</h4>
+<b>Enhancements</b><br/>
+<ul>
+	<li>Add Proxy Support</li>
+</ul>
+<b>Changes</b><br/>
+<ul>
+    <li>New Settings for proxy</li>
+    <li>Usage of proxy</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+	<li>No Bug Fixes</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
