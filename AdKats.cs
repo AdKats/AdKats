@@ -234,7 +234,7 @@ namespace PRoConEvents
         private DateTime _LastServerInfoTrigger = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private DateTime _LastServerInfoReceive = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private Object _battlelogLocker = new Object();
-        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(10);
+        private TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(5);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private readonly TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(6);
         private Object _IPAPILocker = new Object();
