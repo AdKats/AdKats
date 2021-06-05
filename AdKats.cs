@@ -51062,7 +51062,7 @@ namespace PRoConEvents
             private bool compress;
 
             public GZipWebClient() {
-                this.ua = "Mozilla/5.0 (compatible, PRoCon 1; AdKats)";
+                this.ua = "Mozilla/5.0 (compatible; PRoCon 1; AdKats)";
                 base.Headers["User-Agent"] = ua;
                 compress = true;
             }
