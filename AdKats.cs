@@ -15,7 +15,6 @@
  * Modded Levenshtein Distance algorithm and Tag Parsing from Micovery's InsaneLimits
  * Email System adapted from MorpheusX(AUT)'s "Notify Me!"
  * TeamSpeak Integration by Imisnew2
- * Metabans Integration by Phogue
  * Discord report posting by jbrunink
  * 
  * Development by Daniel J. Gradinjan (ColColonCleaner)
@@ -77,14 +76,6 @@ namespace PRoConEvents
             BF4,
             BFHL
         };
-
-        //Metabans Ref
-        internal enum SupportedGames
-        {
-            BF_3,
-            BF_4,
-            BF_H
-        }
 
         public enum RoundState
         {
@@ -515,11 +506,6 @@ namespace PRoConEvents
         private Int64 _IPBanCount = -1;
         private Int64 _NameBanCount = -1;
         private TimeSpan _MaxTempBanDuration = TimeSpan.FromDays(3650);
-        //Metabans
-        private Boolean _useMetabans = false;
-        private String _metabansAPIKey = "";
-        private String _metabansUsername = "";
-        private String[] _metabansFilterStrings = { };
 
         //Reports
         public String[] _AutoReportHandleStrings = { };
@@ -2008,17 +1994,6 @@ namespace PRoConEvents
                         buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
                         buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by GUID", typeof(Boolean), _DefaultEnforceGUID));
                         buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Enforce New Bans by IP", typeof(Boolean), _DefaultEnforceIP));
-                        
-                        /*
-                        //Metabans Settings
-                        buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Use Metabans?", typeof(bool), _useMetabans));
-                        if (_useMetabans)
-                        {
-                            buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Metabans Username", typeof(String), _metabansUsername));
-                            buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Metabans API Key", typeof(String), _metabansAPIKey));
-                            buildList.Add(new CPluginVariable(GetSettingSection("A13-2") + t + "Metabans Filter Strings", typeof(String[]), _metabansFilterStrings));
-                        }
-                        */
                     }
                 }
 
@@ -8006,53 +7981,6 @@ namespace PRoConEvents
                         Log.Warn("The 'Short Server Name' setting must be filled in before posting discord reports.");
                     }
                     QueueSettingForUpload(new CPluginVariable(@"Send update if reported players leave without action", typeof(Boolean), _DiscordReportsLeftWithoutAction));
-                }
-                else if (false && Regex.Match(strVariable, @"Use Metabans?").Success)
-                {
-                    var useMetabans = Boolean.Parse(strValue);
-                    if (!_useMetabans && useMetabans)
-                    {
-                        //Make sure the metabans plugin is enabled
-                        ExecuteCommand("procon.protected.plugins.enable", "Metabans", "True");
-                        SetExternalPluginSetting("Metabans", "Ban Propagation", "Do not propagate my bans");
-                    }
-                    _useMetabans = useMetabans;
-                    //Once setting has been changed, upload the change to database
-                    QueueSettingForUpload(new CPluginVariable("Use Metabans?", typeof(Boolean), _useMetabans));
-                }
-                else if (false && Regex.Match(strVariable, @"Metabans API Key").Success)
-                {
-                    if (string.IsNullOrEmpty(strValue))
-                    {
-                        _metabansAPIKey = "";
-                    }
-                    else if (_metabansAPIKey != strValue)
-                    {
-                        _metabansAPIKey = strValue;
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof(String), _metabansAPIKey));
-                        SetExternalPluginSetting("Metabans", "API Key", _metabansAPIKey);
-                    }
-                }
-                else if (false && Regex.Match(strVariable, @"Metabans Username").Success)
-                {
-                    if (string.IsNullOrEmpty(strValue))
-                    {
-                        _metabansUsername = "";
-                    }
-                    else if (_metabansUsername != strValue)
-                    {
-                        _metabansUsername = strValue;
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Metabans Username", typeof(String), _metabansUsername));
-                        SetExternalPluginSetting("Metabans", "Username", _metabansUsername);
-                    }
-                }
-                else if (false && Regex.Match(strVariable, @"Metabans Filter Strings").Success)
-                {
-                    _metabansFilterStrings = CPluginVariable.DecodeStringArray(strValue);
-                    //Once setting has been changed, upload the change to database
-                    QueueSettingForUpload(new CPluginVariable(@"Metabans Filter Strings", typeof(String), CPluginVariable.EncodeStringArray(_metabansFilterStrings)));
                 }
                 else if (Regex.Match(strVariable, @"On-Player-Muted Message").Success)
                 {
@@ -30513,12 +30441,6 @@ namespace PRoConEvents
                         aBan.ban_record.command_action = GetCommandByKey("player_ban_temp_old");
                     }
                     UpdateRecord(aBan.ban_record);
-
-                    //Submit ban removal to metabans
-                    if (_useMetabans && !String.IsNullOrEmpty(_metabansUsername) && !String.IsNullOrEmpty(_metabansAPIKey))
-                    {
-                        SubmitToMetabans(aBan, AssessmentTypes.none);
-                    }
                 }
                 SendMessageToSource(record, record.GetTargetNames() + " is now unbanned.");
             }
@@ -38594,59 +38516,9 @@ namespace PRoConEvents
             }
         }
 
-        private void SubmitToMetabans(ABan aBan, AssessmentTypes type)
-        {
-            // Keep the code. Do not allow this function to execute.
-            return;
-            //Reject submitting the ban if the ban message does not contain trigger words
-            var banReasonLower = aBan.ban_record.record_message.ToLowerInvariant();
-            if (_metabansFilterStrings.Length > 0 && !_metabansFilterStrings.Any(fString => banReasonLower.Contains(fString.ToLowerInvariant())))
-            {
-                Log.Debug(() => "Rejecting submission of " + aBan.ban_record.target_player.GetVerboseName() + "'s ban to metabans, ban reason not in filter strings.", 3);
-                return;
-            }
-
-            Log.Debug(() => "^4Metabans (SubmitAssessment): Submitting assessment of GUID " + aBan.ban_record.target_player.player_guid, 3);
-
-            MetabansAPI api = new MetabansAPI(_metabansUsername, _metabansAPIKey, enumBoolOnOff.On);
-            api.ExecuteCommand += new MetabansAPI.ExecuteCommandHandler(api_ExecuteCommand);
-            api.mb_assess_player_ok += new MetabansAPI.RequestSuccessHandler(api_mb_assess_player_ok);
-
-            SupportedGames gameType;
-            switch (GameVersion)
-            {
-                case GameVersionEnum.BF3:
-                    gameType = SupportedGames.BF_3;
-                    break;
-                case GameVersionEnum.BF4:
-                    gameType = SupportedGames.BF_4;
-                    break;
-                case GameVersionEnum.BFHL:
-                    gameType = SupportedGames.BF_H;
-                    break;
-                default:
-                    Log.Error("Invalid game version when posting to metabans.");
-                    return;
-                    break;
-            }
-            api.mb_assess_player(gameType, aBan.ban_record.target_player.player_guid, type, aBan.ban_record.record_message, (int)(aBan.ban_endTime - aBan.ban_startTime).TotalSeconds).Post();
-        }
-
         public void api_ExecuteCommand(params string[] commands)
         {
             ExecuteCommand(commands);
-        }
-
-        public void api_mb_assess_player_ok(Hashtable request, Hashtable data)
-        {
-            try
-            {
-                Log.Info("^4Metabans (api_mb_assess_player_ok): Assessment accepted");
-            }
-            catch (Exception e)
-            {
-                Log.Warn("^1Metabans (api_mb_assess_player_ok): " + e.Message);
-            }
         }
 
         private Boolean ConnectionCapable()
@@ -39478,12 +39350,6 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Discord WebHook URL", typeof(String), _DiscordManager.URL));
                 QueueSettingForUpload(new CPluginVariable(@"Only Send Discord Reports When Admins Offline", typeof(Boolean), _DiscordReportsOnlyWhenAdminless));
                 QueueSettingForUpload(new CPluginVariable(@"Send update if reported players leave without action", typeof(Boolean), _DiscordReportsLeftWithoutAction));
-                /*
-                QueueSettingForUpload(new CPluginVariable(@"Use Metabans?", typeof(Boolean), _useMetabans));
-                QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof(String), _metabansAPIKey));
-                QueueSettingForUpload(new CPluginVariable(@"Metabans Username", typeof(String), _metabansUsername));
-                QueueSettingForUpload(new CPluginVariable(@"Metabans Filter Strings", typeof(String), CPluginVariable.EncodeStringArray(_metabansFilterStrings)));
-                */
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Muted Message", typeof(String), _MutedPlayerMuteMessage));
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Killed Message", typeof(String), _MutedPlayerKillMessage));
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Kicked Message", typeof(String), _MutedPlayerKickMessage));
@@ -42475,12 +42341,6 @@ namespace PRoConEvents
                                 }
                             }
                         }
-                    }
-
-                    //Submit ban to metabans
-                    if (aBan.ban_record.command_type.command_key != "banenforcer_enforce" && _useMetabans && !String.IsNullOrEmpty(_metabansUsername) && !String.IsNullOrEmpty(_metabansAPIKey))
-                    {
-                        SubmitToMetabans(aBan, AssessmentTypes.black);
                     }
                 }
                 catch (Exception e)
@@ -61766,7 +61626,6 @@ namespace PRoConEvents
                         CustomHTMLAddition = @"<br><a href='http://battlelog.battlefield.com/bf3/user/%player_name%/'>BF3 Battlelog Profile</a><br>
 <br><a href='http://bf3stats.com/stats_pc/%player_name%'>BF3Stats Profile</a><br>
 <br><a href='http://history.anticheatinc.com/bf3/?searchvalue=%player_name%'>AntiCheat, INC. Search</a><br>
-<br><a href='http://metabans.com/search/%player_name%'>Metabans Search</a><br>
 <br><a href='http://i-stats.net/index.php?action=pcheck&game=BF3&player=%player_name%'>I-Stats Search</a><br>
 <br><a href='http://www.team-des-fra.fr/CoM/bf3.php?p=%player_name%'>TeamDes Search</a><br>
 <br><a href='http://cheatometer.hedix.de/?p=%player_name%'>Hedix Search</a><br>";
@@ -61774,8 +61633,7 @@ namespace PRoConEvents
                     case GameVersionEnum.BF4:
                         CustomHTMLAddition = @"<br><a href='http://battlelog.battlefield.com/bf4/de/user/%player_name%/'>BF4 Battlelog Profile</a><br>
 <br><a href='http://bf4stats.com/pc/%player_name%'>BF4Stats Profile</a><br>
-<br><a href='http://history.anticheatinc.com/bf4/?searchvalue=%player_name%'>AntiCheat, INC. Search</a><br>
-<br><a href='http://metabans.com/search/%player_name%'>Metabans Search</a><br>";
+<br><a href='http://history.anticheatinc.com/bf4/?searchvalue=%player_name%'>AntiCheat, INC. Search</a><br>";
                         break;
                     default:
                         CustomHTMLAddition = "";
@@ -62139,228 +61997,6 @@ namespace PRoConEvents
             }
         }
 
-        internal class MetabansAPI
-        {
-
-            private static string METABANS_API_HREF = "http://metabans.com/mb-api.php";
-
-            private ArrayList m_requests;
-            private string Username;
-            private string ApiKey;
-            private enumBoolOnOff Debug;
-
-            // You must have this event registered to see output of the Debug.
-            public delegate void ExecuteCommandHandler(params string[] commands);
-            public event ExecuteCommandHandler ExecuteCommand;
-
-            public delegate void RequestSuccessHandler(Hashtable request, Hashtable data);
-            public event RequestSuccessHandler mb_sight_player_ok;
-            public event RequestSuccessHandler mb_assess_player_ok;
-
-            public MetabansAPI(string Username, string ApiKey, enumBoolOnOff Debug)
-            {
-                this.m_requests = new ArrayList();
-
-                // if username + apikey == "", load from xml file.
-
-                this.Username = Username;
-                this.ApiKey = ApiKey;
-                this.Debug = Debug;
-            }
-
-
-
-            public MetabansAPI mb_assess_player(int player_id, AssessmentTypes assessment_type, string reason, int assessment_length)
-            {
-                Hashtable hash = new Hashtable();
-                hash.Add("action", "mb_assess_player");
-                hash.Add("player_id", player_id.ToString());
-                hash.Add("assessment_type", assessment_type.ToString());
-                hash.Add("reason", reason);
-                hash.Add("assessment_length", assessment_length.ToString());
-
-                this.m_requests.Add(hash);
-
-                return this;
-            }
-
-            public MetabansAPI mb_assess_player(SupportedGames game_name, string player_uid, AssessmentTypes assessment_type, string reason, int assessment_length)
-            {
-                Hashtable hash = new Hashtable();
-                hash.Add("action", "mb_assess_player");
-                hash.Add("game_name", game_name.ToString());
-                hash.Add("player_uid", player_uid);
-                hash.Add("assessment_type", assessment_type.ToString());
-                hash.Add("reason", reason);
-                hash.Add("assessment_length", assessment_length.ToString());
-
-                this.m_requests.Add(hash);
-
-                return this;
-            }
-
-            // You shouldn't ever need to sight a player.  Only the main Metabans plugin should ever need to do this.
-            public MetabansAPI mb_sight_player(SupportedGames game_name, string player_uid, string player_name, string group_name, string player_ip, string alternate_uid)
-            {
-
-                Hashtable hash = new Hashtable();
-                hash.Add("action", "mb_sight_player");
-                hash.Add("game_name", game_name.ToString());
-                hash.Add("player_uid", player_uid);
-                hash.Add("player_name", player_name);
-                hash.Add("group_name", group_name);
-
-                if (player_ip != null)
-                {
-                    hash.Add("player_ip", ((string)player_ip).Split(':')[0]);
-                }
-
-                hash.Add("alternate_uid", alternate_uid);
-
-                this.m_requests.Add(hash);
-
-                return this;
-            }
-
-            private static string GenerateSalt()
-            {
-                Random random = new Random();
-                byte[] salt = new byte[random.Next(24, 48)];
-
-                for (int i = 0; i < salt.Length; i++)
-                {
-                    salt[i] = (byte)random.Next(1, 254);
-                }
-
-                return SHA1.Data(salt);
-            }
-
-            private string GeneratePostData()
-            {
-
-                StringBuilder postBuilder = new StringBuilder();
-
-                postBuilder.AppendFormat("&username={0}", Uri.EscapeUriString(this.Username));
-
-                string salt = MetabansAPI.GenerateSalt();
-                postBuilder.AppendFormat("&salt={0}", Uri.EscapeUriString(salt));
-                postBuilder.AppendFormat("&apikey={0}", Uri.EscapeUriString(SHA1.String(salt + this.ApiKey)));
-                postBuilder.Append("&options=mirror");
-
-                for (int offset = 0; offset < this.m_requests.Count; offset++)
-                {
-
-                    if (this.m_requests[offset] is Hashtable)
-                    {
-
-                        foreach (DictionaryEntry entry in (Hashtable)this.m_requests[offset])
-                        {
-                            if (entry.Value != null)
-                            {
-                                postBuilder.AppendFormat("&{0}={1}", Uri.EscapeUriString(String.Format("requests[{0}][{1}]", offset, entry.Key.ToString())), Uri.EscapeUriString(entry.Value.ToString()));
-                            }
-                        }
-
-                    }
-                }
-
-                return postBuilder.ToString();
-            }
-
-            private void request_RequestComplete(MetabansRequest sender)
-            {
-                Hashtable table = (Hashtable)JSON.JsonDecode(Encoding.UTF8.GetString(sender.CompleteFileData));
-
-                try
-                {
-                    if (this.Debug == enumBoolOnOff.On && this.ExecuteCommand != null)
-                    {
-                        this.ExecuteCommand("procon.protected.pluginconsole.write", "^4Metabans API: Received sync response, beginning parse");
-                    }
-
-                    foreach (Hashtable response in (ArrayList)table["responses"])
-                    {
-                        if (response.ContainsKey("status") == true && (string)response["status"] == "OK")
-                        {
-                            if (response.ContainsKey("request") == true && response.ContainsKey("data") == true)
-                            {
-
-                                Hashtable request = (Hashtable)response["request"];
-                                Hashtable data = (Hashtable)response["data"];
-
-                                if (request.ContainsKey("action") == true)
-                                {
-                                    switch ((string)request["action"])
-                                    {
-                                        case "mb_sight_player":
-                                            if (this.mb_sight_player_ok != null)
-                                            {
-                                                this.mb_sight_player_ok(request, data);
-                                            }
-                                            break;
-                                        case "mb_assess_player":
-                                            if (this.mb_assess_player_ok != null)
-                                            {
-                                                this.mb_assess_player_ok(request, data);
-                                            }
-                                            break;
-                                    }
-                                }
-                            }
-                        }
-                        else if (response.ContainsKey("error") == true)
-                        {
-                            if (/*this.Debug == enumBoolOnOff.On && */this.ExecuteCommand != null)
-                            {
-                                // This is an error because of information sent to the metabans (like api key error or something)
-                                // not an actual problem that requires debugging.
-                                this.ExecuteCommand("procon.protected.pluginconsole.write", "^1Metabans API: Response error; " + (string)((Hashtable)response["error"])["message"]);
-                            }
-                        }
-                    }
-
-                    if (this.Debug == enumBoolOnOff.On && this.ExecuteCommand != null)
-                    {
-                        this.ExecuteCommand("procon.protected.pluginconsole.write", "^4Metabans API: Received sync and parse completed");
-                    }
-                }
-                catch (Exception e)
-                {
-                    if (this.Debug == enumBoolOnOff.On && this.ExecuteCommand != null)
-                    {
-                        this.ExecuteCommand("procon.protected.pluginconsole.write", "^1Metabans API (request_RequestComplete): " + e.Message);
-                    }
-                }
-            }
-
-            private void request_RequestError(MetabansRequest sender)
-            {
-                if (this.Debug == enumBoolOnOff.On && this.ExecuteCommand != null)
-                {
-                    this.ExecuteCommand("procon.protected.pluginconsole.write", "^1Metabans API request_RequestError: " + sender.Error);
-                }
-            }
-
-            public MetabansAPI Post()
-            {
-
-                MetabansRequest request = new MetabansRequest(MetabansAPI.METABANS_API_HREF);
-                request.RequestComplete += new MetabansRequest.RequestEventDelegate(request_RequestComplete);
-                request.RequestError += new MetabansRequest.RequestEventDelegate(request_RequestError);
-                request.Method = "POST";
-                request.RequestContent = this.GeneratePostData();
-
-                if (this.Debug == enumBoolOnOff.On && this.ExecuteCommand != null)
-                {
-                    this.ExecuteCommand("procon.protected.pluginconsole.write", "^4Metabans API: Post " + Uri.EscapeUriString(request.RequestContent));
-                }
-
-                request.BeginRequest();
-
-                return this;
-            }
-        }
-
         internal static class SHA1
         {
             private static System.Security.Cryptography.SHA1 HASHER = System.Security.Cryptography.SHA1.Create();
@@ -62381,347 +62017,6 @@ namespace PRoConEvents
             public static string String(string data)
             {
                 return SHA1.Data(Encoding.UTF8.GetBytes(data));
-            }
-        }
-
-        // This is similar to CDownloadFile but has some POST options included
-        internal class MetabansRequest
-        {
-
-            public delegate void RequestEventDelegate(MetabansRequest sender);
-            public event RequestEventDelegate RequestComplete;
-            public event RequestEventDelegate RequestError;
-            public event RequestEventDelegate RequestDiscoveredFileSize;
-            public event RequestEventDelegate RequestProgressUpdate;
-
-            private HttpWebRequest m_webRequest;
-            private WebResponse m_webResponse;
-            private Stream m_responseStream;
-
-            public string DownloadSource;
-
-            private const int INT_BUFFER_SIZE = UInt16.MaxValue;
-            private byte[] ma_bBufferStream;
-
-            private System.Timers.Timer m_progressTimer;
-
-            public bool FileDownloading;
-
-            public int BytesDownloaded;
-
-            public int FileSize;
-
-            public byte[] CompleteFileData;
-
-            public bool UnknownSize;
-
-            public object AdditionalData;
-
-            public string Error;
-
-            /// <summary>
-            /// Optional range to include in the request header
-            /// </summary>
-            public int? Range;
-
-            /// <summary>
-            /// Optional referrer to include in the request header
-            /// </summary>
-            public string Referrer = "PRoCon Metabans Plugin/1.1.0.0";
-
-            /// <summary>
-            /// The WebRequestMethods.Http string representing the type of
-            /// method to use in the request.  Default is Get.
-            /// </summary>
-            public string Method;
-
-            /// <summary>
-            /// The contents of a POST request
-            /// </summary>
-            public string RequestContent;
-
-            private int m_timeout;
-            /// <summary>
-            /// ReadTimeout of the stream in milliseconds.  Default is 10 seconds.
-            /// </summary>
-            public int Timeout
-            {
-                get
-                {
-                    return this.m_timeout;
-                }
-                set
-                {
-                    this.m_timeout = value;
-
-                    if (this.m_responseStream != null)
-                    {
-                        this.m_responseStream.ReadTimeout = value;
-                    }
-                }
-            }
-
-            public string FileName
-            {
-                get
-                {
-                    string strReturnFileName = String.Empty;
-
-                    if (this.DownloadSource.Length > 0)
-                    {
-                        strReturnFileName = this.DownloadSource.Substring(this.DownloadSource.LastIndexOf("/") + 1, (this.DownloadSource.Length - this.DownloadSource.LastIndexOf("/") - 1));
-                    }
-
-                    return strReturnFileName;
-                }
-            }
-
-            public MetabansRequest(string downloadSource)
-            {
-                this.DownloadSource = downloadSource;
-
-                this.m_timeout = 30000;
-                this.Method = WebRequestMethods.Http.Get;
-            }
-
-            public void EndDownload()
-            {
-                this.FileDownloading = false;
-            }
-
-            private void RequestTimeoutCallback(object state, bool timedOut)
-            {
-                if (timedOut == true)
-                {
-                    MetabansRequest cdfParent = (MetabansRequest)state;
-
-                    if (cdfParent != null)
-                    {
-                        try
-                        {
-                            cdfParent.m_webRequest.Abort();
-                        }
-                        catch (Exception e)
-                        {
-                            if (this.RequestError != null)
-                            {
-                                this.Error = e.Message;
-
-                                this.RequestError(this);
-                            }
-                        }
-                    }
-                }
-            }
-
-            public void BeginRequest()
-            {
-                try
-                {
-                    new Thread(new ThreadStart(this.BeginRequestCallback)).Start();
-                }
-                catch (Exception e)
-                {
-                    if (this.RequestError != null)
-                    {
-                        this.Error = e.Message;
-
-                        this.RequestError(this);
-                    }
-                }
-            }
-
-            private void BeginRequestCallback()
-            {
-
-                this.UnknownSize = true;
-
-                this.BytesDownloaded = 0;
-                this.FileSize = 1;
-
-                this.FileDownloading = true;
-
-                this.ma_bBufferStream = new byte[MetabansRequest.INT_BUFFER_SIZE];
-
-                try
-                {
-                    this.m_webRequest = (HttpWebRequest)HttpWebRequest.Create(this.DownloadSource);
-                    this.m_webRequest.Method = this.Method;
-
-                    if (this.Range != null)
-                    {
-                        this.m_webRequest.AddRange((int)this.Range);
-                    }
-
-                    if (this.Referrer != null)
-                    {
-                        this.m_webRequest.UserAgent = this.Referrer;
-                    }
-
-                    this.m_webRequest.Headers.Add(System.Net.HttpRequestHeader.AcceptEncoding, "gzip");
-
-                    try
-                    {
-                        this.m_webRequest.Proxy = null;
-                    }
-                    catch (Exception) { }
-
-                    if (this.RequestContent != null && this.RequestContent.Length > 0)
-                    {
-                        this.m_webRequest.ContentType = "application/x-www-form-urlencoded";
-                        this.m_webRequest.ContentLength = this.RequestContent.Length;
-
-                        Stream newStream = this.m_webRequest.GetRequestStream();
-                        // Send the data.
-                        newStream.Write(Encoding.UTF8.GetBytes(this.RequestContent), 0, this.RequestContent.Length);
-                        newStream.Close();
-                    }
-
-                    if (this.m_webRequest != null)
-                    {
-                        IAsyncResult arResult = this.m_webRequest.BeginGetResponse(new AsyncCallback(this.ResponseCallback), this);
-                        ThreadPool.RegisterWaitForSingleObject(arResult.AsyncWaitHandle, new WaitOrTimerCallback(this.RequestTimeoutCallback), this, this.m_timeout, true);
-                    }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(this.DownloadSource);
-                    Console.WriteLine(e.StackTrace);
-
-                    if (this.RequestError != null)
-                    {
-                        this.Error = e.Message;
-
-                        this.RequestError(this);
-                    }
-                }
-            }
-
-            private void ResponseCallback(IAsyncResult ar)
-            {
-                //Request cdfParent = (Request)ar.AsyncState;
-
-                try
-                {
-                    this.m_webResponse = this.m_webRequest.EndGetResponse(ar);
-
-                    string strContentLength = null;
-                    if ((strContentLength = this.m_webResponse.Headers["Content-Length"]) != null)
-                    {
-                        this.FileSize = Convert.ToInt32(strContentLength);
-                        this.CompleteFileData = new byte[this.FileSize];
-
-                        this.UnknownSize = false;
-
-                        if (this.RequestDiscoveredFileSize != null)
-                        {
-                            this.RequestDiscoveredFileSize(this);
-                        }
-                    }
-                    else
-                    {
-                        this.CompleteFileData = new byte[0];
-                    }
-
-                    this.m_responseStream = this.m_webResponse.GetResponseStream();
-
-                    if (this.m_webResponse.Headers.Get("Content-Encoding") != null && this.m_webResponse.Headers.Get("Content-Encoding").ToLower() == "gzip")
-                    {
-                        this.m_responseStream = new GZipStream(this.m_responseStream, CompressionMode.Decompress);
-                    }
-
-                    IAsyncResult arResult = this.m_responseStream.BeginRead(this.ma_bBufferStream, 0, MetabansRequest.INT_BUFFER_SIZE, new AsyncCallback(this.ReadCallBack), this);
-
-                    ThreadPool.RegisterWaitForSingleObject(arResult.AsyncWaitHandle, new WaitOrTimerCallback(this.ReadTimeoutCallback), this, this.m_timeout, true);
-                }
-                catch (Exception e)
-                {
-                    this.FileDownloading = false;
-                    if (this.RequestError != null)
-                    {
-                        this.Error = e.Message;
-
-                        this.RequestError(this);
-                    }
-                }
-            }
-
-            private void ReadTimeoutCallback(object state, bool timedOut)
-            {
-                if (timedOut == true)
-                {
-                    MetabansRequest cdfParent = (MetabansRequest)state;
-                    if (cdfParent != null && cdfParent.m_responseStream != null)
-                    {
-                        cdfParent.m_responseStream.Close();
-
-                        if (cdfParent.RequestError != null)
-                        {
-                            cdfParent.Error = "Read Timeout";
-
-                            cdfParent.RequestError(cdfParent);
-                        }
-                    }
-                }
-            }
-
-            private void ReadCallBack(IAsyncResult ar)
-            {
-
-                if (this.FileDownloading == true)
-                {
-                    try
-                    {
-
-                        int iBytesRead = -1;
-                        if ((iBytesRead = this.m_responseStream.EndRead(ar)) > 0)
-                        {
-
-                            if (this.UnknownSize == true)
-                            {
-                                byte[] resizedFileData = new byte[this.CompleteFileData.Length + iBytesRead];
-
-                                this.CompleteFileData.CopyTo(resizedFileData, 0);
-
-                                this.CompleteFileData = resizedFileData;
-
-                                // Array.Resize<byte>(ref cdfParent.CompleteFileData, cdfParent.CompleteFileData.Length + iBytesRead);
-                            }
-
-                            Array.Copy(this.ma_bBufferStream, 0, this.CompleteFileData, this.BytesDownloaded, iBytesRead);
-                            this.BytesDownloaded += iBytesRead;
-
-                            IAsyncResult arResult = this.m_responseStream.BeginRead(this.ma_bBufferStream, 0, MetabansRequest.INT_BUFFER_SIZE, new AsyncCallback(this.ReadCallBack), this);
-
-                            ThreadPool.RegisterWaitForSingleObject(arResult.AsyncWaitHandle, new WaitOrTimerCallback(this.ReadTimeoutCallback), this, this.m_timeout, true);
-                        }
-                        else
-                        {
-
-                            this.FileDownloading = false;
-                            if (this.RequestComplete != null)
-                            {
-                                //FrostbiteConnection.RaiseEvent(cdfParent.DownloadComplete.GetInvocationList(), cdfParent);
-                                this.RequestComplete(this);
-                            }
-
-                            this.m_responseStream.Close();
-                            this.m_responseStream.Dispose();
-                            this.m_responseStream = null;
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        this.FileDownloading = false;
-                        if (this.RequestError != null)
-                        {
-                            this.Error = e.Message;
-
-                            //FrostbiteConnection.RaiseEvent(cdfParent.DownloadError.GetInvocationList(), cdfParent);
-                            this.RequestError(this);
-                        }
-                    }
-                }
             }
         }
 
