@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 7.6.1.1
- * 04-June-2021
+ * Version 7.6.1.2
+ * 28-Oct-2021
  * 
  * Automatic Update Information
- * <version_code>7.6.1.1</version_code>
+ * <version_code>7.6.1.2</version_code>
  */
 
 using System;
@@ -67,7 +67,7 @@ namespace PRoConEvents
     {
 
         //Current Plugin Version
-        private const String PluginVersion = "7.6.1.1";
+        private const String PluginVersion = "7.6.1.2";
 
         public enum GameVersionEnum
         {
@@ -12857,8 +12857,7 @@ namespace PRoConEvents
                                             //Update IP location
                                             QueuePlayerForIPInfoFetch(aPlayer);
                                         }
-                                        //Get their battlelog information, or update the already fetched battlelog info
-                                        QueuePlayerForBattlelogInfoFetch(aPlayer);
+                                        
                                         //Last Punishment
                                         List<ARecord> punishments = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_punish").command_id, 1000, 1, true, false);
                                         if (punishments.Any())
@@ -13042,6 +13041,10 @@ namespace PRoConEvents
                                         aPlayer.lastAction = UtcNow();
                                         //Add them to the dictionary
                                         _PlayerDictionary.Add(playerInfo.SoldierName, aPlayer);
+
+                                        //Get their battlelog information, or update the already fetched battlelog info
+                                        QueuePlayerForBattlelogInfoFetch(aPlayer);
+
                                         //If they are an admin, and if we protect admins from VIP kicks, update the user list
                                         if (_firstPlayerListComplete && isAdmin && _FeedServerReservedSlots && _FeedServerReservedSlots_Admins_VIPKickWhitelist)
                                         {
@@ -29171,6 +29174,12 @@ namespace PRoConEvents
                         //Sleep for 10ms
                         Threading.Wait(10);
 
+                        if(!_firstPlayerListComplete) 
+                        {
+                            Log.Debug(() => "Playerlist not complete yet. Skipping loop until completed.", 6);
+                            continue;
+                        }
+
                         //Handle Inbound player fetches
                         if (_BattlelogFetchQueue.Count > 0)
                         {
@@ -29185,6 +29194,7 @@ namespace PRoConEvents
                             // Skip player if they left the server already while in queue.
                             if (!_PlayerDictionary.ContainsKey(aPlayer.player_name))
                             {
+                                Log.Debug(() => "Player not in PlayerDictionary when fetching battlelog info. Skipping.", 6);
                                 continue;
                             }
 
