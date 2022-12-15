@@ -63,7 +63,7 @@ using PRoCon.Core.Maps;
 
 namespace PRoConEvents
 {
-    public class AdKats :PRoConPluginAPI, IPRoConPluginInterface
+    public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
 
         //Current Plugin Version
@@ -2893,7 +2893,7 @@ namespace PRoConEvents
             }
         }
 
-         public void BuildProxySettings(List<CPluginVariable> lstReturn)
+        public void BuildProxySettings(List<CPluginVariable> lstReturn)
         {
             List<CPluginVariable> buildList = new List<CPluginVariable>();
             var proxySection = "X98";
@@ -3363,7 +3363,7 @@ namespace PRoConEvents
                     {
                         return;
                     }
-                    using (GZipWebClient client = new GZipWebClient(compress:false))
+                    using (GZipWebClient client = new GZipWebClient(compress: false))
                     {
                         try
                         {
@@ -8878,7 +8878,7 @@ namespace PRoConEvents
                             newTier = 10;
                         }
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         Log.Error("Error parsing Tier. Create rewards with tier 1-10.");
                     }
@@ -8953,7 +8953,7 @@ namespace PRoConEvents
                             Log.Debug(() => "Proxy URL set to " + strValue + ".", 1);
                         }
                     }
-                    catch(UriFormatException)
+                    catch (UriFormatException)
                     {
                         strValue = _ProxyURL;
                         Log.Warn("Invalid Proxy URL! Make sure that the URI is valid!");
@@ -9402,7 +9402,7 @@ namespace PRoConEvents
                     Thread.CurrentThread.Name = "DescFetching";
                     _pluginDescFetchProgress = "Started";
                     //Create web client
-                    GZipWebClient client = new GZipWebClient(compress:false);
+                    GZipWebClient client = new GZipWebClient(compress: false);
                     //Download the readme and changelog
                     Log.Debug(() => "Fetching plugin links...", 2);
                     try
@@ -29174,7 +29174,7 @@ namespace PRoConEvents
                         //Sleep for 10ms
                         Threading.Wait(10);
 
-                        if(!_firstPlayerListComplete)
+                        if (!_firstPlayerListComplete)
                         {
                             Log.Debug(() => "Playerlist not complete yet. Skipping loop until completed.", 6);
                             continue;
@@ -36162,7 +36162,8 @@ namespace PRoConEvents
                         }
                     }
                     if (optionsString.Contains("start") &&
-                        _EventRoundOptions.Any()) {
+                        _EventRoundOptions.Any())
+                    {
                         // If the event isn't active, make the event start next round.
                         if (!EventActive())
                         {
@@ -38719,7 +38720,7 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
-                        GZipWebClient client = new GZipWebClient(compress:false);
+                        GZipWebClient client = new GZipWebClient(compress: false);
                         Log.Debug(() => "Fetching plugin changelog...", 2);
                         try
                         {
@@ -47402,7 +47403,7 @@ namespace PRoConEvents
         public Boolean GetGlobalUTCTimestamp(out DateTime globalUTCTime)
         {
             globalUTCTime = UtcNow();
-            using (GZipWebClient client = new GZipWebClient(compress:false))
+            using (GZipWebClient client = new GZipWebClient(compress: false))
             {
                 try
                 {
@@ -48768,7 +48769,7 @@ namespace PRoConEvents
                     Log.Debug(() => "Preparing to fetch battlelog info for BF3 player " + aPlayer.GetVerboseName(), 7);
                     using (GZipWebClient client = new GZipWebClient())
                     {
-                        if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                        if (_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
                         {
                             client.SetProxy(_ProxyURL);
                         }
@@ -48833,7 +48834,7 @@ namespace PRoConEvents
                     Log.Debug(() => "Preparing to fetch battlelog info for BF4 player " + aPlayer.GetVerboseName(), 7);
                     using (GZipWebClient client = new GZipWebClient())
                     {
-                        if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                        if (_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
                         {
                             client.SetProxy(_ProxyURL);
                         }
@@ -48994,7 +48995,7 @@ namespace PRoConEvents
                     Log.Debug(() => "Preparing to fetch battlelog info for BFHL player " + aPlayer.GetVerboseName(), 7);
                     using (GZipWebClient client = new GZipWebClient())
                     {
-                        if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                        if (_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
                         {
                             client.SetProxy(_ProxyURL);
                         }
@@ -49139,7 +49140,7 @@ namespace PRoConEvents
             {
                 using (GZipWebClient client = new GZipWebClient())
                 {
-                    if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                    if (_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
                     {
                         client.SetProxy(_ProxyURL);
                     }
@@ -49342,7 +49343,7 @@ namespace PRoConEvents
             {
                 using (GZipWebClient client = new GZipWebClient())
                 {
-                    if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                    if (_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
                     {
                         client.SetProxy(_ProxyURL);
                     }
@@ -49585,7 +49586,7 @@ namespace PRoConEvents
             {
                 using (GZipWebClient client = new GZipWebClient())
                 {
-                    if(_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
+                    if (_UseProxy && !String.IsNullOrEmpty(_ProxyURL))
                     {
                         client.SetProxy(_ProxyURL);
                     }
@@ -49736,7 +49737,7 @@ namespace PRoConEvents
         {
             Log.Debug(() => "Entering FetchAdKatsReputationDefinitions", 7);
             ArrayList repTable = null;
-            using (GZipWebClient client = new GZipWebClient(compress:false))
+            using (GZipWebClient client = new GZipWebClient(compress: false))
             {
                 String repInfo;
                 Log.Debug(() => "Fetching reputation definitions...", 2);
@@ -49807,7 +49808,7 @@ namespace PRoConEvents
         {
             Log.Debug(() => "Entering FetchASpecialGroupDefinitions", 7);
             List<ASpecialGroup> SpecialGroupsList = null;
-            using (GZipWebClient client = new GZipWebClient(compress:false))
+            using (GZipWebClient client = new GZipWebClient(compress: false))
             {
                 String groupInfo;
                 Log.Debug(() => "Fetching special group definitions...", 2);
@@ -50015,7 +50016,7 @@ namespace PRoConEvents
         {
             Log.Debug(() => "Entering FetchSQLUpdates", 7);
             List<ASQLUpdate> SQLUpdates = new List<ASQLUpdate>();
-            using (GZipWebClient client = new GZipWebClient(compress:false))
+            using (GZipWebClient client = new GZipWebClient(compress: false))
             {
                 try
                 {
@@ -51067,21 +51068,25 @@ namespace PRoConEvents
             }
         }
 
-        public class GZipWebClient : WebClient {
+        public class GZipWebClient : WebClient
+        {
             private String ua;
             private bool compress;
 
-            public GZipWebClient(String ua = "Mozilla/5.0 (compatible; PRoCon 1; AdKats)", bool compress = true) {
+            public GZipWebClient(String ua = "Mozilla/5.0 (compatible; PRoCon 1; AdKats)", bool compress = true)
+            {
                 this.ua = ua;
                 this.compress = compress;
                 base.Headers["User-Agent"] = ua;
             }
 
-            public string GZipDownloadString(string address) {
+            public string GZipDownloadString(string address)
+            {
                 return this.GZipDownloadString(new Uri(address));
             }
 
-            public string GZipDownloadString(Uri address) {
+            public string GZipDownloadString(Uri address)
+            {
                 base.Headers[HttpRequestHeader.UserAgent] = ua;
 
                 if (compress == false)
@@ -51097,14 +51102,16 @@ namespace PRoConEvents
 
                 Stream decompressedStream = null;
                 StreamReader reader = null;
-                if (!string.IsNullOrEmpty(contentEncoding) && contentEncoding.ToLower().Contains("gzip")) {
+                if (!string.IsNullOrEmpty(contentEncoding) && contentEncoding.ToLower().Contains("gzip"))
+                {
                     decompressedStream = new GZipStream(stream, CompressionMode.Decompress);
                     reader = new StreamReader(decompressedStream);
                 }
-                else {
+                else
+                {
                     reader = new StreamReader(stream);
                 }
-                var data =  reader.ReadToEnd();
+                var data = reader.ReadToEnd();
                 reader.Close();
                 decompressedStream?.Close();
                 stream.Close();
@@ -51113,7 +51120,7 @@ namespace PRoConEvents
 
             public void SetProxy(String proxyURL)
             {
-                if(!String.IsNullOrEmpty(proxyURL))
+                if (!String.IsNullOrEmpty(proxyURL))
                 {
                     Uri uri = new Uri(proxyURL);
                     this.Proxy = new WebProxy(proxyURL, true);
@@ -51303,7 +51310,7 @@ namespace PRoConEvents
             if (false && _UseExperimentalTools && GameVersion == GameVersionEnum.BF4)
             {
                 String externalPluginSource;
-                using (GZipWebClient client = new GZipWebClient(compress:false))
+                using (GZipWebClient client = new GZipWebClient(compress: false))
                 {
                     try
                     {
@@ -51417,7 +51424,7 @@ namespace PRoConEvents
             if (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken))
             {
                 String extensionSource;
-                using (GZipWebClient client = new GZipWebClient(compress:false))
+                using (GZipWebClient client = new GZipWebClient(compress: false))
                 {
                     try
                     {
@@ -51566,7 +51573,7 @@ namespace PRoConEvents
                                 Log.Info("Preparing to download plugin update to version " + _latestPluginVersion);
                             }
                             String pluginSource = null;
-                            using (GZipWebClient client = new GZipWebClient(compress:false))
+                            using (GZipWebClient client = new GZipWebClient(compress: false))
                             {
                                 try
                                 {
@@ -52782,7 +52789,7 @@ namespace PRoConEvents
                 return;
             }
             IPAPILocation loc = new IPAPILocation(aPlayer.player_ip);
-            using (GZipWebClient client = new GZipWebClient(compress:false))
+            using (GZipWebClient client = new GZipWebClient(compress: false))
             {
                 try
                 {
@@ -55033,7 +55040,7 @@ namespace PRoConEvents
                                 {
                                     detail.Damage = (CDefinitionDetail.DetailDamage)Enum.Parse(typeof(CDefinitionDetail.DetailDamage), value);
                                 }
-                                catch(Exception e)
+                                catch (Exception e)
                                 {
                                     _plugin.Log.Error("Unable to create Damage detail with damage type " + value + ".");
                                     return;
@@ -61452,7 +61459,7 @@ namespace PRoConEvents
             {
                 _plugin.Log.Debug(() => "Entering FetchAWeaponNames", 7);
                 Hashtable weaponNames = null;
-                using (GZipWebClient client = new GZipWebClient(compress:false))
+                using (GZipWebClient client = new GZipWebClient(compress: false))
                 {
                     String downloadString;
                     _plugin.Log.Debug(() => "Fetching weapon names...", 2);
@@ -62087,7 +62094,7 @@ namespace PRoConEvents
             private Hashtable FetchWeaponDefinitions()
             {
                 Hashtable statTable = null;
-                using (GZipWebClient client = new GZipWebClient(compress:false))
+                using (GZipWebClient client = new GZipWebClient(compress: false))
                 {
                     String weaponInfo;
                     Plugin.Log.Debug(() => "Fetching weapon statistic definitions...", 2);
@@ -62278,7 +62285,7 @@ namespace PRoConEvents
                     //Attempt to fetch and parse
                     if (!String.IsNullOrEmpty(widgetURL))
                     {
-                        using (GZipWebClient client = new GZipWebClient(compress:false))
+                        using (GZipWebClient client = new GZipWebClient(compress: false))
                         {
                             try
                             {
@@ -62328,7 +62335,8 @@ namespace PRoConEvents
                                     validChannels.Add(ID);
                                     if (!Channels.TryGetValue(ID, out builtChannel))
                                     {
-                                        builtChannel = new DiscordChannel() {
+                                        builtChannel = new DiscordChannel()
+                                        {
                                             ID = ID
                                         };
                                         Channels[ID] = builtChannel;
