@@ -40425,9 +40425,9 @@ namespace PRoConEvents
                         {
                             while (reader.Read())
                             {
-                                String typeAction = reader.GetInt32("command_type") + "|" + reader.GetInt32("command_action");
-                                Double command_count = reader.GetDouble("command_count");
-                                Double weight = 0;
+                                string typeAction = reader.GetInt32("command_type") + "|" + reader.GetInt32("command_action");
+                                double command_count = (double)reader.GetInt64("command_count");
+                                double weight = 0;
                                 if (_commandSourceReputationDictionary.TryGetValue(typeAction, out weight))
                                 {
                                     sourceReputation += (weight * command_count);
@@ -40458,9 +40458,9 @@ namespace PRoConEvents
                         {
                             while (reader.Read())
                             {
-                                String typeAction = reader.GetInt32("command_type") + "|" + reader.GetInt32("command_action");
-                                Double command_count = reader.GetDouble("command_count");
-                                Double weight = 0;
+                                string typeAction = reader.GetInt32("command_type") + "|" + reader.GetInt32("command_action");
+                                double command_count = (double)reader.GetInt64("command_count");
+                                double weight = 0;
                                 if (_commandTargetReputationDictionary.TryGetValue(typeAction, out weight))
                                 {
                                     targetReputation += (weight * command_count);
@@ -40497,9 +40497,9 @@ namespace PRoConEvents
                         {
                             while (reader.Read())
                             {
-                                String typeAction = reader.GetInt32("command_type") + "|" + reader.GetInt32("command_action");
-                                Double command_count = reader.GetDouble("command_count");
-                                Double weight = 0;
+                                string typeAction = reader.GetInt32("command_type") + "|" + reader.GetInt32("command_action");
+                                double command_count = (double)reader.GetInt64("command_count");
+                                double weight = 0;
                                 if (_commandSourceReputationDictionary.TryGetValue(typeAction, out weight))
                                 {
                                     sourceReputation += (weight * command_count);
@@ -42638,11 +42638,11 @@ namespace PRoConEvents
                                     }
                                     if (!reader.IsDBNull(8))
                                     {
-                                        aPlayer.player_battlelog_personaID = reader.GetString("player_personaID");
+                                        aPlayer.player_battlelog_personaID = reader.GetInt64("player_personaID").ToString();
                                     }
                                     if (!reader.IsDBNull(9))
                                     {
-                                        aPlayer.player_battlelog_userID = reader.GetString("player_userID");
+                                        aPlayer.player_battlelog_userID = reader.GetInt64("player_userID").ToString();
                                     }
                                     if (!String.IsNullOrEmpty(aPlayer.player_battlelog_personaID) && !String.IsNullOrEmpty(aPlayer.player_battlelog_userID))
                                     {
@@ -52863,7 +52863,7 @@ namespace PRoConEvents
             compilerParameters.ReferencedAssemblies.Add("Microsoft.Extensions.DependencyInjection.Abstractions.dll");
             compilerParameters.ReferencedAssemblies.Add("System.Diagnostics.DiagnosticSource.dll");
             compilerParameters.ReferencedAssemblies.Add("System.Threading.Tasks.Extensions.dll");
-            compilerParameters.ReferencedAssemblies.Add("MysqlConnector.dll");
+            compilerParameters.ReferencedAssemblies.Add("MySqlConnector.dll");
 
             compilerParameters.GenerateInMemory = true;
             compilerParameters.IncludeDebugInformation = false;
