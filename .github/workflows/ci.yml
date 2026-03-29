@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  format-check:
+    name: Code Style Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore packages
+        run: dotnet restore
+
+      - name: Check whitespace formatting
+        run: dotnet format whitespace --verify-no-changes --verbosity diagnostic
+
+      - name: Check code style
+        run: dotnet format style --verify-no-changes --severity warn --exclude-diagnostics IDE1007
