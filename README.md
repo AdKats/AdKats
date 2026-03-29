@@ -1,4 +1,10 @@
-[//]: # "<latest_stable_release>7.6.1.3</latest_stable_release>"
+[//]: # "<latest_stable_release>9.0.0.0</latest_stable_release>"
+
+> **AdKats v9 — Procon v2 Only**
+>
+> This is the current version of AdKats, rewritten for **Procon v2**.
+> For the legacy Procon v1 version, see the [`legacy`](../../tree/legacy) branch.
+
 <p>
     <a name=adkats />
     <img src="https://i.imgur.com/r9pwH3A.png" alt="AdKats Advanced In-Game Admin Tools">
