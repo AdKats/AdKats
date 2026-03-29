@@ -46,6 +46,7 @@ Designed for groups with high-traffic servers and many admins, but works just as
 
 - **Procon v2**
 - **MySQL Database** &mdash; Used for cross-server settings, ban enforcement, player tracking, and all persistent data.
+- **CChatGUIDStatsLogger** (XpKiller's Stats Logger) &mdash; Required for player stats tracking and database logging. Not yet refactored for v9.
 
 ## Installation
 
