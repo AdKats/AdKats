@@ -1309,19 +1309,19 @@ namespace PRoConEvents
                       CONSTRAINT `adkats_statistics_server_id_fk` FOREIGN KEY (`server_id`) REFERENCES `tbl_server` (`ServerID`) ON DELETE NO ACTION ON UPDATE NO ACTION
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Statistics'", true);
             }
-            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_effective' )", false))
+            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = @Schema AND TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_effective' )", false, new { Schema = _mySqlSchemaName }))
             {
                 Log.Info("Special player effective not found. Attempting to add.");
                 SendNonQuery("Adding special player effective.", "ALTER TABLE `adkats_specialplayers` ADD COLUMN `player_effective` DATETIME NOT NULL AFTER `player_identifier`", true);
                 SendNonQuery("Adding initial special player effective values.", "UPDATE `adkats_specialplayers` SET `player_effective` = UTC_TIMESTAMP()", true);
             }
-            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_expiration' )", false))
+            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = @Schema AND TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_expiration' )", false, new { Schema = _mySqlSchemaName }))
             {
                 Log.Info("Special player expiration not found. Attempting to add.");
                 SendNonQuery("Adding special player expiration.", "ALTER TABLE `adkats_specialplayers` ADD COLUMN `player_expiration` DATETIME NOT NULL AFTER `player_effective`", true);
                 SendNonQuery("Adding initial special player expiration values.", "UPDATE `adkats_specialplayers` SET `player_expiration` = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)", true);
             }
-            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'tbl_playerdata' AND COLUMN_NAME = 'DiscordID' )", false))
+            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = @Schema AND TABLE_NAME = 'tbl_playerdata' AND COLUMN_NAME = 'DiscordID' )", false, new { Schema = _mySqlSchemaName }))
             {
                 Log.Info("Player discord info column not found. Attempting to add.");
                 SendNonQuery("Adding special player expiration.", "ALTER TABLE `tbl_playerdata` ADD COLUMN `DiscordID` VARCHAR(50) AFTER `IP_Address`", true);
@@ -1495,7 +1495,7 @@ namespace PRoConEvents
                    ConfirmTable("adkats_challenge_entry_detail") &&
                    ConfirmTable("adkats_challenge_reward") &&
                    ConfirmTable("tbl_extendedroundstats") &&
-                   !SendQuery("SELECT `TABLE_NAME` AS `table_name` FROM `INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA` = '" + _mySqlSchemaName + "' AND `TABLE_NAME` LIKE 'adkats_%' AND ENGINE <> 'InnoDB'", false);
+                   !SendQuery("SELECT `TABLE_NAME` AS `table_name` FROM `INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA` = @Schema AND `TABLE_NAME` LIKE 'adkats_%' AND ENGINE <> 'InnoDB'", false, new { Schema = _mySqlSchemaName });
         }
 
         private Boolean ConfirmStatLoggerTables()
@@ -2986,7 +2986,7 @@ namespace PRoConEvents
             }
         }
 
-        private Boolean SendQuery(String query, Boolean verbose)
+        private Boolean SendQuery(String query, Boolean verbose, Object param = null)
         {
             if (String.IsNullOrEmpty(query))
             {
@@ -2996,12 +2996,12 @@ namespace PRoConEvents
             {
                 using (MySqlConnection connection = GetDatabaseConnection())
                 {
-                    var result = connection.QueryFirstOrDefault<dynamic>(query);
+                    var result = connection.QueryFirstOrDefault<dynamic>(query, param);
                     if (result != null)
                     {
                         if (verbose)
                         {
-                            var dict = (IDictionary<string, object>)result;
+                            var dict = (IDictionary<String, Object>)result;
                             Log.Success("Query returned value " + dict.Values.First()?.ToString() + ".");
                         }
                         return true;
