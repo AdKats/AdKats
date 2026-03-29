@@ -317,6 +317,21 @@ REPLACE INTO `adkats_commands` VALUES(141, 'Active', 'player_challenge_autokill_
 REPLACE INTO `adkats_commands` VALUES(142, 'Active', 'player_challenge_play_remove', 'Log', 'Remove Challenge Playing Status', 'unchallengeplay', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(143, 'Active', 'player_challenge_ignore_remove', 'Log', 'Remove Challenge Ignoring Status', 'unchallengeignore', TRUE, 'Any');
 REPLACE INTO `adkats_commands` VALUES(144, 'Invisible', 'player_challenge_complete', 'Log', 'Player Completed Challenge', 'challengecomplete', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(146, 'Active', 'player_unmute', 'Log', 'Unmute Player', 'unmute', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(147, 'Active', 'player_whitelistbf4db', 'Log', 'BF4DB Whitelist Player', 'bf4dbwhitelist', TRUE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(148, 'Active', 'player_whitelistbf4db_remove', 'Log', 'Remove BF4DB Whitelist', 'unbf4dbwhitelist', TRUE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(149, 'Active', 'player_persistentmute', 'Log', 'Persistent Mute Player', 'pmute', TRUE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(150, 'Active', 'player_persistentmute_remove', 'Log', 'Remove Persistent Mute', 'punmute', TRUE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(151, 'Active', 'player_watchlist', 'Log', 'Add Player to Watchlist', 'watch', TRUE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(152, 'Active', 'player_watchlist_remove', 'Log', 'Remove Player from Watchlist', 'rwatch', TRUE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(153, 'Active', 'player_persistentmute_force', 'Log', 'Persistent Force Mute Player', 'fmute', TRUE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(154, 'Active', 'player_whitelistmoveprotection', 'Log', 'Move Protection Whitelist Player', 'movewhitelist', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(155, 'Active', 'player_whitelistmoveprotection_remove', 'Log', 'Remove Move Protection Whitelist', 'unmovewhitelist', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(156, 'Active', 'player_language_punish', 'Log', 'Issue Language Punish', 'lpunish', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(157, 'Active', 'player_language_reset', 'Log', 'Issue Language Counter Reset', 'lreset', TRUE, 'Any');
+REPLACE INTO `adkats_commands` VALUES(158, 'Active', 'player_whitelistba', 'Log', 'BattlefieldAgency Whitelist Player', 'bawhitelist', TRUE, 'AnyHidden');
+REPLACE INTO `adkats_commands` VALUES(159, 'Active', 'player_whitelistba_remove', 'Log', 'Remove BattlefieldAgency Whitelist', 'unbawhitelist', TRUE, 'AnyHidden');
+
 
 DROP TABLE IF EXISTS `adkats_infractions_global`;
 CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
@@ -628,6 +643,15 @@ REPLACE INTO `adkats_rolecommands` VALUES(2, 140);
 REPLACE INTO `adkats_rolecommands` VALUES(2, 141);
 REPLACE INTO `adkats_rolecommands` VALUES(2, 142);
 REPLACE INTO `adkats_rolecommands` VALUES(2, 143);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 146);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 147);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 148);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 149);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 150);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 151);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 152);
+
+
 
 DROP TABLE IF EXISTS `adkats_roles`;
 CREATE TABLE IF NOT EXISTS `adkats_roles` (
@@ -723,6 +747,7 @@ CREATE TABLE `tbl_extendedroundstats` (
 	`team1_tpm` double NOT NULL,
 	`team2_tpm` double NOT NULL,
 	`roundstat_time` datetime NOT NULL,
+	`map` varchar(25) CHARACTER SET 'utf8' COLLATE 'utf8_general_ci' NULL DEFAULT NULL,
 	PRIMARY KEY (`roundstat_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Extended Round Stats';
 

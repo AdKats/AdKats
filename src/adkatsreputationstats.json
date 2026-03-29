@@ -843,5 +843,95 @@
     "command_typeaction": "144|144",
     "target_weight": 0,
     "source_weight": 0
+  },
+  {
+    "command_typeaction": "146|146",
+    "target_weight": 8,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "147|147",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "148|148",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "149|149",
+    "target_weight": -10,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "150|150",
+    "target_weight": 8,
+    "source_weight": 1
+  },
+  {
+    "command_typeaction": "151|151",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "152|152",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "153|153",
+    "target_weight": -10,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "154|154",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "155|155",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "156|156",
+    "target_weight": -10,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "156|92",
+    "target_weight": -8,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "156|11",
+    "target_weight": -9,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "156|149",
+    "target_weight": -10,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "157|157",
+    "target_weight": 8,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "158|158",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "159|159",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "901|901",
+    "target_weight": 0,
+    "source_weight": 0
   }
 ] 
