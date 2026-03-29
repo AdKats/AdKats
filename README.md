@@ -9,7 +9,8 @@
 </p>
 
 <p align="center">
-    <a href="../../tree/legacy">Looking for the Procon v1 version? See the <code>legacy</code> branch.</a>
+    <a href="../../wiki">Full Documentation (Wiki)</a> &bull;
+    <a href="../../tree/legacy">Procon v1 (legacy branch)</a>
 </p>
 
 ---
@@ -40,7 +41,18 @@ Designed for groups with high-traffic servers and many admins, but works just as
 - **Cross-Server Messaging** &mdash; Player-to-player communication across servers.
 - **TeamSpeak & Discord Integration** &mdash; Perks and monitoring via VOIP platforms.
 - **Challenge System** &mdash; Round-based competitive challenges.
-- **On-Spawn Loadout Enforcer** &mdash; BF4 infantry and vehicle loadout enforcement via the AdKatsLRT extension.
+- **On-Spawn Loadout Enforcer** &mdash; BF4 infantry and vehicle loadout enforcement via [AdKatsLRT](https://github.com/AdKats/AdKats-LRT).
+
+## Documentation
+
+Full documentation is available on the [**AdKats Wiki**](../../wiki), including:
+
+- [Commands Reference](../../wiki/Commands) — all 100+ in-game commands
+- [Settings Guide](../../wiki/Settings) — complete configuration reference
+- [AntiCheat System](../../wiki/AntiCheat) — cheat detection setup
+- [Ban Enforcer](../../wiki/Ban-Enforcer) — cross-server ban management
+- [Infraction System](../../wiki/Infraction-System) — punishment tracking
+- [External Commands API](../../wiki/External-Commands-API) — integrating with AdKats from other plugins
 
 ## Dependencies
 
@@ -78,8 +90,6 @@ src/
     Settings.cs          # Plugin settings and configuration
     Threading.cs         # Thread management and synchronization
     Utilities.cs         # Helper functions
-  extensions/
-    AdKatsLRT.cs         # On-spawn loadout enforcer (BF4)
   lib/                   # Game data files (loadouts, weapon codes)
   adkats.sql             # Database schema
   *.json                 # Weapon stats, reputation data, update manifests
@@ -115,7 +125,7 @@ Releases are automated via GitHub Actions. To create a release:
 ## Community
 
 - [AdKats Forum Thread](https://myrcon.net/topic/459-advanced-in-game-admin-and-ban-enforcer-adkats/) &mdash; Discussion and support on myrcon.net
-- [AdKatsLRT Extension](https://myrcon.net/files/file/32-on-spawn-loadout-enforcer-for-infantryvehicles-adkatslrt/) &mdash; On-spawn loadout enforcer for BF4
+- [AdKatsLRT Extension](https://github.com/AdKats/AdKats-LRT) &mdash; On-spawn loadout enforcer for BF4
 
 ## History
 
