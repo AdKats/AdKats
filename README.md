@@ -111,6 +111,11 @@ Releases are automated via GitHub Actions. To create a release:
 2. Push the tag: `git push origin v9.0.0`
 3. GitHub Actions will package the source files and create a release automatically.
 
+## Community
+
+- [AdKats Forum Thread](https://myrcon.net/topic/459-advanced-in-game-admin-and-ban-enforcer-adkats/) &mdash; Discussion and support on myrcon.net
+- [AdKatsLRT Extension](https://myrcon.net/files/file/32-on-spawn-loadout-enforcer-for-infantryvehicles-adkatslrt/) &mdash; On-spawn loadout enforcer for BF4
+
 ## History
 
 AdKats was originally created by Daniel J. Gradinjan (ColColonCleaner) for A Different Kind (ADK) on April 20, 2013. Version 8.0+ was maintained by Hedius. Version 9.0 is a rewrite for Procon v2.
