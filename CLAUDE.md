@@ -32,7 +32,6 @@ The plugin uses a **partial class** pattern — `AdKats` is split across 16+ fil
 | `src/AdKats/Settings.cs` | Plugin settings UI and persistence |
 | `src/AdKats/Threading.cs` | ThreadManager, watchdog threads |
 | `src/AdKats/Utilities.cs` | Helpers: HTTP, logging, string ops, parameter parsing |
-| `src/extensions/AdKatsLRT.cs` | On-spawn loadout enforcer (BF4) — separate plugin |
 
 ## Code Style
 
