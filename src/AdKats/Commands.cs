@@ -3293,7 +3293,7 @@ namespace PRoConEvents
                             switch (parameters.Length)
                             {
                                 case 1:
-                                    if (record.source_player != null && !PlayerIsAdmin(record.source_player) && record.source_name != _debugSoldierName)
+                                    if (record.source_player != null && !PlayerIsAdmin(record.source_player))
                                     {
                                         SendMessageToSource(record, "You cannot see another player's perks. Admin only.");
                                         FinalizeRecord(record);
@@ -8061,11 +8061,6 @@ namespace PRoConEvents
                         {"response_value", CPluginVariable.EncodeStringArray(record.debugMessages.ToArray())}
                     };
                     ExecuteCommand("procon.protected.plugins.call", record.external_responseClass, record.external_responseMethod, "AdKats", JSON.JsonEncode(responseHashtable));
-                }
-                //Performance testing area
-                if (record.source_name == _debugSoldierName)
-                {
-                    SendMessageToSource(record, "Duration: " + ((int)UtcNow().Subtract(_commandStartTime).TotalMilliseconds) + "ms");
                 }
                 if (record.record_source == ARecord.Sources.InGame || record.record_source == ARecord.Sources.Automated)
                 {

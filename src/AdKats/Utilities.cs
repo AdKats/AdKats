@@ -149,7 +149,11 @@ namespace PRoConEvents
                     {
                         Log.Debug(() => "Param " + i + ": " + paramSplit[i], 6);
                         parameters.Add(paramSplit[i]);
-                        message = message.TrimStart(paramSplit[i].ToCharArray()).Trim();
+                        Int32 paramIdx = message.IndexOf(paramSplit[i]);
+                        if (paramIdx >= 0)
+                        {
+                            message = message.Substring(paramIdx + paramSplit[i].Length).Trim();
+                        }
                     }
                     //Add final multi-word parameter
                     parameters.Add(message);

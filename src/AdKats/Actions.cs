@@ -47,10 +47,9 @@ namespace PRoConEvents
 
                         //Get all unprocessed inbound kills
                         Queue<Kill> inboundPlayerKills;
-                        if (_KillProcessingQueue.Count > 0)
+                        lock (_KillProcessingQueue)
                         {
-                            Log.Debug(() => "Preparing to lock inbound kill queue to retrive new player kills", 7);
-                            lock (_KillProcessingQueue)
+                            if (_KillProcessingQueue.Count > 0)
                             {
                                 Log.Debug(() => "Inbound kills found. Grabbing.", 6);
                                 //Grab all kills in the queue
@@ -58,8 +57,12 @@ namespace PRoConEvents
                                 //Clear the queue for next run
                                 _KillProcessingQueue.Clear();
                             }
+                            else
+                            {
+                                inboundPlayerKills = null;
+                            }
                         }
-                        else
+                        if (inboundPlayerKills == null)
                         {
                             Log.Debug(() => "No inbound player kills. Waiting for Input.", 6);
                             //Wait for input
@@ -1382,13 +1385,6 @@ namespace PRoConEvents
                             PlayerSayMessage(soldierName, adminAssistantMessage);
                             aPlayer.player_aa_told = true;
                         }
-                    }
-
-                    //Handle Dev Notifications
-                    if (soldierName == "H3dius" && !_toldCol)
-                    {
-                        PlayerTellMessage("H3dius", "AdKats " + PluginVersion + " running!");
-                        _toldCol = true;
                     }
 
                     var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;
@@ -10863,10 +10859,6 @@ namespace PRoConEvents
                 {
                     Log.Error("player was null in hasAccess.");
                     return false;
-                }
-                if (aPlayer.player_name == _debugSoldierName)
-                {
-                    return true;
                 }
                 if (aPlayer.player_role == null)
                 {

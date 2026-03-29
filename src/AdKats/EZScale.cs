@@ -82,8 +82,12 @@ namespace PRoConEvents
                 }
 
                 String personaId = persona["persona_id"]?.ToString();
-                if (String.IsNullOrEmpty(personaId))
+                if (String.IsNullOrEmpty(personaId) || !System.Text.RegularExpressions.Regex.IsMatch(personaId, @"^\d+$"))
                 {
+                    if (!String.IsNullOrEmpty(personaId))
+                    {
+                        Log.Warn("EZScale: Invalid persona ID format: " + personaId);
+                    }
                     FetchPlayerBattlelogInformation(aPlayer);
                     return;
                 }

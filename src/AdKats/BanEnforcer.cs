@@ -40,15 +40,16 @@ namespace PRoConEvents
                             Log.Debug(() => "Preparing to lock banEnforcerMutex to retrive new players", 6);
                             lock (_BanEnforcerCheckingQueue)
                             {
+                                if (_databaseConnectionCriticalState)
+                                {
+                                    // Leave queue intact so players are rechecked when DB recovers
+                                    continue;
+                                }
                                 Log.Debug(() => "Inbound ban enforcer players found. Grabbing.", 5);
                                 //Grab all players in the queue
                                 playerCheckingQueue = new Queue<APlayer>(_BanEnforcerCheckingQueue.ToArray());
                                 //Clear the queue for next run
                                 _BanEnforcerCheckingQueue.Clear();
-                                if (_databaseConnectionCriticalState)
-                                {
-                                    continue;
-                                }
                             }
                         }
                         else

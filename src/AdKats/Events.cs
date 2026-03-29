@@ -19,6 +19,11 @@ namespace PRoConEvents
             {
                 Log.Debug(() => "^9OnPluginLoadingEnv: " + env, 7);
             }
+            if (lstPluginEnv.Count < 2)
+            {
+                Log.Error("OnPluginLoadingEnv received insufficient data (" + lstPluginEnv.Count + " elements).");
+                return;
+            }
             switch (lstPluginEnv[1])
             {
                 case "BF3":
@@ -521,15 +526,21 @@ namespace PRoConEvents
                                 {
                                     // Team 1 needs a bad squad moved to team 2
                                     var worstSquad = t1Squads.OrderBy(dSquad => dSquad.Players.Sum(member => member.GetPower(true))).FirstOrDefault();
-                                    worstSquad.TeamID = team2.TeamID;
-                                    Log.Info("REASSIGNED SQUAD TO TEAM 2: " + worstSquad);
+                                    if (worstSquad != null)
+                                    {
+                                        worstSquad.TeamID = team2.TeamID;
+                                        Log.Info("REASSIGNED SQUAD TO TEAM 2: " + worstSquad);
+                                    }
                                 }
                                 else
                                 {
                                     // Team 2 needs a bad squad moved to team 1
                                     var worstSquad = t2Squads.OrderBy(dSquad => dSquad.Players.Sum(member => member.GetPower(true))).FirstOrDefault();
-                                    worstSquad.TeamID = team1.TeamID;
-                                    Log.Info("REASSIGNED SQUAD TO TEAM 1: " + worstSquad);
+                                    if (worstSquad != null)
+                                    {
+                                        worstSquad.TeamID = team1.TeamID;
+                                        Log.Info("REASSIGNED SQUAD TO TEAM 1: " + worstSquad);
+                                    }
                                 }
                             }
 
@@ -943,14 +954,7 @@ namespace PRoConEvents
                                 if (_UseExperimentalTools)
                                 {
                                     var message = aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") attempted to switch teams after being assigned to " + aPlayer.RequiredTeam.GetTeamIDKey() + ".";
-                                    if (_PlayerDictionary.ContainsKey(_debugSoldierName))
-                                    {
-                                        PlayerSayMessage(_debugSoldierName, message);
-                                    }
-                                    else
-                                    {
-                                        ProconChatWrite(Log.CViolet(message));
-                                    }
+                                    ProconChatWrite(Log.CViolet(message));
                                 }
                                 PlayerTellMessage(aPlayer.player_name, Log.CViolet("You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using " + GetChatCommandByKey("self_assist") + " to switch."));
                                 aPlayer.lastSwitchMessage = UtcNow();
@@ -1102,11 +1106,7 @@ namespace PRoConEvents
                                     weakCount < maxTeamPlayerCount)
                                 {
                                     var message = Log.CViolet(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") join-assigned to " + weakTeam.GetTeamIDKey() + " [" + acceptReason + "].");
-                                    if (_PlayerDictionary.ContainsKey(_debugSoldierName))
-                                    {
-                                        PlayerSayMessage(_debugSoldierName, message);
-                                    }
-                                    else if (_UseExperimentalTools)
+                                    if (_UseExperimentalTools)
                                     {
                                         ProconChatWrite(message);
                                     }
@@ -1126,11 +1126,7 @@ namespace PRoConEvents
                             if (newTeam == powerTeam)
                             {
                                 var message = Log.CViolet(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") unswitched back to " + weakTeam.GetTeamIDKey() + ".");
-                                if (_PlayerDictionary.ContainsKey(_debugSoldierName))
-                                {
-                                    PlayerSayMessage(_debugSoldierName, message);
-                                }
-                                else if (_UseExperimentalTools)
+                                if (_UseExperimentalTools)
                                 {
                                     ProconChatWrite(message);
                                 }
@@ -2834,13 +2830,6 @@ namespace PRoConEvents
                             PlayerSayMessage(soldierName, adminAssistantMessage);
                             aPlayer.player_aa_told = true;
                         }
-                    }
-
-                    //Handle Dev Notifications
-                    if (soldierName == "ColColonCleaner" && !_toldCol)
-                    {
-                        PlayerTellMessage("ColColonCleaner", "AdKats " + PluginVersion + " running!");
-                        _toldCol = true;
                     }
 
                     var startDuration = NowDuration(_AdKatsStartTime).TotalSeconds;

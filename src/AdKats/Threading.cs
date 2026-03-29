@@ -59,9 +59,10 @@ namespace PRoConEvents
                         if (!_watchdogThreads.ContainsKey(aThread.ManagedThreadId))
                         {
                             _watchdogThreads.Add(aThread.ManagedThreadId, aThread);
-                            _masterWaitHandle.WaitOne(100);
                         }
                     }
+                    // Brief delay for thread startup, outside the lock to avoid blocking other threads
+                    _masterWaitHandle.WaitOne(100);
                 }
                 catch (Exception e)
                 {

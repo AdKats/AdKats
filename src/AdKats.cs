@@ -197,15 +197,12 @@ namespace PRoConEvents
         private Int32 _MemoryUsageRestartProcon = 2048;
 
         //Debug
-        private String _debugSoldierName = "Kim_Jong_H3dius";
-        private Boolean _toldCol;
         private Boolean _debugDisplayPlayerFetches;
 
         //Timing
         private readonly DateTime _proconStartTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _AdKatsStartTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _AdKatsRunningTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private DateTime _commandStartTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastBanListCall = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastDbBanFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastGUIDBanCountFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
@@ -1502,7 +1499,6 @@ namespace PRoConEvents
                         {
                             _AssistAttemptQueue.Clear();
                         }
-                        _toldCol = false;
                         if (_Team2MoveQueue != null)
                         {
                             _Team2MoveQueue.Clear();
@@ -2370,11 +2366,7 @@ namespace PRoConEvents
                             message += t2.GetTeamIDKey() + " up " + Math.Round(((t2Power - t1Power) / t1Power) * 100) + "% ";
                         }
                         message += "^n(" + t1.TeamKey + ":" + t1.GetTeamPower() + ":" + t1.GetTeamPower(false) + " / " + t2.TeamKey + ":" + t2.GetTeamPower() + ":" + t2.GetTeamPower(false) + ")";
-                        if (_PlayerDictionary.ContainsKey(_debugSoldierName))
-                        {
-                            PlayerSayMessage(_debugSoldierName, Log.FBold(message));
-                        }
-                        else if (GetPlayerCount() > 5)
+                        if (GetPlayerCount() > 5)
                         {
                             ProconChatWrite(Log.FBold(message));
                         }

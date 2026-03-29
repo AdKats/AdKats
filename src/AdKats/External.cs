@@ -45,8 +45,8 @@ namespace PRoConEvents
         // Parsed schedule cache
         private Dictionary<DayOfWeek, List<Tuple<TimeSpan, TimeSpan>>> _VpnKickScheduleParsed;
 
-        // Pending IP-to-player lookups
-        private readonly Dictionary<String, APlayer> _PendingIPChecks = new Dictionary<String, APlayer>();
+        // Pending IP-to-player lookups (with timestamp for expiry sweep)
+        private readonly Dictionary<String, Tuple<APlayer, DateTime>> _PendingIPChecks = new Dictionary<String, Tuple<APlayer, DateTime>>();
         private readonly Object _PendingIPChecksLock = new Object();
 
         // =====================================================================
@@ -72,10 +72,19 @@ namespace PRoConEvents
                 ip = ip.Substring(0, colonIdx);
             }
 
-            // Track this pending lookup
+            // Track this pending lookup and sweep stale entries
             lock (_PendingIPChecksLock)
             {
-                _PendingIPChecks[ip] = aPlayer;
+                _PendingIPChecks[ip] = Tuple.Create(aPlayer, UtcNow());
+                // Sweep entries older than 60 seconds
+                var staleKeys = _PendingIPChecks
+                    .Where(kvp => (UtcNow() - kvp.Value.Item2).TotalSeconds > 60)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+                foreach (var key in staleKeys)
+                {
+                    _PendingIPChecks.Remove(key);
+                }
             }
 
             // Request the check from Procon's shared IPCheckService
@@ -98,7 +107,7 @@ namespace PRoConEvents
                 {
                     if (_PendingIPChecks.ContainsKey(ip))
                     {
-                        aPlayer = _PendingIPChecks[ip];
+                        aPlayer = _PendingIPChecks[ip].Item1;
                         _PendingIPChecks.Remove(ip);
                     }
                 }

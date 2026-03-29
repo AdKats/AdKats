@@ -121,8 +121,11 @@ namespace PRoConEvents
                 }
                 catch (WebException e)
                 {
-                    response = e.Response;
-                    Plugin.Log.Info("RESPONSE: " + new StreamReader(response.GetResponseStream()).ReadToEnd());
+                    using (response = e.Response)
+                    using (var reader = new StreamReader(response.GetResponseStream()))
+                    {
+                        Plugin.Log.Info("RESPONSE: " + reader.ReadToEnd());
+                    }
                     Plugin.Log.HandleException(new AException("Error sending private PushBullet note.", e));
                 }
             }
@@ -172,8 +175,11 @@ namespace PRoConEvents
                 }
                 catch (WebException e)
                 {
-                    response = e.Response;
-                    Plugin.Log.Info("RESPONSE: " + new StreamReader(response.GetResponseStream()).ReadToEnd());
+                    using (response = e.Response)
+                    using (var reader = new StreamReader(response.GetResponseStream()))
+                    {
+                        Plugin.Log.Info("RESPONSE: " + reader.ReadToEnd());
+                    }
                     Plugin.Log.HandleException(new AException("Error sending private PushBullet note.", e));
                 }
             }
@@ -527,7 +533,7 @@ namespace PRoConEvents
                         _plugin.Log.HandleException(new AException("Unable to get weapon long NAME for CODE '" + weaponCode + "', in " + Weapons.Count() + " weapons."));
                         return weaponCode;
                     }
-                    return weaponName.ShortName;
+                    return weaponName.LongName;
                 }
                 catch (Exception e)
                 {
@@ -553,11 +559,11 @@ namespace PRoConEvents
             public String CustomHTMLAddition;
             public AdKats Plugin;
             public List<String> RecipientEmails = new List<string>();
-            public String SMTPPassword = "paqwjboqkbfywapu";
+            public String SMTPPassword = "";
             public Int32 SMTPPort = 587;
-            public String SMTPServer = "smtp.gmail.com";
-            public String SMTPUser = "adkatsbattlefield@gmail.com";
-            public String SenderEmail = "adkatsbattlefield@gmail.com";
+            public String SMTPServer = "";
+            public String SMTPUser = "";
+            public String SenderEmail = "";
             public Boolean UseSSL = true;
             private Thread _EmailProcessingThread;
 
@@ -1493,8 +1499,11 @@ namespace PRoConEvents
                 }
                 catch (WebException e)
                 {
-                    WebResponse response = e.Response;
-                    _plugin.Log.Info("RESPONSE: " + new StreamReader(response.GetResponseStream()).ReadToEnd());
+                    using (WebResponse response = e.Response)
+                    using (var reader = new StreamReader(response.GetResponseStream()))
+                    {
+                        _plugin.Log.Info("RESPONSE: " + reader.ReadToEnd());
+                    }
                     _plugin.Log.HandleException(new AException("Web error posting to Discord WebHook.", e));
                 }
                 catch (Exception e)

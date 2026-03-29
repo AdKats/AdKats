@@ -41,10 +41,9 @@ namespace PRoConEvents
                         //Get all unparsed inbound lists
                         //Only allow player list fetching if the user list is already fetched
                         List<CPlayerInfo> inboundPlayerList = null;
-                        if (_PlayerListProcessingQueue.Count > 0 && _firstUserListComplete)
+                        lock (_PlayerListProcessingQueue)
                         {
-                            Log.Debug(() => "Preparing to lock player list queues to retrive new player lists", 7);
-                            lock (_PlayerListProcessingQueue)
+                            if (_PlayerListProcessingQueue.Count > 0 && _firstUserListComplete)
                             {
                                 Log.Debug(() => "Inbound player lists found. Grabbing.", 6);
                                 while (_PlayerListProcessingQueue.Any())
@@ -57,17 +56,16 @@ namespace PRoConEvents
                                 _PlayerListProcessingQueue.Clear();
                             }
                         }
-                        else
+                        if (inboundPlayerList == null)
                         {
                             inboundPlayerList = new List<CPlayerInfo>();
                         }
 
                         //Get all unparsed inbound player removals
                         Queue<CPlayerInfo> inboundPlayerRemoval = null;
-                        if (_PlayerRemovalProcessingQueue.Count > 0)
+                        lock (_PlayerRemovalProcessingQueue)
                         {
-                            Log.Debug(() => "Preparing to lock player removal queue to retrive new player removals", 7);
-                            lock (_PlayerRemovalProcessingQueue)
+                            if (_PlayerRemovalProcessingQueue.Count > 0)
                             {
                                 Log.Debug(() => "Inbound player removals found. Grabbing.", 6);
                                 if (_PlayerRemovalProcessingQueue.Any())
@@ -78,7 +76,7 @@ namespace PRoConEvents
                                 _PlayerRemovalProcessingQueue.Clear();
                             }
                         }
-                        else
+                        if (inboundPlayerRemoval == null)
                         {
                             inboundPlayerRemoval = new Queue<CPlayerInfo>();
                         }
@@ -549,14 +547,7 @@ namespace PRoConEvents
                                                     if (_UseExperimentalTools)
                                                     {
                                                         var message = Log.CViolet(aPlayer.GetVerboseName() + " (" + Math.Round(aPlayer.GetPower(true)) + ") re-joined, sending them back to " + aPlayer.RequiredTeam.GetTeamIDKey() + ".");
-                                                        if (_PlayerDictionary.ContainsKey(_debugSoldierName))
-                                                        {
-                                                            PlayerSayMessage(_debugSoldierName, message);
-                                                        }
-                                                        else
-                                                        {
-                                                            ProconChatWrite(Log.FBold(message));
-                                                        }
+                                                        ProconChatWrite(Log.FBold(message));
                                                     }
                                                     PlayerTellMessage(aPlayer.player_name, "You were assigned to " + aPlayer.RequiredTeam.TeamKey + ". Try using " + GetChatCommandByKey("self_assist") + " to switch.");
                                                     aPlayer.lastSwitchMessage = UtcNow();
@@ -619,8 +610,7 @@ namespace PRoConEvents
                                                 QueueRecordForProcessing(record);
                                             }
                                             if (GetVerboseASPlayersOfGroup("slot_spectator").Any() &&
-                                                !GetMatchingVerboseASPlayersOfGroup("slot_spectator", aPlayer).Any() &&
-                                                aPlayer.player_name != _debugSoldierName)
+                                                !GetMatchingVerboseASPlayersOfGroup("slot_spectator", aPlayer).Any())
                                             {
                                                 ARecord record = new ARecord
                                                 {
@@ -3750,7 +3740,7 @@ namespace PRoConEvents
                                     FinalizeRecord(record);
                                     return;
                                 }
-                                if (record.source_name == record.target_name && record.source_name != _debugSoldierName)
+                                if (record.source_name == record.target_name)
                                 {
                                     SendMessageToSource(record, "You may not issue forgives against yourself, contant another administrator.");
                                     FinalizeRecord(record);

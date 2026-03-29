@@ -383,11 +383,6 @@ namespace PRoConEvents
                         {
                             Name = defName
                         };
-                        if (newDef == null)
-                        {
-                            _plugin.Log.Error("Definition was null when adding to the challenge manager.");
-                            return;
-                        }
                         // Check if a definition exists with this ID
                         if (Definitions.Any(dDef => dDef.ID == newDef.ID))
                         {

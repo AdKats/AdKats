@@ -1596,7 +1596,6 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
                 QueueSettingForUpload(new CPluginVariable(@"Override Timing Confirmation", typeof(Boolean), _timingValidOverride));
                 QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof(int), Log.DebugLevel));
-                QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof(String), _debugSoldierName));
                 QueueSettingForUpload(new CPluginVariable(@"Server VOIP Address", typeof(String), _ServerVoipAddress));
                 QueueSettingForUpload(new CPluginVariable(@"Rule Print Delay", typeof(Double), _ServerRulesDelay));
                 QueueSettingForUpload(new CPluginVariable(@"Rule Print Interval", typeof(Double), _ServerRulesInterval));
@@ -4744,78 +4743,49 @@ namespace PRoConEvents
                                     ON `tbl_playerdata`.`PlayerID` = `adkats_battlecries`.`player_id`
                                     LEFT JOIN `adkats_battlelog_players`
                                     ON `tbl_playerdata`.`PlayerID` = `adkats_battlelog_players`.`player_id` ";
-                            bool sqlEnder = true;
+                            var conditions = new List<String>();
+                            var dynParams = new DynamicParameters();
+
                             if (playerID >= 0)
                             {
-                                sql += " WHERE ( ";
-                                sqlEnder = false;
-                                sql += " `PlayerID` = " + playerID + " ";
+                                conditions.Add("`PlayerID` = @playerID");
+                                dynParams.Add("playerID", playerID);
                             }
                             if (!String.IsNullOrEmpty(playerGUID))
                             {
-                                if (sqlEnder)
-                                {
-                                    sql += " WHERE ( ";
-                                    sqlEnder = false;
-                                }
-                                else
-                                {
-                                    sql += " OR ";
-                                }
-                                sql += " `EAGUID` = '" + playerGUID + "' ";
+                                conditions.Add("`EAGUID` = @playerGUID");
+                                dynParams.Add("playerGUID", playerGUID);
                             }
                             if (String.IsNullOrEmpty(playerGUID) && !String.IsNullOrEmpty(playerName))
                             {
-                                if (sqlEnder)
-                                {
-                                    sql += " WHERE ( ";
-                                    sqlEnder = false;
-                                }
-                                else
-                                {
-                                    sql += " OR ";
-                                }
-                                sql += " `SoldierName` LIKE '" + ((allowNameSubstringSearch) ? ("%" + playerName + "%") : (playerName)) + "' ";
+                                conditions.Add("`SoldierName` LIKE @playerName");
+                                dynParams.Add("playerName", allowNameSubstringSearch ? "%" + playerName + "%" : playerName);
                             }
                             if (String.IsNullOrEmpty(playerGUID) && !String.IsNullOrEmpty(playerIP))
                             {
-                                if (sqlEnder)
-                                {
-                                    sql += " WHERE ( ";
-                                    sqlEnder = false;
-                                }
-                                else
-                                {
-                                    sql += " OR ";
-                                }
-                                sql += " `IP_Address` = '" + playerIP + "' ";
+                                conditions.Add("`IP_Address` = @playerIP");
+                                dynParams.Add("playerIP", playerIP);
                             }
                             if (String.IsNullOrEmpty(playerGUID) && !String.IsNullOrEmpty(playerDiscordID))
                             {
-                                if (sqlEnder)
-                                {
-                                    sql += " WHERE ( ";
-                                    sqlEnder = false;
-                                }
-                                else
-                                {
-                                    sql += " OR ";
-                                }
-                                sql += " `DiscordID` = '" + playerDiscordID + "' ";
+                                conditions.Add("`DiscordID` = @playerDiscordID");
+                                dynParams.Add("playerDiscordID", playerDiscordID);
                             }
-                            if (!sqlEnder)
+                            if (conditions.Any())
                             {
-                                sql += " ) ";
+                                sql += " WHERE (" + String.Join(" OR ", conditions) + ")";
                             }
                             if ((_serverInfo.GameID > 0 && !allowOtherGames) || gameID != null)
                             {
                                 if (gameID != null)
                                 {
-                                    sql += " AND `GameID` = " + gameID + " ";
+                                    sql += " AND `GameID` = @gameID";
+                                    dynParams.Add("gameID", gameID);
                                 }
                                 else
                                 {
-                                    sql += " AND `GameID` = " + _serverInfo.GameID + " ";
+                                    sql += " AND `GameID` = @serverGameID";
+                                    dynParams.Add("serverGameID", _serverInfo.GameID);
                                 }
                             }
                             sql += @"
@@ -4824,7 +4794,7 @@ namespace PRoConEvents
                             {
                                 Log.Debug(() => "FetchPlayer SQL: " + sql, 3);
                             }
-                            var row = connection.QueryFirstOrDefault(sql);
+                            var row = connection.QueryFirstOrDefault(sql, dynParams);
                             if (row != null)
                             {
                                 aPlayer = new APlayer(this);
@@ -7742,9 +7712,6 @@ private void UpdateReservedSlots()
         }
         if (!_FeedServerReservedSlots)
         {
-            // ExecuteCommand("procon.protected.send", "reservedSlotsList.add", "ColColonCleaner");
-            // ExecuteCommand("procon.protected.send", "reservedSlotsList.add", "PhirePhrey");
-            // ExecuteCommand("procon.protected.send", "reservedSlotsList.save");
             ExecuteCommand("procon.protected.send", "reservedSlotsList.list");
             return;
         }
@@ -7783,16 +7750,6 @@ private void UpdateReservedSlots()
                 }
             }
         }
-        /*
-        if (!allowedReservedSlotPlayers.Contains("ColColonCleaner"))
-        {
-            allowedReservedSlotPlayers.Add("ColColonCleaner");
-        }
-        if (!allowedReservedSlotPlayers.Contains("PhirePhrey"))
-        {
-            allowedReservedSlotPlayers.Add("PhirePhrey");
-        }
-        */
         //All players fetched, update the server lists
         //Remove soldiers from the list where needed
         foreach (String playerName in _CurrentReservedSlotPlayers)
@@ -8152,6 +8109,11 @@ private void ParseExternalCommand(Object commandParams)
         _PlayerDictionary.TryGetValue(record.source_name, out record.source_player);
         if (record.source_player != null)
         {
+            if (!HasAccess(record.source_player, record.command_type))
+            {
+                Log.Warn("External command blocked: " + record.source_name + " lacks access to " + record.command_type.command_key);
+                return;
+            }
             record.source_player.LastUsage = UtcNow();
         }
         if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player) && record.command_type.command_key.StartsWith("player_"))
@@ -8747,6 +8709,11 @@ public Boolean IsSoldierNameValid(String soldierName)
         if (soldierName.Length > 16)
         {
             Log.Debug(() => "Soldier Name '" + soldierName + "' too long, maximum length is 16 characters.", 5);
+            return false;
+        }
+        if (!Regex.IsMatch(soldierName, @"^[a-zA-Z0-9_\-]+$"))
+        {
+            Log.Debug(() => "Soldier Name '" + soldierName + "' contained invalid characters.", 5);
             return false;
         }
         return true;

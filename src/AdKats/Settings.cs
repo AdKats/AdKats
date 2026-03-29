@@ -68,7 +68,6 @@ namespace PRoConEvents
                     buildList.AddRange(_BanEnforcerSearchResults.Select(aBan => new CPluginVariable(GetSettingSection("A13-3") + t + "BAN" + aBan.ban_id + s + aBan.ban_record.target_player.player_name + s + aBan.ban_record.source_name + s + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
                 }
                 buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug level", typeof(int), Log.DebugLevel));
-                buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug Soldier Name", typeof(String), _debugSoldierName));
 
                 lstReturn.AddRange(buildList);
             }
@@ -1821,7 +1820,6 @@ namespace PRoConEvents
                 if (IsActiveSettingSection("D99"))
                 {
                     //Debug settings
-                    buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Debug Soldier Name", typeof(String), _debugSoldierName));
                     buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Enforce Single Instance", typeof(Boolean), _enforceSingleInstance));
                     buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
                     buildList.Add(new CPluginVariable(GetSettingSection("D99") + t + "Command Entry", typeof(String), ""));
@@ -2105,13 +2103,13 @@ namespace PRoConEvents
                 lstReturn.Add(new CPluginVariable(GetSettingSection("0") + t + "Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
 
                 lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Settings Locked", typeof(Boolean), _settingsLocked, true));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Settings Password", typeof(String), _settingsPassword));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("1") + t + "Settings Password", typeof(String), String.IsNullOrEmpty(_settingsPassword) ? "" : "********"));
 
                 lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Hostname", typeof(String), _mySqlHostname));
                 lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Port", typeof(String), _mySqlPort));
                 lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Database", typeof(String), _mySqlSchemaName));
                 lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Username", typeof(String), _mySqlUsername));
-                lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Password", typeof(String), _mySqlPassword));
+                lstReturn.Add(new CPluginVariable(GetSettingSection("2") + t + "MySQL Password", typeof(String), String.IsNullOrEmpty(_mySqlPassword) ? "" : "********"));
 
                 lstReturn.Add(new CPluginVariable(GetSettingSection("D98") + t + "Override Timing Confirmation", typeof(Boolean), _timingValidOverride));
 
@@ -2222,7 +2220,7 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Settings Password").Success)
                 {
-                    if (String.IsNullOrEmpty(strValue) || strValue.Length < 5)
+                    if (String.IsNullOrEmpty(strValue) || strValue.Length < 5 || strValue == "********")
                     {
                         return;
                     }
@@ -2405,18 +2403,6 @@ namespace PRoConEvents
                             Log.DebugLevel = tmp;
                             //Once setting has been changed, upload the change to database
                             QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof(int), Log.DebugLevel));
-                        }
-                    }
-                }
-                else if (Regex.Match(strVariable, @"Debug Soldier Name").Success)
-                {
-                    if (IsSoldierNameValid(strValue))
-                    {
-                        if (strValue != _debugSoldierName)
-                        {
-                            _debugSoldierName = strValue;
-                            //Once setting has been changed, upload the change to database
-                            QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof(String), _debugSoldierName));
                         }
                     }
                 }
@@ -6948,6 +6934,11 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"MySQL Database").Success)
                 {
+                    if (!Regex.IsMatch(strValue, @"^[a-zA-Z0-9_]+$"))
+                    {
+                        Log.Error("Invalid MySQL Database name: '" + strValue + "'. Only alphanumeric characters and underscores are allowed.");
+                        return;
+                    }
                     _mySqlSchemaName = strValue;
                     _dbSettingsChanged = true;
                     _DbCommunicationWaitHandle.Set();
@@ -6960,6 +6951,7 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"MySQL Password").Success)
                 {
+                    if (strValue == "********") return;
                     _mySqlPassword = strValue;
                     _dbSettingsChanged = true;
                     _DbCommunicationWaitHandle.Set();

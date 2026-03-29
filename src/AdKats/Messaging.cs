@@ -31,10 +31,9 @@ namespace PRoConEvents
 
                         //Get all unparsed inbound messages
                         Queue<AChatMessage> inboundMessages;
-                        if (_UnparsedMessageQueue.Count > 0)
+                        lock (_UnparsedMessageQueue)
                         {
-                            Log.Debug(() => "Preparing to lock messaging to retrive new messages", 7);
-                            lock (_UnparsedMessageQueue)
+                            if (_UnparsedMessageQueue.Count > 0)
                             {
                                 Log.Debug(() => "Inbound messages found. Grabbing.", 6);
                                 //Grab all messages in the queue
@@ -42,8 +41,12 @@ namespace PRoConEvents
                                 //Clear the queue for next run
                                 _UnparsedMessageQueue.Clear();
                             }
+                            else
+                            {
+                                inboundMessages = null;
+                            }
                         }
-                        else
+                        if (inboundMessages == null)
                         {
                             Log.Debug(() => "No inbound messages. Waiting for Input.", 6);
                             //Wait for input
@@ -110,7 +113,7 @@ namespace PRoConEvents
                             if (isCommand && _threadsReady && _firstPlayerListComplete)
                             {
                                 String[] splitMessage = messageObject.Message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                                if (splitMessage.Length == 3 && splitMessage[0] == "AdKatsInstanceCheck" && _enforceSingleInstance)
+                                if (splitMessage.Length == 3 && splitMessage[0] == "AdKatsInstanceCheck" && _enforceSingleInstance && messageObject.Speaker == "Server")
                                 {
                                     //Message is an instance check, confirm it is from this instance
                                     if (splitMessage[1] == _instanceKey)
@@ -131,6 +134,7 @@ namespace PRoConEvents
                                                 Log.Warn("Shutting down this AdKats instance, another instance is already online.");
                                                 _useKeepAlive = false;
                                                 Disable();
+                                                return;
                                             }
                                             else
                                             {
@@ -157,7 +161,8 @@ namespace PRoConEvents
                             {
 
                                 APlayer aPlayer;
-                                if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer))
+                                _PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer);
+                                if (aPlayer != null)
                                 {
                                     if (!_AFKIgnoreChat)
                                     {
@@ -165,54 +170,30 @@ namespace PRoConEvents
                                         aPlayer.lastAction = UtcNow();
                                     }
                                 }
-
-                                lock (_RoundMutedPlayers)
+                                else
                                 {
-                                    //Check if the player is muted
-                                    Log.Debug(() => "Checking for mute case.", 7);
-                                    // Persistent mute?
-                                    var persistentMute = GetMatchingVerboseASPlayersOfGroup("persistent_mute", aPlayer).Any();
-                                    var persistentForceMute = GetMatchingVerboseASPlayersOfGroup("persistent_mute_force", aPlayer).Any();
-                                    // Add persistent mute to RoundMutedPlayers if the player is missing in the list.
-                                    if (persistentMute && !_RoundMutedPlayers.ContainsKey(messageObject.Speaker))
+                                    // Player not yet in dictionary, skip mute and caps checks
+                                    // Command parsing will still proceed below
+                                }
+
+                                if (aPlayer != null)
+                                {
+                                    lock (_RoundMutedPlayers)
                                     {
-                                        Log.Debug(() => "Adding missing persistent mute to RoundMutedPlayers.", 4);
-                                        _RoundMutedPlayers.Add(messageObject.Speaker, 0);
-                                    }
-                                    if (persistentForceMute)
-                                    {
-                                        // Force Mute -> Temp Ban Player
-                                        ARecord record = new ARecord();
-                                        record.record_time = UtcNow();
-                                        record.record_source = ARecord.Sources.Automated;
-                                        record.server_id = _serverInfo.ServerID;
-                                        record.source_name = "PlayerMuteSystem";
-                                        _PlayerDictionary.TryGetValue(messageObject.Speaker, out record.target_player);
-                                        record.target_name = messageObject.Speaker;
-                                        record.record_message = _PersistentMutedPlayerKickMessage;
-                                        record.command_type = GetCommandByKey("player_ban_temp");
-                                        record.command_action = GetCommandByKey("player_ban_temp");
-                                        record.command_numeric = _ForceMuteBanDuration;
-                                        QueueRecordForProcessing(record);
-                                        continue;
-                                    }
-                                    else if (_RoundMutedPlayers.ContainsKey(messageObject.Speaker))
-                                    {
-                                        // Round, Temp Perma Mute Kill -> Kick
-                                        if (_MutedPlayerIgnoreCommands && isCommand)
+                                        //Check if the player is muted
+                                        Log.Debug(() => "Checking for mute case.", 7);
+                                        // Persistent mute?
+                                        var persistentMute = GetMatchingVerboseASPlayersOfGroup("persistent_mute", aPlayer).Any();
+                                        var persistentForceMute = GetMatchingVerboseASPlayersOfGroup("persistent_mute_force", aPlayer).Any();
+                                        // Add persistent mute to RoundMutedPlayers if the player is missing in the list.
+                                        if (persistentMute && !_RoundMutedPlayers.ContainsKey(messageObject.Speaker))
                                         {
-                                            Log.Debug(() => "Player muted, but ignoring since message is command.", 3);
+                                            Log.Debug(() => "Adding missing persistent mute to RoundMutedPlayers.", 4);
+                                            _RoundMutedPlayers.Add(messageObject.Speaker, 0);
                                         }
-                                        else if (messageObject.Hidden)
+                                        if (persistentForceMute)
                                         {
-                                            Log.Debug(() => "Player muted, but ignoring since message is hidden.", 3);
-                                        }
-                                        else
-                                        {
-                                            Log.Debug(() => "Player is muted and valid. Acting.", 7);
-                                            //Increment the muted chat count
-                                            _RoundMutedPlayers[messageObject.Speaker] = _RoundMutedPlayers[messageObject.Speaker] + 1;
-                                            //Create record
+                                            // Force Mute -> Temp Ban Player
                                             ARecord record = new ARecord();
                                             record.record_time = UtcNow();
                                             record.record_source = ARecord.Sources.Automated;
@@ -220,105 +201,137 @@ namespace PRoConEvents
                                             record.source_name = "PlayerMuteSystem";
                                             _PlayerDictionary.TryGetValue(messageObject.Speaker, out record.target_player);
                                             record.target_name = messageObject.Speaker;
-                                            var chances = persistentMute ? _PersistentMutedPlayerChances : _MutedPlayerChances;
-                                            if (_RoundMutedPlayers[messageObject.Speaker] > chances)
-                                            {
-                                                record.record_message = persistentMute ? _PersistentMutedPlayerKickMessage : _MutedPlayerKickMessage;
-                                                record.command_type = GetCommandByKey("player_kick");
-                                                record.command_action = GetCommandByKey("player_kick");
-                                            }
-                                            else
-                                            {
-                                                record.record_message = persistentMute ? _PersistentMutedPlayerKillMessage : _MutedPlayerKillMessage;
-                                                record.command_type = GetCommandByKey("player_kill");
-                                                record.command_action = GetCommandByKey("player_kill");
-                                                if (!persistentMute)
-                                                    AdminSayMessage(record.GetTargetNames() + " killed for talking while muted. They can speak again next round.");
-                                                else
-                                                    AdminSayMessage(record.GetTargetNames() + " killed for talking while being perma/temp muted.");
-                                            }
+                                            record.record_message = _PersistentMutedPlayerKickMessage;
+                                            record.command_type = GetCommandByKey("player_ban_temp");
+                                            record.command_action = GetCommandByKey("player_ban_temp");
+                                            record.command_numeric = _ForceMuteBanDuration;
                                             QueueRecordForProcessing(record);
                                             continue;
                                         }
+                                        else if (_RoundMutedPlayers.ContainsKey(messageObject.Speaker))
+                                        {
+                                            // Round, Temp Perma Mute Kill -> Kick
+                                            if (_MutedPlayerIgnoreCommands && isCommand)
+                                            {
+                                                Log.Debug(() => "Player muted, but ignoring since message is command.", 3);
+                                            }
+                                            else if (messageObject.Hidden)
+                                            {
+                                                Log.Debug(() => "Player muted, but ignoring since message is hidden.", 3);
+                                            }
+                                            else
+                                            {
+                                                Log.Debug(() => "Player is muted and valid. Acting.", 7);
+                                                //Increment the muted chat count
+                                                _RoundMutedPlayers[messageObject.Speaker] = _RoundMutedPlayers[messageObject.Speaker] + 1;
+                                                //Create record
+                                                ARecord record = new ARecord();
+                                                record.record_time = UtcNow();
+                                                record.record_source = ARecord.Sources.Automated;
+                                                record.server_id = _serverInfo.ServerID;
+                                                record.source_name = "PlayerMuteSystem";
+                                                _PlayerDictionary.TryGetValue(messageObject.Speaker, out record.target_player);
+                                                record.target_name = messageObject.Speaker;
+                                                var chances = persistentMute ? _PersistentMutedPlayerChances : _MutedPlayerChances;
+                                                if (_RoundMutedPlayers[messageObject.Speaker] > chances)
+                                                {
+                                                    record.record_message = persistentMute ? _PersistentMutedPlayerKickMessage : _MutedPlayerKickMessage;
+                                                    record.command_type = GetCommandByKey("player_kick");
+                                                    record.command_action = GetCommandByKey("player_kick");
+                                                }
+                                                else
+                                                {
+                                                    record.record_message = persistentMute ? _PersistentMutedPlayerKillMessage : _MutedPlayerKillMessage;
+                                                    record.command_type = GetCommandByKey("player_kill");
+                                                    record.command_action = GetCommandByKey("player_kill");
+                                                    if (!persistentMute)
+                                                        AdminSayMessage(record.GetTargetNames() + " killed for talking while muted. They can speak again next round.");
+                                                    else
+                                                        AdminSayMessage(record.GetTargetNames() + " killed for talking while being perma/temp muted.");
+                                                }
+                                                QueueRecordForProcessing(record);
+                                                continue;
+                                            }
+                                        }
                                     }
-                                }
 
-                                //Check if the all caps system should act on this player
-                                if (_UseAllCapsLimiter &&
-                                    GetStringUpperPercentage(messageObject.Message) >= _AllCapsLimterPercentage &&
-                                    messageObject.Message.Length >= _AllCapsLimterMinimumCharacters &&
-                                    messageObject.Subset != AChatMessage.ChatSubset.Squad &&
-                                    (!_AllCapsLimiterSpecifiedPlayersOnly || GetMatchingVerboseASPlayersOfGroup("blacklist_allcaps", aPlayer).Any()))
-                                {
-                                    if (isCommand)
+                                    //Check if the all caps system should act on this player
+                                    if (_UseAllCapsLimiter &&
+                                        GetStringUpperPercentage(messageObject.Message) >= _AllCapsLimterPercentage &&
+                                        messageObject.Message.Length >= _AllCapsLimterMinimumCharacters &&
+                                        messageObject.Subset != AChatMessage.ChatSubset.Squad &&
+                                        (!_AllCapsLimiterSpecifiedPlayersOnly || GetMatchingVerboseASPlayersOfGroup("blacklist_allcaps", aPlayer).Any()))
                                     {
-                                        Log.Debug(() => aPlayer.GetVerboseName() + " chat triggered all caps, but ignoring since message is command.", 3);
-                                    }
-                                    else if (messageObject.Hidden)
-                                    {
-                                        Log.Debug(() => aPlayer.GetVerboseName() + " chat triggered all caps, but ignoring since message is hidden.", 3);
-                                    }
-                                    else
-                                    {
-                                        Log.Debug(() => aPlayer.GetVerboseName() + " is speaking in all caps and message is valid. Acting.", 7);
-                                        aPlayer.AllCapsMessages++;
-                                        if (aPlayer.AllCapsMessages >= _AllCapsLimiterKickThreshold)
+                                        if (isCommand)
                                         {
-                                            //Kick
-                                            QueueRecordForProcessing(new ARecord
-                                            {
-                                                record_source = ARecord.Sources.Automated,
-                                                server_id = _serverInfo.ServerID,
-                                                command_type = GetCommandByKey("player_kick"),
-                                                command_numeric = 0,
-                                                target_name = aPlayer.player_name,
-                                                target_player = aPlayer,
-                                                source_name = "ChatManager",
-                                                record_message = "Excessive all-caps in all/team chat.",
-                                                record_time = UtcNow()
-                                            });
+                                            Log.Debug(() => aPlayer.GetVerboseName() + " chat triggered all caps, but ignoring since message is command.", 3);
                                         }
-                                        else if (aPlayer.AllCapsMessages >= _AllCapsLimiterKillThreshold)
+                                        else if (messageObject.Hidden)
                                         {
-                                            //Kill
-                                            QueueRecordForProcessing(new ARecord
-                                            {
-                                                record_source = ARecord.Sources.Automated,
-                                                server_id = _serverInfo.ServerID,
-                                                command_type = GetCommandByKey("player_kill"),
-                                                command_numeric = 0,
-                                                target_name = aPlayer.player_name,
-                                                target_player = aPlayer,
-                                                source_name = "ChatManager",
-                                                record_message = "All-caps in all/team chat.",
-                                                record_time = UtcNow()
-                                            });
+                                            Log.Debug(() => aPlayer.GetVerboseName() + " chat triggered all caps, but ignoring since message is hidden.", 3);
                                         }
-                                        else if (aPlayer.AllCapsMessages >= _AllCapsLimiterWarnThreshold)
+                                        else
                                         {
-                                            //Warn
-                                            QueueRecordForProcessing(new ARecord
+                                            Log.Debug(() => aPlayer.GetVerboseName() + " is speaking in all caps and message is valid. Acting.", 7);
+                                            aPlayer.AllCapsMessages++;
+                                            if (aPlayer.AllCapsMessages >= _AllCapsLimiterKickThreshold)
                                             {
-                                                record_source = ARecord.Sources.Automated,
-                                                server_id = _serverInfo.ServerID,
-                                                command_type = GetCommandByKey("player_warn"),
-                                                command_numeric = 0,
-                                                target_name = aPlayer.player_name,
-                                                target_player = aPlayer,
-                                                source_name = "ChatManager",
-                                                record_message = "All-caps in all/team chat.",
-                                                record_time = UtcNow()
-                                            });
+                                                //Kick
+                                                QueueRecordForProcessing(new ARecord
+                                                {
+                                                    record_source = ARecord.Sources.Automated,
+                                                    server_id = _serverInfo.ServerID,
+                                                    command_type = GetCommandByKey("player_kick"),
+                                                    command_numeric = 0,
+                                                    target_name = aPlayer.player_name,
+                                                    target_player = aPlayer,
+                                                    source_name = "ChatManager",
+                                                    record_message = "Excessive all-caps in all/team chat.",
+                                                    record_time = UtcNow()
+                                                });
+                                            }
+                                            else if (aPlayer.AllCapsMessages >= _AllCapsLimiterKillThreshold)
+                                            {
+                                                //Kill
+                                                QueueRecordForProcessing(new ARecord
+                                                {
+                                                    record_source = ARecord.Sources.Automated,
+                                                    server_id = _serverInfo.ServerID,
+                                                    command_type = GetCommandByKey("player_kill"),
+                                                    command_numeric = 0,
+                                                    target_name = aPlayer.player_name,
+                                                    target_player = aPlayer,
+                                                    source_name = "ChatManager",
+                                                    record_message = "All-caps in all/team chat.",
+                                                    record_time = UtcNow()
+                                                });
+                                            }
+                                            else if (aPlayer.AllCapsMessages >= _AllCapsLimiterWarnThreshold)
+                                            {
+                                                //Warn
+                                                QueueRecordForProcessing(new ARecord
+                                                {
+                                                    record_source = ARecord.Sources.Automated,
+                                                    server_id = _serverInfo.ServerID,
+                                                    command_type = GetCommandByKey("player_warn"),
+                                                    command_numeric = 0,
+                                                    target_name = aPlayer.player_name,
+                                                    target_player = aPlayer,
+                                                    source_name = "ChatManager",
+                                                    record_message = "All-caps in all/team chat.",
+                                                    record_time = UtcNow()
+                                                });
+                                            }
                                         }
                                     }
-                                }
 
-                                //TODO: Maybe add this
-                                if (_pingEnforcerEnable &&
-                                    (" " + messageObject.Message.ToLower() + " ").Contains(" ping"))
-                                {
-                                    // Send the current ping limit
-                                }
+                                    //TODO: Maybe add this
+                                    if (_pingEnforcerEnable &&
+                                        (" " + messageObject.Message.ToLower() + " ").Contains(" ping"))
+                                    {
+                                        // Send the current ping limit
+                                    }
+                                } // end if (aPlayer != null)
                             }
                             if (isCommand)
                             {

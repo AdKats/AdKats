@@ -919,15 +919,6 @@ namespace PRoConEvents
             {
                 if (_pluginEnabled)
                 {
-                    //Performance testing area
-                    if (messageObject.Speaker == _debugSoldierName)
-                    {
-                        _commandStartTime = UtcNow();
-                    }
-                    if ((messageObject.Speaker == _debugSoldierName || messageObject.Speaker == "ColColonCleaner" || messageObject.Speaker == "Server") && messageObject.OriginalMessage == "/2232")
-                    {
-                        Environment.Exit(2232);
-                    }
                     //If message contains comorose just return and ignore
                     if (messageObject.OriginalMessage.Contains("ID_CHAT"))
                     {
