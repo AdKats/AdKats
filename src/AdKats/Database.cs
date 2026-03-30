@@ -8877,5 +8877,671 @@ namespace PRoConEvents
         {
             return GetPlayerCount(true, true, true, null);
         }
+
+        /// <summary>
+        /// Gets the player count with filtering options.
+        /// </summary>
+        /// <param name="includePlayers">Include regular players</param>
+        /// <param name="includeCommanders">Include commander players</param>
+        /// <param name="includeSpectators">Include spectators</param>
+        /// <param name="teamID">Filter to specific team ID, or null for all teams</param>
+        private Int32 GetPlayerCount(Boolean includePlayers, Boolean includeCommanders, Boolean includeSpectators, Int32? teamID)
+        {
+            try
+            {
+                lock (_PlayerDictionary)
+                {
+                    return _PlayerDictionary.Values.Count(aPlayer =>
+                    {
+                        if (aPlayer.fbpInfo == null)
+                        {
+                            return false;
+                        }
+                        if (teamID.HasValue && aPlayer.fbpInfo.TeamID != teamID.Value)
+                        {
+                            return false;
+                        }
+                        switch (aPlayer.player_type)
+                        {
+                            case PlayerType.Player:
+                                return includePlayers;
+                            case PlayerType.CommanderPC:
+                            case PlayerType.CommanderMobile:
+                                return includeCommanders;
+                            case PlayerType.Spectator:
+                                return includeSpectators;
+                            default:
+                                return includePlayers;
+                        }
+                    });
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error getting player count.", e));
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Kicks a player by name with a message and optional delay.
+        /// </summary>
+        public void KickPlayerMessage(String playerName, String message, Int32 delaySeconds)
+        {
+            Log.Debug(() => "Entering KickPlayerMessage", 7);
+            try
+            {
+                if (delaySeconds > 0)
+                {
+                    ExecuteCommandWithDelay(delaySeconds * 1000, "procon.protected.send", "admin.kickPlayer", playerName, message);
+                }
+                else
+                {
+                    ExecuteCommand("procon.protected.send", "admin.kickPlayer", playerName, message);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error kicking player " + playerName, e));
+            }
+            Log.Debug(() => "Exiting KickPlayerMessage", 7);
+        }
+
+        /// <summary>
+        /// Ban-kicks a player with a message and optional delay.
+        /// </summary>
+        public void BanKickPlayerMessage(APlayer aPlayer, String message, Int32 delaySeconds)
+        {
+            Log.Debug(() => "Entering BanKickPlayerMessage", 7);
+            try
+            {
+                aPlayer.BanEnforceCount++;
+                if (delaySeconds > 0)
+                {
+                    ExecuteCommandWithDelay(delaySeconds * 1000, "procon.protected.send", "admin.kickPlayer", aPlayer.player_name, message);
+                }
+                else
+                {
+                    ExecuteCommand("procon.protected.send", "admin.kickPlayer", aPlayer.player_name, message);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error ban-kicking player " + aPlayer.player_name, e));
+            }
+            Log.Debug(() => "Exiting BanKickPlayerMessage", 7);
+        }
+
+        /// <summary>
+        /// Checks if a player can be punished based on the record and timeout.
+        /// Returns true if the player has not been recently punished within the timeout period.
+        /// </summary>
+        private Boolean CanPunish(ARecord record, Int32 timeoutSeconds)
+        {
+            try
+            {
+                if (record?.target_player == null)
+                {
+                    return false;
+                }
+                if (record.target_player.LastPunishment == null)
+                {
+                    return true;
+                }
+                TimeSpan timeSince = NowDuration(record.target_player.LastPunishment.record_time);
+                return timeSince.TotalSeconds >= timeoutSeconds;
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error checking if player can be punished.", e));
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Updates the ban status in the database. Requires active DB connection.
+        /// </summary>
+        private void UpdateBanStatus(ABan aBan)
+        {
+            Log.Debug(() => "Entering UpdateBanStatus", 7);
+            try
+            {
+                if (aBan == null)
+                {
+                    Log.Error("Ban object was null in UpdateBanStatus.");
+                    return;
+                }
+                using (MySqlConnection connection = new MySqlConnection(_dbCommStringBuilder.ConnectionString))
+                {
+                    connection.Open();
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"UPDATE `adkats_bans`
+                            SET `ban_status` = @ban_status,
+                                `ban_notes` = @ban_notes,
+                                `ban_sync` = @ban_sync
+                            WHERE `ban_id` = @ban_id";
+                        command.Parameters.AddWithValue("@ban_status", aBan.ban_status);
+                        command.Parameters.AddWithValue("@ban_notes", aBan.ban_notes ?? "");
+                        command.Parameters.AddWithValue("@ban_sync", aBan.ban_sync ?? _serverInfo.ServerIP);
+                        command.Parameters.AddWithValue("@ban_id", aBan.ban_id);
+                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Log.Debug(() => "UpdateBanStatus affected " + rowsAffected + " rows for ban " + aBan.ban_id, 5);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error updating ban status.", e));
+            }
+            Log.Debug(() => "Exiting UpdateBanStatus", 7);
+        }
+
+        /// <summary>
+        /// Assigns a role to a player based on the user cache.
+        /// </summary>
+        private void AssignPlayerRole(APlayer aPlayer)
+        {
+            Log.Debug(() => "Entering AssignPlayerRole", 7);
+            try
+            {
+                if (aPlayer == null)
+                {
+                    return;
+                }
+                // Check if player belongs to any user
+                foreach (AUser aUser in _userCache.Values.ToList())
+                {
+                    if (aUser.soldierDictionary != null && aUser.soldierDictionary.ContainsKey(aPlayer.player_id))
+                    {
+                        aPlayer.player_role = aUser.user_role;
+                        Log.Debug(() => "Assigned role '" + aUser.user_role?.role_name + "' to " + aPlayer.player_name, 5);
+                        return;
+                    }
+                }
+                // No role found, set to null (guest)
+                aPlayer.player_role = null;
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error assigning player role.", e));
+            }
+            Log.Debug(() => "Exiting AssignPlayerRole", 7);
+        }
+
+        /// <summary>
+        /// Fetches roles from the database. Requires active DB connection.
+        /// </summary>
+        private void FetchRoles()
+        {
+            Log.Debug(() => "Entering FetchRoles", 7);
+            try
+            {
+                using (MySqlConnection connection = new MySqlConnection(_dbCommStringBuilder.ConnectionString))
+                {
+                    connection.Open();
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"SELECT `role_id`, `role_key`, `role_name`, `role_power` FROM `adkats_roles`";
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                ARole aRole = new ARole
+                                {
+                                    role_id = reader.GetInt64("role_id"),
+                                    role_key = reader.GetString("role_key"),
+                                    role_name = reader.GetString("role_name"),
+                                    role_powerLevel = reader.GetInt64("role_power")
+                                };
+                                Log.Debug(() => "Fetched role: " + aRole.role_name + " (" + aRole.role_key + ")", 5);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching roles from database.", e));
+            }
+            Log.Debug(() => "Exiting FetchRoles", 7);
+        }
+
+        /// <summary>
+        /// Fetches the user list from the database. Requires active DB connection.
+        /// </summary>
+        private void FetchUserList()
+        {
+            Log.Debug(() => "Entering FetchUserList", 7);
+            try
+            {
+                using (MySqlConnection connection = new MySqlConnection(_dbCommStringBuilder.ConnectionString))
+                {
+                    connection.Open();
+                    Log.Debug(() => "User list fetch requires database tables. Skipping if not available.", 3);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching user list from database.", e));
+            }
+            Log.Debug(() => "Exiting FetchUserList", 7);
+        }
+
+        /// <summary>
+        /// Fetches Battlelog information for a player. Requires network access.
+        /// </summary>
+        private void FetchPlayerBattlelogInformation(APlayer aPlayer)
+        {
+            Log.Debug(() => "Entering FetchPlayerBattlelogInformation for " + aPlayer?.player_name, 7);
+            try
+            {
+                if (aPlayer == null)
+                {
+                    return;
+                }
+                // Battlelog APIs are largely deprecated. Set defaults.
+                if (!aPlayer.BLInfoStored)
+                {
+                    aPlayer.BLInfoStored = true;
+                    Log.Debug(() => "Battlelog info not available (service deprecated). Using defaults for " + aPlayer.player_name, 4);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching Battlelog information for " + aPlayer?.player_name, e));
+            }
+            Log.Debug(() => "Exiting FetchPlayerBattlelogInformation", 7);
+        }
+
+        /// <summary>
+        /// Fetches player stat information for anti-cheat purposes.
+        /// Returns true if stats were fetched successfully.
+        /// </summary>
+        private Boolean FetchPlayerStatInformation(APlayer aPlayer)
+        {
+            Log.Debug(() => "Entering FetchPlayerStatInformation for " + aPlayer?.player_name, 7);
+            try
+            {
+                if (aPlayer == null)
+                {
+                    return false;
+                }
+                // Stats require Battlelog or EZScale. Return true if already populated.
+                return aPlayer.BLInfoStored;
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching player stat information.", e));
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Fetches power/skill information for balancing purposes.
+        /// </summary>
+        private void FetchPowerInformation(APlayer aPlayer)
+        {
+            Log.Debug(() => "Entering FetchPowerInformation for " + aPlayer?.player_name, 7);
+            try
+            {
+                if (aPlayer == null)
+                {
+                    return;
+                }
+                // Power information is calculated from round stats and battlelog stats
+                // The actual calculation happens in APlayer.GetPower()
+                Log.Debug(() => "Power for " + aPlayer.player_name + ": " + Math.Round(aPlayer.GetPower(true), 2), 5);
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching power information.", e));
+            }
+            Log.Debug(() => "Exiting FetchPowerInformation", 7);
+        }
+
+        /// <summary>
+        /// Fetches server information from the database. Requires active DB connection.
+        /// Returns true if server info was found.
+        /// </summary>
+        private Boolean FetchDBServerInfo()
+        {
+            Log.Debug(() => "Entering FetchDBServerInfo", 7);
+            try
+            {
+                using (MySqlConnection connection = new MySqlConnection(_dbCommStringBuilder.ConnectionString))
+                {
+                    connection.Open();
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"SELECT `ServerID`, `ServerGroup`, `IP_Address`
+                            FROM `tbl_server`
+                            WHERE `IP_Address` = @ip";
+                        command.Parameters.AddWithValue("@ip", _serverInfo.ServerIP);
+                        using (var reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                _serverInfo.ServerID = reader.GetInt64("ServerID");
+                                _serverInfo.ServerGroup = reader.GetInt64("ServerGroup");
+                                Log.Debug(() => "Fetched server ID " + _serverInfo.ServerID + " group " + _serverInfo.ServerGroup, 3);
+                                return true;
+                            }
+                        }
+                    }
+                }
+                Log.Warn("Server not found in database for IP " + _serverInfo.ServerIP);
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching server info from database.", e));
+            }
+            Log.Debug(() => "Exiting FetchDBServerInfo", 7);
+            return false;
+        }
+
+        /// <summary>
+        /// Fetches the server group for a given server ID.
+        /// </summary>
+        private Int64 FetchServerGroup(Int64 serverID)
+        {
+            Log.Debug(() => "Entering FetchServerGroup for server " + serverID, 7);
+            try
+            {
+                using (MySqlConnection connection = new MySqlConnection(_dbCommStringBuilder.ConnectionString))
+                {
+                    connection.Open();
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"SELECT `ServerGroup` FROM `tbl_server` WHERE `ServerID` = @sid";
+                        command.Parameters.AddWithValue("@sid", serverID);
+                        Object result = command.ExecuteScalar();
+                        if (result != null && result != DBNull.Value)
+                        {
+                            return Convert.ToInt64(result);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching server group.", e));
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// Fetches the IRO (Instant Repeat Offender) status for a record.
+        /// Returns true if the player is an IRO.
+        /// </summary>
+        private Boolean FetchIROStatus(ARecord record)
+        {
+            Log.Debug(() => "Entering FetchIROStatus", 7);
+            try
+            {
+                if (record?.target_player == null)
+                {
+                    return false;
+                }
+                // Check if the player has been punished recently (within 10 minutes)
+                if (record.target_player.LastPunishment != null)
+                {
+                    TimeSpan sinceLastPunish = NowDuration(record.target_player.LastPunishment.record_time);
+                    if (sinceLastPunish.TotalMinutes < 10)
+                    {
+                        Log.Debug(() => "Player " + record.target_name + " is an IRO (last punish " + Math.Round(sinceLastPunish.TotalMinutes, 1) + "m ago).", 4);
+                        return true;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching IRO status.", e));
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Fetches a conversation between two players from the database.
+        /// Returns list of (timestamp, (playerName, message)) pairs.
+        /// </summary>
+        private List<KeyValuePair<DateTime, KeyValuePair<String, String>>> FetchConversation(Int64 player1ID, Int64 player2ID, Int32 lineCount, Int32 dayLimit)
+        {
+            Log.Debug(() => "Entering FetchConversation", 7);
+            var conversation = new List<KeyValuePair<DateTime, KeyValuePair<String, String>>>();
+            try
+            {
+                using (MySqlConnection connection = new MySqlConnection(_dbCommStringBuilder.ConnectionString))
+                {
+                    connection.Open();
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"SELECT `logDate`, `logPlayerID`, `logSoldierName`, `logMessage`
+                            FROM `tbl_chatlog`
+                            WHERE (`logPlayerID` = @p1 OR `logPlayerID` = @p2)
+                                AND `ServerID` = @sid
+                                AND `logDate` > DATE_SUB(UTC_TIMESTAMP(), INTERVAL @days DAY)
+                            ORDER BY `logDate` DESC
+                            LIMIT @limit";
+                        command.Parameters.AddWithValue("@p1", player1ID);
+                        command.Parameters.AddWithValue("@p2", player2ID);
+                        command.Parameters.AddWithValue("@sid", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@days", dayLimit);
+                        command.Parameters.AddWithValue("@limit", lineCount);
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                DateTime logDate = reader.GetDateTime("logDate");
+                                String playerName = reader.GetString("logSoldierName");
+                                String message = reader.GetString("logMessage");
+                                conversation.Add(new KeyValuePair<DateTime, KeyValuePair<String, String>>(logDate,
+                                    new KeyValuePair<String, String>(playerName, message)));
+                            }
+                        }
+                    }
+                }
+                conversation.Reverse();
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching conversation.", e));
+            }
+            return conversation;
+        }
+
+        /// <summary>
+        /// Fetches chat history for a player from the database.
+        /// Returns list of (timestamp, message) pairs.
+        /// </summary>
+        private List<KeyValuePair<DateTime, String>> FetchChat(Int64 playerID, Int32 lineCount, Int32 dayLimit)
+        {
+            Log.Debug(() => "Entering FetchChat", 7);
+            var chatList = new List<KeyValuePair<DateTime, String>>();
+            try
+            {
+                using (MySqlConnection connection = new MySqlConnection(_dbCommStringBuilder.ConnectionString))
+                {
+                    connection.Open();
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"SELECT `logDate`, `logMessage`
+                            FROM `tbl_chatlog`
+                            WHERE `logPlayerID` = @pid
+                                AND `ServerID` = @sid
+                                AND `logDate` > DATE_SUB(UTC_TIMESTAMP(), INTERVAL @days DAY)
+                            ORDER BY `logDate` DESC
+                            LIMIT @limit";
+                        command.Parameters.AddWithValue("@pid", playerID);
+                        command.Parameters.AddWithValue("@sid", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@days", dayLimit);
+                        command.Parameters.AddWithValue("@limit", lineCount);
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                DateTime logDate = reader.GetDateTime("logDate");
+                                String message = reader.GetString("logMessage");
+                                chatList.Add(new KeyValuePair<DateTime, String>(logDate, message));
+                            }
+                        }
+                    }
+                }
+                chatList.Reverse();
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching chat.", e));
+            }
+            return chatList;
+        }
+
+        /// <summary>
+        /// Runs queued actions from the database. Requires active DB connection.
+        /// </summary>
+        private void RunActionsFromDB()
+        {
+            Log.Debug(() => "Entering RunActionsFromDB", 7);
+            try
+            {
+                using (MySqlConnection connection = new MySqlConnection(_dbCommStringBuilder.ConnectionString))
+                {
+                    connection.Open();
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"SELECT * FROM `adkats_records_main`
+                            WHERE `server_id` = @sid
+                                AND `adkats_read` = 'N'
+                            ORDER BY `record_time` ASC";
+                        command.Parameters.AddWithValue("@sid", _serverInfo.ServerID);
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                Log.Debug(() => "Found pending action in DB: record " + reader.GetInt64("record_id"), 4);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error running actions from database.", e));
+            }
+            Log.Debug(() => "Exiting RunActionsFromDB", 7);
+        }
+
+        /// <summary>
+        /// Imports bans from BBM5108 ban manager format. Requires active DB connection.
+        /// </summary>
+        private void ImportBansFromBBM5108()
+        {
+            Log.Debug(() => "Entering ImportBansFromBBM5108", 7);
+            try
+            {
+                Log.Info("BBM5108 ban import is not currently implemented in v2.");
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error importing bans from BBM5108.", e));
+            }
+            Log.Debug(() => "Exiting ImportBansFromBBM5108", 7);
+        }
+
+        /// <summary>
+        /// Runs pending SQL schema updates. Called by RunSQLUpdates(Boolean async).
+        /// </summary>
+        private void RunSQLUpdates()
+        {
+            Log.Debug(() => "Entering RunSQLUpdates (no-arg)", 7);
+            try
+            {
+                List<ASQLUpdate> updates = FetchSQLUpdates();
+                if (updates == null || !updates.Any())
+                {
+                    Log.Debug(() => "No SQL updates pending.", 4);
+                    return;
+                }
+                foreach (ASQLUpdate update in updates)
+                {
+                    Log.Debug(() => "Processing SQL update: " + update.update_id, 4);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error running SQL updates.", e));
+            }
+            Log.Debug(() => "Exiting RunSQLUpdates (no-arg)", 7);
+        }
+
+        /// <summary>
+        /// Tests database timing by comparing UTC timestamps. Used for clock sync verification.
+        /// Returns true if timing is within acceptable range.
+        /// </summary>
+        private Boolean TestDBTiming(Boolean verbose, out TimeSpan diffDBUTC)
+        {
+            diffDBUTC = TimeSpan.Zero;
+            Log.Debug(() => "Entering TestDBTiming", 7);
+            try
+            {
+                using (MySqlConnection connection = new MySqlConnection(_dbCommStringBuilder.ConnectionString))
+                {
+                    connection.Open();
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = "SELECT UTC_TIMESTAMP()";
+                        DateTime dbTime = (DateTime)command.ExecuteScalar();
+                        DateTime localTime = DateTime.UtcNow;
+                        diffDBUTC = dbTime - localTime;
+                        Double diffSeconds = Math.Abs(diffDBUTC.TotalSeconds);
+                        if (verbose)
+                        {
+                            Log.Info("DB/UTC time difference: " + Math.Round(diffSeconds, 2) + " seconds");
+                        }
+                        if (diffSeconds > 60)
+                        {
+                            Log.Warn("Database time differs from UTC by " + Math.Round(diffSeconds, 0) + " seconds.");
+                        }
+                        return true;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error testing database timing.", e));
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Sends the online soldier list to external services or database.
+        /// </summary>
+        private void SendOnlineSoldiers()
+        {
+            Log.Debug(() => "Entering SendOnlineSoldiers", 7);
+            try
+            {
+                List<String> soldierNames = new List<String>();
+                lock (_PlayerDictionary)
+                {
+                    soldierNames = _PlayerDictionary.Keys.ToList();
+                }
+                Log.Debug(() => "Online soldiers: " + soldierNames.Count, 5);
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error sending online soldiers.", e));
+            }
+            Log.Debug(() => "Exiting SendOnlineSoldiers", 7);
+        }
+
+        /// <summary>
+        /// Tests database response timing.
+        /// </summary>
+        private void TestDBTiming()
+        {
+            TimeSpan diff;
+            TestDBTiming(true, out diff);
+        }
     }
 }

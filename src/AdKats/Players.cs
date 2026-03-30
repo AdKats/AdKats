@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Threading;
 
 using MySqlConnector;
@@ -3054,6 +3056,39 @@ namespace PRoConEvents
                 Log.HandleException(new AException("Error while queuing statistic for processing.", e));
             }
             Log.Debug(() => "Exiting QueueStatisticForProcessing", 6);
+        }
+
+        /// <summary>
+        /// Removes a player from the player dictionary.
+        /// </summary>
+        /// <param name="playerName">Name of the player to remove</param>
+        /// <param name="verbose">Whether to log verbose removal info</param>
+        private void RemovePlayerFromDictionary(String playerName, Boolean verbose)
+        {
+            try
+            {
+                if (String.IsNullOrEmpty(playerName))
+                {
+                    return;
+                }
+                lock (_PlayerDictionary)
+                {
+                    if (_PlayerDictionary.ContainsKey(playerName))
+                    {
+                        APlayer aPlayer = _PlayerDictionary[playerName];
+                        aPlayer.player_online = false;
+                        _PlayerDictionary.Remove(playerName);
+                        if (verbose)
+                        {
+                            Log.Debug(() => "Removed " + playerName + " from player dictionary.", 4);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error removing player " + playerName + " from dictionary.", e));
+            }
         }
 
     }

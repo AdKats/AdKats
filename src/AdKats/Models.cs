@@ -8,6 +8,8 @@ using System.Linq;
 using System.Threading;
 
 using PRoCon.Core;
+using PRoCon.Core.Maps;
+using PRoCon.Core.Players.Items;
 using PRoCon.Core.Players;
 
 namespace PRoConEvents
@@ -685,6 +687,11 @@ namespace PRoConEvents
             public Int64 BL_SPM;
             public Double BL_KDR;
             public Double BL_KPM;
+            public Int32 BL_Rank;
+            public Double BL_Time;
+            public Int32 BL_Kills;
+            public Int32 BL_Deaths;
+            public Int64 player_personaId;
             public ATopStats TopStats;
             public IPLocation location = null;
             public Double EZScaleAnomalyScore = 0;

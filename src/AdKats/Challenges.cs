@@ -3,9 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 
+using MySqlConnector;
 using Newtonsoft.Json;
+
+using PRoCon.Core.Players.Items;
 
 using PRoCon.Core;
 using PRoCon.Core.Players;

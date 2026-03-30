@@ -1,6 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -18,6 +21,7 @@ using Newtonsoft.Json.Linq;
 
 using PRoCon.Core;
 using PRoCon.Core.Players;
+using PRoCon.Core.Players.Items;
 using PRoCon.Core.Plugin;
 
 namespace PRoConEvents
@@ -1488,7 +1492,7 @@ namespace PRoConEvents
                         {"content", content},
                         {"embeds", embeds}
                     });
-                    url.WithHeader("Content-Type", "application/json")
+                    var _ = url.WithHeader("Content-Type", "application/json")
                         .PostStringAsync(jsonBody)
                         .Result;
                 }

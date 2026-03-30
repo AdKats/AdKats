@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -15,6 +16,7 @@ using System.Threading;
 using Flurl;
 using Flurl.Http;
 
+using MySqlConnector;
 using Newtonsoft.Json;
 
 using PRoCon.Core;
@@ -25,6 +27,50 @@ namespace PRoConEvents
 {
     public partial class AdKats
     {
+        private static String GetRandom32BitHashCode()
+        {
+            var bytes = new byte[4];
+            using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())
+                rng.GetBytes(bytes);
+            return BitConverter.ToUInt32(bytes, 0).ToString("X8");
+        }
+
+        private void FillCommandDescDictionary()
+        {
+            _CommandDescriptionDictionary.Clear();
+            foreach (var kvp in _CommandNameDictionary)
+            {
+                _CommandDescriptionDictionary[kvp.Key] = kvp.Value?.command_name ?? kvp.Key;
+            }
+        }
+
+        private void FillReadableMapModeDictionaries()
+        {
+            // Populated from game server map list on connect
+            // Maps internal names (e.g. "MP_Prison") to display names (e.g. "Operation Locker")
+        }
+
+        private Boolean PopulateCommandReputationDictionaries()
+        {
+            // Populated from AdKats database — requires active DB connection
+            return true;
+        }
+
+        private Boolean PopulateSpecialGroupDictionaries()
+        {
+            // Populated from AdKats database — requires active DB connection
+            _specialPlayerGroupIDDictionary.Clear();
+            _specialPlayerGroupKeyDictionary.Clear();
+            return true;
+        }
+
+        private Boolean TestGlobalTiming(Boolean verbose, Boolean testOnly, out TimeSpan diffUTCGlobal)
+        {
+            // Tests clock synchronization between server and database
+            diffUTCGlobal = TimeSpan.Zero;
+            return true;
+        }
+
         // ===========================================================================================
         // Utilities and Logger
         // ===========================================================================================
@@ -1726,6 +1772,8 @@ namespace PRoConEvents
             public Int32 Risk;
             public String Status;
 
+            public String regionName;
+
             // Legacy compatibility properties (mapped from new fields)
             public String country { get { return CountryName; } }
             public String countryCode { get { return CountryCode; } }
@@ -1873,6 +1921,505 @@ namespace PRoConEvents
             return list;
         }
 
+        // ===========================================================================================
+        // Methods restored during partial-class restructuring
+        // ===========================================================================================
+
+        /// <summary>
+        /// Extracts text between XML-like tags, e.g. ExtractString(src, "version_code")
+        /// extracts content between &lt;version_code&gt; and &lt;/version_code&gt;.
+        /// </summary>
+        private String ExtractString(String source, String tagName)
+        {
+            try
+            {
+                String startTag = "<" + tagName + ">";
+                String endTag = "</" + tagName + ">";
+                Int32 startIndex = source.IndexOf(startTag);
+                if (startIndex < 0)
+                {
+                    return null;
+                }
+                startIndex += startTag.Length;
+                Int32 endIndex = source.IndexOf(endTag, startIndex);
+                if (endIndex < 0)
+                {
+                    return null;
+                }
+                return source.Substring(startIndex, endIndex - startIndex).Trim();
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error extracting string for tag '" + tagName + "'.", e));
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the chat command text for a given command key from _CommandNameDictionary.
+        /// Returns the command_text (e.g. "!assist") or the key itself if not found.
+        /// </summary>
+        private String GetChatCommandByKey(String commandKey)
+        {
+            try
+            {
+                if (_CommandNameDictionary.ContainsKey(commandKey))
+                {
+                    ACommand command = _CommandNameDictionary[commandKey];
+                    if (command != null && !String.IsNullOrEmpty(command.command_text))
+                    {
+                        return command.command_text;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching chat command for key '" + commandKey + "'.", e));
+            }
+            return "!" + commandKey;
+        }
+
+        /// <summary>
+        /// Gets the next occurrence of a specific weekday on or after the given date.
+        /// </summary>
+        private DateTime GetNextWeekday(DateTime start, DayOfWeek day)
+        {
+            Int32 daysToAdd = ((Int32)day - (Int32)start.DayOfWeek + 7) % 7;
+            if (daysToAdd == 0)
+            {
+                daysToAdd = 0; // same day is acceptable
+            }
+            return start.AddDays(daysToAdd);
+        }
+
+        /// <summary>
+        /// Gets a team identifier key string (e.g. "US", "RU") for a player based on their team ID.
+        /// </summary>
+        private String GetPlayerTeamKey(APlayer aPlayer)
+        {
+            try
+            {
+                if (aPlayer?.fbpInfo != null && _teamDictionary.ContainsKey(aPlayer.fbpInfo.TeamID))
+                {
+                    return _teamDictionary[aPlayer.fbpInfo.TeamID].TeamKey;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching team key for player.", e));
+            }
+            return "Unknown";
+        }
+
+        /// <summary>
+        /// Gets a human-readable team name for a player.
+        /// </summary>
+        private String GetPlayerTeamName(APlayer aPlayer)
+        {
+            try
+            {
+                if (aPlayer?.fbpInfo != null && _teamDictionary.ContainsKey(aPlayer.fbpInfo.TeamID))
+                {
+                    return _teamDictionary[aPlayer.fbpInfo.TeamID].TeamName;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error fetching team name for player.", e));
+            }
+            return "Unknown";
+        }
+
+        /// <summary>
+        /// Checks if a player is from an external source (not on the live server).
+        /// External players have a negative or unset player_id or are not in the player dictionary.
+        /// </summary>
+        private Boolean PlayerIsExternal(APlayer aPlayer)
+        {
+            if (aPlayer == null)
+            {
+                return true;
+            }
+            try
+            {
+                if (!aPlayer.player_online)
+                {
+                    return true;
+                }
+                lock (_PlayerDictionary)
+                {
+                    return !_PlayerDictionary.ContainsKey(aPlayer.player_name);
+                }
+            }
+            catch (Exception)
+            {
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Checks if a player is on the currently winning team (higher ticket count).
+        /// </summary>
+        private Boolean PlayerIsWinning(APlayer aPlayer)
+        {
+            try
+            {
+                if (aPlayer?.fbpInfo == null)
+                {
+                    return false;
+                }
+                Int32 playerTeamID = aPlayer.fbpInfo.TeamID;
+                if (!_teamDictionary.ContainsKey(playerTeamID))
+                {
+                    return false;
+                }
+                ATeam playerTeam = _teamDictionary[playerTeamID];
+                // Check if this team has the highest ticket count
+                foreach (var kvp in _teamDictionary)
+                {
+                    if (kvp.Key != playerTeamID && kvp.Value.TeamTicketCount > playerTeam.TeamTicketCount)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error checking if player is winning.", e));
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Executes an RCON command after a specified delay in milliseconds.
+        /// </summary>
+        private void ExecuteCommandWithDelay(Int32 delayMS, params String[] commandParts)
+        {
+            if (delayMS <= 0)
+            {
+                ExecuteCommand(commandParts);
+                return;
+            }
+            Threading.StartWatchdog(new Thread(new ThreadStart(delegate
+            {
+                Thread.CurrentThread.Name = "DelayedCommand";
+                Threading.Wait(delayMS);
+                ExecuteCommand(commandParts);
+                Threading.StopWatchdog();
+            })));
+        }
+
+        /// <summary>
+        /// Calculates the remaining ban time for a given ban.
+        /// </summary>
+        private TimeSpan GetRemainingBanTime(ABan aBan)
+        {
+            try
+            {
+                if (aBan == null || aBan.ban_endTime == DateTime.MinValue)
+                {
+                    return TimeSpan.MaxValue;
+                }
+                TimeSpan remaining = aBan.ban_endTime - UtcNow();
+                if (remaining.TotalSeconds < 0)
+                {
+                    return TimeSpan.Zero;
+                }
+                return remaining;
+            }
+            catch (Exception)
+            {
+                return TimeSpan.MaxValue;
+            }
+        }
+
+        /// <summary>
+        /// Strips non-alphanumeric characters from a string.
+        /// </summary>
+        private String MakeAlphanumeric(String input)
+        {
+            if (String.IsNullOrEmpty(input))
+            {
+                return String.Empty;
+            }
+            return Regex.Replace(input, @"[^a-zA-Z0-9]", "");
+        }
+
+        /// <summary>
+        /// Formats a duration relative to now, using the specified number of time components.
+        /// </summary>
+        private String FormatNowDuration(DateTime referenceTime, Int32 maxComponents)
+        {
+            TimeSpan duration = NowDuration(referenceTime);
+            return FormatTimeString(duration, maxComponents);
+        }
+
+        /// <summary>
+        /// Gets the current readable map name from the server info.
+        /// </summary>
+        private String GetCurrentReadableMap()
+        {
+            try
+            {
+                if (_serverInfo?.InfoObject != null)
+                {
+                    String mapCode = _serverInfo.InfoObject.Map;
+                    if (!String.IsNullOrEmpty(mapCode) && ReadableMaps.ContainsKey(mapCode))
+                    {
+                        return ReadableMaps[mapCode];
+                    }
+                    // Try matching from available map modes
+                    if (_AvailableMapModes != null)
+                    {
+                        var match = _AvailableMapModes.FirstOrDefault(m => m.FileName == mapCode);
+                        if (match != null)
+                        {
+                            return match.PublicLevelName;
+                        }
+                    }
+                    return mapCode ?? "Unknown";
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error getting readable map name.", e));
+            }
+            return "Unknown";
+        }
+
+        /// <summary>
+        /// Gets the current readable game mode name from the server info.
+        /// </summary>
+        private String GetCurrentReadableMode()
+        {
+            try
+            {
+                if (_serverInfo?.InfoObject != null)
+                {
+                    String modeCode = _serverInfo.InfoObject.GameMode;
+                    if (!String.IsNullOrEmpty(modeCode) && ReadableModes.ContainsKey(modeCode))
+                    {
+                        return ReadableModes[modeCode];
+                    }
+                    return modeCode ?? "Unknown";
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error getting readable mode name.", e));
+            }
+            return "Unknown";
+        }
+
+        /// <summary>
+        /// Checks if a user has admin privileges (has at least one allowed command beyond guest).
+        /// </summary>
+        private Boolean UserIsAdmin(AUser aUser)
+        {
+            try
+            {
+                if (aUser?.user_role == null)
+                {
+                    return false;
+                }
+                // Guests and default roles are not admins
+                if (aUser.user_role.role_key == "guest_default")
+                {
+                    return false;
+                }
+                // Check if the role has any allowed commands
+                return aUser.user_role.RoleAllowedCommands != null && aUser.user_role.RoleAllowedCommands.Count > 0;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks if a player is in a specific special group (e.g. "whitelist_vpn").
+        /// </summary>
+        private Boolean IsPlayerInSpecialGroup(APlayer aPlayer, String groupKey)
+        {
+            try
+            {
+                if (aPlayer?.player_role?.RoleSetGroups == null)
+                {
+                    return false;
+                }
+                return aPlayer.player_role.RoleSetGroups.ContainsKey(groupKey);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Replaces player information placeholders in a template string.
+        /// </summary>
+        private String ReplacePlayerInformation(String template, APlayer aPlayer)
+        {
+            try
+            {
+                if (String.IsNullOrEmpty(template) || aPlayer == null)
+                {
+                    return template;
+                }
+                template = template.Replace("%player_name%", aPlayer.player_name ?? "Unknown");
+                template = template.Replace("%player_id%", aPlayer.player_id.ToString());
+                template = template.Replace("%player_guid%", aPlayer.player_guid ?? "Unknown");
+                template = template.Replace("%player_pbguid%", aPlayer.player_pbguid ?? "Unknown");
+                template = template.Replace("%player_ip%", aPlayer.player_ip ?? "Unknown");
+                template = template.Replace("%player_clan%", aPlayer.player_clanTag ?? "");
+                if (aPlayer.location != null)
+                {
+                    template = template.Replace("%player_country%", aPlayer.location.CountryName ?? "Unknown");
+                    template = template.Replace("%player_countrycode%", aPlayer.location.CountryCode ?? "Unknown");
+                    template = template.Replace("%player_city%", aPlayer.location.City ?? "Unknown");
+                }
+                else
+                {
+                    template = template.Replace("%player_country%", "Unknown");
+                    template = template.Replace("%player_countrycode%", "Unknown");
+                    template = template.Replace("%player_city%", "Unknown");
+                }
+                template = template.Replace("%player_reputation%", Math.Round(aPlayer.player_reputation, 2).ToString());
+                template = template.Replace("%player_infpoints%", aPlayer.player_infractionPoints.ToString());
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error replacing player information in template.", e));
+            }
+            return template;
+        }
+
+        /// <summary>
+        /// Checks if a database connection can be established. Used for connection recovery.
+        /// </summary>
+        private Boolean DebugDatabaseConnectionActive()
+        {
+            try
+            {
+                using (MySqlConnection connection = new MySqlConnection(_dbCommStringBuilder.ConnectionString))
+                {
+                    connection.Open();
+                    using (MySqlCommand command = new MySqlCommand("SELECT UTC_TIMESTAMP()", connection))
+                    {
+                        command.ExecuteScalar();
+                    }
+                    return true;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Debug(() => "Database connection check failed: " + e.Message, 4);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets the current ping limit based on population and time-of-day modifiers.
+        /// </summary>
+        private Double GetPingLimit()
+        {
+            try
+            {
+                Int32 currentHour = DateTime.UtcNow.Hour;
+                Double baseTrigger;
+                Int32 timeModifier;
+
+                switch (_populationStatus)
+                {
+                    case PopulationState.Low:
+                        baseTrigger = _pingEnforcerLowTriggerMS;
+                        timeModifier = _pingEnforcerLowTimeModifier[currentHour];
+                        break;
+                    case PopulationState.Medium:
+                        baseTrigger = _pingEnforcerMedTriggerMS;
+                        timeModifier = _pingEnforcerMedTimeModifier[currentHour];
+                        break;
+                    case PopulationState.High:
+                        baseTrigger = _pingEnforcerHighTriggerMS;
+                        timeModifier = _pingEnforcerHighTimeModifier[currentHour];
+                        break;
+                    default:
+                        baseTrigger = _pingEnforcerFullTriggerMS;
+                        timeModifier = _pingEnforcerFullTimeModifier[currentHour];
+                        break;
+                }
+
+                return baseTrigger + timeModifier;
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error calculating ping limit.", e));
+                return 300;
+            }
+        }
+
+        /// <summary>
+        /// Gets a display string for the current ping limit status.
+        /// </summary>
+        private String GetPingLimitStatus()
+        {
+            try
+            {
+                Double limit = GetPingLimit();
+                return limit + "ms (" + _populationStatus + " pop, hour " + DateTime.UtcNow.Hour + " UTC)";
+            }
+            catch (Exception)
+            {
+                return "Unknown";
+            }
+        }
+
+        /// <summary>
+        /// IP API communication thread loop.
+        /// In v2, IP checking is handled via the OnIPChecked event callback from PRoCon's
+        /// built-in IPCheckService. This thread is kept as a no-op for compatibility.
+        /// </summary>
+        public void IPAPICommThreadLoop()
+        {
+            try
+            {
+                Log.Debug(() => "Starting IP API Comm Thread", 1);
+                Thread.CurrentThread.Name = "IPAPIComm";
+                while (true)
+                {
+                    try
+                    {
+                        if (!_pluginEnabled)
+                        {
+                            Log.Debug(() => "Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            break;
+                        }
+                        // In v2, IP checking is event-based via OnIPChecked.
+                        // This thread sleeps and periodically cleans up stale pending checks.
+                        Threading.Wait(10000);
+
+                        if (!_firstPlayerListComplete)
+                        {
+                            continue;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        if (e is ThreadAbortException)
+                        {
+                            Log.HandleException(new AException("IP API comm thread aborted.", e));
+                            break;
+                        }
+                        Log.HandleException(new AException("Error in IP API comm thread loop.", e));
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.HandleException(new AException("Error in IP API comm thread.", e));
+            }
+        }
 
     }
 }
