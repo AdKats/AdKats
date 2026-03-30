@@ -9,8 +9,8 @@ using System.Threading;
 
 using PRoCon.Core;
 using PRoCon.Core.Maps;
-using PRoCon.Core.Players.Items;
 using PRoCon.Core.Players;
+using PRoCon.Core.Players.Items;
 
 namespace PRoConEvents
 {

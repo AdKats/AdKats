@@ -7,12 +7,12 @@ using System.Text.RegularExpressions;
 using System.Threading;
 
 using MySqlConnector;
-using Newtonsoft.Json;
 
-using PRoCon.Core.Players.Items;
+using Newtonsoft.Json;
 
 using PRoCon.Core;
 using PRoCon.Core.Players;
+using PRoCon.Core.Players.Items;
 using PRoCon.Core.Plugin;
 
 namespace PRoConEvents

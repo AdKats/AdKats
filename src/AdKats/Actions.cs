@@ -9,8 +9,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-using PRoCon.Core.Players.Items;
-
 using MySqlConnector;
 
 using Newtonsoft.Json;
@@ -18,6 +16,7 @@ using Newtonsoft.Json.Linq;
 
 using PRoCon.Core;
 using PRoCon.Core.Players;
+using PRoCon.Core.Players.Items;
 using PRoCon.Core.Plugin;
 
 namespace PRoConEvents
