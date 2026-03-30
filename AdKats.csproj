@@ -5,7 +5,7 @@
     <RootNamespace>PRoConEvents</RootNamespace>
     <!-- This .csproj exists for dotnet format / CI style checks only. -->
     <!-- It is NOT a real build file — PRoCon v2 assemblies are not available. -->
-    <NoWarn>CS0246;CS0234;CS0012;CS0518;CS0115;CS0534;CS0535;CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625</NoWarn>
+    <NoWarn>CS0246;CS0234;CS0012;CS0518;CS0115;CS0534;CS0535;CS0111;CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625</NoWarn>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
