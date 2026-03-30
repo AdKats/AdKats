@@ -1482,27 +1482,22 @@ namespace PRoConEvents
                     if (embed != null)
                         embeds.Add(embed);
 
-                    WebRequest request = WebRequest.Create(url);
-                    request.Method = "POST";
-                    request.ContentType = "application/json";
                     String jsonBody = JSON.JsonEncode(new Hashtable {
                         {"avatar_url", "https://avatars1.githubusercontent.com/u/9680130"},
                         {"username", "AdKats (" + _plugin._shortServerName + ")"},
                         {"content", content},
                         {"embeds", embeds}
                     });
-                    byte[] byteArray = Encoding.UTF8.GetBytes(jsonBody);
-                    request.ContentLength = byteArray.Length;
-                    Stream requestStream = request.GetRequestStream();
-                    requestStream.Write(byteArray, 0, byteArray.Length);
-                    requestStream.Close();
+                    url.WithHeader("Content-Type", "application/json")
+                        .PostStringAsync(jsonBody)
+                        .Result;
                 }
-                catch (WebException e)
+                catch (FlurlHttpException e)
                 {
-                    using (WebResponse response = e.Response)
-                    using (var reader = new StreamReader(response.GetResponseStream()))
+                    String responseBody = e.GetResponseStringAsync().Result;
+                    if (!String.IsNullOrEmpty(responseBody))
                     {
-                        _plugin.Log.Info("RESPONSE: " + reader.ReadToEnd());
+                        _plugin.Log.Info("RESPONSE: " + responseBody);
                     }
                     _plugin.Log.HandleException(new AException("Web error posting to Discord WebHook.", e));
                 }
