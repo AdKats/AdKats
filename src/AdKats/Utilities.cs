@@ -487,8 +487,8 @@ namespace PRoConEvents
                             String pluginSource = null;
                             try
                             {
-                                string stableURL = "https://raw.githubusercontent.com/Hedius/E4GLAdKats/main/AdKats.cs" + "?cacherand=" + Environment.TickCount;
-                                string testURL = "https://raw.githubusercontent.com/Hedius/E4GLAdKats/test/AdKats.cs" + "?cacherand=" + Environment.TickCount;
+                                string stableURL = "https://raw.githubusercontent.com/AdKats/AdKats/master/AdKats.cs" + "?cacherand=" + Environment.TickCount;
+                                string testURL = "https://raw.githubusercontent.com/AdKats/AdKats/test/AdKats.cs" + "?cacherand=" + Environment.TickCount;
                                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                 {
                                     pluginSource = Util.HttpDownload(stableURL);
@@ -1867,7 +1867,7 @@ namespace PRoConEvents
                 Plugin.Log.Debug(() => "Fetching weapon statistic definitions...", 2);
                 try
                 {
-                    weaponInfo = Plugin.Util.HttpDownload("https://raw.githubusercontent.com/Hedius/E4GLAdKats/main/adkatsblweaponstats.json" + "?cacherand=" + Environment.TickCount);
+                    weaponInfo = Plugin.Util.HttpDownload("https://raw.githubusercontent.com/AdKats/AdKats/master/adkatsblweaponstats.json" + "?cacherand=" + Environment.TickCount);
                     Plugin.Log.Debug(() => "Weapon statistic definitions fetched.", 1);
                 }
                 catch (Exception)
