@@ -1124,7 +1124,7 @@ namespace PRoConEvents
 
         public String GetPluginName()
         {
-            return "E4GLAdKats - Advanced In-Game Admin";
+            return "AdKats - Advanced In-Game Admin";
         }
 
         public String GetPluginVersion()
@@ -1139,15 +1139,15 @@ namespace PRoConEvents
 
         public String GetPluginWebsite()
         {
-            return "github.com/Hedius/E4GLAdKats";
+            return "github.com/AdKats/AdKats";
         }
 
         public String GetPluginDescription()
         {
             String concat = @"
             <p>
-                <a href='https://github.com/Hedius/E4GLAdKats' name=adkats>
-                    <img src='https://raw.githubusercontent.com/Hedius/E4GLAdKats/main/images/AdKats.jpg' alt='AdKats Advanced In-Game Admin Tools'>
+                <a href='https://github.com/AdKats/AdKats' name=adkats>
+                    <img src='https://raw.githubusercontent.com/AdKats/AdKats/master/images/AdKats.jpg' alt='AdKats Advanced In-Game Admin Tools'>
                 </a>
             </p>";
             try
@@ -1633,7 +1633,7 @@ namespace PRoConEvents
                     Log.Debug(() => "Fetching plugin links...", 2);
                     try
                     {
-                        _pluginLinks = Util.HttpDownload("https://raw.githubusercontent.com/Hedius/E4GLAdKats/main/LINKS.md?cacherand=" + Environment.TickCount);
+                        _pluginLinks = Util.HttpDownload("https://raw.githubusercontent.com/AdKats/AdKats/master/LINKS.md?cacherand=" + Environment.TickCount);
                         Log.Debug(() => "Plugin links fetched.", 1);
                     }
                     catch (Exception)
@@ -1652,7 +1652,7 @@ namespace PRoConEvents
                     Log.Debug(() => "Fetching plugin readme...", 2);
                     try
                     {
-                        _pluginDescription = Util.HttpDownload("https://raw.githubusercontent.com/Hedius/E4GLAdKats/main/README.md?cacherand=" + Environment.TickCount);
+                        _pluginDescription = Util.HttpDownload("https://raw.githubusercontent.com/AdKats/AdKats/master/README.md?cacherand=" + Environment.TickCount);
                         Log.Debug(() => "Plugin readme fetched.", 1);
                     }
                     catch (Exception)
@@ -1671,7 +1671,7 @@ namespace PRoConEvents
                     Log.Debug(() => "Fetching plugin changelog...", 2);
                     try
                     {
-                        _pluginChangelog = Util.HttpDownload("https://raw.githubusercontent.com/Hedius/E4GLAdKats/main/CHANGELOG.md?cacherand=" + Environment.TickCount);
+                        _pluginChangelog = Util.HttpDownload("https://raw.githubusercontent.com/AdKats/AdKats/master/CHANGELOG.md?cacherand=" + Environment.TickCount);
                         Log.Debug(() => "Plugin changelog fetched.", 1);
                     }
                     catch (Exception)
@@ -1715,7 +1715,7 @@ namespace PRoConEvents
                                     <h2 style='color:#DF0101;'>
                                         You are running an outdated version! Version " + latestStableVersion + @" is available for download!
                                     </h2>
-                                    <a href='https://github.com/Hedius/E4GLAdKats/' target='_blank'>
+                                    <a href='https://github.com/AdKats/AdKats/' target='_blank'>
                                         Download Version " + latestStableVersion + @"!
                                     </a><br/>
                                     Download link below.";

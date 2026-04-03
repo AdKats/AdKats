@@ -403,7 +403,7 @@ namespace PRoConEvents
                 _plugin.Log.Debug(() => "Fetching weapon names...", 2);
                 try
                 {
-                    downloadString = _plugin.Util.HttpDownload("https://raw.githubusercontent.com/Hedius/E4GLAdKats/main/adkatsweaponnames.json" + "?cacherand=" + Environment.TickCount);
+                    downloadString = _plugin.Util.HttpDownload("https://raw.githubusercontent.com/AdKats/AdKats/master/adkatsweaponnames.json" + "?cacherand=" + Environment.TickCount);
                     _plugin.Log.Debug(() => "Weapon names fetched.", 1);
                 }
                 catch (Exception)

@@ -1139,7 +1139,7 @@ namespace PRoConEvents
                     Log.Debug(() => "Fetching plugin changelog...", 2);
                     try
                     {
-                        sqlScript = Util.HttpDownload("https://raw.githubusercontent.com/Hedius/E4GLAdKats/main/adkats.sql?cacherand=" + Environment.TickCount);
+                        sqlScript = Util.HttpDownload("https://raw.githubusercontent.com/AdKats/AdKats/master/adkats.sql?cacherand=" + Environment.TickCount);
                         Log.Debug(() => "SQL setup script fetched.", 1);
                     }
                     catch (Exception)
@@ -8356,7 +8356,7 @@ namespace PRoConEvents
             Log.Debug(() => "Fetching reputation definitions...", 2);
             try
             {
-                repInfo = Util.HttpDownload("https://raw.githubusercontent.com/Hedius/E4GLAdKats/main/adkatsreputationstats.json" + "?cacherand=" + Environment.TickCount);
+                repInfo = Util.HttpDownload("https://raw.githubusercontent.com/AdKats/AdKats/master/adkatsreputationstats.json" + "?cacherand=" + Environment.TickCount);
                 Log.Debug(() => "Reputation definitions fetched.", 1);
             }
             catch (Exception)
@@ -8391,7 +8391,7 @@ namespace PRoConEvents
             Log.Debug(() => "Fetching special group definitions...", 2);
             try
             {
-                groupInfo = Util.HttpDownload("https://raw.githubusercontent.com/Hedius/E4GLAdKats/main/adkatsspecialgroups.json" + "?cacherand=" + Environment.TickCount);
+                groupInfo = Util.HttpDownload("https://raw.githubusercontent.com/AdKats/AdKats/master/adkatsspecialgroups.json" + "?cacherand=" + Environment.TickCount);
                 Log.Debug(() => "Special group definitions fetched.", 1);
             }
             catch (Exception)
@@ -8482,7 +8482,7 @@ namespace PRoConEvents
                 String updateInfo;
                 try
                 {
-                    updateInfo = Util.HttpDownload("https://raw.githubusercontent.com/Hedius/E4GLAdKats/main/adkatsupdates.json" + "?cacherand=" + Environment.TickCount);
+                    updateInfo = Util.HttpDownload("https://raw.githubusercontent.com/AdKats/AdKats/master/adkatsupdates.json" + "?cacherand=" + Environment.TickCount);
                     Log.Debug(() => "SQL updates fetched.", 1);
                 }
                 catch (Exception)
